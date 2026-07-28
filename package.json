@@ -1,0 +1,21 @@
+{
+  "name": "remotion-ai-video",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "preview": "remotion studio",
+    "check": "tsc --noEmit",
+    "render": "remotion render claude-code-what-is out/claude-code-what-is.mp4"
+  },
+  "dependencies": {
+    "@remotion/cli": "latest",
+    "remotion": "latest",
+    "react": "latest",
+    "react-dom": "latest"
+  },
+  "devDependencies": {
+    "@types/react": "latest",
+    "@types/react-dom": "latest",
+    "typescript": "~5.8.3"
+  }
+}
