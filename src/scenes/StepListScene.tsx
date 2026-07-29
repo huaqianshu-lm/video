@@ -103,7 +103,7 @@ export const StepListScene = ({scene}: StepListSceneProps) => {
           </div>
         </div>
       </SceneContainer>
-      <Caption text={scene.caption} />
+      <Caption lines={scene.caption} durationSeconds={scene.durationSeconds} />
     </>
   );
 };

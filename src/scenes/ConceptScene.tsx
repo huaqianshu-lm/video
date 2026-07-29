@@ -94,7 +94,7 @@ export const ConceptScene = ({scene}: ConceptSceneProps) => {
           </div>
         </div>
       </SceneContainer>
-      <Caption text={scene.caption} />
+      <Caption lines={scene.caption} durationSeconds={scene.durationSeconds} />
     </>
   );
 };

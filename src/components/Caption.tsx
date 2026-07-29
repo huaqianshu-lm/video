@@ -1,13 +1,50 @@
-import {interpolate, useCurrentFrame} from 'remotion';
+import {interpolate, useCurrentFrame, useVideoConfig} from 'remotion';
+import {getCaptionLineDurationsSeconds, LINE_GAP_SECONDS, secondsToFrames} from '../lib/timing';
 import {colors} from './SceneContainer';
 
 type CaptionProps = {
-  text: string;
+  lines: string[];
+  durationSeconds: number;
 };
 
-export const Caption = ({text}: CaptionProps) => {
+export const Caption = ({lines, durationSeconds}: CaptionProps) => {
   const frame = useCurrentFrame();
-  const opacity = interpolate(frame, [8, 24], [0, 1], {
+  const {fps} = useVideoConfig();
+
+  if (lines.length === 0) {
+    return null;
+  }
+
+  const safeLines = lines;
+  const durationInFrames = Math.max(1, Math.round(durationSeconds * fps));
+  const lineDurations = getCaptionLineDurationsSeconds(safeLines);
+  const totalEstimatedSeconds = lineDurations.reduce((total, duration) => total + duration, 0) +
+    Math.max(0, safeLines.length - 1) * LINE_GAP_SECONDS;
+  const timelineScale = durationSeconds / Math.max(1, totalEstimatedSeconds);
+  const lineStartFrames = lineDurations.reduce<number[]>((starts, duration, index) => {
+    if (index === 0) {
+      return [0];
+    }
+
+    return [
+      ...starts,
+      starts[index - 1] + secondsToFrames((lineDurations[index - 1] + LINE_GAP_SECONDS) * timelineScale, fps),
+    ];
+  }, []);
+  let safeLineIndex = 0;
+
+  for (let index = 0; index < lineStartFrames.length; index += 1) {
+    if (frame >= lineStartFrames[index]) {
+      safeLineIndex = index;
+    }
+  }
+
+  const lineFrame = frame - lineStartFrames[safeLineIndex];
+  const opacity = interpolate(lineFrame, [0, 12], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  const y = interpolate(lineFrame, [0, 12], [10, 0], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
@@ -15,25 +52,26 @@ export const Caption = ({text}: CaptionProps) => {
   return (
     <div
       style={{
-        background: 'rgba(2, 6, 23, 0.68)',
-        border: `1px solid ${colors.line}`,
-        borderRadius: 28,
+        background: 'rgba(2, 6, 23, 0.5)',
+        border: `1px solid rgba(148, 163, 184, 0.28)`,
+        borderRadius: 999,
         bottom: 72,
-        boxShadow: '0 18px 55px rgba(0, 0, 0, 0.28)',
+        boxShadow: '0 14px 42px rgba(0, 0, 0, 0.22)',
         color: colors.text,
-        fontSize: 38,
-        fontWeight: 500,
-        left: 86,
-        letterSpacing: 1,
-        lineHeight: 1.42,
-        opacity,
-        padding: '26px 34px',
+        fontSize: 34,
+        fontWeight: 560,
+        left: 92,
+        letterSpacing: 0.4,
+        lineHeight: 1.36,
+        opacity: frame >= durationInFrames ? 0 : opacity,
+        padding: '18px 30px',
         position: 'absolute',
-        right: 86,
+        right: 92,
         textAlign: 'center',
+        transform: `translateY(${y}px)`,
       }}
     >
-      {text}
+      {safeLines[safeLineIndex]}
     </div>
   );
 };

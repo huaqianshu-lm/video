@@ -92,7 +92,7 @@ export const SummaryScene = ({scene}: SummarySceneProps) => {
           </div>
         </div>
       </SceneContainer>
-      <Caption text={scene.caption} />
+      <Caption lines={scene.caption} durationSeconds={scene.durationSeconds} />
     </>
   );
 };

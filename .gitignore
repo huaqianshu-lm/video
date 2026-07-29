@@ -1,3 +1,8 @@
 node_modules/
 .DS_Store
 .playwright-mcp/
+local/
+public/local-assets/
+*.local
+*.local.*
+doc/
