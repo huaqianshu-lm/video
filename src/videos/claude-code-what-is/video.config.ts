@@ -7,31 +7,125 @@ export const videoConfig: VideoConfig = {
   width: 1080,
   height: 1920,
   fps: 30,
+  audio: {
+    src: 'local-assets/claude-code-what-is/audio.mp3',
+    durationSeconds: 72.8,
+  },
+  subtitleCues: [
+    {
+      startSeconds: 0,
+      endSeconds: 5.718,
+      text: '很多人第一次听到 Claude Code，都会先问：它和 ChatGPT、Cursor 到底有什么区别？',
+    },
+    {
+      startSeconds: 5.892,
+      endSeconds: 8.298,
+      text: '先别把它当成另一个聊天框。',
+    },
+    {
+      startSeconds: 8.472,
+      endSeconds: 12.1,
+      text: '更准确地说，它是一个能进项目里干活的 AI 编码搭档。',
+    },
+    {
+      startSeconds: 12.275,
+      endSeconds: 16.214,
+      text: '你可以把它理解成一个运行在项目里的 AI 助手。',
+    },
+    {
+      startSeconds: 16.389,
+      endSeconds: 21.131,
+      text: '它不是只给建议，而是能读取文件、理解代码，再帮你修改。',
+    },
+    {
+      startSeconds: 21.305,
+      endSeconds: 24.373,
+      text: '需要验证时，它还可以直接运行命令。',
+    },
+    {
+      startSeconds: 24.4,
+      endSeconds: 28.1,
+      text: '聊天工具更像顾问，你问一句，它给你一个建议。',
+    },
+    {
+      startSeconds: 28.275,
+      endSeconds: 32.774,
+      text: 'Claude Code 更像搭档，它可以直接看项目、找问题、改文件。',
+    },
+    {
+      startSeconds: 32.949,
+      endSeconds: 37.098,
+      text: '区别就在这里：一个主要回答，一个可以参与执行。',
+    },
+    {
+      startSeconds: 37.1,
+      endSeconds: 40.35,
+      text: '一个典型流程，是你先告诉它想完成什么。',
+    },
+    {
+      startSeconds: 40.525,
+      endSeconds: 43.543,
+      text: '它会阅读相关文件，再给出修改思路。',
+    },
+    {
+      startSeconds: 43.718,
+      endSeconds: 47.448,
+      text: '接着它改代码、跑检查，最后由你预览和确认。',
+    },
+    {
+      startSeconds: 47.95,
+      endSeconds: 50.7,
+      text: '实际使用时，它通常从终端启动。',
+    },
+    {
+      startSeconds: 50.875,
+      endSeconds: 54.55,
+      text: '你进入项目目录，输入 claude，就可以开始对话。',
+    },
+    {
+      startSeconds: 54.725,
+      endSeconds: 58.65,
+      text: '后面的读取、规划和检查，都围绕当前项目展开。',
+    },
+    {
+      startSeconds: 58.85,
+      endSeconds: 62.4,
+      text: '所以一句话总结：Claude Code 是 AI 编码搭档。',
+    },
+    {
+      startSeconds: 62.575,
+      endSeconds: 66.15,
+      text: '它适合真实工程任务，但不是完全自动驾驶。',
+    },
+    {
+      startSeconds: 66.325,
+      endSeconds: 69.8,
+      text: '你仍然需要检查、确认，并决定最终结果。',
+    },
+  ],
   scenes: [
     {
       id: 'opening',
       type: 'opening',
-      durationSeconds: 8,
+      durationSeconds: 13.2,
       headline: 'Claude Code 到底是什么？',
       subtitle: '它不是另一个聊天框',
       cards: ['ChatGPT？', 'Cursor？', 'Claude Code？'],
       highlight: 'Claude Code？',
-      caption:
-        '很多人第一次听到 Claude Code，都会问：它到底和 ChatGPT、Cursor 有什么区别？',
+      caption: [],
     },
     {
       id: 'concept',
       type: 'concept',
-      durationSeconds: 12,
+      durationSeconds: 12.7,
       headline: '运行在项目里的 AI 编码助手',
       keyPoints: ['读取项目', '理解代码', '修改文件', '运行命令'],
-      caption:
-        '简单说，Claude Code 是一个可以进入工程目录，理解项目并执行编码任务的 AI 助手。',
+      caption: [],
     },
     {
       id: 'comparison',
       type: 'comparison',
-      durationSeconds: 15,
+      durationSeconds: 13.2,
       headline: '聊天工具像顾问，Claude Code 像搭档',
       left: {
         title: 'ChatGPT',
@@ -42,13 +136,12 @@ export const videoConfig: VideoConfig = {
         items: ['读取项目', '定位问题', '修改文件', '运行检查'],
       },
       highlight: 'right',
-      caption:
-        '传统聊天工具更像顾问，而 Claude Code 更像能直接参与执行的搭档。',
+      caption: [],
     },
     {
       id: 'workflow',
       type: 'step-list',
-      durationSeconds: 14,
+      durationSeconds: 10.6,
       headline: '一个典型工作流',
       steps: [
         '你描述目标',
@@ -57,28 +150,26 @@ export const videoConfig: VideoConfig = {
         '修改代码并运行验证',
         '你预览、检查和确认',
       ],
-      caption:
-        '它的核心不是替你思考一切，而是把编码任务拆解、执行，并让你持续验收。',
+      caption: [],
     },
     {
       id: 'terminal',
       type: 'terminal',
-      durationSeconds: 12,
+      durationSeconds: 11.1,
       headline: '它主要从终端开始',
       command: 'claude',
       output: ['Reading project...', 'Planning changes...', 'Running checks...'],
-      caption: 'Claude Code 通常从终端启动，围绕当前项目进行上下文理解和操作。',
+      caption: [],
     },
     {
       id: 'summary',
       type: 'summary',
-      durationSeconds: 10,
+      durationSeconds: 12,
       headline: '一句话总结',
       summary: 'Claude Code 是能在项目中执行任务的 AI 编码搭档。',
       bullets: ['适合真实工程任务', '需要人工确认', '不是完全自动驾驶'],
       highlight: 'AI 编码搭档',
-      caption:
-        '所以，Claude Code 最适合被理解为：一个能和你一起改项目、跑验证、推进任务的 AI 编码搭档。',
+      caption: [],
     },
   ],
 };

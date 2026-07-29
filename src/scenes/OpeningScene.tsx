@@ -111,7 +111,7 @@ export const OpeningScene = ({scene}: OpeningSceneProps) => {
           </div>
         </div>
       </SceneContainer>
-      <Caption text={scene.caption} />
+      <Caption lines={scene.caption} durationSeconds={scene.durationSeconds} />
     </>
   );
 };

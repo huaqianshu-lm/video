@@ -1,6 +1,7 @@
-import {Sequence, useCurrentFrame} from 'remotion';
+import {Audio, Sequence, staticFile, useCurrentFrame} from 'remotion';
 import {Caption} from '../../components/Caption';
 import {ProgressBar} from '../../components/ProgressBar';
+import {TimedCaption} from '../../components/TimedCaption';
 import {ComparisonScene} from '../../scenes/ComparisonScene';
 import {ConceptScene} from '../../scenes/ConceptScene';
 import {OpeningScene} from '../../scenes/OpeningScene';
@@ -27,7 +28,7 @@ const renderScene = (scene: SceneConfig) => {
       return <SummaryScene scene={scene} />;
     default: {
       const _exhaustive: never = scene;
-      return <Caption text={`Unsupported scene: ${String(_exhaustive)}`} />;
+      return <Caption lines={[`Unsupported scene: ${String(_exhaustive)}`]} durationSeconds={1} />;
     }
   }
 };
@@ -38,6 +39,7 @@ export const ClaudeCodeWhatIsVideo = () => {
 
   return (
     <>
+      {videoConfig.audio ? <Audio src={staticFile(videoConfig.audio.src)} /> : null}
       {videoConfig.scenes.map((scene, index) => {
         const from = getSceneStartFrame(videoConfig.scenes, index, videoConfig.fps);
         const durationInFrames = secondsToFrames(scene.durationSeconds, videoConfig.fps);
@@ -48,6 +50,7 @@ export const ClaudeCodeWhatIsVideo = () => {
           </Sequence>
         );
       })}
+      {videoConfig.subtitleCues ? <TimedCaption cues={videoConfig.subtitleCues} /> : null}
       <ProgressBar currentFrame={frame} durationInFrames={durationInFrames} />
     </>
   );

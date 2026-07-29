@@ -13,7 +13,7 @@ export type BaseSceneConfig = {
   type: SceneType;
   durationSeconds: number;
   headline: string;
-  caption: string;
+  caption: string[];
 };
 
 export type OpeningSceneConfig = BaseSceneConfig & {
@@ -66,6 +66,17 @@ export type SceneConfig =
   | TerminalSceneConfig
   | SummarySceneConfig;
 
+export type AudioConfig = {
+  src: string;
+  durationSeconds: number;
+};
+
+export type SubtitleCue = {
+  startSeconds: number;
+  endSeconds: number;
+  text: string;
+};
+
 export type VideoConfig = {
   slug: string;
   title: string;
@@ -73,5 +84,7 @@ export type VideoConfig = {
   width: number;
   height: number;
   fps: number;
+  audio?: AudioConfig;
+  subtitleCues?: SubtitleCue[];
   scenes: SceneConfig[];
 };
