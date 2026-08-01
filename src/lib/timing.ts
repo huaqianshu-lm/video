@@ -35,6 +35,45 @@ export const secondsToFrames = (seconds: number, fps: number) => {
   return Math.round(seconds * fps);
 };
 
+type DistributedRevealOptions = {
+  count: number;
+  durationSeconds: number;
+  fps: number;
+  leadInSeconds?: number;
+  leadOutSeconds?: number;
+  revealSeconds?: number;
+};
+
+export const getDistributedRevealFrames = ({
+  count,
+  durationSeconds,
+  fps,
+  leadInSeconds = 1,
+  leadOutSeconds = 1,
+  revealSeconds = 0.5,
+}: DistributedRevealOptions) => {
+  if (count <= 0) {
+    return [];
+  }
+
+  const durationFrames = secondsToFrames(durationSeconds, fps);
+  const leadInFrames = secondsToFrames(leadInSeconds, fps);
+  const leadOutFrames = secondsToFrames(leadOutSeconds, fps);
+  const revealFrames = Math.max(1, secondsToFrames(revealSeconds, fps));
+  const firstStartFrame = Math.min(leadInFrames, Math.max(0, durationFrames - revealFrames));
+  const lastStartFrame = Math.max(firstStartFrame, durationFrames - leadOutFrames - revealFrames);
+  const gapFrames = count === 1 ? 0 : (lastStartFrame - firstStartFrame) / (count - 1);
+
+  return Array.from({length: count}, (_, index) => {
+    const startFrame = Math.round(firstStartFrame + gapFrames * index);
+
+    return {
+      startFrame,
+      endFrame: startFrame + revealFrames,
+    };
+  });
+};
+
 export const getCaptionLineDurationsSeconds = (lines: string[]) => {
   return lines.map(estimateCaptionLineSeconds);
 };
@@ -58,11 +97,17 @@ export const getSceneVisualMinimumSeconds = (scene: SceneConfig, fps: number) =>
       return Math.max(3.2, secondsFromFrame(58 + (scene.cards.length - 1) * 8));
     case 'concept':
       return Math.max(3.5, secondsFromFrame(46 + (scene.keyPoints.length - 1) * 12));
-    case 'comparison':
+    case 'comparison': {
+      const columns = Array.isArray(scene.columns)
+        ? scene.columns
+        : [scene.left, scene.right].filter((column): column is NonNullable<typeof column> => Boolean(column));
+      const maxItemCount = columns.reduce((max, column) => Math.max(max, column.items.length), 0);
+
       return Math.max(
         3.5,
-        secondsFromFrame(38 + 28 + (Math.max(scene.left.items.length, scene.right.items.length) - 1) * 8),
+        secondsFromFrame(38 + 28 + (maxItemCount - 1) * 8),
       );
+    }
     case 'step-list':
       return Math.max(3.8, secondsFromFrame(24 + (scene.steps.length - 1) * 14 + 18));
     case 'terminal':
@@ -86,12 +131,16 @@ export const estimateSceneDurationSeconds = (scene: SceneConfig, fps: number) =>
   );
 };
 
-export const getTotalDurationSeconds = (scenes: SceneConfig[]) => {
-  return scenes.reduce((total, scene) => total + scene.durationSeconds, 0);
+export const getTotalDurationSeconds = (config: VideoConfig) => {
+  const sceneDuration = config.scenes.reduce((total, scene) => total + scene.durationSeconds, 0);
+  const audioDuration = config.audioTracks?.reduce((total, track) => total + track.durationSeconds, 0) ?? 0;
+  const subtitleDuration = config.subtitleCues?.reduce((latest, cue) => Math.max(latest, cue.endSeconds), 0) ?? 0;
+
+  return Math.max(sceneDuration, audioDuration, subtitleDuration);
 };
 
 export const getTotalDurationFrames = (config: VideoConfig) => {
-  return secondsToFrames(getTotalDurationSeconds(config.scenes), config.fps);
+  return secondsToFrames(getTotalDurationSeconds(config), config.fps);
 };
 
 export const getSceneStartFrame = (

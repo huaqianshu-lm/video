@@ -16,39 +16,73 @@ export type BaseSceneConfig = {
   caption: string[];
 };
 
+export type VisualTone = 'muted' | 'accent' | 'success' | 'warning';
+
+export type VisualBeat = {
+  title: string;
+  label?: string;
+  description?: string;
+  items?: string[];
+  tone?: VisualTone;
+};
+
+export type WorkspaceDemo = {
+  files: string[];
+  codeLines: string[];
+  actions: VisualBeat[];
+};
+
 export type OpeningSceneConfig = BaseSceneConfig & {
   type: 'opening';
   subtitle: string;
   cards: string[];
   highlight: string;
+  cardDetails?: VisualBeat[];
 };
 
 export type ConceptSceneConfig = BaseSceneConfig & {
   type: 'concept';
   keyPoints: string[];
+  workspaceDemo?: WorkspaceDemo;
 };
 
 export type ComparisonColumn = {
   title: string;
   items: string[];
+  visualSteps?: VisualBeat[];
 };
 
-export type ComparisonSceneConfig = BaseSceneConfig & {
+type TwoColumnComparisonSceneConfig = BaseSceneConfig & {
   type: 'comparison';
   left: ComparisonColumn;
   right: ComparisonColumn;
   highlight: 'left' | 'right';
+  columns?: never;
+  highlightIndex?: never;
 };
+
+type MultiColumnComparisonSceneConfig = BaseSceneConfig & {
+  type: 'comparison';
+  columns: ComparisonColumn[];
+  highlightIndex?: number;
+  left?: never;
+  right?: never;
+  highlight?: never;
+};
+
+export type ComparisonSceneConfig = TwoColumnComparisonSceneConfig | MultiColumnComparisonSceneConfig;
 
 export type StepListSceneConfig = BaseSceneConfig & {
   type: 'step-list';
   steps: string[];
+  stepVisuals?: VisualBeat[];
 };
 
 export type TerminalSceneConfig = BaseSceneConfig & {
   type: 'terminal';
   command: string;
   output: string[];
+  reviewFlow?: VisualBeat[];
 };
 
 export type SummarySceneConfig = BaseSceneConfig & {
@@ -56,6 +90,7 @@ export type SummarySceneConfig = BaseSceneConfig & {
   summary: string;
   bullets: string[];
   highlight: string;
+  roleCards?: VisualBeat[];
 };
 
 export type SceneConfig =
@@ -66,7 +101,7 @@ export type SceneConfig =
   | TerminalSceneConfig
   | SummarySceneConfig;
 
-export type AudioConfig = {
+export type AudioTrackConfig = {
   src: string;
   durationSeconds: number;
 };
@@ -84,7 +119,7 @@ export type VideoConfig = {
   width: number;
   height: number;
   fps: number;
-  audio?: AudioConfig;
+  audioTracks?: AudioTrackConfig[];
   subtitleCues?: SubtitleCue[];
   scenes: SceneConfig[];
 };

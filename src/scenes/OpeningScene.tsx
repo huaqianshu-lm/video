@@ -1,10 +1,16 @@
 import {interpolate, spring, useCurrentFrame, useVideoConfig} from 'remotion';
-import type {OpeningSceneConfig} from '../lib/videoTypes';
+import type {OpeningSceneConfig, VisualBeat} from '../lib/videoTypes';
 import {Caption} from '../components/Caption';
+import {getDistributedRevealFrames} from '../lib/timing';
 import {colors, SceneContainer} from '../components/SceneContainer';
+import {StatusChip, VisualCard} from '../components/VisualPrimitives';
 
 type OpeningSceneProps = {
   scene: OpeningSceneConfig;
+};
+
+const getCardDetails = (scene: OpeningSceneConfig): VisualBeat[] => {
+  return scene.cardDetails ?? scene.cards.map((card) => ({title: card}));
 };
 
 export const OpeningScene = ({scene}: OpeningSceneProps) => {
@@ -14,6 +20,15 @@ export const OpeningScene = ({scene}: OpeningSceneProps) => {
   const titleOpacity = interpolate(frame, [0, 18], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
+  });
+  const cards = getCardDetails(scene);
+  const cardRevealFrames = getDistributedRevealFrames({
+    count: cards.length,
+    durationSeconds: scene.durationSeconds,
+    fps,
+    leadInSeconds: 3,
+    leadOutSeconds: 2.4,
+    revealSeconds: 0.55,
   });
 
   return (
@@ -32,10 +47,10 @@ export const OpeningScene = ({scene}: OpeningSceneProps) => {
           <div
             style={{
               color: colors.accent,
-              fontSize: 34,
+              fontSize: 30,
               fontWeight: 700,
               letterSpacing: 7,
-              marginBottom: 32,
+              marginBottom: 24,
               opacity: titleOpacity,
               textTransform: 'uppercase',
             }}
@@ -44,7 +59,7 @@ export const OpeningScene = ({scene}: OpeningSceneProps) => {
           </div>
           <div
             style={{
-              fontSize: 92,
+              fontSize: 82,
               fontWeight: 860,
               letterSpacing: -4,
               lineHeight: 1.08,
@@ -57,9 +72,9 @@ export const OpeningScene = ({scene}: OpeningSceneProps) => {
           <div
             style={{
               color: colors.muted,
-              fontSize: 43,
+              fontSize: 38,
               fontWeight: 600,
-              marginTop: 28,
+              marginTop: 22,
               opacity: interpolate(frame, [24, 42], [0, 1], {
                 extrapolateLeft: 'clamp',
                 extrapolateRight: 'clamp',
@@ -70,42 +85,74 @@ export const OpeningScene = ({scene}: OpeningSceneProps) => {
           </div>
           <div
             style={{
-              display: 'flex',
+              display: 'grid',
               gap: 22,
-              marginTop: 74,
+              gridTemplateColumns: '1fr 1fr',
+              marginTop: 56,
+              width: '100%',
             }}
           >
-            {scene.cards.map((card, index) => {
-              const isHighlighted = card === scene.highlight;
-              const opacity = interpolate(frame, [42 + index * 8, 58 + index * 8], [0, 1], {
+            {cards.map((card, index) => {
+              const isHighlighted = card.title === scene.highlight;
+              const timing = cardRevealFrames[index];
+              const opacity = interpolate(frame, [timing.startFrame, timing.endFrame], [0, 1], {
                 extrapolateLeft: 'clamp',
                 extrapolateRight: 'clamp',
               });
-              const y = interpolate(frame, [42 + index * 8, 58 + index * 8], [26, 0], {
+              const y = interpolate(frame, [timing.startFrame, timing.endFrame], [26, 0], {
                 extrapolateLeft: 'clamp',
                 extrapolateRight: 'clamp',
               });
+              const focus = isHighlighted && frame > timing.endFrame + fps * 0.4;
 
               return (
-                <div
-                  key={card}
+                <VisualCard
+                  key={card.title}
+                  active={isHighlighted}
                   style={{
-                    background: isHighlighted ? colors.cardStrong : colors.card,
-                    border: `1px solid ${isHighlighted ? colors.accent : colors.line}`,
-                    borderRadius: 28,
-                    boxShadow: isHighlighted
-                      ? '0 0 44px rgba(125, 211, 252, 0.24)'
-                      : 'none',
-                    color: isHighlighted ? colors.text : colors.muted,
-                    fontSize: 32,
-                    fontWeight: 760,
-                    opacity,
-                    padding: '24px 26px',
-                    transform: `translateY(${y}px)`,
+                    minHeight: 190,
+                    opacity: isHighlighted ? opacity : opacity * 0.82,
+                    padding: '28px 26px',
+                    position: 'relative',
+                    textAlign: 'left',
+                    transform: `translateY(${y}px) scale(${focus ? 1.03 : 1})`,
                   }}
                 >
-                  {card}
-                </div>
+                  <div style={{alignItems: 'center', display: 'flex', justifyContent: 'space-between', gap: 14}}>
+                    <div
+                      style={{
+                        color: isHighlighted ? colors.text : colors.muted,
+                        fontSize: 30,
+                        fontWeight: 850,
+                      }}
+                    >
+                      {card.title}
+                    </div>
+                    {card.label ? <StatusChip active={isHighlighted} tone={card.tone}>{card.label}</StatusChip> : null}
+                  </div>
+                  {card.description ? (
+                    <div
+                      style={{
+                        color: isHighlighted ? colors.text : colors.muted,
+                        fontSize: 24,
+                        fontWeight: 650,
+                        lineHeight: 1.35,
+                        marginTop: 16,
+                      }}
+                    >
+                      {card.description}
+                    </div>
+                  ) : null}
+                  {card.items ? (
+                    <div style={{display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 18}}>
+                      {card.items.map((item) => (
+                        <StatusChip key={item} active={isHighlighted} tone={card.tone ?? 'muted'} style={{fontSize: 18, padding: '8px 11px'}}>
+                          {item}
+                        </StatusChip>
+                      ))}
+                    </div>
+                  ) : null}
+                </VisualCard>
               );
             })}
           </div>
