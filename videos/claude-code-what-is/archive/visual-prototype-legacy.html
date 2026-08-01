@@ -1,0 +1,860 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Claude Code 到底是什么？｜横屏静态视觉预览</title>
+  <style>
+    :root {
+      --bg: #070b16;
+      --panel: rgba(15, 23, 42, 0.82);
+      --panel-strong: rgba(15, 23, 42, 0.96);
+      --line: rgba(148, 163, 184, 0.22);
+      --muted: #94a3b8;
+      --text: #e5edf7;
+      --accent: #7dd3fc;
+      --success: #86efac;
+      --warning: #fbbf24;
+      --danger: #fca5a5;
+      --purple: #c4b5fd;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      background:
+        radial-gradient(circle at 10% 0%, rgba(125, 211, 252, 0.16), transparent 30%),
+        radial-gradient(circle at 80% 12%, rgba(196, 181, 253, 0.14), transparent 32%),
+        var(--bg);
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.5;
+      margin: 0;
+      padding: 48px 28px 72px;
+    }
+
+    .page {
+      margin: 0 auto;
+      max-width: 1380px;
+    }
+
+    .hero {
+      border: 1px solid var(--line);
+      border-radius: 32px;
+      background: linear-gradient(135deg, rgba(15, 23, 42, 0.88), rgba(2, 6, 23, 0.66));
+      box-shadow: 0 30px 120px rgba(0, 0, 0, 0.32);
+      margin-bottom: 34px;
+      padding: 34px 38px;
+    }
+
+    .eyebrow {
+      color: var(--accent);
+      font-size: 13px;
+      font-weight: 850;
+      letter-spacing: 0.24em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      font-size: clamp(38px, 6vw, 78px);
+      letter-spacing: -0.06em;
+      line-height: 0.98;
+      margin: 14px 0 18px;
+    }
+
+    .hero p {
+      color: var(--muted);
+      font-size: 18px;
+      margin: 0;
+      max-width: 980px;
+    }
+
+    .meta-grid {
+      display: grid;
+      gap: 14px;
+      grid-template-columns: repeat(4, 1fr);
+      margin-top: 28px;
+    }
+
+    .meta {
+      background: rgba(255, 255, 255, 0.045);
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      padding: 16px 18px;
+    }
+
+    .meta-label {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+    }
+
+    .meta-value {
+      font-size: 18px;
+      font-weight: 850;
+      margin-top: 7px;
+    }
+
+    .section-title {
+      align-items: end;
+      display: flex;
+      justify-content: space-between;
+      gap: 24px;
+      margin: 42px 0 18px;
+    }
+
+    .section-title h2 {
+      font-size: 28px;
+      letter-spacing: -0.03em;
+      margin: 0;
+    }
+
+    .section-title p {
+      color: var(--muted);
+      margin: 0;
+      max-width: 620px;
+      text-align: right;
+    }
+
+    .scene {
+      background: rgba(255, 255, 255, 0.035);
+      border: 1px solid var(--line);
+      border-radius: 34px;
+      margin: 24px 0 38px;
+      overflow: hidden;
+      padding: 22px;
+    }
+
+    .frame {
+      aspect-ratio: 16 / 9;
+      background:
+        radial-gradient(circle at 22% 16%, rgba(125, 211, 252, 0.12), transparent 26%),
+        radial-gradient(circle at 84% 70%, rgba(134, 239, 172, 0.08), transparent 24%),
+        #050816;
+      border: 1px solid rgba(148, 163, 184, 0.24);
+      border-radius: 24px;
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+      min-height: 520px;
+      overflow: hidden;
+      padding: 42px;
+      position: relative;
+    }
+
+    .frame::before {
+      background-image:
+        linear-gradient(rgba(148, 163, 184, 0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(148, 163, 184, 0.05) 1px, transparent 1px);
+      background-size: 48px 48px;
+      content: "";
+      inset: 0;
+      opacity: 0.3;
+      pointer-events: none;
+      position: absolute;
+    }
+
+    .frame > * {
+      position: relative;
+      z-index: 1;
+    }
+
+    .scene-head {
+      align-items: center;
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 22px;
+    }
+
+    .scene-id {
+      color: var(--accent);
+      font-size: 15px;
+      font-weight: 900;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+    }
+
+    .scene-time {
+      color: var(--muted);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 14px;
+    }
+
+    .scene-title {
+      font-size: clamp(28px, 4vw, 52px);
+      font-weight: 900;
+      letter-spacing: -0.055em;
+      line-height: 1.05;
+      margin: 0;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      font-size: 18px;
+      margin-top: 10px;
+      max-width: 820px;
+    }
+
+    .chip-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .chip {
+      background: rgba(255, 255, 255, 0.07);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--muted);
+      display: inline-flex;
+      font-size: 13px;
+      font-weight: 850;
+      letter-spacing: 0.06em;
+      padding: 8px 12px;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .chip.active { border-color: var(--accent); color: var(--accent); background: rgba(125, 211, 252, 0.12); }
+    .chip.success { border-color: var(--success); color: var(--success); background: rgba(134, 239, 172, 0.12); }
+    .chip.warning { border-color: var(--warning); color: var(--warning); background: rgba(251, 191, 36, 0.12); }
+    .chip.danger { border-color: var(--danger); color: var(--danger); background: rgba(252, 165, 165, 0.12); }
+
+    .window {
+      background: rgba(2, 6, 23, 0.86);
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      box-shadow: 0 24px 80px rgba(0, 0, 0, 0.32);
+      overflow: hidden;
+    }
+
+    .window-bar {
+      align-items: center;
+      background: rgba(255, 255, 255, 0.055);
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      gap: 9px;
+      padding: 13px 18px;
+    }
+
+    .dot {
+      border-radius: 999px;
+      display: block;
+      height: 11px;
+      width: 11px;
+    }
+
+    .dot.red { background: #ef4444; }
+    .dot.yellow { background: #f59e0b; }
+    .dot.green { background: #22c55e; }
+
+    .window-title {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 800;
+      margin-left: 8px;
+    }
+
+    .terminal {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 17px;
+      line-height: 1.62;
+      padding: 20px 22px;
+    }
+
+    .prompt { color: var(--accent); }
+    .ok { color: var(--success); }
+    .warn { color: var(--warning); }
+    .err { color: var(--danger); }
+    .muted { color: var(--muted); }
+
+    .code-line {
+      border-radius: 9px;
+      color: #cbd5e1;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 16px;
+      line-height: 1.55;
+      padding: 3px 8px;
+      white-space: nowrap;
+    }
+
+    .code-line.active { background: rgba(125, 211, 252, 0.15); color: var(--text); }
+    .code-line.add { background: rgba(134, 239, 172, 0.12); color: var(--success); }
+    .code-line.remove { background: rgba(252, 165, 165, 0.11); color: var(--danger); }
+
+    .editor-grid {
+      display: grid;
+      grid-template-columns: 250px 1fr;
+      min-height: 360px;
+    }
+
+    .file-tree {
+      background: rgba(15, 23, 42, 0.5);
+      border-right: 1px solid var(--line);
+      padding: 20px 16px;
+    }
+
+    .file-title {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0.14em;
+      margin-bottom: 12px;
+      text-transform: uppercase;
+    }
+
+    .file {
+      border: 1px solid transparent;
+      border-radius: 10px;
+      color: var(--muted);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 14px;
+      margin-bottom: 7px;
+      overflow: hidden;
+      padding: 7px 9px;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .file.active {
+      background: rgba(125, 211, 252, 0.14);
+      border-color: var(--accent);
+      color: var(--text);
+      font-weight: 800;
+    }
+
+    .editor-body {
+      padding: 18px 20px;
+    }
+
+    .tab {
+      border-bottom: 1px solid var(--line);
+      color: var(--muted);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 14px;
+      font-weight: 760;
+      margin-bottom: 15px;
+      padding-bottom: 11px;
+    }
+
+    .layout-two {
+      display: grid;
+      gap: 24px;
+      grid-template-columns: 1.1fr 0.9fr;
+      height: calc(100% - 124px);
+      margin-top: 24px;
+    }
+
+    .layout-three {
+      display: grid;
+      gap: 18px;
+      grid-template-columns: repeat(3, 1fr);
+      margin-top: 26px;
+    }
+
+    .card {
+      background: rgba(15, 23, 42, 0.78);
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      padding: 20px;
+    }
+
+    .card.highlight {
+      background: rgba(125, 211, 252, 0.1);
+      border-color: rgba(125, 211, 252, 0.56);
+      box-shadow: 0 0 36px rgba(125, 211, 252, 0.08);
+    }
+
+    .card.success {
+      background: rgba(134, 239, 172, 0.08);
+      border-color: rgba(134, 239, 172, 0.48);
+    }
+
+    .card.warning {
+      background: rgba(251, 191, 36, 0.08);
+      border-color: rgba(251, 191, 36, 0.45);
+    }
+
+    .card h3 {
+      font-size: 23px;
+      letter-spacing: -0.025em;
+      line-height: 1.1;
+      margin: 0 0 12px;
+    }
+
+    .card p {
+      color: var(--muted);
+      font-size: 15px;
+      margin: 0;
+    }
+
+    .flow {
+      display: grid;
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .step {
+      align-items: center;
+      background: rgba(255, 255, 255, 0.055);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 13px 14px;
+    }
+
+    .step strong {
+      font-size: 15px;
+    }
+
+    .arrow {
+      color: var(--accent);
+      font-size: 28px;
+      font-weight: 900;
+      text-align: center;
+    }
+
+    .caption-zone {
+      align-items: center;
+      background: rgba(2, 6, 23, 0.72);
+      border: 1px solid rgba(148, 163, 184, 0.18);
+      border-radius: 18px;
+      bottom: 26px;
+      color: var(--text);
+      display: flex;
+      font-size: 24px;
+      font-weight: 760;
+      justify-content: center;
+      left: 50%;
+      min-height: 58px;
+      padding: 12px 26px;
+      position: absolute;
+      text-align: center;
+      transform: translateX(-50%);
+      width: min(920px, calc(100% - 140px));
+      z-index: 2;
+    }
+
+    .notes {
+      border-top: 1px solid var(--line);
+      display: grid;
+      gap: 18px;
+      grid-template-columns: 1fr 1fr;
+      margin-top: 20px;
+      padding: 20px 6px 0;
+    }
+
+    .notes h4 {
+      color: var(--accent);
+      font-size: 13px;
+      letter-spacing: 0.16em;
+      margin: 0 0 8px;
+      text-transform: uppercase;
+    }
+
+    .notes p {
+      color: var(--muted);
+      margin: 0;
+    }
+
+    .big-question {
+      align-items: center;
+      display: grid;
+      grid-template-columns: 0.85fr 1.15fr;
+      gap: 34px;
+      height: calc(100% - 120px);
+      margin-top: 24px;
+    }
+
+    .rumors {
+      display: grid;
+      gap: 14px;
+    }
+
+    .rumor {
+      align-items: center;
+      background: rgba(255, 255, 255, 0.055);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      display: flex;
+      justify-content: space-between;
+      padding: 16px 18px;
+    }
+
+    .error-screen {
+      border-color: rgba(252, 165, 165, 0.45);
+    }
+
+    .split-copy {
+      display: grid;
+      gap: 24px;
+      grid-template-columns: 1fr 90px 1fr;
+      margin-top: 28px;
+    }
+
+    .kanban {
+      display: grid;
+      gap: 16px;
+      grid-template-columns: repeat(5, 1fr);
+      margin-top: 32px;
+    }
+
+    .kanban .card {
+      min-height: 190px;
+    }
+
+    .summary-line {
+      align-items: center;
+      display: flex;
+      gap: 18px;
+      justify-content: center;
+      margin-top: 62px;
+    }
+
+    .summary-line .chip {
+      font-size: 18px;
+      padding: 13px 18px;
+    }
+
+    @media (max-width: 900px) {
+      body { padding: 24px 14px 48px; }
+      .hero { padding: 26px 22px; }
+      .meta-grid { grid-template-columns: 1fr 1fr; }
+      .frame { min-height: auto; padding: 24px; }
+      .layout-two, .layout-three, .big-question, .split-copy, .kanban, .notes { grid-template-columns: 1fr; }
+      .caption-zone { font-size: 18px; width: calc(100% - 54px); }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header class="hero">
+      <div class="eyebrow">Static visual preview · 16:9</div>
+      <h1>Claude Code 到底是什么？</h1>
+      <p>这是横屏静态视觉确认稿，不是最终 Remotion 视频。目标是先确认 B 站 / YouTube 横屏教程的画面语言、构图和状态变化，再进入正式视频实现。</p>
+      <div class="meta-grid">
+        <div class="meta">
+          <div class="meta-label">Format</div>
+          <div class="meta-value">1920 × 1080</div>
+        </div>
+        <div class="meta">
+          <div class="meta-label">Platform</div>
+          <div class="meta-value">B 站 / YouTube</div>
+        </div>
+        <div class="meta">
+          <div class="meta-label">Visual rule</div>
+          <div class="meta-value">过程先行</div>
+        </div>
+        <div class="meta">
+          <div class="meta-label">Status</div>
+          <div class="meta-value">待人工确认</div>
+        </div>
+      </div>
+    </header>
+
+    <section class="section-title">
+      <h2>横屏 Scene Board</h2>
+      <p>每个画面只保留关键证据和状态变化。动画暂用文字说明，确认方向后再翻译成 Remotion。</p>
+    </section>
+
+    <section class="scene">
+      <div class="frame">
+        <div class="scene-head">
+          <div class="scene-id">S01 · Opening</div>
+          <div class="scene-time">0.0–16.0s</div>
+        </div>
+        <h2 class="scene-title">听说很强，但它到底是什么？</h2>
+        <div class="subtitle">开场不解释太多，直接把传闻收束到一个真实项目问题。</div>
+        <div class="big-question">
+          <div class="rumors">
+            <div class="rumor"><strong>一句话重构项目？</strong><span class="chip">Rumor</span></div>
+            <div class="rumor"><strong>自己修 bug？</strong><span class="chip warning">Maybe</span></div>
+            <div class="rumor"><strong>会写代码的聊天框？</strong><span class="chip danger">Question</span></div>
+          </div>
+          <div class="window error-screen">
+            <div class="window-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="window-title">project terminal</span></div>
+            <div class="terminal">
+              <div><span class="prompt">$</span> npm run check</div>
+              <div class="err">✕ login.spec.ts failed</div>
+              <div class="muted">Expected session token, received undefined</div>
+              <div class="warn">Question: What is Claude Code?</div>
+            </div>
+          </div>
+        </div>
+        <div class="caption-zone">Claude Code 到底是什么？</div>
+      </div>
+      <div class="notes">
+        <div><h4>Animation notes</h4><p>传闻卡快速闪过，随后 terminal 报错占据主画面，问题从“听说很强”落到真实项目现场。</p></div>
+        <div><h4>Check point</h4><p>不能做成纯标题页；开场必须尽快出现工程上下文。</p></div>
+      </div>
+    </section>
+
+    <section class="scene">
+      <div class="frame">
+        <div class="scene-head">
+          <div class="scene-id">S02 · Project Context</div>
+          <div class="scene-time">16.0–46.6s</div>
+        </div>
+        <h2 class="scene-title">Claude Code 进入真实项目</h2>
+        <div class="layout-two">
+          <div class="window">
+            <div class="window-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="window-title">workspace</span></div>
+            <div class="editor-grid">
+              <div class="file-tree">
+                <div class="file-title">Project files</div>
+                <div class="file active">› scripts/claude-code-what-is.md</div>
+                <div class="file active">› src/videos/.../video.config.ts</div>
+                <div class="file">  src/scenes/ConceptScene.tsx</div>
+                <div class="file">  src/lib/timing.ts</div>
+                <div class="chip-row" style="margin-top: 18px;"><span class="chip active">Reading</span><span class="chip success">Editing</span><span class="chip warning">Checking</span></div>
+              </div>
+              <div class="editor-body">
+                <div class="tab">video.config.ts</div>
+                <div class="code-line active">scenes: [projectDefinition]</div>
+                <div class="code-line">type: 'concept'</div>
+                <div class="code-line add">+ workspaceDemo: { files, codeLines }</div>
+                <div class="code-line add">+ status: npm run check passed</div>
+                <div class="code-line">durationSeconds: 29.1</div>
+              </div>
+            </div>
+          </div>
+          <div class="card highlight">
+            <h3>AI coding partner in your project</h3>
+            <p>不是等你复制代码，而是在项目上下文里读、改、跑、验。</p>
+            <div class="flow">
+              <div class="step"><strong>Read files</strong><span class="chip active">Reading</span></div>
+              <div class="step"><strong>Edit config</strong><span class="chip success">Editing</span></div>
+              <div class="step"><strong>Run checks</strong><span class="chip warning">Running</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="caption-zone">它是能进入真实代码项目里的 AI 编程搭档。</div>
+      </div>
+      <div class="notes">
+        <div><h4>Animation notes</h4><p>文件树逐个高亮，代码区出现扫描光，新增 diff 行变绿，底部状态从 Reading 推进到 Checking。</p></div>
+        <div><h4>Check point</h4><p>画面负责证明“进入项目”，旁白负责解释定义。</p></div>
+      </div>
+    </section>
+
+    <section class="scene">
+      <div class="frame">
+        <div class="scene-head">
+          <div class="scene-id">S03 · Chat Copy-Paste</div>
+          <div class="scene-time">46.6–60.7s</div>
+        </div>
+        <h2 class="scene-title">普通聊天 AI：上下文要人工搬运</h2>
+        <div class="split-copy">
+          <div class="window">
+            <div class="window-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="window-title">your project</span></div>
+            <div class="terminal">
+              <div class="err">Error: token missing</div>
+              <div class="code-line remove">- copy auth.ts</div>
+              <div class="code-line remove">- copy terminal error</div>
+              <div class="warn">Manual fix required</div>
+            </div>
+          </div>
+          <div class="arrow">Copy<br />→<br />Paste</div>
+          <div class="window">
+            <div class="window-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="window-title">chat box</span></div>
+            <div class="terminal">
+              <div class="muted">User pasted code...</div>
+              <div class="ok">Advice: check session guard</div>
+              <div class="muted">No file changed</div>
+              <div class="warn">Back to editor</div>
+            </div>
+          </div>
+        </div>
+        <div class="caption-zone">普通聊天工具更像顾问，执行链路由人手动完成。</div>
+      </div>
+      <div class="notes">
+        <div><h4>Animation notes</h4><p>错误和代码从左侧项目被复制到右侧聊天框，再从建议回到项目，形成来回搬运。</p></div>
+        <div><h4>Check point</h4><p>对比重点不是谁聪明，而是谁处在执行环境里。</p></div>
+      </div>
+    </section>
+
+    <section class="scene">
+      <div class="frame">
+        <div class="scene-head">
+          <div class="scene-id">S04 · Claude Execution</div>
+          <div class="scene-time">60.7–85.7s</div>
+        </div>
+        <h2 class="scene-title">同一任务，Claude Code 直接在项目里执行</h2>
+        <div class="layout-two">
+          <div class="card highlight">
+            <h3>Prompt</h3>
+            <div class="terminal">
+              <div><span class="prompt">claude</span> "帮我看这个登录报错的根因，然后修掉"</div>
+            </div>
+            <div class="chip-row"><span class="chip active">Goal clear</span><span class="chip warning">Need check</span></div>
+          </div>
+          <div class="window">
+            <div class="window-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="window-title">Claude Code run</span></div>
+            <div class="terminal">
+              <div><span class="prompt">→</span> Reading auth.ts, session.ts</div>
+              <div><span class="prompt">→</span> Tracing failing function</div>
+              <div class="ok">+ update session guard</div>
+              <div class="ok">✓ npm run check passed</div>
+            </div>
+          </div>
+        </div>
+        <div class="summary-line"><span class="chip active">Reading</span><span class="chip success">Editing</span><span class="chip warning">Running checks</span><span class="chip success">Engineering process</span></div>
+        <div class="caption-zone">它不是只给建议，而是参与完整工程过程。</div>
+      </div>
+      <div class="notes">
+        <div><h4>Animation notes</h4><p>同一条任务从 prompt 进入项目执行，状态依次变成 Reading、Editing、Running、Passed。</p></div>
+        <div><h4>Check point</h4><p>这帧是核心差异：项目内执行，不是聊天建议。</p></div>
+      </div>
+    </section>
+
+    <section class="scene">
+      <div class="frame">
+        <div class="scene-head">
+          <div class="scene-id">S05 · Real Task Workflow</div>
+          <div class="scene-time">86.0–111.1s</div>
+        </div>
+        <h2 class="scene-title">真实任务：Fix login error</h2>
+        <div class="kanban">
+          <div class="card warning"><h3>Reproduce</h3><p>login failed</p><div class="chip warning">Active</div></div>
+          <div class="card highlight"><h3>Read auth flow</h3><p>auth.ts / route.ts</p><div class="chip active">Done</div></div>
+          <div class="card highlight"><h3>Trace function</h3><p>input → guard → session</p><div class="chip active">Done</div></div>
+          <div class="card success"><h3>Edit + test</h3><p>auth.ts + test + lint</p><div class="chip success">Done</div></div>
+          <div class="card success"><h3>Checks passed</h3><p>README updated</p><div class="chip success">Passed</div></div>
+        </div>
+        <div class="window" style="margin-top: 26px;">
+          <div class="terminal"><span class="prompt">$</span> npm run check <span class="ok">✓ passed</span></div>
+        </div>
+        <div class="caption-zone">它适合处理真实项目里的连续任务。</div>
+      </div>
+      <div class="notes">
+        <div><h4>Animation notes</h4><p>任务卡从左到右推进，每一步从 Active 变 Done，最后 terminal 给出 checks passed。</p></div>
+        <div><h4>Check point</h4><p>不要做能力清单；必须像一个工程任务在推进。</p></div>
+      </div>
+    </section>
+
+    <section class="scene">
+      <div class="frame">
+        <div class="scene-head">
+          <div class="scene-id">S06 · Review Gate</div>
+          <div class="scene-time">111.1–140.9s</div>
+        </div>
+        <h2 class="scene-title">边界：不是甩手掌柜</h2>
+        <div class="layout-two">
+          <div class="window">
+            <div class="window-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="window-title">terminal</span></div>
+            <div class="terminal">
+              <div><span class="prompt">$</span> claude "update scenes and wait for review"</div>
+              <div><span class="prompt">→</span> Reading project context...</div>
+              <div class="ok">✓ Running npm run check...</div>
+              <div class="ok">✓ Preview opened in Studio</div>
+              <div class="warn">! Human review required</div>
+            </div>
+          </div>
+          <div class="card warning">
+            <h3>Review gate</h3>
+            <p>AI 可以分析和执行，但方向、判断和验收必须由人完成。</p>
+            <div class="flow">
+              <div class="step"><strong>Human Direction</strong><span class="chip active">01</span></div>
+              <div class="step"><strong>AI Execution</strong><span class="chip success">02</span></div>
+              <div class="step"><strong>Preview Check</strong><span class="chip warning">03</span></div>
+              <div class="step"><strong>Human Review</strong><span class="chip warning">04</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="caption-zone">人负责方向和验收，AI 负责分析、执行和重复劳动。</div>
+      </div>
+      <div class="notes">
+        <div><h4>Animation notes</h4><p>terminal 执行到最后停在 Human review required，右侧 review gate 同步高亮。</p></div>
+        <div><h4>Check point</h4><p>不能让观众误解为全自动。重点是协作边界。</p></div>
+      </div>
+    </section>
+
+    <section class="scene">
+      <div class="frame">
+        <div class="scene-head">
+          <div class="scene-id">S07 · Same Task Three Tools</div>
+          <div class="scene-time">141.1–181.9s</div>
+        </div>
+        <h2 class="scene-title">同一个任务，三种处理方式</h2>
+        <div class="subtitle">任务：修复登录报错</div>
+        <div class="layout-three">
+          <div class="card">
+            <h3>ChatGPT</h3>
+            <p>更像顾问。</p>
+            <div class="flow">
+              <div class="step"><strong>Paste error</strong><span class="chip">Copy</span></div>
+              <div class="step"><strong>Get advice</strong><span class="chip active">Advice</span></div>
+              <div class="step"><strong>Manual fix</strong><span class="chip warning">Manual</span></div>
+            </div>
+          </div>
+          <div class="card">
+            <h3>Copilot</h3>
+            <p>更像智能输入法。</p>
+            <div class="flow">
+              <div class="step"><strong>Typing code</strong><span class="chip">Editor</span></div>
+              <div class="step"><strong>Autocomplete</strong><span class="chip active">Suggest</span></div>
+              <div class="step"><strong>Line by line</strong><span class="chip">Assist</span></div>
+            </div>
+          </div>
+          <div class="card highlight">
+            <h3>Claude Code</h3>
+            <p>更像能动手的搭档。</p>
+            <div class="flow">
+              <div class="step"><strong>Read project</strong><span class="chip active">Read</span></div>
+              <div class="step"><strong>Edit + run</strong><span class="chip success">Run</span></div>
+              <div class="step"><strong>Human review</strong><span class="chip warning">Review</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="caption-zone">真实项目里的连续修改，更适合 Claude Code。</div>
+      </div>
+      <div class="notes">
+        <div><h4>Animation notes</h4><p>三列使用同一个任务并行比较。Claude Code 列最后高亮为 Real project task。</p></div>
+        <div><h4>Check point</h4><p>横屏优势在这里最明显：三种工具可以同时展示过程差异。</p></div>
+      </div>
+    </section>
+
+    <section class="scene">
+      <div class="frame">
+        <div class="scene-head">
+          <div class="scene-id">S08 · Final Memory</div>
+          <div class="scene-time">182.2–192.6s</div>
+        </div>
+        <h2 class="scene-title">只记住一句话</h2>
+        <div class="summary-line"><span class="chip active">Read</span><span class="chip success">Edit</span><span class="chip warning">Run</span><span class="chip success">Verify</span></div>
+        <div class="card highlight" style="margin: 60px auto 0; max-width: 920px; text-align: center;">
+          <h3 style="font-size: 42px;">Not a chat box</h3>
+          <p style="font-size: 26px; color: var(--text);">AI coding partner in your project</p>
+        </div>
+        <div class="caption-zone">它是能进入项目一起干活的 AI 编程搭档。</div>
+      </div>
+      <div class="notes">
+        <div><h4>Animation notes</h4><p>快速回放 Read / Edit / Run / Verify，划掉 Not a chat box，最终结论居中出现。</p></div>
+        <div><h4>Check point</h4><p>总结不重新列 bullet，而是建立最后的 mental model。</p></div>
+      </div>
+    </section>
+
+    <section class="scene">
+      <div class="frame">
+        <div class="scene-head">
+          <div class="scene-id">S09 · Next Preview</div>
+          <div class="scene-time">192.6–195.8s</div>
+        </div>
+        <h2 class="scene-title">下一条：安装和启动</h2>
+        <div class="window" style="margin: 72px auto 0; max-width: 860px;">
+          <div class="window-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="window-title">next episode</span></div>
+          <div class="terminal" style="font-size: 28px; padding: 34px 40px;"><span class="prompt">$</span> next: install and start<span style="opacity: 0.9;">▊</span></div>
+        </div>
+        <div class="caption-zone">下一条，我们正式看怎么安装和启动它。</div>
+      </div>
+      <div class="notes">
+        <div><h4>Animation notes</h4><p>terminal 光标闪烁，只做预告，不展开安装步骤。</p></div>
+        <div><h4>Check point</h4><p>短场景不要塞信息，留一个明确下一步。</p></div>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

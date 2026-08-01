@@ -1,14 +1,32 @@
-import {interpolate, useCurrentFrame} from 'remotion';
-import type {SummarySceneConfig} from '../lib/videoTypes';
+import {interpolate, useCurrentFrame, useVideoConfig} from 'remotion';
+import type {SummarySceneConfig, VisualBeat} from '../lib/videoTypes';
 import {Caption} from '../components/Caption';
+import {getDistributedRevealFrames} from '../lib/timing';
 import {colors, SceneContainer} from '../components/SceneContainer';
+import {StatusChip, VisualCard} from '../components/VisualPrimitives';
 
 type SummarySceneProps = {
   scene: SummarySceneConfig;
 };
 
+const getRoleCards = (scene: SummarySceneConfig): VisualBeat[] => {
+  return scene.roleCards ?? scene.bullets.map((bullet) => ({title: bullet}));
+};
+
 export const SummaryScene = ({scene}: SummarySceneProps) => {
   const frame = useCurrentFrame();
+  const {fps} = useVideoConfig();
+  const summaryStartFrame = Math.round(scene.durationSeconds * fps * 0.12);
+  const summaryEndFrame = summaryStartFrame + Math.round(fps * 0.7);
+  const roleCards = getRoleCards(scene);
+  const bulletRevealFrames = getDistributedRevealFrames({
+    count: roleCards.length,
+    durationSeconds: scene.durationSeconds,
+    fps,
+    leadInSeconds: scene.durationSeconds * 0.38,
+    leadOutSeconds: 3,
+    revealSeconds: 0.55,
+  });
 
   return (
     <>
@@ -25,10 +43,10 @@ export const SummaryScene = ({scene}: SummarySceneProps) => {
           <div
             style={{
               color: colors.accent,
-              fontSize: 36,
+              fontSize: 34,
               fontWeight: 800,
               letterSpacing: 7,
-              marginBottom: 34,
+              marginBottom: 28,
               opacity: interpolate(frame, [0, 18], [0, 1], {
                 extrapolateLeft: 'clamp',
                 extrapolateRight: 'clamp',
@@ -39,13 +57,13 @@ export const SummaryScene = ({scene}: SummarySceneProps) => {
           </div>
           <div
             style={{
-              fontSize: 76,
+              fontSize: 60,
               fontWeight: 860,
               letterSpacing: -3,
               lineHeight: 1.15,
               margin: '0 auto',
-              maxWidth: 850,
-              opacity: interpolate(frame, [16, 34], [0, 1], {
+              maxWidth: 890,
+              opacity: interpolate(frame, [summaryStartFrame, summaryEndFrame], [0, 1], {
                 extrapolateLeft: 'clamp',
                 extrapolateRight: 'clamp',
               }),
@@ -56,37 +74,79 @@ export const SummaryScene = ({scene}: SummarySceneProps) => {
           </div>
           <div
             style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 20,
-              margin: '70px auto 0',
-              maxWidth: 760,
+              display: 'grid',
+              gap: 18,
+              gridTemplateColumns: '1fr 1fr 1fr',
+              margin: '58px auto 0',
               width: '100%',
             }}
           >
-            {scene.bullets.map((bullet, index) => {
-              const opacity = interpolate(frame, [58 + index * 12, 74 + index * 12], [0, 1], {
+            {roleCards.map((card, index) => {
+              const timing = bulletRevealFrames[index];
+              const opacity = interpolate(frame, [timing.startFrame, timing.endFrame], [0, 1], {
                 extrapolateLeft: 'clamp',
                 extrapolateRight: 'clamp',
               });
+              const isHighlighted = card.title.includes(scene.highlight);
 
               return (
-                <div
-                  key={bullet}
+                <VisualCard
+                  key={card.title}
+                  active={isHighlighted}
                   style={{
-                    background: colors.card,
-                    border: `1px solid ${colors.line}`,
-                    borderRadius: 999,
-                    color: bullet.includes(scene.highlight) ? colors.accent : colors.text,
-                    fontSize: 35,
-                    fontWeight: 720,
+                    minHeight: 310,
                     opacity,
-                    padding: '24px 34px',
+                    padding: '26px 22px',
+                    textAlign: 'left',
                     transform: `translateY(${(1 - opacity) * 20}px)`,
                   }}
                 >
-                  {bullet}
-                </div>
+                  {card.label ? <StatusChip active={isHighlighted} tone={card.tone}>{card.label}</StatusChip> : null}
+                  <div
+                    style={{
+                      color: isHighlighted ? colors.accent : colors.text,
+                      fontSize: 28,
+                      fontWeight: 850,
+                      lineHeight: 1.25,
+                      marginTop: 20,
+                    }}
+                  >
+                    {card.title}
+                  </div>
+                  {card.description ? (
+                    <div
+                      style={{
+                        color: colors.muted,
+                        fontSize: 21,
+                        fontWeight: 620,
+                        lineHeight: 1.38,
+                        marginTop: 14,
+                      }}
+                    >
+                      {card.description}
+                    </div>
+                  ) : null}
+                  {card.items ? (
+                    <div style={{display: 'flex', flexDirection: 'column', gap: 10, marginTop: 22}}>
+                      {card.items.map((item) => (
+                        <div
+                          key={item}
+                          style={{
+                            alignItems: 'center',
+                            color: isHighlighted ? colors.text : colors.muted,
+                            display: 'flex',
+                            fontSize: 20,
+                            fontWeight: 700,
+                            gap: 9,
+                          }}
+                        >
+                          <span style={{color: isHighlighted ? colors.accent : colors.muted}}>•</span>
+                          {item}
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
+                </VisualCard>
               );
             })}
           </div>

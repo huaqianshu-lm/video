@@ -4,7 +4,7 @@
 
 ## 项目定位
 
-当前目录是 Remotion AI Video MVP 工程目录，用于验证「结构化脚本文档 → TypeScript 视频配置 → Remotion 场景组件 → Studio 预览 → 人工确认 → MP4 渲染」的可复用视频生产流程。
+当前目录是 Remotion AI Video MVP 工程目录，用于验证「原始内容 → Content Analysis → Video Narrative → Scene Script → Narration Script → Visual Script → Visual Prototype → 人工确认 → Remotion 场景实现 → Studio 预览 → 人工确认 → MP4 渲染」的可复用视频生产流程。
 
 当前目标不是完整视频平台、剪辑软件、素材管理系统或自动化视频工厂。
 
@@ -14,7 +14,7 @@
 
 第一阶段只验证一件事：
 
-> 能否用固定 Remotion 工程、固定脚本文档规范和 6 个通用场景组件，稳定做出一条 Claude Code 教程竖屏预览样片，并为第二条视频复用打基础。
+> 能否用固定 Remotion 工程、固定单条视频生产资料规范、横屏 Visual Prototype 和通用场景组件，稳定做出一条 Claude Code 教程横屏预览样片，并为后续视频复用打基础。
 
 第一条样片：
 
@@ -25,33 +25,39 @@
 
 成功标准：
 
+- 先产出一版横屏 Visual Prototype，用于确认整体画面语言、构图、信息密度和每个 Scene 的视觉事件。
+- 静态预览确认前，不继续修改正式 Remotion 视频逻辑。
+- 用户确认静态预览后，再进入 Remotion 横屏实现。
 - 能启动 Remotion Studio 预览。
-- 能看到一条 9:16 竖屏教程预览样片。
+- 能看到一条 16:9 横屏教程预览样片。
 - 视频时长由内容决定：无音频版本按逐句字幕的正常口播时长、必要停顿和画面主要元素完成入场时间确定；有本地人工音频时，以音频真实时长和 SRT 时间轴为准，不用固定总时长反推内容。
-- 画面由 6 个基础场景组合而成。
-- 字幕和主文字在 1080 × 1920 下可读、不明显溢出。
-- 能根据自然语言反馈优先修改配置或文案，并在预览中看到变化。
-- 用户确认预览后，再渲染出 `out/claude-code-what-is.mp4`。
+- 画面优先复用基础场景组件，但视频 Scene 数量按视觉事件和认知变化决定。
+- 字幕和主文字在 1920 × 1080 下可读、不明显溢出。
+- 能根据自然语言反馈优先修改静态预览、配置或文案，并在预览中看到变化。
+- 用户确认 Remotion 预览后，再渲染出 `out/claude-code-what-is.mp4`。
 
 ## 第一阶段范围
 
 只做：
 
-- 9:16 竖屏短视频。
-- 1080 × 1920。
+- 16:9 横屏教程视频。
+- 1920 × 1080。
 - 30fps。
+- 正式 Remotion 实现前，先做无依赖 HTML + CSS Visual Prototype。
+- Visual Prototype 用于确认横屏构图、视觉事件、屏幕文字、状态变化和动画说明，不追求最终动画还原。
 - 时长根据内容确定，不设置固定总时长；无音频预览样片优先按字幕正常口播时长、场景尾部短暂停顿和画面元素入场下限来确定节奏，不为了满足某个秒数硬拉静止画面或压缩讲解。
 - 用户提供的本地人工音频和 SRT 字幕，用于 Remotion Studio 预览同步。
 - Claude Code / AI 工具教程类内容。
 - Markdown 视频脚本文档。
+- Visual Prototype 文档。
 - TypeScript 视频配置。
 - 场景级字幕。
 - 无真实配音版本。
-- 文字、卡片、列表、对比、模拟终端等模板化画面。
+- 软件界面、终端、文件树、代码编辑器、diff、任务状态、对比画面等过程化表达。
 
 不做：
 
-- 横屏 16:9。
+- 9:16 竖屏继续优化。
 - 方屏 1:1。
 - 真实配音录制和剪辑。
 - 自动 TTS。
@@ -71,26 +77,39 @@
 
 ## 内容与配置规则
 
-采用两层内容结构：
+采用七层生产资料结构：
 
-1. Markdown 脚本文档：描述「讲什么」。
-2. TypeScript 视频配置：描述「如何被 Remotion 渲染」。
+1. Source：保存原始文章、文档或输入材料。
+2. Content Analysis：提取核心命题、知识骨架、关系和可视觉化内容。
+3. Video Narrative：按观众认知过程重新组织视频叙事。
+4. Scene Script：拆分 Scene，并明确每个 Scene 的认知任务和 Video Value。
+5. Narration Script：基于 Scene Script 生成口播稿。
+6. Visual Script / Visual Prototype：描述并验证画面结构、视觉动作、状态变化和信息密度。
+7. TypeScript 视频配置：描述「如何被 Remotion 渲染」。
 
-第一阶段允许手工从 Markdown 脚本同步到 TypeScript 配置，不做自动解析器。
+第一阶段允许手工从单条视频生产资料同步到 TypeScript 配置，不做自动解析器。
 
 时长规则：
 
 - 视频总时长不在初期固定规定，由内容自然决定。
-- 每个场景时长优先按逐句字幕的正常口播时长估算，再加场景尾部短暂停顿。
+- 有明确口播的视频，优先采用音频驱动流程：先确定脚本文案，再生成或录制音频，再制作逐句字幕时间轴，然后用音频真实时长和逐句字幕时间轴反推场景时长，最后生成 `video.config.ts`。
+- 有明确口播且用户提供本地人工音频和 SRT 字幕时，视频总时长以音频真实时长为准，字幕显示以逐句 SRT 时间轴为准，不再用预设场景时长去硬配音频和字幕。
+- 无明确口播的视频，沿用原始内容驱动方案：按画面内容、逐句字幕的正常阅读或口播估算时长、必要停顿和画面主要元素完成入场时间确定每个场景时长。
 - 场景时长不能短于画面主要元素完成入场所需时间，避免列表、终端输出或总结要点还没出现就切走。
-- 如果估算后的总时长不适合短视频，优先调整脚本文案的信息密度，而不是强行拉长静止画面或压缩正常讲解节奏。
-- 无音频版本只做口播节奏估算，不做真实音频对齐。
-- 用户提供本地人工音频和 SRT 字幕时，视频总时长以音频真实时长为准，字幕显示以 SRT 时间轴为准。
-- 本地原始素材放在 `local/`；Remotion 可播放资源放在 `public/local-assets/<video-slug>/`，并保持不提交到 Git。
+- 如果无明确口播视频估算后的总时长不适合短视频，优先调整脚本文案的信息密度，而不是强行拉长静止画面或压缩正常讲解节奏。
+- 本地原始素材放在 `local/<video-slug>/`；Remotion 可播放资源放在 `public/local-assets/<video-slug>/`，并保持不提交到 Git。
 
 约定路径：
 
-- 脚本文档：`scripts/<video-slug>.md`
+- 单条视频生产资料目录：`videos/<video-slug>/`
+- 原始内容：`videos/<video-slug>/source.md`
+- 内容分析：`videos/<video-slug>/content-analysis.md`
+- 视频叙事：`videos/<video-slug>/video-narrative.md`
+- Scene 脚本：`videos/<video-slug>/scene-script.md`
+- 口播稿：`videos/<video-slug>/narration-script.md`
+- 视觉脚本：`videos/<video-slug>/visual-script.md`
+- 视觉原型：`videos/<video-slug>/visual-prototype.html`
+- 单条视频审查记录：`videos/<video-slug>/reviews/*.md`
 - 视频配置：`src/videos/<video-slug>/video.config.ts`
 - 视频主组件：`src/videos/<video-slug>/<VideoName>Video.tsx`
 - 通用场景组件：`src/scenes/*.tsx`
@@ -99,12 +118,18 @@
 
 制作新视频时，优先只新增或修改：
 
-- `scripts/<video-slug>.md`
-- `src/videos/<video-slug>/video.config.ts`
+- `videos/<video-slug>/source.md`
+- `videos/<video-slug>/content-analysis.md`
+- `videos/<video-slug>/video-narrative.md`
+- `videos/<video-slug>/scene-script.md`
+- `videos/<video-slug>/narration-script.md`
+- `videos/<video-slug>/visual-script.md`
+- `videos/<video-slug>/visual-prototype.html`
+- 用户确认视觉原型后的 `src/videos/<video-slug>/video.config.ts`
 - 必要素材目录
 - 本地人工音频和 SRT 字幕对应的静态预览资源
 
-除非现有场景表达不了需求，否则不要新增场景组件。
+除非现有场景表达不了需求，否则不要新增场景组件。用户确认 Visual Prototype 前，不继续修改正式 Remotion 视频逻辑。
 
 ## 第一阶段场景组件
 
@@ -125,7 +150,8 @@
 - 使用 React / TypeScript。
 - Node.js 版本必须为 18 或更高。
 - 项目应能通过 `npm install` 安装依赖。
-- 项目应能通过 `npm run preview` 或 `npx remotion studio` 启动预览。
+- Visual Prototype 应优先使用无依赖 HTML + CSS，直接用浏览器打开查看。
+- 项目应能通过 `npm run preview` 或 `npx remotion studio` 启动 Remotion Studio 预览。
 - 项目应能在用户明确要求渲染时通过 `npm run render` 渲染视频。
 - 不引入与 MVP 无关的新依赖。
 - 不引入数据库、后端服务、登录系统、部署配置。
@@ -136,8 +162,9 @@
 
 - 代码优先简单清晰，不要过度抽象。
 - 每个场景组件只解决一种表达形式。
-- 自然语言反馈优先转成 `video.config.ts` 修改。
-- 内容问题优先改 Markdown 脚本。
+- 视觉方向优先通过 Visual Prototype 确认。
+- 自然语言反馈优先转成单条视频生产资料、视觉原型或 `video.config.ts` 修改。
+- 内容问题优先改 `videos/<video-slug>/` 下的生产资料。
 - 视觉表达能力不足时才改场景组件。
 - 不要每条视频重新设计目录结构、视觉风格或动画体系。
 - 不为一次性样片创建复杂配置系统。
@@ -155,7 +182,7 @@
 - 整体风格：干净、科技感、克制、教程感。
 - 背景优先深色，不要花哨。
 - 字体层级清楚：标题最大，副标题次之，字幕和说明文字更小。
-- 竖屏主文案控制在 1-2 行。
+- 横屏主文案控制在 1-2 行，给软件界面、终端、文件树和代码区域留出主体空间。
 - 字幕控制在 1-2 行，避免贴边。
 - 列表项不超过 5-6 个。
 - 动画不要过快，避免一闪而过。
@@ -168,20 +195,30 @@
 
 1. 更新项目规范：先改 `CLAUDE.md`，再按新规范执行。
 2. 更新真实进度：同步维护 `ROADMAP.md`。
-3. 编写或更新 Markdown 视频脚本。
-4. 编写或更新 TypeScript 视频配置。
-5. 实现场景组件或基础组件。
-6. 检查 Node.js 版本：`node --version`。
-7. 安装或同步依赖：`npm install`。
-8. 运行类型检查：`npm run check`。
-9. 启动预览：`npm run preview`。
-10. 在 Remotion Studio 中检查画面、节奏、字幕和文字溢出。
-11. 根据用户反馈优先修改脚本或配置。
-12. 用户明确要求渲染时，再渲染：`npm run render`。
+3. 查阅 `docs/VIDEO-PRODUCTION-RULES.md` 和 `docs/VIDEO-PROJECT-WORKFLOW.md`；`docs/article-to-video-complete-workflow-summary.md` 作为完整流程说明书，只有需要了解完整背景时再查阅，不作为日常执行规则。
+4. 在 `videos/<video-slug>/` 中编写或更新 `source.md`。
+5. 编写或更新 `content-analysis.md`，用户确认后再继续。
+6. 编写或更新 `video-narrative.md`，用户确认后再继续。
+7. 编写或更新 `scene-script.md`，用户确认后再继续。
+8. 编写或更新 `narration-script.md`，用户确认后再继续。
+9. 编写或更新 `visual-script.md`，用户确认后再继续。
+10. 编写或更新 Visual Prototype：`videos/<video-slug>/visual-prototype.html`。
+11. 用户确认 Visual Prototype。
+12. 编写或更新 TypeScript 视频配置。
+13. 实现场景组件或基础组件。
+14. 检查 Node.js 版本：`node --version`。
+15. 安装或同步依赖：`npm install`。
+16. 运行类型检查：`npm run check`。
+17. 启动 Remotion Studio 预览：`npm run preview`。
+18. 在 Remotion Studio 中检查画面、节奏、字幕和文字溢出。
+19. 根据用户反馈优先修改单条视频生产资料、Visual Prototype 或配置。
+20. 用户明确要求渲染时，再渲染：`npm run render`。
 
 重要规则：
 
-- 预览阶段用于调效果。
+- Visual Prototype 阶段用于低成本确认画面语言、横屏构图、信息密度和状态变化。
+- 用户确认 Visual Prototype 前，不继续修改正式 Remotion 视频逻辑。
+- Remotion Studio 预览阶段用于调动画、字幕、音频同步和最终画面效果。
 - 默认不讨论、不建议、不执行渲染；只有当用户明确说需要渲染时，才说明渲染命令、渲染前提或执行渲染。
 - 渲染只在最后执行，不要每改一次就渲染一次。
 - 如果 Composition ID 不确定，先查代码或 Remotion Studio，不要猜。
@@ -241,13 +278,17 @@ npm run render
 
 完成第一阶段实现后必须确认：
 
+- [ ] 已生成 `videos/claude-code-what-is/visual-prototype.html` 横屏 Visual Prototype。
+- [ ] 静态预览为 16:9 横屏，按 1920 × 1080 构图设计。
+- [ ] 静态预览符合真实任务、展示过程、状态变化、屏幕文字克制的设计原则。
+- [ ] 用户确认 Visual Prototype 后，再进入正式 Remotion 横屏实现。
 - [ ] `node --version` 显示 Node.js 18+。
 - [ ] `npm install` 成功或现有依赖可用。
 - [ ] `npm run check` 通过。
-- [ ] `npm run preview` 能启动。
+- [ ] `npm run preview` 能启动 Remotion Studio。
 - [ ] Remotion Studio 中能看到 Composition ID：`claude-code-what-is`。
-- [ ] 视频规格为 1080 × 1920、30fps，场景时长与字幕口播节奏匹配。
-- [ ] 6 个场景按顺序出现。
+- [ ] 正式视频规格为 1920 × 1080、30fps，场景时长与字幕口播节奏匹配。
+- [ ] 各视觉事件按顺序出现。
 - [ ] 字幕可读，主文字不明显溢出。
 - [ ] 至少根据一句自然语言反馈修改过一个明确细节。
 - [ ] 修改后预览能看到变化。
@@ -267,14 +308,13 @@ npm run render
 
 ## 后续扩展边界
 
-只有当第一条样片完成并用第二条视频验证复用价值后，才考虑扩展：
+只有当第一条横屏样片完成并用第二条视频验证复用价值后，才考虑扩展：
 
-- 第二条 Claude Code 教程短视频。
+- 第二条 Claude Code 教程视频。
 - `CodeBlockScene`。
 - `ScreenshotScene`。
 - 人工配音导入。
 - 字幕时间轴。
-- 16:9 横屏版本。
 - 封面图导出。
 - 系列视频目录。
 - 批量渲染。

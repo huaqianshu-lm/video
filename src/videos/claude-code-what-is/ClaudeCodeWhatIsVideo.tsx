@@ -33,13 +33,25 @@ const renderScene = (scene: SceneConfig) => {
   }
 };
 
+const getAudioTrackStartFrame = (trackIndex: number) => {
+  const previousDurationSeconds = videoConfig.audioTracks
+    ?.slice(0, trackIndex)
+    .reduce((total, track) => total + track.durationSeconds, 0) ?? 0;
+
+  return secondsToFrames(previousDurationSeconds, videoConfig.fps);
+};
+
 export const ClaudeCodeWhatIsVideo = () => {
   const frame = useCurrentFrame();
   const durationInFrames = getTotalDurationFrames(videoConfig);
 
   return (
     <>
-      {videoConfig.audio ? <Audio src={staticFile(videoConfig.audio.src)} /> : null}
+      {videoConfig.audioTracks?.map((track, index) => (
+        <Sequence key={track.src} from={getAudioTrackStartFrame(index)}>
+          <Audio src={staticFile(track.src)} />
+        </Sequence>
+      )) ?? null}
       {videoConfig.scenes.map((scene, index) => {
         const from = getSceneStartFrame(videoConfig.scenes, index, videoConfig.fps);
         const durationInFrames = secondsToFrames(scene.durationSeconds, videoConfig.fps);
