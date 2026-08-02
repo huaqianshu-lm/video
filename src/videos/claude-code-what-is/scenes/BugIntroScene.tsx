@@ -1,6 +1,7 @@
 import {interpolate, spring, useCurrentFrame, useVideoConfig} from 'remotion';
 import {colors, SceneContainer} from '../../../components/SceneContainer';
 import {CodeLine, MockWindow, StatusChip} from '../../../components/VisualPrimitives';
+import {segmentFrame} from '../sceneTiming';
 
 type BugIntroSceneProps = {
   durationInFrames: number;
@@ -12,16 +13,18 @@ export const BugIntroScene = ({durationInFrames}: BugIntroSceneProps) => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
 
-  const terminalProgress = interpolate(frame, [18, 44], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
-  const errorProgress = interpolate(frame, [54, 76], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+  const errorStart = segmentFrame('01', '01-01', 0.55);
+  const copyStart = segmentFrame('01', '01-03', 0.12);
+  const terminalProgress = interpolate(frame, [segmentFrame('01', '01-01'), segmentFrame('01', '01-01', 0.18)], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+  const errorProgress = interpolate(frame, [errorStart, errorStart + 22], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
   const errorFocus = spring({
     fps,
-    frame: clampFrame(frame, 72),
+    frame: clampFrame(frame, errorStart + 18),
     config: {damping: 16, mass: 0.7, stiffness: 130},
   });
-  const selectionProgress = interpolate(frame, [112, 142], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
-  const copyProgress = interpolate(frame, [150, 170], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
-  const chatHintProgress = interpolate(frame, [170, Math.min(durationInFrames - 12, 196)], [0, 1], {
+  const selectionProgress = interpolate(frame, [copyStart, copyStart + 24], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+  const copyProgress = interpolate(frame, [copyStart + 26, copyStart + 44], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+  const chatHintProgress = interpolate(frame, [segmentFrame('01', '01-03', 0.48), segmentFrame('01', '01-03', 0.72)], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });

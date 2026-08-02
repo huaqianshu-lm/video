@@ -1,0 +1,2700 @@
+{
+  "schemaVersion": "1.0",
+  "videoId": "claude-code-video",
+  "scenes": [
+    {
+      "sceneId": "01",
+      "file": "subtitles/scene-01.json",
+      "segments": [
+        {
+          "segmentId": "01-01",
+          "audioFile": "audio/scene-01/01-01.mp3",
+          "cues": [
+            {
+              "id": "01-01-a",
+              "text": "假设你正在写一个项目，",
+              "start": 0.1,
+              "end": 2.237
+            },
+            {
+              "id": "01-01-b",
+              "text": "突然遇到一个报错。",
+              "start": 2.237,
+              "end": 4.176
+            }
+          ]
+        },
+        {
+          "segmentId": "01-02",
+          "audioFile": "audio/scene-01/01-02.mp3",
+          "cues": [
+            {
+              "id": "01-02-a",
+              "text": "这种场景应该很多人都很熟。",
+              "start": 0.1,
+              "end": 3.144
+            }
+          ]
+        },
+        {
+          "segmentId": "01-03",
+          "audioFile": "audio/scene-01/01-03.mp3",
+          "cues": [
+            {
+              "id": "01-03-a",
+              "text": "以前如果我们想让 ChatGPT 帮忙，",
+              "start": 0.1,
+              "end": 3.125
+            },
+            {
+              "id": "01-03-b",
+              "text": "大概率会先把报错复制出来，",
+              "start": 3.125,
+              "end": 5.725
+            },
+            {
+              "id": "01-03-c",
+              "text": "打开聊天窗口，",
+              "start": 5.725,
+              "end": 7.225
+            },
+            {
+              "id": "01-03-d",
+              "text": "再把错误信息发给它。",
+              "start": 7.225,
+              "end": 9.48
+            }
+          ]
+        },
+        {
+          "segmentId": "01-04",
+          "audioFile": "audio/scene-01/01-04.mp3",
+          "cues": [
+            {
+              "id": "01-04-a",
+              "text": "这其实已经成了很多人现在写代码时的",
+              "start": 0.1,
+              "end": 3.263
+            },
+            {
+              "id": "01-04-b",
+              "text": "常规操作。",
+              "start": 3.263,
+              "end": 4.776
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sceneId": "02",
+      "file": "subtitles/scene-02.json",
+      "segments": [
+        {
+          "segmentId": "02-01",
+          "audioFile": "audio/scene-02/02-01.mp3",
+          "cues": [
+            {
+              "id": "02-01-a",
+              "text": "ChatGPT 看完报错之后，",
+              "start": 0.1,
+              "end": 2.45
+            },
+            {
+              "id": "02-01-b",
+              "text": "可能会告诉你，",
+              "start": 2.45,
+              "end": 3.737
+            },
+            {
+              "id": "02-01-c",
+              "text": "问题大概出在哪。",
+              "start": 3.737,
+              "end": 5.712
+            }
+          ]
+        },
+        {
+          "segmentId": "02-02",
+          "audioFile": "audio/scene-02/02-02.mp3",
+          "cues": [
+            {
+              "id": "02-02-a",
+              "text": "但这里有一个很现实的问题：",
+              "start": 0.1,
+              "end": 2.808
+            }
+          ]
+        },
+        {
+          "segmentId": "02-03",
+          "audioFile": "audio/scene-02/02-03.mp3",
+          "cues": [
+            {
+              "id": "02-03-a",
+              "text": "它并不真正处在你的项目里面。",
+              "start": 0.1,
+              "end": 2.928
+            }
+          ]
+        },
+        {
+          "segmentId": "02-04",
+          "audioFile": "audio/scene-02/02-04.mp3",
+          "cues": [
+            {
+              "id": "02-04-a",
+              "text": "它看不到完整代码，",
+              "start": 0.1,
+              "end": 1.788
+            },
+            {
+              "id": "02-04-b",
+              "text": "也不知道这个报错和哪些文件有关。",
+              "start": 1.788,
+              "end": 5.232
+            }
+          ]
+        },
+        {
+          "segmentId": "02-05",
+          "audioFile": "audio/scene-02/02-05.mp3",
+          "cues": [
+            {
+              "id": "02-05-a",
+              "text": "所以你还得回到编辑器，",
+              "start": 0.1,
+              "end": 2.388
+            },
+            {
+              "id": "02-05-b",
+              "text": "找到对应代码，",
+              "start": 2.388,
+              "end": 3.8
+            },
+            {
+              "id": "02-05-c",
+              "text": "把相关内容复制出来，",
+              "start": 3.8,
+              "end": 5.588
+            },
+            {
+              "id": "02-05-d",
+              "text": "再发给它。",
+              "start": 5.588,
+              "end": 7.008
+            }
+          ]
+        },
+        {
+          "segmentId": "02-06",
+          "audioFile": "audio/scene-02/02-06.mp3",
+          "cues": [
+            {
+              "id": "02-06-a",
+              "text": "它给你修改建议以后，",
+              "start": 0.1,
+              "end": 1.875
+            },
+            {
+              "id": "02-06-b",
+              "text": "你再回去自己改。",
+              "start": 1.875,
+              "end": 3.648
+            }
+          ]
+        },
+        {
+          "segmentId": "02-07",
+          "audioFile": "audio/scene-02/02-07.mp3",
+          "cues": [
+            {
+              "id": "02-07-a",
+              "text": "改完以后重新运行。",
+              "start": 0.1,
+              "end": 2.328
+            }
+          ]
+        },
+        {
+          "segmentId": "02-08",
+          "audioFile": "audio/scene-02/02-08.mp3",
+          "cues": [
+            {
+              "id": "02-08-a",
+              "text": "如果又出现新的错误，",
+              "start": 0.1,
+              "end": 1.938
+            },
+            {
+              "id": "02-08-b",
+              "text": "就继续复制、",
+              "start": 1.938,
+              "end": 3.188
+            },
+            {
+              "id": "02-08-c",
+              "text": "粘贴、切窗口。",
+              "start": 3.188,
+              "end": 5.328
+            }
+          ]
+        },
+        {
+          "segmentId": "02-09",
+          "audioFile": "audio/scene-02/02-09.mp3",
+          "cues": [
+            {
+              "id": "02-09-a",
+              "text": "AI当然可以帮你分析。",
+              "start": 0.1,
+              "end": 2.664
+            }
+          ]
+        },
+        {
+          "segmentId": "02-10",
+          "audioFile": "audio/scene-02/02-10.mp3",
+          "cues": [
+            {
+              "id": "02-10-a",
+              "text": "但整个过程中，",
+              "start": 0.1,
+              "end": 1.55
+            },
+            {
+              "id": "02-10-b",
+              "text": "真正负责查代码、",
+              "start": 1.55,
+              "end": 3.138
+            },
+            {
+              "id": "02-10-c",
+              "text": "改代码、运行项目的人，",
+              "start": 3.138,
+              "end": 5.375
+            },
+            {
+              "id": "02-10-d",
+              "text": "还是你自己。",
+              "start": 5.375,
+              "end": 6.912
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sceneId": "03",
+      "file": "subtitles/scene-03.json",
+      "segments": [
+        {
+          "segmentId": "03-01",
+          "audioFile": "audio/scene-03/03-01.mp3",
+          "cues": [
+            {
+              "id": "03-01-a",
+              "text": "如果换成 Claude Code，",
+              "start": 0.1,
+              "end": 1.875
+            },
+            {
+              "id": "03-01-b",
+              "text": "同一个问题，工作方式会完全不一样。",
+              "start": 1.875,
+              "end": 5.568
+            }
+          ]
+        },
+        {
+          "segmentId": "03-02",
+          "audioFile": "audio/scene-03/03-02.mp3",
+          "cues": [
+            {
+              "id": "03-02-a",
+              "text": "你可能只需要告诉它一句：",
+              "start": 0.1,
+              "end": 2.568
+            }
+          ]
+        },
+        {
+          "segmentId": "03-03",
+          "audioFile": "audio/scene-03/03-03.mp3",
+          "cues": [
+            {
+              "id": "03-03-a",
+              "text": "帮我找到这个报错的原因，",
+              "start": 0.1,
+              "end": 2.2
+            },
+            {
+              "id": "03-03-b",
+              "text": "然后修掉。”",
+              "start": 2.2,
+              "end": 3.6
+            }
+          ]
+        },
+        {
+          "segmentId": "03-04",
+          "audioFile": "audio/scene-03/03-04.mp3",
+          "cues": [
+            {
+              "id": "03-04-a",
+              "text": "接下来，它可以自己去查看相关文件，",
+              "start": 0.1,
+              "end": 3.562
+            },
+            {
+              "id": "03-04-b",
+              "text": "搜索代码之间的调用关系，",
+              "start": 3.562,
+              "end": 5.838
+            },
+            {
+              "id": "03-04-c",
+              "text": "定位问题，然后直接修改代码。",
+              "start": 5.838,
+              "end": 9.144
+            }
+          ]
+        },
+        {
+          "segmentId": "03-05",
+          "audioFile": "audio/scene-03/03-05.mp3",
+          "cues": [
+            {
+              "id": "03-05-a",
+              "text": "修改完成以后，",
+              "start": 0.1,
+              "end": 1.55
+            },
+            {
+              "id": "03-05-b",
+              "text": "它还可以继续运行测试，",
+              "start": 1.55,
+              "end": 3.7
+            },
+            {
+              "id": "03-05-c",
+              "text": "检查问题到底有没有解决。",
+              "start": 3.7,
+              "end": 6.528
+            }
+          ]
+        },
+        {
+          "segmentId": "03-06",
+          "audioFile": "audio/scene-03/03-06.mp3",
+          "cues": [
+            {
+              "id": "03-06-a",
+              "text": "这里真正发生变化的地方，",
+              "start": 0.1,
+              "end": 2.425
+            },
+            {
+              "id": "03-06-b",
+              "text": "不只是少复制了几次代码。",
+              "start": 2.425,
+              "end": 4.944
+            }
+          ]
+        },
+        {
+          "segmentId": "03-07",
+          "audioFile": "audio/scene-03/03-07.mp3",
+          "cues": [
+            {
+              "id": "03-07-a",
+              "text": "而是以前需要你自己完成的一整串中间步骤，",
+              "start": 0.1,
+              "end": 3.837
+            },
+            {
+              "id": "03-07-b",
+              "text": "现在 AI 可以自己继续往下做。",
+              "start": 3.837,
+              "end": 7.176
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sceneId": "04",
+      "file": "subtitles/scene-04.json",
+      "segments": [
+        {
+          "segmentId": "04-01",
+          "audioFile": "audio/scene-04/04-01.mp3",
+          "cues": [
+            {
+              "id": "04-01-a",
+              "text": "所以 Claude Code 真正重要的地方，",
+              "start": 0.1,
+              "end": 3.112
+            },
+            {
+              "id": "04-01-b",
+              "text": "并不是简单地说：",
+              "start": 3.112,
+              "end": 4.92
+            }
+          ]
+        },
+        {
+          "segmentId": "04-02",
+          "audioFile": "audio/scene-04/04-02.mp3",
+          "cues": [
+            {
+              "id": "04-02-a",
+              "text": "它比 ChatGPT 更会写代码。",
+              "start": 0.1,
+              "end": 3.096
+            }
+          ]
+        },
+        {
+          "segmentId": "04-03",
+          "audioFile": "audio/scene-04/04-03.mp3",
+          "cues": [
+            {
+              "id": "04-03-a",
+              "text": "更准确地说，",
+              "start": 0.1,
+              "end": 1.387
+            },
+            {
+              "id": "04-03-b",
+              "text": "是它和你的项目之间那层距离消失了。",
+              "start": 1.387,
+              "end": 4.896
+            }
+          ]
+        },
+        {
+          "segmentId": "04-04",
+          "audioFile": "audio/scene-04/04-04.mp3",
+          "cues": [
+            {
+              "id": "04-04-a",
+              "text": "普通聊天 AI 更多是在项目外面",
+              "start": 0.1,
+              "end": 3.15
+            },
+            {
+              "id": "04-04-b",
+              "text": "给你建议。",
+              "start": 3.15,
+              "end": 4.44
+            }
+          ]
+        },
+        {
+          "segmentId": "04-05",
+          "audioFile": "audio/scene-04/04-05.mp3",
+          "cues": [
+            {
+              "id": "04-05-a",
+              "text": "而 Claude Code 可以直接读取项目文件，",
+              "start": 0.1,
+              "end": 3.462
+            },
+            {
+              "id": "04-05-b",
+              "text": "理解代码之间的关系，",
+              "start": 3.462,
+              "end": 5.287
+            },
+            {
+              "id": "04-05-c",
+              "text": "修改文件，还可以执行命令。",
+              "start": 5.287,
+              "end": 8.136
+            }
+          ]
+        },
+        {
+          "segmentId": "04-06",
+          "audioFile": "audio/scene-04/04-06.mp3",
+          "cues": [
+            {
+              "id": "04-06-a",
+              "text": "也就是说，AI开始从“告诉你应该怎么做”，",
+              "start": 0.1,
+              "end": 3.837
+            },
+            {
+              "id": "04-06-b",
+              "text": "慢慢变成“直接参与把事情做完”。",
+              "start": 3.837,
+              "end": 6.912
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sceneId": "05",
+      "file": "subtitles/scene-05.json",
+      "segments": [
+        {
+          "segmentId": "05-01",
+          "audioFile": "audio/scene-05/05-01.mp3",
+          "cues": [
+            {
+              "id": "05-01-a",
+              "text": "如果现在再来给 Claude Code 下一个定义，",
+              "start": 0.1,
+              "end": 3.5
+            },
+            {
+              "id": "05-01-b",
+              "text": "就会容易理解很多。",
+              "start": 3.5,
+              "end": 5.52
+            }
+          ]
+        },
+        {
+          "segmentId": "05-02",
+          "audioFile": "audio/scene-05/05-02.mp3",
+          "cues": [
+            {
+              "id": "05-02-a",
+              "text": "Claude Code 是 Anthropic 推出的 AI",
+              "start": 0.1,
+              "end": 2.987
+            },
+            {
+              "id": "05-02-b",
+              "text": "编程工具。",
+              "start": 2.987,
+              "end": 4.416
+            }
+          ]
+        },
+        {
+          "segmentId": "05-03",
+          "audioFile": "audio/scene-05/05-03.mp3",
+          "cues": [
+            {
+              "id": "05-03-a",
+              "text": "它可以进入你的代码项目，",
+              "start": 0.1,
+              "end": 2.237
+            },
+            {
+              "id": "05-03-b",
+              "text": "读取项目上下文，",
+              "start": 2.237,
+              "end": 3.913
+            },
+            {
+              "id": "05-03-c",
+              "text": "并直接执行真实的开发任务。",
+              "start": 3.913,
+              "end": 6.816
+            }
+          ]
+        },
+        {
+          "segmentId": "05-04",
+          "audioFile": "audio/scene-05/05-04.mp3",
+          "cues": [
+            {
+              "id": "05-04-a",
+              "text": "所以它不是一个单纯“会写代码的聊天框”。",
+              "start": 0.1,
+              "end": 4.032
+            }
+          ]
+        },
+        {
+          "segmentId": "05-05",
+          "audioFile": "audio/scene-05/05-05.mp3",
+          "cues": [
+            {
+              "id": "05-05-a",
+              "text": "更像是一个真正参与项目工作的 AI",
+              "start": 0.1,
+              "end": 3.163
+            },
+            {
+              "id": "05-05-b",
+              "text": "编程搭档。",
+              "start": 3.163,
+              "end": 4.608
+            }
+          ]
+        },
+        {
+          "segmentId": "05-06",
+          "audioFile": "audio/scene-05/05-06.mp3",
+          "cues": [
+            {
+              "id": "05-06-a",
+              "text": "而且 Claude Code 也并不等于只能在",
+              "start": 0.1,
+              "end": 3.125
+            },
+            {
+              "id": "05-06-b",
+              "text": "终端里使用。",
+              "start": 3.125,
+              "end": 4.632
+            }
+          ]
+        },
+        {
+          "segmentId": "05-07",
+          "audioFile": "audio/scene-05/05-07.mp3",
+          "cues": [
+            {
+              "id": "05-07-a",
+              "text": "终端只是最完整、",
+              "start": 0.1,
+              "end": 1.75
+            },
+            {
+              "id": "05-07-b",
+              "text": "最典型的一种方式。",
+              "start": 1.75,
+              "end": 3.888
+            }
+          ]
+        },
+        {
+          "segmentId": "05-08",
+          "audioFile": "audio/scene-05/05-08.mp3",
+          "cues": [
+            {
+              "id": "05-08-a",
+              "text": "你也可以在编辑器、",
+              "start": 0.1,
+              "end": 1.625
+            },
+            {
+              "id": "05-08-b",
+              "text": "桌面端，甚至网页环境里使用它。",
+              "start": 1.625,
+              "end": 5.064
+            }
+          ]
+        },
+        {
+          "segmentId": "05-09",
+          "audioFile": "audio/scene-05/05-09.mp3",
+          "cues": [
+            {
+              "id": "05-09-a",
+              "text": "但不管界面怎么变，",
+              "start": 0.1,
+              "end": 1.725
+            },
+            {
+              "id": "05-09-b",
+              "text": "真正重要的仍然是后面这件事：",
+              "start": 1.725,
+              "end": 4.944
+            }
+          ]
+        },
+        {
+          "segmentId": "05-10",
+          "audioFile": "audio/scene-05/05-10.mp3",
+          "cues": [
+            {
+              "id": "05-10-a",
+              "text": "它可以直接参与项目。",
+              "start": 0.1,
+              "end": 2.304
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sceneId": "06",
+      "file": "subtitles/scene-06.json",
+      "segments": [
+        {
+          "segmentId": "06-01",
+          "audioFile": "audio/scene-06/06-01.mp3",
+          "cues": [
+            {
+              "id": "06-01-a",
+              "text": "这里其实还涉及一个现在非常重要的概念：",
+              "start": 0.1,
+              "end": 4.08
+            }
+          ]
+        },
+        {
+          "segmentId": "06-02",
+          "audioFile": "audio/scene-06/06-02.mp3",
+          "cues": [
+            {
+              "id": "06-02-a",
+              "text": "Agent，也就是 AI 代理。",
+              "start": 0.1,
+              "end": 3.096
+            }
+          ]
+        },
+        {
+          "segmentId": "06-03",
+          "audioFile": "audio/scene-06/06-03.mp3",
+          "cues": [
+            {
+              "id": "06-03-a",
+              "text": "过去我们用 AI 写代码时，",
+              "start": 0.1,
+              "end": 2.625
+            },
+            {
+              "id": "06-03-b",
+              "text": "人的角色其实非常重。",
+              "start": 2.625,
+              "end": 5.04
+            }
+          ]
+        },
+        {
+          "segmentId": "06-04",
+          "audioFile": "audio/scene-06/06-04.mp3",
+          "cues": [
+            {
+              "id": "06-04-a",
+              "text": "你要先发现问题。",
+              "start": 0.1,
+              "end": 2.016
+            }
+          ]
+        },
+        {
+          "segmentId": "06-05",
+          "audioFile": "audio/scene-06/06-05.mp3",
+          "cues": [
+            {
+              "id": "06-05-a",
+              "text": "然后自己判断下一步该查哪里。",
+              "start": 0.1,
+              "end": 3.168
+            }
+          ]
+        },
+        {
+          "segmentId": "06-06",
+          "audioFile": "audio/scene-06/06-06.mp3",
+          "cues": [
+            {
+              "id": "06-06-a",
+              "text": "再把某个局部问题交给 AI。",
+              "start": 0.1,
+              "end": 2.952
+            }
+          ]
+        },
+        {
+          "segmentId": "06-07",
+          "audioFile": "audio/scene-06/06-07.mp3",
+          "cues": [
+            {
+              "id": "06-07-a",
+              "text": "AI回答以后，",
+              "start": 0.1,
+              "end": 1.562
+            },
+            {
+              "id": "06-07-b",
+              "text": "你再决定下一步怎么做。",
+              "start": 1.562,
+              "end": 3.72
+            }
+          ]
+        },
+        {
+          "segmentId": "06-08",
+          "audioFile": "audio/scene-06/06-08.mp3",
+          "cues": [
+            {
+              "id": "06-08-a",
+              "text": "也就是说，整个任务仍然是由人一步一步",
+              "start": 0.1,
+              "end": 3.562
+            },
+            {
+              "id": "06-08-b",
+              "text": "拆开的。",
+              "start": 3.562,
+              "end": 4.8
+            }
+          ]
+        },
+        {
+          "segmentId": "06-09",
+          "audioFile": "audio/scene-06/06-09.mp3",
+          "cues": [
+            {
+              "id": "06-09-a",
+              "text": "AI只是参与其中某一个环节。",
+              "start": 0.1,
+              "end": 3.264
+            }
+          ]
+        },
+        {
+          "segmentId": "06-10",
+          "audioFile": "audio/scene-06/06-10.mp3",
+          "cues": [
+            {
+              "id": "06-10-a",
+              "text": "Agent 的变化就在这里。",
+              "start": 0.1,
+              "end": 2.64
+            }
+          ]
+        },
+        {
+          "segmentId": "06-11",
+          "audioFile": "audio/scene-06/06-11.mp3",
+          "cues": [
+            {
+              "id": "06-11-a",
+              "text": "你开始不再告诉 AI：",
+              "start": 0.1,
+              "end": 2.52
+            }
+          ]
+        },
+        {
+          "segmentId": "06-12",
+          "audioFile": "audio/scene-06/06-12.mp3",
+          "cues": [
+            {
+              "id": "06-12-a",
+              "text": "下一步具体应该做什么。”",
+              "start": 0.1,
+              "end": 2.424
+            }
+          ]
+        },
+        {
+          "segmentId": "06-13",
+          "audioFile": "audio/scene-06/06-13.mp3",
+          "cues": [
+            {
+              "id": "06-13-a",
+              "text": "而是直接告诉它：",
+              "start": 0.1,
+              "end": 2.064
+            }
+          ]
+        },
+        {
+          "segmentId": "06-14",
+          "audioFile": "audio/scene-06/06-14.mp3",
+          "cues": [
+            {
+              "id": "06-14-a",
+              "text": "我最终想完成什么。”",
+              "start": 0.1,
+              "end": 2.208
+            }
+          ]
+        },
+        {
+          "segmentId": "06-15",
+          "audioFile": "audio/scene-06/06-15.mp3",
+          "cues": [
+            {
+              "id": "06-15-a",
+              "text": "至于中间需要看哪些文件、",
+              "start": 0.1,
+              "end": 2.675
+            },
+            {
+              "id": "06-15-b",
+              "text": "分析哪些代码、",
+              "start": 2.675,
+              "end": 4.125
+            },
+            {
+              "id": "06-15-c",
+              "text": "修改什么地方、",
+              "start": 4.125,
+              "end": 5.388
+            },
+            {
+              "id": "06-15-d",
+              "text": "执行什么命令，",
+              "start": 5.388,
+              "end": 6.65
+            },
+            {
+              "id": "06-15-e",
+              "text": "它可以自己继续完成。",
+              "start": 6.65,
+              "end": 8.904
+            }
+          ]
+        },
+        {
+          "segmentId": "06-16",
+          "audioFile": "audio/scene-06/06-16.mp3",
+          "cues": [
+            {
+              "id": "06-16-a",
+              "text": "所以从 Copilot 到 Agent，",
+              "start": 0.1,
+              "end": 2.612
+            },
+            {
+              "id": "06-16-b",
+              "text": "真正变化的不是 AI 会不会写代码。",
+              "start": 2.612,
+              "end": 6.144
+            }
+          ]
+        },
+        {
+          "segmentId": "06-17",
+          "audioFile": "audio/scene-06/06-17.mp3",
+          "cues": [
+            {
+              "id": "06-17-a",
+              "text": "而是：",
+              "start": 0.1,
+              "end": 1.296
+            }
+          ]
+        },
+        {
+          "segmentId": "06-18",
+          "audioFile": "audio/scene-06/06-18.mp3",
+          "cues": [
+            {
+              "id": "06-18-a",
+              "text": "人开始从管理每一步操作，",
+              "start": 0.1,
+              "end": 2.45
+            },
+            {
+              "id": "06-18-b",
+              "text": "转向管理最终目标。",
+              "start": 2.45,
+              "end": 4.704
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sceneId": "07",
+      "file": "subtitles/scene-07.json",
+      "segments": [
+        {
+          "segmentId": "07-01",
+          "audioFile": "audio/scene-07/07-01.mp3",
+          "cues": [
+            {
+              "id": "07-01-a",
+              "text": "理解这一点之后，",
+              "start": 0.1,
+              "end": 1.587
+            },
+            {
+              "id": "07-01-b",
+              "text": "再来看 Claude Code 能做什么，",
+              "start": 1.587,
+              "end": 4.1
+            },
+            {
+              "id": "07-01-c",
+              "text": "就不会只是看到一堆功能列表了。",
+              "start": 4.1,
+              "end": 7.512
+            }
+          ]
+        },
+        {
+          "segmentId": "07-02",
+          "audioFile": "audio/scene-07/07-02.mp3",
+          "cues": [
+            {
+              "id": "07-02-a",
+              "text": "它的第一层能力，",
+              "start": 0.1,
+              "end": 1.538
+            },
+            {
+              "id": "07-02-b",
+              "text": "其实是理解。",
+              "start": 1.538,
+              "end": 3.168
+            }
+          ]
+        },
+        {
+          "segmentId": "07-03",
+          "audioFile": "audio/scene-07/07-03.mp3",
+          "cues": [
+            {
+              "id": "07-03-a",
+              "text": "比如你刚刚接手一个完全陌生的项目。",
+              "start": 0.1,
+              "end": 3.672
+            }
+          ]
+        },
+        {
+          "segmentId": "07-04",
+          "audioFile": "audio/scene-07/07-04.mp3",
+          "cues": [
+            {
+              "id": "07-04-a",
+              "text": "目录很多，文件很多，",
+              "start": 0.1,
+              "end": 2.263
+            },
+            {
+              "id": "07-04-b",
+              "text": "也不知道核心模块在哪里。",
+              "start": 2.263,
+              "end": 4.68
+            }
+          ]
+        },
+        {
+          "segmentId": "07-05",
+          "audioFile": "audio/scene-07/07-05.mp3",
+          "cues": [
+            {
+              "id": "07-05-a",
+              "text": "以前你可能要自己先翻文档、",
+              "start": 0.1,
+              "end": 2.538
+            },
+            {
+              "id": "07-05-b",
+              "text": "找入口、读代码。",
+              "start": 2.538,
+              "end": 4.632
+            }
+          ]
+        },
+        {
+          "segmentId": "07-06",
+          "audioFile": "audio/scene-07/07-06.mp3",
+          "cues": [
+            {
+              "id": "07-06-a",
+              "text": "现在可以先让 Claude Code 阅读整个代码库，",
+              "start": 0.1,
+              "end": 3.663
+            },
+            {
+              "id": "07-06-b",
+              "text": "然后告诉你：",
+              "start": 3.663,
+              "end": 5.088
+            }
+          ]
+        },
+        {
+          "segmentId": "07-07",
+          "audioFile": "audio/scene-07/07-07.mp3",
+          "cues": [
+            {
+              "id": "07-07-a",
+              "text": "这个项目是怎么组织的？",
+              "start": 0.1,
+              "end": 2.4
+            }
+          ]
+        },
+        {
+          "segmentId": "07-08",
+          "audioFile": "audio/scene-07/07-08.mp3",
+          "cues": [
+            {
+              "id": "07-08-a",
+              "text": "核心模块在哪里？",
+              "start": 0.1,
+              "end": 2.16
+            }
+          ]
+        },
+        {
+          "segmentId": "07-09",
+          "audioFile": "audio/scene-07/07-09.mp3",
+          "cues": [
+            {
+              "id": "07-09-a",
+              "text": "数据是怎么流动的？",
+              "start": 0.1,
+              "end": 2.232
+            }
+          ]
+        },
+        {
+          "segmentId": "07-10",
+          "audioFile": "audio/scene-07/07-10.mp3",
+          "cues": [
+            {
+              "id": "07-10-a",
+              "text": "某一个功能中间经过了哪些文件？",
+              "start": 0.1,
+              "end": 3.384
+            }
+          ]
+        },
+        {
+          "segmentId": "07-11",
+          "audioFile": "audio/scene-07/07-11.mp3",
+          "cues": [
+            {
+              "id": "07-11-a",
+              "text": "甚至当项目出现 Bug 时，",
+              "start": 0.1,
+              "end": 2.3
+            },
+            {
+              "id": "07-11-b",
+              "text": "它也可以顺着代码关系去帮你追根因。",
+              "start": 2.3,
+              "end": 5.832
+            }
+          ]
+        },
+        {
+          "segmentId": "07-12",
+          "audioFile": "audio/scene-07/07-12.mp3",
+          "cues": [
+            {
+              "id": "07-12-a",
+              "text": "所以第一层不是“写”。",
+              "start": 0.1,
+              "end": 2.472
+            }
+          ]
+        },
+        {
+          "segmentId": "07-13",
+          "audioFile": "audio/scene-07/07-13.mp3",
+          "cues": [
+            {
+              "id": "07-13-a",
+              "text": "而是先真正看懂。",
+              "start": 0.1,
+              "end": 2.136
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sceneId": "08",
+      "file": "subtitles/scene-08.json",
+      "segments": [
+        {
+          "segmentId": "08-01",
+          "audioFile": "audio/scene-08/08-01.mp3",
+          "cues": [
+            {
+              "id": "08-01-a",
+              "text": "第二层，是执行。",
+              "start": 0.1,
+              "end": 2.304
+            }
+          ]
+        },
+        {
+          "segmentId": "08-02",
+          "audioFile": "audio/scene-08/08-02.mp3",
+          "cues": [
+            {
+              "id": "08-02-a",
+              "text": "看懂以后，它不只是告诉你：",
+              "start": 0.1,
+              "end": 2.88
+            }
+          ]
+        },
+        {
+          "segmentId": "08-03",
+          "audioFile": "audio/scene-08/08-03.mp3",
+          "cues": [
+            {
+              "id": "08-03-a",
+              "text": "这里应该改一下。”",
+              "start": 0.1,
+              "end": 1.92
+            }
+          ]
+        },
+        {
+          "segmentId": "08-04",
+          "audioFile": "audio/scene-08/08-04.mp3",
+          "cues": [
+            {
+              "id": "08-04-a",
+              "text": "而是真的可以直接去改。",
+              "start": 0.1,
+              "end": 2.52
+            }
+          ]
+        },
+        {
+          "segmentId": "08-05",
+          "audioFile": "audio/scene-08/08-05.mp3",
+          "cues": [
+            {
+              "id": "08-05-a",
+              "text": "比如修改一个函数。",
+              "start": 0.1,
+              "end": 2.256
+            }
+          ]
+        },
+        {
+          "segmentId": "08-06",
+          "audioFile": "audio/scene-08/08-06.mp3",
+          "cues": [
+            {
+              "id": "08-06-a",
+              "text": "把一个大模块拆开。",
+              "start": 0.1,
+              "end": 2.136
+            }
+          ]
+        },
+        {
+          "segmentId": "08-07",
+          "audioFile": "audio/scene-08/08-07.mp3",
+          "cues": [
+            {
+              "id": "08-07-a",
+              "text": "跨多个文件做重构。",
+              "start": 0.1,
+              "end": 2.208
+            }
+          ]
+        },
+        {
+          "segmentId": "08-08",
+          "audioFile": "audio/scene-08/08-08.mp3",
+          "cues": [
+            {
+              "id": "08-08-a",
+              "text": "给现有代码补测试。",
+              "start": 0.1,
+              "end": 2.352
+            }
+          ]
+        },
+        {
+          "segmentId": "08-09",
+          "audioFile": "audio/scene-08/08-09.mp3",
+          "cues": [
+            {
+              "id": "08-09-a",
+              "text": "修 Bug。",
+              "start": 0.1,
+              "end": 1.344
+            }
+          ]
+        },
+        {
+          "segmentId": "08-10",
+          "audioFile": "audio/scene-08/08-10.mp3",
+          "cues": [
+            {
+              "id": "08-10-a",
+              "text": "清理 lint。",
+              "start": 0.1,
+              "end": 1.512
+            }
+          ]
+        },
+        {
+          "segmentId": "08-11",
+          "audioFile": "audio/scene-08/08-11.mp3",
+          "cues": [
+            {
+              "id": "08-11-a",
+              "text": "升级依赖。",
+              "start": 0.1,
+              "end": 1.656
+            }
+          ]
+        },
+        {
+          "segmentId": "08-12",
+          "audioFile": "audio/scene-08/08-12.mp3",
+          "cues": [
+            {
+              "id": "08-12-a",
+              "text": "或者处理 Git 相关操作。",
+              "start": 0.1,
+              "end": 2.856
+            }
+          ]
+        },
+        {
+          "segmentId": "08-13",
+          "audioFile": "audio/scene-08/08-13.mp3",
+          "cues": [
+            {
+              "id": "08-13-a",
+              "text": "这些任务有一个共同特点：",
+              "start": 0.1,
+              "end": 2.88
+            }
+          ]
+        },
+        {
+          "segmentId": "08-14",
+          "audioFile": "audio/scene-08/08-14.mp3",
+          "cues": [
+            {
+              "id": "08-14-a",
+              "text": "它们往往不是回答一个问题就结束，",
+              "start": 0.1,
+              "end": 3.1
+            },
+            {
+              "id": "08-14-b",
+              "text": "而是需要连续完成几个步骤。",
+              "start": 3.1,
+              "end": 5.784
+            }
+          ]
+        },
+        {
+          "segmentId": "08-15",
+          "audioFile": "audio/scene-08/08-15.mp3",
+          "cues": [
+            {
+              "id": "08-15-a",
+              "text": "这正是 Agent 最擅长的地方。",
+              "start": 0.1,
+              "end": 2.928
+            }
+          ]
+        },
+        {
+          "segmentId": "08-16",
+          "audioFile": "audio/scene-08/08-16.mp3",
+          "cues": [
+            {
+              "id": "08-16-a",
+              "text": "它不是只给你一个建议。",
+              "start": 0.1,
+              "end": 2.712
+            }
+          ]
+        },
+        {
+          "segmentId": "08-17",
+          "audioFile": "audio/scene-08/08-17.mp3",
+          "cues": [
+            {
+              "id": "08-17-a",
+              "text": "而是可以沿着这个任务一直执行下去。",
+              "start": 0.1,
+              "end": 3.72
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sceneId": "09",
+      "file": "subtitles/scene-09.json",
+      "segments": [
+        {
+          "segmentId": "09-01",
+          "audioFile": "audio/scene-09/09-01.mp3",
+          "cues": [
+            {
+              "id": "09-01-a",
+              "text": "再往前一步，",
+              "start": 0.1,
+              "end": 1.35
+            },
+            {
+              "id": "09-01-b",
+              "text": "Claude Code 的工作范围甚至不一定只停留在",
+              "start": 1.35,
+              "end": 4.7
+            },
+            {
+              "id": "09-01-c",
+              "text": "代码库里面。",
+              "start": 4.7,
+              "end": 6.24
+            }
+          ]
+        },
+        {
+          "segmentId": "09-02",
+          "audioFile": "audio/scene-09/09-02.mp3",
+          "cues": [
+            {
+              "id": "09-02-a",
+              "text": "通过 MCP 这一类能力，",
+              "start": 0.1,
+              "end": 2.525
+            },
+            {
+              "id": "09-02-b",
+              "text": "它还可以连接外部工具和数据。",
+              "start": 2.525,
+              "end": 5.4
+            }
+          ]
+        },
+        {
+          "segmentId": "09-03",
+          "audioFile": "audio/scene-09/09-03.mp3",
+          "cues": [
+            {
+              "id": "09-03-a",
+              "text": "比如读取项目文档。",
+              "start": 0.1,
+              "end": 2.256
+            }
+          ]
+        },
+        {
+          "segmentId": "09-04",
+          "audioFile": "audio/scene-09/09-04.mp3",
+          "cues": [
+            {
+              "id": "09-04-a",
+              "text": "获取项目管理系统里的任务。",
+              "start": 0.1,
+              "end": 2.976
+            }
+          ]
+        },
+        {
+          "segmentId": "09-05",
+          "audioFile": "audio/scene-09/09-05.mp3",
+          "cues": [
+            {
+              "id": "09-05-a",
+              "text": "查询其他服务中的信息。",
+              "start": 0.1,
+              "end": 2.568
+            }
+          ]
+        },
+        {
+          "segmentId": "09-06",
+          "audioFile": "audio/scene-09/09-06.mp3",
+          "cues": [
+            {
+              "id": "09-06-a",
+              "text": "这意味着它开始不只是处理“代码”。",
+              "start": 0.1,
+              "end": 3.432
+            }
+          ]
+        },
+        {
+          "segmentId": "09-07",
+          "audioFile": "audio/scene-09/09-07.mp3",
+          "cues": [
+            {
+              "id": "09-07-a",
+              "text": "而是可以围绕一个真实项目，",
+              "start": 0.1,
+              "end": 2.763
+            },
+            {
+              "id": "09-07-b",
+              "text": "获取更多完成任务需要的上下文。",
+              "start": 2.763,
+              "end": 6.168
+            }
+          ]
+        },
+        {
+          "segmentId": "09-08",
+          "audioFile": "audio/scene-09/09-08.mp3",
+          "cues": [
+            {
+              "id": "09-08-a",
+              "text": "所以你也可以把 Claude Code 看成：",
+              "start": 0.1,
+              "end": 3.216
+            }
+          ]
+        },
+        {
+          "segmentId": "09-09",
+          "audioFile": "audio/scene-09/09-09.mp3",
+          "cues": [
+            {
+              "id": "09-09-a",
+              "text": "一个正在从代码工具，",
+              "start": 0.1,
+              "end": 2.05
+            },
+            {
+              "id": "09-09-b",
+              "text": "慢慢向项目级 AI 工作入口",
+              "start": 2.05,
+              "end": 4.638
+            },
+            {
+              "id": "09-09-c",
+              "text": "发展的东西。",
+              "start": 4.638,
+              "end": 6.168
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sceneId": "10",
+      "file": "subtitles/scene-10.json",
+      "segments": [
+        {
+          "segmentId": "10-01",
+          "audioFile": "audio/scene-10/10-01.mp3",
+          "cues": [
+            {
+              "id": "10-01-a",
+              "text": "看到这里，可能会有一个很自然的想法。",
+              "start": 0.1,
+              "end": 3.696
+            }
+          ]
+        },
+        {
+          "segmentId": "10-02",
+          "audioFile": "audio/scene-10/10-02.mp3",
+          "cues": [
+            {
+              "id": "10-02-a",
+              "text": "既然它已经可以看代码、",
+              "start": 0.1,
+              "end": 2.075
+            },
+            {
+              "id": "10-02-b",
+              "text": "改文件、跑测试，",
+              "start": 2.075,
+              "end": 4.013
+            },
+            {
+              "id": "10-02-c",
+              "text": "甚至连接其他工具。",
+              "start": 4.013,
+              "end": 6.048
+            }
+          ]
+        },
+        {
+          "segmentId": "10-03",
+          "audioFile": "audio/scene-10/10-03.mp3",
+          "cues": [
+            {
+              "id": "10-03-a",
+              "text": "那以后是不是整个项目都可以直接",
+              "start": 0.1,
+              "end": 2.788
+            },
+            {
+              "id": "10-03-b",
+              "text": "交给 AI？",
+              "start": 2.788,
+              "end": 4.392
+            }
+          ]
+        },
+        {
+          "segmentId": "10-04",
+          "audioFile": "audio/scene-10/10-04.mp3",
+          "cues": [
+            {
+              "id": "10-04-a",
+              "text": "答案是：",
+              "start": 0.1,
+              "end": 1.416
+            }
+          ]
+        },
+        {
+          "segmentId": "10-05",
+          "audioFile": "audio/scene-10/10-05.mp3",
+          "cues": [
+            {
+              "id": "10-05-a",
+              "text": "还远远没到这个程度。",
+              "start": 0.1,
+              "end": 2.304
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sceneId": "11",
+      "file": "subtitles/scene-11.json",
+      "segments": [
+        {
+          "segmentId": "11-01",
+          "audioFile": "audio/scene-11/11-01.mp3",
+          "cues": [
+            {
+              "id": "11-01-a",
+              "text": "因为开发里面有很多问题，",
+              "start": 0.1,
+              "end": 2.4
+            },
+            {
+              "id": "11-01-b",
+              "text": "本身就不是单纯的“对”和“错”。",
+              "start": 2.4,
+              "end": 5.136
+            }
+          ]
+        },
+        {
+          "segmentId": "11-02",
+          "audioFile": "audio/scene-11/11-02.mp3",
+          "cues": [
+            {
+              "id": "11-02-a",
+              "text": "比如现在有两个技术方案。",
+              "start": 0.1,
+              "end": 2.832
+            }
+          ]
+        },
+        {
+          "segmentId": "11-03",
+          "audioFile": "audio/scene-11/11-03.mp3",
+          "cues": [
+            {
+              "id": "11-03-a",
+              "text": "到底选方案 A，",
+              "start": 0.1,
+              "end": 1.55
+            },
+            {
+              "id": "11-03-b",
+              "text": "还是方案 B？",
+              "start": 1.55,
+              "end": 3.0
+            }
+          ]
+        },
+        {
+          "segmentId": "11-04",
+          "audioFile": "audio/scene-11/11-04.mp3",
+          "cues": [
+            {
+              "id": "11-04-a",
+              "text": "要不要为了未来扩展性，",
+              "start": 0.1,
+              "end": 2.163
+            },
+            {
+              "id": "11-04-b",
+              "text": "增加现在的开发成本？",
+              "start": 2.163,
+              "end": 4.392
+            }
+          ]
+        },
+        {
+          "segmentId": "11-05",
+          "audioFile": "audio/scene-11/11-05.mp3",
+          "cues": [
+            {
+              "id": "11-05-a",
+              "text": "这个功能应该优先追求速度，",
+              "start": 0.1,
+              "end": 2.763
+            },
+            {
+              "id": "11-05-b",
+              "text": "还是长期可维护性？",
+              "start": 2.763,
+              "end": 4.968
+            }
+          ]
+        },
+        {
+          "segmentId": "11-06",
+          "audioFile": "audio/scene-11/11-06.mp3",
+          "cues": [
+            {
+              "id": "11-06-a",
+              "text": "这些问题背后都涉及业务、",
+              "start": 0.1,
+              "end": 2.612
+            },
+            {
+              "id": "11-06-b",
+              "text": "时间、成本、",
+              "start": 2.612,
+              "end": 4.025
+            },
+            {
+              "id": "11-06-c",
+              "text": "团队能力和风险。",
+              "start": 4.025,
+              "end": 6.048
+            }
+          ]
+        },
+        {
+          "segmentId": "11-07",
+          "audioFile": "audio/scene-11/11-07.mp3",
+          "cues": [
+            {
+              "id": "11-07-a",
+              "text": "AI当然可以帮你分析。",
+              "start": 0.1,
+              "end": 2.664
+            }
+          ]
+        },
+        {
+          "segmentId": "11-08",
+          "audioFile": "audio/scene-11/11-08.mp3",
+          "cues": [
+            {
+              "id": "11-08-a",
+              "text": "但最后做取舍的人，",
+              "start": 0.1,
+              "end": 1.812
+            },
+            {
+              "id": "11-08-b",
+              "text": "仍然应该是你。",
+              "start": 1.812,
+              "end": 3.576
+            }
+          ]
+        },
+        {
+          "segmentId": "11-09",
+          "audioFile": "audio/scene-11/11-09.mp3",
+          "cues": [
+            {
+              "id": "11-09-a",
+              "text": "另外还有一个非常重要的问题：",
+              "start": 0.1,
+              "end": 2.88
+            }
+          ]
+        },
+        {
+          "segmentId": "11-10",
+          "audioFile": "audio/scene-11/11-10.mp3",
+          "cues": [
+            {
+              "id": "11-10-a",
+              "text": "Claude Code 改完代码，",
+              "start": 0.1,
+              "end": 1.95
+            },
+            {
+              "id": "11-10-b",
+              "text": "并不意味着它一定是对的。",
+              "start": 1.95,
+              "end": 4.584
+            }
+          ]
+        },
+        {
+          "segmentId": "11-11",
+          "audioFile": "audio/scene-11/11-11.mp3",
+          "cues": [
+            {
+              "id": "11-11-a",
+              "text": "测试通过，也不等于所有业务逻辑都正确。",
+              "start": 0.1,
+              "end": 4.056
+            }
+          ]
+        },
+        {
+          "segmentId": "11-12",
+          "audioFile": "audio/scene-11/11-12.mp3",
+          "cues": [
+            {
+              "id": "11-12-a",
+              "text": "它依然可能误解需求，",
+              "start": 0.1,
+              "end": 2.138
+            },
+            {
+              "id": "11-12-b",
+              "text": "也可能在某些边界条件上做错判断。",
+              "start": 2.138,
+              "end": 5.856
+            }
+          ]
+        },
+        {
+          "segmentId": "11-13",
+          "audioFile": "audio/scene-11/11-13.mp3",
+          "cues": [
+            {
+              "id": "11-13-a",
+              "text": "所以一个非常重要的习惯是：",
+              "start": 0.1,
+              "end": 3.024
+            }
+          ]
+        },
+        {
+          "segmentId": "11-14",
+          "audioFile": "audio/scene-11/11-14.mp3",
+          "cues": [
+            {
+              "id": "11-14-a",
+              "text": "不要把 AI 的结果当成最终答案。",
+              "start": 0.1,
+              "end": 3.408
+            }
+          ]
+        },
+        {
+          "segmentId": "11-15",
+          "audioFile": "audio/scene-11/11-15.mp3",
+          "cues": [
+            {
+              "id": "11-15-a",
+              "text": "把它看成一个高质量候选方案。",
+              "start": 0.1,
+              "end": 2.952
+            }
+          ]
+        },
+        {
+          "segmentId": "11-16",
+          "audioFile": "audio/scene-11/11-16.mp3",
+          "cues": [
+            {
+              "id": "11-16-a",
+              "text": "然后由人来 Review，",
+              "start": 0.1,
+              "end": 1.913
+            },
+            {
+              "id": "11-16-b",
+              "text": "再决定是否提交。",
+              "start": 1.913,
+              "end": 3.888
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sceneId": "12",
+      "file": "subtitles/scene-12.json",
+      "segments": [
+        {
+          "segmentId": "12-01",
+          "audioFile": "audio/scene-12/12-01.mp3",
+          "cues": [
+            {
+              "id": "12-01-a",
+              "text": "所以真正适合 Claude Code 的使用",
+              "start": 0.1,
+              "end": 2.8
+            },
+            {
+              "id": "12-01-b",
+              "text": "方式，不是：",
+              "start": 2.8,
+              "end": 4.608
+            }
+          ]
+        },
+        {
+          "segmentId": "12-02",
+          "audioFile": "audio/scene-12/12-02.mp3",
+          "cues": [
+            {
+              "id": "12-02-a",
+              "text": "这个项目以后全部交给 AI，",
+              "start": 0.1,
+              "end": 2.562
+            },
+            {
+              "id": "12-02-b",
+              "text": "我不管了。”",
+              "start": 2.562,
+              "end": 3.888
+            }
+          ]
+        },
+        {
+          "segmentId": "12-03",
+          "audioFile": "audio/scene-12/12-03.mp3",
+          "cues": [
+            {
+              "id": "12-03-a",
+              "text": "而是重新划分人和 AI 的工作。",
+              "start": 0.1,
+              "end": 3.288
+            }
+          ]
+        },
+        {
+          "segmentId": "12-04",
+          "audioFile": "audio/scene-12/12-04.mp3",
+          "cues": [
+            {
+              "id": "12-04-a",
+              "text": "人更适合负责：",
+              "start": 0.1,
+              "end": 1.992
+            }
+          ]
+        },
+        {
+          "segmentId": "12-05",
+          "audioFile": "audio/scene-12/12-05.mp3",
+          "cues": [
+            {
+              "id": "12-05-a",
+              "text": "目标。",
+              "start": 0.1,
+              "end": 1.2
+            }
+          ]
+        },
+        {
+          "segmentId": "12-06",
+          "audioFile": "audio/scene-12/12-06.mp3",
+          "cues": [
+            {
+              "id": "12-06-a",
+              "text": "判断。",
+              "start": 0.1,
+              "end": 1.248
+            }
+          ]
+        },
+        {
+          "segmentId": "12-07",
+          "audioFile": "audio/scene-12/12-07.mp3",
+          "cues": [
+            {
+              "id": "12-07-a",
+              "text": "决策。",
+              "start": 0.1,
+              "end": 1.296
+            }
+          ]
+        },
+        {
+          "segmentId": "12-08",
+          "audioFile": "audio/scene-12/12-08.mp3",
+          "cues": [
+            {
+              "id": "12-08-a",
+              "text": "以及最终验收。",
+              "start": 0.1,
+              "end": 2.064
+            }
+          ]
+        },
+        {
+          "segmentId": "12-09",
+          "audioFile": "audio/scene-12/12-09.mp3",
+          "cues": [
+            {
+              "id": "12-09-a",
+              "text": "AI 更适合承担：",
+              "start": 0.1,
+              "end": 2.208
+            }
+          ]
+        },
+        {
+          "segmentId": "12-10",
+          "audioFile": "audio/scene-12/12-10.mp3",
+          "cues": [
+            {
+              "id": "12-10-a",
+              "text": "理解代码。",
+              "start": 0.1,
+              "end": 1.608
+            }
+          ]
+        },
+        {
+          "segmentId": "12-11",
+          "audioFile": "audio/scene-12/12-11.mp3",
+          "cues": [
+            {
+              "id": "12-11-a",
+              "text": "分析问题。",
+              "start": 0.1,
+              "end": 1.656
+            }
+          ]
+        },
+        {
+          "segmentId": "12-12",
+          "audioFile": "audio/scene-12/12-12.mp3",
+          "cues": [
+            {
+              "id": "12-12-a",
+              "text": "执行任务。",
+              "start": 0.1,
+              "end": 1.632
+            }
+          ]
+        },
+        {
+          "segmentId": "12-13",
+          "audioFile": "audio/scene-12/12-13.mp3",
+          "cues": [
+            {
+              "id": "12-13-a",
+              "text": "以及大量重复、",
+              "start": 0.1,
+              "end": 1.65
+            },
+            {
+              "id": "12-13-b",
+              "text": "机械、耗时间的工作。",
+              "start": 1.65,
+              "end": 4.152
+            }
+          ]
+        },
+        {
+          "segmentId": "12-14",
+          "audioFile": "audio/scene-12/12-14.mp3",
+          "cues": [
+            {
+              "id": "12-14-a",
+              "text": "这不是把人从开发流程里拿掉。",
+              "start": 0.1,
+              "end": 3.096
+            }
+          ]
+        },
+        {
+          "segmentId": "12-15",
+          "audioFile": "audio/scene-12/12-15.mp3",
+          "cues": [
+            {
+              "id": "12-15-a",
+              "text": "而是把人的注意力，",
+              "start": 0.1,
+              "end": 1.688
+            },
+            {
+              "id": "12-15-b",
+              "text": "从大量执行细节里释放出来。",
+              "start": 1.688,
+              "end": 4.656
+            }
+          ]
+        },
+        {
+          "segmentId": "12-16",
+          "audioFile": "audio/scene-12/12-16.mp3",
+          "cues": [
+            {
+              "id": "12-16-a",
+              "text": "所以真正的关键词不是替代。",
+              "start": 0.1,
+              "end": 3.456
+            }
+          ]
+        },
+        {
+          "segmentId": "12-17",
+          "audioFile": "audio/scene-12/12-17.mp3",
+          "cues": [
+            {
+              "id": "12-17-a",
+              "text": "而是协作。",
+              "start": 0.1,
+              "end": 1.656
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sceneId": "13",
+      "file": "subtitles/scene-13.json",
+      "segments": [
+        {
+          "segmentId": "13-01",
+          "audioFile": "audio/scene-13/13-01.mp3",
+          "cues": [
+            {
+              "id": "13-01-a",
+              "text": "理解这一点以后，",
+              "start": 0.1,
+              "end": 1.587
+            },
+            {
+              "id": "13-01-b",
+              "text": "再看 ChatGPT、",
+              "start": 1.587,
+              "end": 3.175
+            },
+            {
+              "id": "13-01-c",
+              "text": "Copilot、Cursor 和 Claude Code，",
+              "start": 3.175,
+              "end": 5.987
+            },
+            {
+              "id": "13-01-d",
+              "text": "就会清楚很多。",
+              "start": 5.987,
+              "end": 7.656
+            }
+          ]
+        },
+        {
+          "segmentId": "13-02",
+          "audioFile": "audio/scene-13/13-02.mp3",
+          "cues": [
+            {
+              "id": "13-02-a",
+              "text": "ChatGPT 最典型的工作方式是：",
+              "start": 0.1,
+              "end": 3.528
+            }
+          ]
+        },
+        {
+          "segmentId": "13-03",
+          "audioFile": "audio/scene-13/13-03.mp3",
+          "cues": [
+            {
+              "id": "13-03-a",
+              "text": "你问，它答。",
+              "start": 0.1,
+              "end": 1.848
+            }
+          ]
+        },
+        {
+          "segmentId": "13-04",
+          "audioFile": "audio/scene-13/13-04.mp3",
+          "cues": [
+            {
+              "id": "13-04-a",
+              "text": "所以它很适合问知识、",
+              "start": 0.1,
+              "end": 2.413
+            },
+            {
+              "id": "13-04-b",
+              "text": "分析问题、讨论方案，",
+              "start": 2.413,
+              "end": 4.65
+            },
+            {
+              "id": "13-04-c",
+              "text": "或者处理一些相对独立的内容。",
+              "start": 4.65,
+              "end": 7.464
+            }
+          ]
+        },
+        {
+          "segmentId": "13-05",
+          "audioFile": "audio/scene-13/13-05.mp3",
+          "cues": [
+            {
+              "id": "13-05-a",
+              "text": "Copilot 最经典的方式是：",
+              "start": 0.1,
+              "end": 2.904
+            }
+          ]
+        },
+        {
+          "segmentId": "13-06",
+          "audioFile": "audio/scene-13/13-06.mp3",
+          "cues": [
+            {
+              "id": "13-06-a",
+              "text": "你写，它补。",
+              "start": 0.1,
+              "end": 1.896
+            }
+          ]
+        },
+        {
+          "segmentId": "13-07",
+          "audioFile": "audio/scene-13/13-07.mp3",
+          "cues": [
+            {
+              "id": "13-07-a",
+              "text": "它更像是在编码过程中实时帮你提高",
+              "start": 0.1,
+              "end": 3.25
+            },
+            {
+              "id": "13-07-b",
+              "text": "输入效率。",
+              "start": 3.25,
+              "end": 4.656
+            }
+          ]
+        },
+        {
+          "segmentId": "13-08",
+          "audioFile": "audio/scene-13/13-08.mp3",
+          "cues": [
+            {
+              "id": "13-08-a",
+              "text": "Cursor 现在已经进一步加入了越来越多",
+              "start": 0.1,
+              "end": 3.175
+            },
+            {
+              "id": "13-08-b",
+              "text": "Agent 能力。",
+              "start": 3.175,
+              "end": 4.632
+            }
+          ]
+        },
+        {
+          "segmentId": "13-09",
+          "audioFile": "audio/scene-13/13-09.mp3",
+          "cues": [
+            {
+              "id": "13-09-a",
+              "text": "所以编辑器和 Agent 之间的边界正在快速",
+              "start": 0.1,
+              "end": 3.862
+            },
+            {
+              "id": "13-09-b",
+              "text": "变模糊。",
+              "start": 3.862,
+              "end": 5.088
+            }
+          ]
+        },
+        {
+          "segmentId": "13-10",
+          "audioFile": "audio/scene-13/13-10.mp3",
+          "cues": [
+            {
+              "id": "13-10-a",
+              "text": "而 Claude Code 最典型的工作方式是：",
+              "start": 0.1,
+              "end": 3.528
+            }
+          ]
+        },
+        {
+          "segmentId": "13-11",
+          "audioFile": "audio/scene-13/13-11.mp3",
+          "cues": [
+            {
+              "id": "13-11-a",
+              "text": "你把一个任务交给它。",
+              "start": 0.1,
+              "end": 2.16
+            }
+          ]
+        },
+        {
+          "segmentId": "13-12",
+          "audioFile": "audio/scene-13/13-12.mp3",
+          "cues": [
+            {
+              "id": "13-12-a",
+              "text": "它进入项目执行。",
+              "start": 0.1,
+              "end": 2.064
+            }
+          ]
+        },
+        {
+          "segmentId": "13-13",
+          "audioFile": "audio/scene-13/13-13.mp3",
+          "cues": [
+            {
+              "id": "13-13-a",
+              "text": "最后再由你验收。",
+              "start": 0.1,
+              "end": 2.04
+            }
+          ]
+        },
+        {
+          "segmentId": "13-14",
+          "audioFile": "audio/scene-13/13-14.mp3",
+          "cues": [
+            {
+              "id": "13-14-a",
+              "text": "所以这些工具其实不一定非要",
+              "start": 0.1,
+              "end": 2.737
+            },
+            {
+              "id": "13-14-b",
+              "text": "互相替代。",
+              "start": 2.737,
+              "end": 4.104
+            }
+          ]
+        },
+        {
+          "segmentId": "13-15",
+          "audioFile": "audio/scene-13/13-15.mp3",
+          "cues": [
+            {
+              "id": "13-15-a",
+              "text": "真正实用的方式反而是：",
+              "start": 0.1,
+              "end": 2.784
+            }
+          ]
+        },
+        {
+          "segmentId": "13-16",
+          "audioFile": "audio/scene-13/13-16.mp3",
+          "cues": [
+            {
+              "id": "13-16-a",
+              "text": "按照任务来派工。",
+              "start": 0.1,
+              "end": 1.992
+            }
+          ]
+        },
+        {
+          "segmentId": "13-17",
+          "audioFile": "audio/scene-13/13-17.mp3",
+          "cues": [
+            {
+              "id": "13-17-a",
+              "text": "需要讨论和分析，",
+              "start": 0.1,
+              "end": 1.725
+            },
+            {
+              "id": "13-17-b",
+              "text": "可以找 ChatGPT。",
+              "start": 1.725,
+              "end": 3.816
+            }
+          ]
+        },
+        {
+          "segmentId": "13-18",
+          "audioFile": "audio/scene-13/13-18.mp3",
+          "cues": [
+            {
+              "id": "13-18-a",
+              "text": "写代码时需要实时辅助，",
+              "start": 0.1,
+              "end": 2.487
+            },
+            {
+              "id": "13-18-b",
+              "text": "可以用 Cursor 或 Copilot。",
+              "start": 2.487,
+              "end": 5.088
+            }
+          ]
+        },
+        {
+          "segmentId": "13-19",
+          "audioFile": "audio/scene-13/13-19.mp3",
+          "cues": [
+            {
+              "id": "13-19-a",
+              "text": "而遇到需要理解整个项目、",
+              "start": 0.1,
+              "end": 2.362
+            },
+            {
+              "id": "13-19-b",
+              "text": "跨文件修改、",
+              "start": 2.362,
+              "end": 3.663
+            },
+            {
+              "id": "13-19-c",
+              "text": "修 Bug、重构、",
+              "start": 3.663,
+              "end": 5.275
+            },
+            {
+              "id": "13-19-d",
+              "text": "跑测试这一类项目级任务时，",
+              "start": 5.275,
+              "end": 7.638
+            },
+            {
+              "id": "13-19-e",
+              "text": "就可以交给 Claude Code。",
+              "start": 7.638,
+              "end": 9.984
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sceneId": "14",
+      "file": "subtitles/scene-14.json",
+      "segments": [
+        {
+          "segmentId": "14-01",
+          "audioFile": "audio/scene-14/14-01.mp3",
+          "cues": [
+            {
+              "id": "14-01-a",
+              "text": "如果把视角再拉远一点，",
+              "start": 0.1,
+              "end": 2.237
+            },
+            {
+              "id": "14-01-b",
+              "text": "你会发现：",
+              "start": 2.237,
+              "end": 3.576
+            }
+          ]
+        },
+        {
+          "segmentId": "14-02",
+          "audioFile": "audio/scene-14/14-02.mp3",
+          "cues": [
+            {
+              "id": "14-02-a",
+              "text": "真正变化的，",
+              "start": 0.1,
+              "end": 1.413
+            },
+            {
+              "id": "14-02-b",
+              "text": "其实不只是 Claude Code 这一个工具。",
+              "start": 1.413,
+              "end": 4.536
+            }
+          ]
+        },
+        {
+          "segmentId": "14-03",
+          "audioFile": "audio/scene-14/14-03.mp3",
+          "cues": [
+            {
+              "id": "14-03-a",
+              "text": "而是我们和 AI 一起写代码的方式。",
+              "start": 0.1,
+              "end": 3.6
+            }
+          ]
+        },
+        {
+          "segmentId": "14-04",
+          "audioFile": "audio/scene-14/14-04.mp3",
+          "cues": [
+            {
+              "id": "14-04-a",
+              "text": "最开始，我们问 AI：",
+              "start": 0.1,
+              "end": 2.688
+            }
+          ]
+        },
+        {
+          "segmentId": "14-05",
+          "audioFile": "audio/scene-14/14-05.mp3",
+          "cues": [
+            {
+              "id": "14-05-a",
+              "text": "这段代码怎么写？”",
+              "start": 0.1,
+              "end": 2.016
+            }
+          ]
+        },
+        {
+          "segmentId": "14-06",
+          "audioFile": "audio/scene-14/14-06.mp3",
+          "cues": [
+            {
+              "id": "14-06-a",
+              "text": "后来开始变成：",
+              "start": 0.1,
+              "end": 1.968
+            }
+          ]
+        },
+        {
+          "segmentId": "14-07",
+          "audioFile": "audio/scene-14/14-07.mp3",
+          "cues": [
+            {
+              "id": "14-07-a",
+              "text": "这个问题应该怎么解决？”",
+              "start": 0.1,
+              "end": 2.64
+            }
+          ]
+        },
+        {
+          "segmentId": "14-08",
+          "audioFile": "audio/scene-14/14-08.mp3",
+          "cues": [
+            {
+              "id": "14-08-a",
+              "text": "而现在，我们正在越来越多地告诉 AI：",
+              "start": 0.1,
+              "end": 3.984
+            }
+          ]
+        },
+        {
+          "segmentId": "14-09",
+          "audioFile": "audio/scene-14/14-09.mp3",
+          "cues": [
+            {
+              "id": "14-09-a",
+              "text": "这个任务最终要达到什么结果，",
+              "start": 0.1,
+              "end": 2.763
+            },
+            {
+              "id": "14-09-b",
+              "text": "你去完成，完成以后把结果交给我。”",
+              "start": 2.763,
+              "end": 6.528
+            }
+          ]
+        },
+        {
+          "segmentId": "14-10",
+          "audioFile": "audio/scene-14/14-10.mp3",
+          "cues": [
+            {
+              "id": "14-10-a",
+              "text": "这背后，其实代表着一种新的开发分工。",
+              "start": 0.1,
+              "end": 3.816
+            }
+          ]
+        },
+        {
+          "segmentId": "14-11",
+          "audioFile": "audio/scene-14/14-11.mp3",
+          "cues": [
+            {
+              "id": "14-11-a",
+              "text": "人负责目标、",
+              "start": 0.1,
+              "end": 1.337
+            },
+            {
+              "id": "14-11-b",
+              "text": "判断和验收。",
+              "start": 1.337,
+              "end": 3.024
+            }
+          ]
+        },
+        {
+          "segmentId": "14-12",
+          "audioFile": "audio/scene-14/14-12.mp3",
+          "cues": [
+            {
+              "id": "14-12-a",
+              "text": "AI开始承担越来越多理解、",
+              "start": 0.1,
+              "end": 2.725
+            },
+            {
+              "id": "14-12-b",
+              "text": "分析和执行工作。",
+              "start": 2.725,
+              "end": 4.824
+            }
+          ]
+        },
+        {
+          "segmentId": "14-13",
+          "audioFile": "audio/scene-14/14-13.mp3",
+          "cues": [
+            {
+              "id": "14-13-a",
+              "text": "所以 Claude Code 真正值得关注的地方，",
+              "start": 0.1,
+              "end": 3.413
+            },
+            {
+              "id": "14-13-b",
+              "text": "不只是它让写代码变快了。",
+              "start": 3.413,
+              "end": 5.976
+            }
+          ]
+        },
+        {
+          "segmentId": "14-14",
+          "audioFile": "audio/scene-14/14-14.mp3",
+          "cues": [
+            {
+              "id": "14-14-a",
+              "text": "而是它让 AI 从聊天框里走出来，",
+              "start": 0.1,
+              "end": 3.288
+            },
+            {
+              "id": "14-14-b",
+              "text": "真正进入了开发流程。",
+              "start": 3.288,
+              "end": 5.544
+            }
+          ]
+        },
+        {
+          "segmentId": "14-15",
+          "audioFile": "audio/scene-14/14-15.mp3",
+          "cues": [
+            {
+              "id": "14-15-a",
+              "text": "而这，也可能是未来 AI 编程最重要的",
+              "start": 0.1,
+              "end": 3.487
+            },
+            {
+              "id": "14-15-b",
+              "text": "一次变化。",
+              "start": 3.487,
+              "end": 4.872
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
