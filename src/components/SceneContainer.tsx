@@ -25,7 +25,7 @@ export const SceneContainer = ({children}: SceneContainerProps) => {
         background,
         color: colors.text,
         fontFamily:
-          'Arial, "PingFang SC", "Microsoft YaHei", sans-serif',
+          '"Noto Sans CJK SC", "PingFang SC", "Arial Unicode MS", "Microsoft YaHei", Arial, sans-serif',
         overflow: 'hidden',
       }}
     >

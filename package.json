@@ -5,7 +5,7 @@
   "scripts": {
     "preview": "remotion studio",
     "check": "tsc --noEmit",
-    "render": "remotion render claude-code-what-is out/claude-code-what-is.mp4"
+    "render": "remotion render claude-code-what-is-v2 out/claude-code-what-is-v2.mp4"
   },
   "dependencies": {
     "@remotion/cli": "latest",
