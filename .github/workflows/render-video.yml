@@ -1,0 +1,47 @@
+name: Render video
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Extract video assets
+        run: |
+          unzip -q assets/claude-code-what-is-v2-assets.zip -d public/local-assets
+
+      - name: Verify render inputs
+        run: |
+          test -f public/local-assets/claude-code-what-is-v2/captions.vtt
+          test "$(find public/local-assets/claude-code-what-is-v2/audio -type f -name '*.mp3' | wc -l | tr -d ' ')" -eq 166
+
+      - name: Type-check project
+        run: npm run check
+
+      - name: Render claude-code-what-is-v2
+        run: npx remotion render claude-code-what-is-v2 out/claude-code-what-is-v2.mp4
+
+      - name: Upload rendered video
+        uses: actions/upload-artifact@v4
+        with:
+          name: claude-code-what-is-v2
+          path: out/claude-code-what-is-v2.mp4
+          if-no-files-found: error
+          retention-days: 7
