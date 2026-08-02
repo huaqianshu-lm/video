@@ -25,6 +25,7 @@ jobs:
 
       - name: Extract video assets
         run: |
+          mkdir -p public/local-assets
           unzip -q assets/claude-code-what-is-v2-assets.zip -d public/local-assets
 
       - name: Verify render inputs
