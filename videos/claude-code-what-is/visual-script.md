@@ -687,6 +687,8 @@ Todo
 Done
 ```
 
+总结卡完整展开后保持静止约 4.6 秒，让观众先读完“把一个连续任务推进到可验证的结果”，再保留约 2.6 秒思考时间。
+
 ## Visual Type
 
 `Task Execution Demo`
@@ -737,6 +739,8 @@ Jira ─ Claude Code ─ Codebase
          │
        Drive
 ```
+
+连接按 `Codebase → Docs → Jira → Slack → Drive` 的认知顺序逐条展开。最终总结卡完整展开后静置约 4 秒，让观众读完“围绕真实项目，连接完成任务所需的上下文”，并保留约 2～3 秒思考时间。
 
 ## 注意
 
@@ -797,6 +801,8 @@ Not quite.
 ```text
 还不行。
 ```
+
+前三层能力依次出现后向中央聚合，再形成“全自动？”的自然推论；提问短暂停顿后，以克制、非警告式的总结卡回答“还不行。”。总结卡完整展开后静置约 4 秒，留出明确的思考时间。
 
 ## Visual Type
 
@@ -871,6 +877,8 @@ AI Output
 Final Truth
 ```
 
+先完成方案 A／B 的分析，再将 Decision 明确保留在 Human 一侧；随后切换到 `Tests passed ✓ ≠ Business correct？`。最终总结完整展开后静置约 4 秒，让观众读完“AI 生成候选结果，人负责最终判断”，并保留思考时间。
+
 ## Visual Type
 
 `Decision Diagram + Contrast`
@@ -938,6 +946,8 @@ Next Goal
 ```text
 协作 ≠ 托管
 ```
+
+Human 与 AI 的职责逐项出现后，共同连接到 Project，并形成 `Goal → AI Execution → Human Review → Next Goal` 的协作循环。最终总结完整展开后静置约 4 秒，让观众读完“人负责方向与验收，AI 承担分析与执行”，并保留思考时间。
 
 ## Visual Type
 
@@ -1021,6 +1031,10 @@ Developer
 
 `Task Routing Animation`
 
+## Remotion 实现节奏
+
+Developer 出现后，三条任务路径依次连接 ChatGPT、Cursor／Copilot 与 Claude Code；任务卡分别落入对应工具，形成“问答、实时编码、项目级执行”的动态分工。场景时长为 18 秒，最终「按任务派工」完整展开后静置约 4.4 秒，保证观众读完并留出思考时间。
+
 ---
 
 # Scene 14｜AI 编程方式的变化
@@ -1099,6 +1113,10 @@ AI 负责执行
 ## Visual Type
 
 `Evolution Diagram + Closing`
+
+## Remotion 实现节奏
+
+三种提问方式依次演进，再将第三阶段展开成 `Human → Goal → Agent → Execution → Human Review`。场景时长为 21 秒，最终以 `Human × AI`、`人负责判断 · AI 负责执行` 收束；结论完整展开后静置约 5 秒，作为全片读字与思考留白。
 
 ---
 
