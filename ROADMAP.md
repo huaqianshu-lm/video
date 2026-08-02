@@ -8,6 +8,7 @@
 - 修复版仍需在 Studio 中人工复核音频开头和逐幕音画同步。
 - 已新增 GitHub Actions 服务端渲染工作流；当前 MVP 素材 ZIP 直接随私有仓库提交，工作流会在 Runner 中自动解压。
 - GitHub Actions 已升级至 Node.js 24 兼容的官方 Action 版本，项目渲染运行时继续使用 Node.js 22。
+- GitHub Actions 素材解压步骤已补充目标目录创建，避免 Runner 中缺少 `public/local-assets` 导致解压失败。
 - 已将当前 14 Scene 所需的字幕和 166 段音频打包为 `assets/claude-code-what-is-v2-assets.zip`（约 3.3 MB）；`local/` 下保留未跟踪的本地副本。
 - 正式执行依据位于 `videos/claude-code-what-is/`；`claude-code-what-is-legacy` 仅作历史对照。
 
@@ -51,6 +52,7 @@
 ## 最近验证（最近 10 条）
 
 - 2026-08-02：将 `actions/checkout`、`actions/setup-node` 和 `actions/upload-artifact` 分别升级至 v6，消除 Node.js 20 Action 弃用警告；`npm run check` 与 `git diff --check` 通过。
+- 2026-08-02：确认 GitHub Actions 首次解压因目标父目录不存在失败，补充 `mkdir -p public/local-assets`。
 - 2026-08-02：全量检查 166 个 Timing 文件均含首词，首词时间均为 0.1 秒；166 个源 MP3 最大前置静音约 0.21 秒；14 个 Scene 共 182 处 Segment 时间引用均存在；Node.js `v22.21.0`，`npm run check`、`git diff --check` 和音频资源一致性检查通过。
 - 2026-08-02：Node.js 为 `v22.21.0`；TTS Manifest 校验为 14 个 Scene、166 个 Segment、269 个 Cue，旁白总长 642.744 秒，Composition 加末尾停留后为 645.744 秒；`npm run check`、`git diff --check` 和复制资源一致性检查通过。
 - 2026-08-01：用户在 Remotion Studio 中完成新版 14 Scene 全片人工预览，反馈目前未发现明显问题；Scene 13～14 与全片第一轮视觉复核通过。
