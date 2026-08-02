@@ -1,4 +1,4 @@
-name: Render full video
+name: Smoke test video
 
 on:
   workflow_dispatch:
@@ -7,10 +7,10 @@ permissions:
   contents: read
 
 jobs:
-  render:
-    name: Render complete MP4
+  smoke-test:
+    name: Render representative frames and short clip
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 15
 
     steps:
       - name: Checkout
@@ -46,13 +46,20 @@ jobs:
       - name: Type-check project
         run: npm run check
 
-      - name: Render claude-code-what-is-v2
-        run: npx remotion render claude-code-what-is-v2 out/claude-code-what-is-v2.mp4
+      - name: Render representative frames
+        run: |
+          mkdir -p smoke
+          npx remotion still claude-code-what-is-v2 --frame=30 --output=smoke/frame-000030.png
+          npx remotion still claude-code-what-is-v2 --frame=660 --output=smoke/frame-000660.png
+          npx remotion still claude-code-what-is-v2 --frame=18000 --output=smoke/frame-018000.png
 
-      - name: Upload rendered video
+      - name: Render first 10 seconds
+        run: npx remotion render claude-code-what-is-v2 smoke/first-10-seconds.mp4 --frames=0-299
+
+      - name: Upload smoke-test artifacts
         uses: actions/upload-artifact@v6
         with:
-          name: claude-code-what-is-v2
-          path: out/claude-code-what-is-v2.mp4
+          name: claude-code-what-is-v2-smoke-test
+          path: smoke/
           if-no-files-found: error
           retention-days: 7

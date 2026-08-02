@@ -100,8 +100,11 @@ export const video14SubtitleCues: SubtitleCue[] = subtitleManifest.scenes.flatMa
       throw new Error(`Missing timeline for segment ${segment.segmentId}`);
     }
 
-    return segment.cues.map((cue) => ({
-      startSeconds: sceneTiming.offset + segmentTiming.offset + cue.start,
+    return segment.cues.map((cue, cueIndex) => ({
+      // The source timing reserves the first 100ms for audio startup. Keep the
+      // first caption visible from the Segment boundary so that this startup
+      // buffer does not become a repeated subtitle gap between 166 segments.
+      startSeconds: sceneTiming.offset + segmentTiming.offset + (cueIndex === 0 ? 0 : cue.start),
       endSeconds: sceneTiming.offset + segmentTiming.offset + cue.end,
       text: cue.text,
     }));
