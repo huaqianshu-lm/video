@@ -1,0 +1,923 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Claude Code 安装与使用 · Visual Prototype</title>
+  <style>
+    :root {
+      --bg: #080d18;
+      --stage: #0d1423;
+      --panel: #111b2e;
+      --panel-strong: #16233b;
+      --panel-soft: #0f192b;
+      --text: #edf3ff;
+      --muted: #91a0bd;
+      --line: #2a3b5c;
+      --line-soft: rgba(150, 176, 220, .16);
+      --blue: #8eaaff;
+      --blue-strong: #6e8df5;
+      --cyan: #64d8e8;
+      --green: #63d39b;
+      --amber: #f3c86b;
+      --red: #ff7c89;
+      --shadow: 0 26px 70px rgba(0, 0, 0, .34);
+    }
+
+    * { box-sizing: border-box; }
+
+    html { min-width: 980px; background: var(--bg); }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 12% 6%, rgba(110, 141, 245, .16), transparent 29%),
+        radial-gradient(circle at 86% 86%, rgba(100, 216, 232, .08), transparent 32%),
+        var(--bg);
+      font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+    }
+
+    button {
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      color: var(--text);
+      background: #111b2d;
+      font: inherit;
+      cursor: pointer;
+      transition: border-color .2s ease, background .2s ease, transform .2s ease;
+    }
+
+    button:hover {
+      border-color: var(--blue);
+      background: #172541;
+      transform: translateY(-1px);
+    }
+
+    button:focus-visible {
+      outline: 2px solid var(--cyan);
+      outline-offset: 2px;
+    }
+
+    .shell {
+      width: min(1480px, 94vw);
+      margin: 24px auto 46px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 24px;
+      margin-bottom: 16px;
+    }
+
+    .kicker {
+      margin: 0 0 7px;
+      color: var(--blue);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(19px, 2vw, 26px);
+      line-height: 1.2;
+      letter-spacing: -.02em;
+    }
+
+    .topbar-note {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      text-align: right;
+    }
+
+    .stage {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      overflow: hidden;
+      border: 1px solid #243655;
+      border-radius: 18px;
+      background:
+        linear-gradient(120deg, rgba(255,255,255,.015), transparent 35%),
+        var(--stage);
+      box-shadow: var(--shadow);
+      isolation: isolate;
+    }
+
+    .stage::before {
+      position: absolute;
+      inset: 0;
+      z-index: -1;
+      background-image: linear-gradient(rgba(148, 174, 225, .035) 1px, transparent 1px), linear-gradient(90deg, rgba(148, 174, 225, .035) 1px, transparent 1px);
+      background-size: 44px 44px;
+      content: "";
+      mask-image: linear-gradient(to bottom, black, transparent 82%);
+    }
+
+    .scene {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr) auto;
+      padding: 42px 58px 84px;
+      opacity: 0;
+      pointer-events: none;
+      transform: scale(.988);
+      transition: opacity .42s ease, transform .42s ease;
+    }
+
+    .scene.active {
+      opacity: 1;
+      pointer-events: auto;
+      transform: scale(1);
+    }
+
+    .scene-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 18px;
+      min-width: 0;
+    }
+
+    .scene-label {
+      margin: 0 0 8px;
+      color: var(--blue);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: .13em;
+      text-transform: uppercase;
+    }
+
+    h2 {
+      max-width: 900px;
+      margin: 0;
+      font-size: clamp(25px, 3vw, 43px);
+      line-height: 1.14;
+      letter-spacing: -.035em;
+    }
+
+    .scene-index {
+      flex: 0 0 auto;
+      padding: 7px 10px;
+      border: 1px solid var(--line-soft);
+      border-radius: 999px;
+      color: var(--muted);
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 12px;
+    }
+
+    .scene-body {
+      min-height: 0;
+      padding-top: 24px;
+    }
+
+    .caption {
+      position: absolute;
+      bottom: 25px;
+      left: 50%;
+      max-width: calc(100% - 116px);
+      padding: 9px 16px;
+      border: 1px solid rgba(255, 255, 255, .1);
+      border-radius: 10px;
+      color: #dce6fb;
+      background: rgba(5, 10, 19, .86);
+      box-shadow: 0 8px 25px rgba(0, 0, 0, .2);
+      font-size: clamp(13px, 1.25vw, 17px);
+      line-height: 1.25;
+      text-align: center;
+      white-space: nowrap;
+      transform: translateX(-50%);
+    }
+
+    .muted { color: var(--muted); }
+    .blue { color: var(--blue); }
+    .cyan { color: var(--cyan); }
+    .green { color: var(--green); }
+    .amber { color: var(--amber); }
+    .red { color: var(--red); }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+
+    .window {
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 13px;
+      background: linear-gradient(180deg, #121d32, #0e1728);
+      box-shadow: 0 15px 38px rgba(0, 0, 0, .23);
+    }
+
+    .window-bar {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      height: 33px;
+      padding: 0 12px;
+      border-bottom: 1px solid var(--line-soft);
+      background: #10192b;
+    }
+
+    .window-bar .bar-title {
+      margin-left: 5px;
+      color: #7e8eac;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 11px;
+    }
+
+    .dot { width: 9px; height: 9px; border-radius: 50%; background: #465775; }
+    .dot.red-dot { background: #c66c77; }
+    .dot.amber-dot { background: #d7b15c; }
+    .dot.green-dot { background: #63b98f; }
+
+    .terminal-body {
+      min-height: 235px;
+      padding: 21px 24px;
+      color: #cbd8f3;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: clamp(13px, 1.25vw, 18px);
+      line-height: 1.78;
+    }
+
+    .prompt { color: var(--cyan); }
+    .terminal-muted { color: #7284a5; }
+    .terminal-line { display: block; }
+
+    .cursor {
+      display: inline-block;
+      width: .58em;
+      height: 1.05em;
+      margin-left: 4px;
+      vertical-align: -.16em;
+      background: var(--blue);
+      animation: blink 1.05s steps(2, start) infinite;
+    }
+
+    @keyframes blink { 50% { opacity: 0; } }
+
+    .opening-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.26fr) minmax(300px, .74fr);
+      align-items: center;
+      gap: 28px;
+      height: 100%;
+    }
+
+    .opening-terminal { transform: translateY(-2px); }
+
+    .status-stack {
+      display: grid;
+      gap: 12px;
+    }
+
+    .status-chip {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 15px 17px;
+      border: 1px solid var(--line);
+      border-radius: 11px;
+      background: rgba(18, 29, 50, .78);
+    }
+
+    .status-chip .status-name { font-size: 15px; }
+    .status-chip .status-value { color: var(--amber); font-size: 13px; }
+    .status-chip::before { width: 7px; height: 7px; margin-right: -5px; border-radius: 50%; background: var(--amber); content: ""; }
+
+    .status-chain {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 17px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .status-chain span:not(:last-child)::after { margin-left: 8px; color: var(--blue); content: "→"; }
+
+    .gate-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      align-items: center;
+      gap: 18px;
+      height: 100%;
+    }
+
+    .gate-card {
+      position: relative;
+      min-height: 195px;
+      padding: 22px;
+      border: 1px solid var(--line);
+      border-radius: 15px;
+      background: rgba(17, 28, 48, .9);
+    }
+
+    .gate-card::after {
+      position: absolute;
+      top: 50%;
+      right: -19px;
+      color: var(--blue);
+      content: "→";
+      font-size: 23px;
+    }
+
+    .gate-card:last-child::after { display: none; }
+    .gate-number { color: var(--blue); font-family: ui-monospace, monospace; font-size: 13px; }
+    .gate-title { margin: 23px 0 9px; font-size: 20px; font-weight: 700; }
+    .gate-detail { color: var(--muted); font-size: 13px; line-height: 1.55; }
+    .gate-check { margin-top: 18px; color: var(--green); font-size: 13px; }
+
+    .route-layout {
+      display: grid;
+      grid-template-columns: 230px minmax(0, 1fr);
+      align-items: center;
+      gap: 40px;
+      height: 100%;
+    }
+
+    .route-root {
+      padding: 22px;
+      border: 1px solid var(--blue-strong);
+      border-radius: 15px;
+      background: #182643;
+      box-shadow: 0 0 32px rgba(110, 141, 245, .12);
+      text-align: center;
+    }
+
+    .route-root strong { display: block; margin-bottom: 8px; font-size: 21px; }
+    .route-root span { color: var(--muted); font-size: 13px; }
+
+    .route-branches {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 15px;
+    }
+
+    .branch {
+      position: relative;
+      min-height: 160px;
+      padding: 19px;
+      border: 1px solid var(--line);
+      border-radius: 13px;
+      background: rgba(16, 27, 47, .86);
+    }
+
+    .branch::before {
+      position: absolute;
+      top: 50%;
+      left: -16px;
+      width: 15px;
+      border-top: 1px solid var(--line);
+      content: "";
+    }
+
+    .branch.active-route { border-color: var(--blue-strong); background: #172742; }
+    .branch:not(.active-route) { opacity: .48; }
+    .branch-title { margin-bottom: 10px; font-size: 17px; font-weight: 700; }
+    .branch-detail { color: var(--muted); font-size: 13px; line-height: 1.6; }
+    .branch-mark { display: inline-block; margin-top: 17px; color: var(--blue); font-size: 12px; }
+
+    .compare-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 116px minmax(0, 1fr);
+      align-items: center;
+      gap: 20px;
+      height: 100%;
+    }
+
+    .compare-card {
+      min-height: 230px;
+      padding: 25px;
+      border: 1px solid var(--line);
+      border-radius: 15px;
+      background: rgba(16, 28, 49, .92);
+    }
+
+    .compare-card.primary { border-color: var(--blue-strong); background: linear-gradient(145deg, #182946, #121e34); }
+    .compare-label { color: var(--muted); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; }
+    .compare-card h3 { margin: 16px 0 17px; font-size: 25px; }
+    .compare-points { display: grid; gap: 9px; color: #c2d0eb; font-size: 14px; }
+    .compare-points span::before { margin-right: 8px; color: var(--green); content: "✓"; }
+    .fallback .compare-points span::before { color: var(--amber); content: "·"; }
+    .vs { color: var(--muted); font-family: ui-monospace, monospace; font-size: 14px; text-align: center; }
+    .warning { margin-top: 19px; color: var(--amber); font-size: 13px; }
+
+    .verify-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.25fr) minmax(250px, .75fr);
+      align-items: center;
+      gap: 25px;
+      height: 100%;
+    }
+
+    .verify-terminal .terminal-body { min-height: 275px; }
+    .verify-output { color: var(--green); }
+    .verify-side { display: grid; gap: 13px; }
+    .evidence-card { padding: 18px; border: 1px solid var(--line); border-radius: 13px; background: rgba(17, 29, 50, .86); }
+    .evidence-card strong { display: block; margin-bottom: 7px; font-size: 16px; }
+    .evidence-card p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.55; }
+    .evidence-card.pass { border-color: rgba(99, 211, 155, .5); }
+    .evidence-card.check { border-color: rgba(243, 200, 107, .5); }
+
+    .auth-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 110px minmax(0, 1fr);
+      align-items: center;
+      gap: 18px;
+      height: 100%;
+    }
+
+    .browser {
+      min-height: 250px;
+      border-color: #385276;
+      background: #111a2c;
+    }
+
+    .browser-body { padding: 24px; }
+    .address { padding: 8px 12px; border: 1px solid var(--line); border-radius: 7px; color: #8392af; background: #0b1322; font-family: ui-monospace, monospace; font-size: 11px; }
+    .auth-card { margin: 22px auto 0; max-width: 225px; padding: 18px; border: 1px solid var(--line); border-radius: 11px; background: #17243d; text-align: center; }
+    .auth-card strong { display: block; margin-bottom: 10px; font-size: 17px; }
+    .auth-card span { color: var(--green); font-size: 12px; }
+    .auth-arrow { color: var(--blue); font-size: 27px; text-align: center; }
+    .auth-arrow .arrow-note { display: block; margin-top: 8px; color: var(--muted); font-size: 11px; }
+
+    .remote-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 130px minmax(0, 1fr);
+      align-items: center;
+      gap: 17px;
+      height: 100%;
+    }
+
+    .remote-card { min-height: 250px; padding: 22px; border: 1px solid var(--line); border-radius: 15px; background: rgba(16, 28, 49, .9); }
+    .remote-card.primary { border-color: var(--blue-strong); }
+    .remote-card h3 { margin: 0 0 17px; font-size: 19px; }
+    .url-box { margin: 17px 0; padding: 12px; border: 1px dashed #526c9e; border-radius: 9px; color: var(--cyan); background: #0c1627; font-family: ui-monospace, monospace; font-size: 12px; line-height: 1.5; word-break: break-all; }
+    .remote-step { color: var(--muted); font-size: 13px; line-height: 1.7; }
+    .remote-step strong { color: var(--text); }
+    .remote-arrow { color: var(--blue); font-size: 31px; text-align: center; }
+    .remote-arrow small { display: block; margin-top: 7px; color: var(--muted); font-size: 11px; line-height: 1.4; }
+
+    .task-layout {
+      display: grid;
+      grid-template-columns: minmax(0, .66fr) minmax(0, 1.34fr);
+      align-items: center;
+      gap: 25px;
+      height: 100%;
+    }
+
+    .empty-tree { padding: 23px; min-height: 248px; }
+    .tree-title { margin-bottom: 17px; color: var(--muted); font-size: 12px; }
+    .tree-line { color: #bdcceb; font-family: ui-monospace, monospace; font-size: 15px; line-height: 1.9; }
+    .tree-line.dim { color: #657796; }
+    .task-terminal .terminal-body { min-height: 270px; }
+    .task-pending { margin-top: 16px; padding: 10px 12px; border: 1px solid rgba(243, 200, 107, .45); border-radius: 8px; color: var(--amber); background: rgba(72, 58, 25, .25); font-size: 12px; }
+
+    .diff-layout {
+      display: grid;
+      grid-template-columns: minmax(0, .62fr) minmax(0, 1.38fr);
+      align-items: center;
+      gap: 25px;
+      height: 100%;
+    }
+
+    .diff-tree { padding: 22px; }
+    .diff-tree .tree-line { font-size: 14px; }
+    .ghost-file { color: var(--amber); opacity: .72; }
+    .written-file { color: var(--green); }
+    .diff-panel { min-width: 0; }
+    .diff-meta { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+    .diff-meta strong { font-size: 16px; }
+    .review-state { padding: 5px 9px; border: 1px solid rgba(243, 200, 107, .47); border-radius: 999px; color: var(--amber); font-size: 11px; }
+    .diff-box { overflow: hidden; border: 1px solid #395177; border-radius: 12px; background: #0c1625; font-family: ui-monospace, monospace; font-size: 13px; line-height: 1.85; }
+    .diff-line { display: block; padding: 3px 14px; }
+    .diff-line.context { color: #8494b0; }
+    .diff-line.add { color: #91e1b3; background: rgba(49, 133, 91, .2); }
+    .diff-actions { display: flex; align-items: center; gap: 9px; margin-top: 13px; }
+    .prototype-action { padding: 8px 12px; font-size: 12px; }
+    .prototype-action.primary-action { border-color: rgba(99, 211, 155, .6); color: #b4f1ce; background: rgba(37, 96, 69, .28); }
+    .write-status { color: var(--amber); font-size: 12px; }
+    .diff-layout.written .review-state { border-color: rgba(99, 211, 155, .55); color: var(--green); }
+    .diff-layout.written .write-status { color: var(--green); }
+    .diff-layout.written .ghost-file { display: none; }
+    .diff-layout.written .written-file { display: block; }
+    .written-file { display: none; }
+
+    .diagnose-layout {
+      display: grid;
+      grid-template-columns: 240px minmax(0, 1fr);
+      align-items: center;
+      gap: 35px;
+      height: 100%;
+    }
+
+    .error-badge { padding: 21px; border: 1px solid rgba(255, 124, 137, .55); border-radius: 14px; background: rgba(82, 31, 43, .3); text-align: center; }
+    .error-badge .symbol { display: block; margin-bottom: 12px; color: var(--red); font-size: 29px; }
+    .error-badge strong { display: block; font-size: 17px; }
+    .error-badge span { display: block; margin-top: 8px; color: var(--muted); font-size: 12px; }
+    .diagnose-map { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 13px; }
+    .diagnose-layer { min-height: 135px; padding: 17px; border: 1px solid var(--line); border-radius: 12px; background: rgba(17, 29, 50, .86); }
+    .diagnose-layer.active-layer { border-color: var(--red); box-shadow: 0 0 20px rgba(255, 124, 137, .1); }
+    .layer-name { margin-bottom: 12px; font-size: 15px; font-weight: 700; }
+    .layer-examples { color: var(--muted); font-size: 12px; line-height: 1.65; }
+    .layer-pointer { display: inline-block; margin-top: 12px; color: var(--red); font-size: 11px; }
+
+    .maintenance-layout { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: center; gap: 17px; height: 100%; }
+    .maintenance-card { min-height: 215px; padding: 21px; border: 1px solid var(--line); border-radius: 14px; background: rgba(17, 29, 50, .86); }
+    .maintenance-card.source { border-color: var(--blue-strong); background: #152440; }
+    .source-badge { display: inline-block; padding: 4px 8px; border-radius: 999px; color: var(--blue); background: rgba(110, 141, 245, .13); font-size: 11px; }
+    .maintenance-card h3 { margin: 15px 0 12px; font-size: 18px; }
+    .maintenance-card p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.6; }
+    .maintenance-card .route-note { margin-top: 18px; color: var(--green); font-size: 12px; }
+    .danger-card { border-color: rgba(255, 124, 137, .48); background: rgba(73, 29, 42, .27); }
+    .danger-card .source-badge { color: var(--red); background: rgba(255, 124, 137, .1); }
+    .danger-card .route-note { color: var(--red); }
+
+    .summary-layout { display: grid; grid-template-columns: minmax(0, 1fr) 280px; align-items: center; gap: 35px; height: 100%; }
+    .checklist { display: grid; gap: 11px; }
+    .check-row { display: flex; align-items: center; gap: 14px; padding: 14px 17px; border: 1px solid rgba(99, 211, 155, .36); border-radius: 11px; background: rgba(23, 57, 45, .3); }
+    .check-icon { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; color: #07150f; background: var(--green); font-size: 14px; font-weight: 800; }
+    .check-row span:last-child { font-size: 15px; }
+    .ready-card { padding: 27px 22px; border: 1px solid rgba(99, 211, 155, .58); border-radius: 16px; background: linear-gradient(145deg, rgba(31, 84, 62, .52), rgba(16, 39, 35, .4)); text-align: center; box-shadow: 0 0 36px rgba(99, 211, 155, .08); }
+    .ready-card .ready-mark { display: block; margin-bottom: 13px; color: var(--green); font-size: 30px; }
+    .ready-card strong { display: block; font-size: 23px; }
+    .ready-card span { display: block; margin-top: 9px; color: #b7e7cb; font-size: 12px; }
+    .teaser {
+      position: absolute;
+      right: 58px;
+      bottom: 82px;
+      left: 58px;
+      padding: 12px 17px;
+      border: 1px solid rgba(142, 170, 255, .42);
+      border-radius: 10px;
+      color: #dfe8ff;
+      background: rgba(18, 31, 55, .96);
+      opacity: 0;
+      transform: translateY(10px);
+    }
+
+    .scene.active .teaser { animation: teaserIn .7s ease 2.9s forwards; }
+    @keyframes teaserIn { to { opacity: 1; transform: none; } }
+    .teaser-label { margin-right: 11px; color: var(--blue); font-size: 11px; font-weight: 700; letter-spacing: .08em; }
+
+    .controls {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      margin-top: 15px;
+    }
+
+    .control-group { display: flex; align-items: center; gap: 8px; }
+    .control-button { padding: 8px 12px; font-size: 12px; }
+    .scene-counter { color: var(--muted); font-family: ui-monospace, monospace; font-size: 12px; }
+
+    .scene-tabs {
+      display: grid;
+      grid-template-columns: repeat(12, minmax(0, 1fr));
+      gap: 6px;
+      margin-top: 12px;
+    }
+
+    .scene-tab {
+      min-width: 0;
+      padding: 8px 4px;
+      border-color: var(--line-soft);
+      color: var(--muted);
+      background: rgba(15, 25, 43, .74);
+      font-family: ui-monospace, monospace;
+      font-size: 11px;
+    }
+
+    .scene-tab.active { border-color: var(--blue); color: var(--text); background: #1a2949; }
+
+    .legend {
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      margin-top: 14px;
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .legend span { display: inline-flex; align-items: center; gap: 6px; }
+    .legend i { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--blue); }
+    .legend i.green-dot { background: var(--green); }
+    .legend i.amber-dot { background: var(--amber); }
+
+    @media (max-width: 1120px) {
+      .shell { width: 96vw; }
+      .scene { padding-right: 42px; padding-left: 42px; }
+      .caption { max-width: calc(100% - 84px); }
+      .teaser { right: 42px; left: 42px; }
+      h2 { font-size: 31px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <div>
+        <p class="kicker">Visual Prototype · 1920 × 1080 · 16:9</p>
+        <h1>Claude Code 安装与使用</h1>
+      </div>
+      <p class="topbar-note">无依赖静态原型 · 用于确认画面语言、状态变化和信息密度</p>
+    </header>
+
+    <section class="stage" aria-label="Claude Code 安装与使用视觉原型">
+      <article class="scene active" data-scene="0">
+        <div class="scene-head">
+          <div><p class="scene-label">Scene 01 · OpeningScene</p><h2>安装命令结束，真的能用了吗？</h2></div>
+          <span class="scene-index">01 / 12</span>
+        </div>
+        <div class="scene-body opening-grid">
+          <div class="window opening-terminal">
+            <div class="window-bar"><i class="dot red-dot"></i><i class="dot amber-dot"></i><i class="dot green-dot"></i><span class="bar-title">terminal</span></div>
+            <div class="terminal-body">
+              <span class="terminal-line"><span class="prompt">$</span> install command</span>
+              <span class="terminal-line terminal-muted">Preparing installation…</span>
+              <span class="terminal-line green">Installation finished</span>
+              <span class="terminal-line terminal-muted">下一步：证明它真的可用<span class="cursor"></span></span>
+            </div>
+          </div>
+          <div>
+            <div class="status-stack">
+              <div class="status-chip"><span class="status-name">命令可用？</span><span class="status-value">未确认</span></div>
+              <div class="status-chip"><span class="status-name">账号已登录？</span><span class="status-value">未确认</span></div>
+              <div class="status-chip"><span class="status-name">任务能完成？</span><span class="status-value">未确认</span></div>
+            </div>
+            <div class="status-chain"><span>安装</span><span>验证</span><span>登录</span><span>第一次任务</span></div>
+          </div>
+        </div>
+        <div class="caption">安装完成 ≠ 真正能用</div>
+      </article>
+
+      <article class="scene" data-scene="1">
+        <div class="scene-head">
+          <div><p class="scene-label">Scene 02 · StepListScene</p><h2>安装之前，先确认三个前提</h2></div>
+          <span class="scene-index">02 / 12</span>
+        </div>
+        <div class="scene-body gate-grid">
+          <div class="gate-card"><span class="gate-number">01</span><div class="gate-title">环境</div><div class="gate-detail">系统、终端和网络是否满足当前安装路径？</div><div class="gate-check">✓ 可以开始判断</div></div>
+          <div class="gate-card"><span class="gate-number">02</span><div class="gate-title">账号</div><div class="gate-detail">登录方式和地区可用性是否已经确认？</div><div class="gate-check">✓ 知道如何授权</div></div>
+          <div class="gate-card"><span class="gate-number">03</span><div class="gate-title">入口</div><div class="gate-detail">当前平台和终端对应哪一条安装路线？</div><div class="gate-check">✓ 选对命令</div></div>
+        </div>
+        <div class="caption">先筛选，再执行</div>
+      </article>
+
+      <article class="scene" data-scene="2">
+        <div class="scene-head">
+          <div><p class="scene-label">Scene 03 · ConceptScene</p><h2>不是 Windows 一条命令：终端决定入口</h2></div>
+          <span class="scene-index">03 / 12</span>
+        </div>
+        <div class="scene-body route-layout">
+          <div class="route-root"><strong>当前环境</strong><span>先识别平台与终端</span></div>
+          <div class="route-branches">
+            <div class="branch active-route"><div class="branch-title">macOS / Linux</div><div class="branch-detail">使用对应的原生终端路径，保持命令上下文一致。</div><span class="branch-mark">当前路径高亮</span></div>
+            <div class="branch"><div class="branch-title">PowerShell / CMD</div><div class="branch-detail">Windows 原生终端与命令格式需要单独判断。</div><span class="branch-mark">另一条分支</span></div>
+            <div class="branch"><div class="branch-title">WSL</div><div class="branch-detail">它是独立的 Linux 环境，路径和安装位置不能混看。</div><span class="branch-mark">另一条分支</span></div>
+          </div>
+        </div>
+        <div class="caption">先识别终端，再选命令</div>
+      </article>
+
+      <article class="scene" data-scene="3">
+        <div class="scene-head">
+          <div><p class="scene-label">Scene 04 · ComparisonScene</p><h2>官方原生安装优先，npm 是备选</h2></div>
+          <span class="scene-index">04 / 12</span>
+        </div>
+        <div class="scene-body compare-layout">
+          <div class="compare-card primary"><span class="compare-label">Recommended</span><h3>官方原生路径</h3><div class="compare-points"><span>与当前平台匹配</span><span>升级与卸载来源清楚</span><span>优先保持官方支持路径</span></div></div>
+          <div class="vs">优先级<br><span class="blue">→</span></div>
+          <div class="compare-card fallback"><span class="compare-label">Fallback</span><h3>npm 备选路径</h3><div class="compare-points"><span>仅在原生路径不适用时考虑</span><span>后续维护要记住安装来源</span><span class="amber">不要把 sudo npm 当默认入口</span></div><div class="warning">需要更谨慎地处理权限与 PATH</div></div>
+        </div>
+        <div class="caption">安装入口有优先级，不是命令越多越好</div>
+      </article>
+
+      <article class="scene" data-scene="4">
+        <div class="scene-head">
+          <div><p class="scene-label">Scene 05 · TerminalScene</p><h2>安装之后，用证据确认命令可用</h2></div>
+          <span class="scene-index">05 / 12</span>
+        </div>
+        <div class="scene-body verify-layout">
+          <div class="window verify-terminal">
+            <div class="window-bar"><i class="dot red-dot"></i><i class="dot amber-dot"></i><i class="dot green-dot"></i><span class="bar-title">new terminal</span></div>
+            <div class="terminal-body">
+              <span class="terminal-line"><span class="prompt">$</span> claude --version</span>
+              <span class="terminal-line verify-output">claude &lt;current version&gt;</span>
+              <span class="terminal-line terminal-muted">✓ 命令已被当前终端找到</span>
+              <span class="terminal-line"><span class="prompt">$</span> claude doctor</span>
+              <span class="terminal-line verify-output">Environment check passed</span>
+            </div>
+          </div>
+          <div class="verify-side">
+            <div class="evidence-card pass"><strong class="green">版本输出</strong><p>证明命令已经进入 PATH，并能被当前终端调用。</p></div>
+            <div class="evidence-card check"><strong class="amber">诊断结果</strong><p>若没有输出，先检查新终端、PATH 和安装来源。</p></div>
+          </div>
+        </div>
+        <div class="caption">安装结果要能被验证</div>
+      </article>
+
+      <article class="scene" data-scene="5">
+        <div class="scene-head">
+          <div><p class="scene-label">Scene 06 · TerminalScene</p><h2>命令可用，还要完成登录</h2></div>
+          <span class="scene-index">06 / 12</span>
+        </div>
+        <div class="scene-body auth-layout">
+          <div class="window">
+            <div class="window-bar"><i class="dot red-dot"></i><i class="dot amber-dot"></i><i class="dot green-dot"></i><span class="bar-title">terminal</span></div>
+            <div class="terminal-body"><span class="terminal-line"><span class="prompt">$</span> claude</span><span class="terminal-line terminal-muted">Opening authorization flow…</span><span class="terminal-line amber">Waiting for browser authorization</span></div>
+          </div>
+          <div class="auth-arrow">→<span class="arrow-note">授权回路</span></div>
+          <div class="window browser">
+            <div class="window-bar"><i class="dot red-dot"></i><i class="dot amber-dot"></i><i class="dot green-dot"></i><span class="bar-title">browser</span></div>
+            <div class="browser-body"><div class="address">secure authorization page</div><div class="auth-card"><strong>Authorize Claude Code</strong><span>✓ 授权完成</span></div></div>
+          </div>
+        </div>
+        <div class="caption">命令可用不等于已经登录</div>
+      </article>
+
+      <article class="scene" data-scene="6">
+        <div class="scene-head">
+          <div><p class="scene-label">Scene 07 · ComparisonScene</p><h2>远程环境没有浏览器，也能完成授权</h2></div>
+          <span class="scene-index">07 / 12</span>
+        </div>
+        <div class="scene-body remote-layout">
+          <div class="remote-card primary"><h3>远程终端 / SSH</h3><div class="remote-step"><strong>1.</strong> 发起登录流程</div><div class="url-box">https://…/authorize?code=…</div><div class="remote-step"><strong>2.</strong> 复制授权地址</div></div>
+          <div class="remote-arrow">→<small>把授权结果带回原终端</small></div>
+          <div class="remote-card"><h3>本地浏览器</h3><div class="remote-step"><strong>3.</strong> 在有浏览器的设备打开地址</div><div class="auth-card"><strong>Authorization</strong><span>✓ 已确认身份</span></div><div class="remote-step"><strong>4.</strong> 返回终端完成登录</div></div>
+        </div>
+        <div class="caption">浏览器不在当前设备，授权回路仍然可以闭合</div>
+      </article>
+
+      <article class="scene" data-scene="7">
+        <div class="scene-head">
+          <div><p class="scene-label">Scene 08 · TerminalScene</p><h2>先用一个空目录跑通第一次任务</h2></div>
+          <span class="scene-index">08 / 12</span>
+        </div>
+        <div class="scene-body task-layout">
+          <div class="window empty-tree"><div class="window-bar"><i class="dot red-dot"></i><i class="dot amber-dot"></i><i class="dot green-dot"></i><span class="bar-title">test-project</span></div><div class="tree-title">FILE TREE</div><div class="tree-line">test-project/</div><div class="tree-line dim">└─ （空目录）</div><div class="task-pending">等待第一次受控任务</div></div>
+          <div class="window task-terminal"><div class="window-bar"><i class="dot red-dot"></i><i class="dot amber-dot"></i><i class="dot green-dot"></i><span class="bar-title">claude session</span></div><div class="terminal-body"><span class="terminal-line"><span class="prompt">$</span> claude</span><span class="terminal-line"><span class="prompt">&gt;</span> /help</span><span class="terminal-line terminal-muted">Available commands…</span><span class="terminal-line"><span class="prompt">&gt;</span> 创建一个最小的 test.py，输出 Hello</span><span class="terminal-line amber">Proposed change ready for review</span></div></div>
+        </div>
+        <div class="caption">先做低风险验证，再进入真实项目</div>
+      </article>
+
+      <article class="scene" data-scene="8">
+        <div class="scene-head">
+          <div><p class="scene-label">Scene 09 · TerminalScene</p><h2>先看 diff，再让文件真正落盘</h2></div>
+          <span class="scene-index">09 / 12</span>
+        </div>
+        <div class="scene-body diff-layout" id="diffLayout">
+          <div class="window diff-tree"><div class="window-bar"><i class="dot red-dot"></i><i class="dot amber-dot"></i><i class="dot green-dot"></i><span class="bar-title">test-project</span></div><div class="tree-title">FILE TREE</div><div class="tree-line">test-project/</div><div class="tree-line ghost-file">└─ test.py　· 待确认</div><div class="tree-line written-file">└─ test.py　· 已写入</div></div>
+          <div class="diff-panel"><div class="diff-meta"><strong>Proposed diff · test.py</strong><span class="review-state">待确认</span></div><div class="diff-box"><span class="diff-line context">  # new file</span><span class="diff-line add">+ print("Hello")</span><span class="diff-line context">  </span><span class="diff-line context">  只展示即将发生的修改</span></div><div class="diff-actions"><button class="prototype-action primary-action" id="diffAction">确认写入</button><span class="write-status" id="writeStatus">文件尚未落盘</span></div></div>
+        </div>
+        <div class="caption">目标 → 提案 → 人工检查 → 确认 → 文件落盘</div>
+      </article>
+
+      <article class="scene" data-scene="9">
+        <div class="scene-head">
+          <div><p class="scene-label">Scene 10 · ConceptScene</p><h2>遇到报错，先判断错误发生在哪一层</h2></div>
+          <span class="scene-index">10 / 12</span>
+        </div>
+        <div class="scene-body diagnose-layout">
+          <div class="error-badge"><span class="symbol">!</span><strong>命令失败</strong><span>不要立刻重装</span></div>
+          <div class="diagnose-map">
+            <div class="diagnose-layer active-layer"><div class="layer-name">命令层</div><div class="layer-examples">PATH<br>多份 claude<br>当前终端</div><span class="layer-pointer">先定位入口</span></div>
+            <div class="diagnose-layer"><div class="layer-name">环境层</div><div class="layer-examples">网络<br>权限<br>系统资源</div><span class="layer-pointer">再看运行条件</span></div>
+            <div class="diagnose-layer"><div class="layer-name">账号层</div><div class="layer-examples">授权<br>地区<br>登录状态</div><span class="layer-pointer">最后核对身份</span></div>
+          </div>
+        </div>
+        <div class="caption">先找层级，再选修复方式</div>
+      </article>
+
+      <article class="scene" data-scene="10">
+        <div class="scene-head">
+          <div><p class="scene-label">Scene 11 · StepListScene</p><h2>升级和卸载，要匹配最初的安装来源</h2></div>
+          <span class="scene-index">11 / 12</span>
+        </div>
+        <div class="scene-body maintenance-layout">
+          <div class="maintenance-card source"><span class="source-badge">SOURCE A</span><h3>官方原生安装</h3><p>升级与卸载回到同一来源的维护路径。</p><div class="route-note">来源 → 对应维护方式</div></div>
+          <div class="maintenance-card"><span class="source-badge">SOURCE B</span><h3>npm 备选安装</h3><p>记住包管理器、PATH 和全局位置，再执行对应操作。</p><div class="route-note">来源 → 对应维护方式</div></div>
+          <div class="maintenance-card danger-card"><span class="source-badge">RISK</span><h3>破坏性清理</h3><p>不要把不可逆删除命令当成默认排错手段。</p><div class="route-note">先确认，再清理</div></div>
+        </div>
+        <div class="caption">安装来源决定后续维护路径</div>
+      </article>
+
+      <article class="scene" data-scene="11">
+        <div class="scene-head">
+          <div><p class="scene-label">Scene 12 · SummaryScene</p><h2>四项结果，才算真正准备好</h2></div>
+          <span class="scene-index">12 / 12</span>
+        </div>
+        <div class="scene-body summary-layout">
+          <div class="checklist">
+            <div class="check-row"><span class="check-icon">✓</span><span>选对平台与终端入口</span></div>
+            <div class="check-row"><span class="check-icon">✓</span><span>命令可以被版本与诊断结果证明</span></div>
+            <div class="check-row"><span class="check-icon">✓</span><span>账号授权已经完成</span></div>
+            <div class="check-row"><span class="check-icon">✓</span><span>第一次任务经过 diff 确认并完成</span></div>
+          </div>
+          <div class="ready-card"><span class="ready-mark">✓</span><strong>Claude Code Ready</strong><span>链路已打通，可以开始工作</span></div>
+        </div>
+        <div class="teaser"><span class="teaser-label">NEXT</span>下一节：拆开 Claude Code 背后的“代理循环”，看看一句自然语言指令怎样变成一次真实文件修改。</div>
+        <div class="caption">安装、验证、登录、受控任务：四项都完成，才算准备好</div>
+      </article>
+    </section>
+
+    <div class="controls">
+      <div class="control-group">
+        <button class="control-button" id="prevButton" type="button">上一幕</button>
+        <button class="control-button" id="nextButton" type="button">下一幕</button>
+        <button class="control-button" id="autoButton" type="button">自动播放</button>
+      </div>
+      <span class="scene-counter" id="sceneCounter">Scene 01 / 12</span>
+    </div>
+
+    <nav class="scene-tabs" aria-label="Scene 选择">
+      <button class="scene-tab active" data-target="0" type="button">01</button>
+      <button class="scene-tab" data-target="1" type="button">02</button>
+      <button class="scene-tab" data-target="2" type="button">03</button>
+      <button class="scene-tab" data-target="3" type="button">04</button>
+      <button class="scene-tab" data-target="4" type="button">05</button>
+      <button class="scene-tab" data-target="5" type="button">06</button>
+      <button class="scene-tab" data-target="6" type="button">07</button>
+      <button class="scene-tab" data-target="7" type="button">08</button>
+      <button class="scene-tab" data-target="8" type="button">09</button>
+      <button class="scene-tab" data-target="9" type="button">10</button>
+      <button class="scene-tab" data-target="10" type="button">11</button>
+      <button class="scene-tab" data-target="11" type="button">12</button>
+    </nav>
+
+    <div class="legend" aria-label="状态颜色说明">
+      <span><i></i>当前路径／进行中</span>
+      <span><i class="green-dot"></i>已验证／已完成</span>
+      <span><i class="amber-dot"></i>待确认／备选</span>
+      <span>键盘 ← → 也可切换 Scene</span>
+    </div>
+  </main>
+
+  <script>
+    const scenes = Array.from(document.querySelectorAll('.scene'));
+    const tabs = Array.from(document.querySelectorAll('.scene-tab'));
+    const counter = document.querySelector('#sceneCounter');
+    const autoButton = document.querySelector('#autoButton');
+    const diffLayout = document.querySelector('#diffLayout');
+    const diffAction = document.querySelector('#diffAction');
+    const writeStatus = document.querySelector('#writeStatus');
+    let currentScene = 0;
+    let autoplayTimer = null;
+
+    function showScene(index) {
+      currentScene = (index + scenes.length) % scenes.length;
+      scenes.forEach((scene, sceneIndex) => {
+        scene.classList.toggle('active', sceneIndex === currentScene);
+      });
+      tabs.forEach((tab, tabIndex) => {
+        const isActive = tabIndex === currentScene;
+        tab.classList.toggle('active', isActive);
+        tab.setAttribute('aria-selected', String(isActive));
+      });
+      counter.textContent = `Scene ${String(currentScene + 1).padStart(2, '0')} / ${scenes.length}`;
+    }
+
+    function nextScene() { showScene(currentScene + 1); }
+    function previousScene() { showScene(currentScene - 1); }
+
+    function toggleAutoplay() {
+      if (autoplayTimer) {
+        clearInterval(autoplayTimer);
+        autoplayTimer = null;
+        autoButton.textContent = '自动播放';
+        return;
+      }
+      autoplayTimer = setInterval(nextScene, 6500);
+      autoButton.textContent = '停止播放';
+    }
+
+    document.querySelector('#nextButton').addEventListener('click', nextScene);
+    document.querySelector('#prevButton').addEventListener('click', previousScene);
+    autoButton.addEventListener('click', toggleAutoplay);
+    tabs.forEach((tab) => tab.addEventListener('click', () => showScene(Number(tab.dataset.target))));
+
+    diffAction.addEventListener('click', () => {
+      const written = diffLayout.classList.toggle('written');
+      diffAction.textContent = written ? '撤回示意状态' : '确认写入';
+      writeStatus.textContent = written ? '文件已落盘（示意）' : '文件尚未落盘';
+    });
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'ArrowRight') nextScene();
+      if (event.key === 'ArrowLeft') previousScene();
+      if (event.key === ' ') {
+        event.preventDefault();
+        toggleAutoplay();
+      }
+    });
+
+    showScene(0);
+  </script>
+</body>
+</html>

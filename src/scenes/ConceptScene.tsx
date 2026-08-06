@@ -20,6 +20,7 @@ export const ConceptScene = ({scene}: ConceptSceneProps) => {
     leadInSeconds: 2.4,
     leadOutSeconds: 1.8,
     revealSeconds: 0.55,
+    startSeconds: scene.visualRevealSeconds,
   });
   const activeActionIndex = actionRevealFrames.reduce((latest, timing, index) => frame >= timing.startFrame ? index : latest, 0);
   const activeFileIndex = demo ? Math.min(demo.files.length - 1, activeActionIndex) : 0;
@@ -249,7 +250,7 @@ export const ConceptScene = ({scene}: ConceptSceneProps) => {
           )}
         </div>
       </SceneContainer>
-      <Caption lines={scene.caption} durationSeconds={scene.durationSeconds} />
+      {scene.showCaption !== false ? <Caption lines={scene.caption} durationSeconds={scene.durationSeconds} /> : null}
     </>
   );
 };

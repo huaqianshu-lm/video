@@ -33,6 +33,7 @@ export const TerminalScene = ({scene}: TerminalSceneProps) => {
     leadInSeconds: scene.durationSeconds * 0.48,
     leadOutSeconds: 2,
     revealSeconds: 0.55,
+    startSeconds: scene.visualRevealSeconds,
   });
   const typedChars = Math.floor(interpolate(frame, [commandStartFrame, commandEndFrame], [0, scene.command.length], {
     extrapolateLeft: 'clamp',
@@ -190,7 +191,7 @@ export const TerminalScene = ({scene}: TerminalSceneProps) => {
           </div>
         </div>
       </SceneContainer>
-      <Caption lines={scene.caption} durationSeconds={scene.durationSeconds} />
+      {scene.showCaption !== false ? <Caption lines={scene.caption} durationSeconds={scene.durationSeconds} /> : null}
     </>
   );
 };

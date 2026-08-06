@@ -26,6 +26,7 @@ export const SummaryScene = ({scene}: SummarySceneProps) => {
     leadInSeconds: scene.durationSeconds * 0.38,
     leadOutSeconds: 3,
     revealSeconds: 0.55,
+    startSeconds: scene.visualRevealSeconds,
   });
 
   return (
@@ -47,6 +48,7 @@ export const SummaryScene = ({scene}: SummarySceneProps) => {
               fontWeight: 800,
               letterSpacing: 7,
               marginBottom: 28,
+              transform: 'translateY(28px)',
               opacity: interpolate(frame, [0, 18], [0, 1], {
                 extrapolateLeft: 'clamp',
                 extrapolateRight: 'clamp',
@@ -152,7 +154,7 @@ export const SummaryScene = ({scene}: SummarySceneProps) => {
           </div>
         </div>
       </SceneContainer>
-      <Caption lines={scene.caption} durationSeconds={scene.durationSeconds} />
+      {scene.showCaption !== false ? <Caption lines={scene.caption} durationSeconds={scene.durationSeconds} /> : null}
     </>
   );
 };

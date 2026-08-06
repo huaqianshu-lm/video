@@ -87,6 +87,7 @@ export const StepListScene = ({scene}: StepListSceneProps) => {
     leadInSeconds: 2.2,
     leadOutSeconds: 2,
     revealSeconds: 0.55,
+    startSeconds: scene.visualRevealSeconds,
   });
   const visuals = getStepVisuals(scene);
   const activeIndex = getActiveIndex(frame, revealFrames);
@@ -189,7 +190,7 @@ export const StepListScene = ({scene}: StepListSceneProps) => {
           </div>
         </div>
       </SceneContainer>
-      <Caption lines={scene.caption} durationSeconds={scene.durationSeconds} />
+      {scene.showCaption !== false ? <Caption lines={scene.caption} durationSeconds={scene.durationSeconds} /> : null}
     </>
   );
 };

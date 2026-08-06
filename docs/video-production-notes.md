@@ -12,6 +12,60 @@
 - 以后流程：下次如何提前避免。
 - 教程素材：可以写进文章的经验总结。
 
+## 2026-08-06：总结卡片需要早于口播开始入场
+
+当视觉卡片使用约半秒的淡入和上移动画，并且把动画起点直接绑定到对应音频 Segment 起点时，观众会感知到卡片滞后于口播。此时不应改动音频或字幕时间轴，而应让视觉锚点提前一小段时间入场。本片 Scene 12 的四张总结卡片统一提前 0.4 秒，保留动画完成时间，同时让关键词出现时卡片已经基本可见。
+
+另外，视觉锚点必须按卡片语义绑定 Segment，不能只按顺序跳过中间的口播段。本幕四张卡片对应 `12-03`、`12-04`、`12-05`、`12-06`；如果从第二张开始误绑定到下一段，卡片就会等对应说明音频结束后才出现。标题还下移 28px，避开画面顶部的全局进度条。
+
+## 2026-08-05：无音频 Remotion 版只能作为视觉实现中间态
+
+### 问题现象
+
+`claude-code-install` 的 Visual Prototype 已确认，但人工音频和逐句 SRT 尚未准备好，仍然需要先把 12 个 Scene 接入 Remotion 并验证 Composition 能构建。
+
+### 处理方式
+
+1. 配置中保留与口播稿一致的 `caption` 数组，让场景组件先按正常口播估算时长。
+2. 使用 `estimateSceneDurationSeconds` 计算静音版本的场景时长，先验证布局、Scene 类型和主视觉动作。
+3. 暂不写入 `audioTracks`、真实 `subtitleCues` 或 `public/local-assets/<video-slug>/` 音频资源。
+
+### 以后流程
+
+这类无音频配置不能直接视为最终时间轴。拿到人工音频和逐句 SRT 后，应保留 Scene 内容和组件映射，改用音频真实时长、SRT Cue 和统一帧边界反推 Scene 起止时间，再接入音频驱动的关键视觉事件。
+
+## 2026-08-06：TTS 资源复制要区分原始资料、可播放资源和 Manifest
+
+### 处理方式
+
+`how-to-install/video-assets` 已生成结构化的 12 个 Scene、76 段 MP3、逐句字幕和统一时间轴。复制到 Video 项目时分成三层：
+
+1. `local/claude-code-install/` 保留音频、字幕、Timing 和上游 Manifest 的原始资料。
+2. `public/local-assets/claude-code-install/` 提供 Remotion 运行时通过 `staticFile()` 读取的音频和字幕文件。
+3. `src/videos/claude-code-install/generated/` 保存供 TypeScript 消费的 `audio-manifest.json`、`subtitle-manifest.json` 和 `timeline-manifest.json`。
+
+### 以后流程
+
+复制完成后先按 Timeline Manifest 检查每个 `audioFile` 和 `subtitleFile` 是否存在，再接入 `video.config.ts`；不要只复制 `captions.srt` 或只复制 Manifest，否则无法保证 Scene、音频和字幕能够使用同一时间源。
+
+## 2026-08-06：真实音频接入后要关闭旧的场景内估算字幕
+
+### 问题现象
+
+`claude-code-install` 原本由通用场景组件按 `caption` 数组显示估算字幕。接入逐句 Subtitle Manifest 后，如果直接叠加全局 `TimedCaption`，同一时间会出现两层字幕，且两层文案和切换时间并不一致。
+
+### 处理方式
+
+1. 在音频时间轴中记录每个 Segment 的绝对起点，Scene 时长按 `round(offset × fps)` 的帧边界计算，避免 Scene、音频和字幕分别累计取整。
+2. 通过 `Audio` 的 `Sequence` 接入 76 段 MP3，每段提前 2 秒 `premount`，并使用 `pauseWhenBuffering` 降低连续短音频漏掉开头的风险。
+3. 将 Subtitle Manifest 展开为全局 `TimedCaption`；每个 Segment 的第一条 Cue 从 Segment 边界开始，抵消源文件为音频启动预留的 100ms。
+4. 给基础 Scene 增加可选的 `showCaption` 开关；音频版关闭旧字幕，静音或未接入全局字幕的视频仍保留默认行为。
+5. 视觉事件不使用全片绝对秒数直接传入 Scene，而是从 Manifest 查询对应 Segment 的 Scene 局部偏移；这样 `Sequence` 内的局部帧和旁白 Segment 能保持同一坐标系。
+
+### 以后流程
+
+有逐句字幕时，场景内 `caption` 只作为无音频视觉版的备用文案，不应与真实字幕同时渲染。接入后先检查 Scene、Segment、Cue 数量和所有静态资源路径，再进入 Studio 逐幕检查音画同步。
+
 ## 2026-08-02：字幕必须使用独立顶层图层并在渲染前校验 CJK 字体
 
 ### 问题现象

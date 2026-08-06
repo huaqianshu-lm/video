@@ -1,0 +1,1590 @@
+{
+  "schemaVersion": "1.0",
+  "videoId": "how-to-install",
+  "scenes": [
+    {
+      "sceneId": "01",
+      "file": "subtitles/scene-01.json",
+      "segments": [
+        {
+          "segmentId": "01-01",
+          "audioFile": "audio/scene-01/01-01.mp3",
+          "cues": [
+            {
+              "id": "01-01-a",
+              "text": "安装命令跑完，终端也没有明显报错，",
+              "start": 0.083,
+              "end": 2.392
+            },
+            {
+              "id": "01-01-b",
+              "text": "是不是就算成功了？",
+              "start": 2.392,
+              "end": 3.696
+            }
+          ]
+        },
+        {
+          "segmentId": "01-02",
+          "audioFile": "audio/scene-01/01-02.mp3",
+          "cues": [
+            {
+              "id": "01-02-a",
+              "text": "其实还不能确定。",
+              "start": 0.083,
+              "end": 1.392
+            }
+          ]
+        },
+        {
+          "segmentId": "01-03",
+          "audioFile": "audio/scene-01/01-03.mp3",
+          "cues": [
+            {
+              "id": "01-03-a",
+              "text": "真正能用，至少要确认三件事：",
+              "start": 0.083,
+              "end": 2.108
+            },
+            {
+              "id": "01-03-b",
+              "text": "系统能找到 claude 命令，",
+              "start": 2.108,
+              "end": 3.475
+            },
+            {
+              "id": "01-03-c",
+              "text": "账号已经完成授权，",
+              "start": 3.475,
+              "end": 4.708
+            },
+            {
+              "id": "01-03-d",
+              "text": "而且它能在一个真实目录里完成一次受控任务。",
+              "start": 4.708,
+              "end": 7.752
+            }
+          ]
+        },
+        {
+          "segmentId": "01-04",
+          "audioFile": "audio/scene-01/01-04.mp3",
+          "cues": [
+            {
+              "id": "01-04-a",
+              "text": "所以这条视频不会只停在“怎么安装”，",
+              "start": 0.083,
+              "end": 2.55
+            },
+            {
+              "id": "01-04-b",
+              "text": "而是从安装前的选择开始，",
+              "start": 2.55,
+              "end": 4.008
+            },
+            {
+              "id": "01-04-c",
+              "text": "一直跑到第一次文件修改，",
+              "start": 4.008,
+              "end": 5.558
+            },
+            {
+              "id": "01-04-d",
+              "text": "再补上遇到问题时应该先查哪一层。",
+              "start": 5.558,
+              "end": 7.896
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sceneId": "02",
+      "file": "subtitles/scene-02.json",
+      "segments": [
+        {
+          "segmentId": "02-01",
+          "audioFile": "audio/scene-02/02-01.mp3",
+          "cues": [
+            {
+              "id": "02-01-a",
+              "text": "在执行任何安装命令之前，",
+              "start": 0.083,
+              "end": 1.683
+            },
+            {
+              "id": "02-01-b",
+              "text": "先确认三个前提。",
+              "start": 1.683,
+              "end": 3.048
+            }
+          ]
+        },
+        {
+          "segmentId": "02-02",
+          "audioFile": "audio/scene-02/02-02.mp3",
+          "cues": [
+            {
+              "id": "02-02-a",
+              "text": "第一，系统和运行环境是否满足当前官方要求，",
+              "start": 0.083,
+              "end": 3.258
+            },
+            {
+              "id": "02-02-b",
+              "text": "包括操作系统、处理器、",
+              "start": 3.258,
+              "end": 4.808
+            },
+            {
+              "id": "02-02-c",
+              "text": "可用内存和网络。",
+              "start": 4.808,
+              "end": 6.192
+            }
+          ]
+        },
+        {
+          "segmentId": "02-03",
+          "audioFile": "audio/scene-02/02-03.mp3",
+          "cues": [
+            {
+              "id": "02-03-a",
+              "text": "第二，当前账号是否具备使用 Claude Code 的条件。",
+              "start": 0.083,
+              "end": 3.175
+            },
+            {
+              "id": "02-03-b",
+              "text": "能登录 Claude 网页版，",
+              "start": 3.175,
+              "end": 4.433
+            },
+            {
+              "id": "02-03-c",
+              "text": "不一定就代表可以直接使用 Claude Code，",
+              "start": 4.433,
+              "end": 6.683
+            },
+            {
+              "id": "02-03-d",
+              "text": "所以账号类型要先确认清楚。",
+              "start": 6.683,
+              "end": 8.784
+            }
+          ]
+        },
+        {
+          "segmentId": "02-04",
+          "audioFile": "audio/scene-02/02-04.mp3",
+          "cues": [
+            {
+              "id": "02-04-a",
+              "text": "第三，这次准备使用哪一种入口。",
+              "start": 0.083,
+              "end": 2.383
+            },
+            {
+              "id": "02-04-b",
+              "text": "本文走的是 CLI，",
+              "start": 2.383,
+              "end": 3.692
+            },
+            {
+              "id": "02-04-c",
+              "text": "也就是命令行；桌面 App 和编辑器集成是另外的使用",
+              "start": 3.692,
+              "end": 6.767
+            },
+            {
+              "id": "02-04-d",
+              "text": "路径，不要和终端安装混在一起。",
+              "start": 6.767,
+              "end": 9.024
+            }
+          ]
+        },
+        {
+          "segmentId": "02-05",
+          "audioFile": "audio/scene-02/02-05.mp3",
+          "cues": [
+            {
+              "id": "02-05-a",
+              "text": "这三项先确认，再开始安装，",
+              "start": 0.083,
+              "end": 1.917
+            },
+            {
+              "id": "02-05-b",
+              "text": "后面会少很多无效排查。",
+              "start": 1.917,
+              "end": 3.672
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sceneId": "03",
+      "file": "subtitles/scene-03.json",
+      "segments": [
+        {
+          "segmentId": "03-01",
+          "audioFile": "audio/scene-03/03-01.mp3",
+          "cues": [
+            {
+              "id": "03-01-a",
+              "text": "安装命令不是简单的“Mac 一条，Windows 一条”。",
+              "start": 0.083,
+              "end": 2.832
+            }
+          ]
+        },
+        {
+          "segmentId": "03-02",
+          "audioFile": "audio/scene-03/03-02.mp3",
+          "cues": [
+            {
+              "id": "03-02-a",
+              "text": "尤其在 Windows 上，PowerShell、",
+              "start": 0.083,
+              "end": 1.808
+            },
+            {
+              "id": "03-02-b",
+              "text": "CMD 和 WSL 虽然都能看到终端窗口，",
+              "start": 1.808,
+              "end": 4.55
+            },
+            {
+              "id": "03-02-c",
+              "text": "但它们并不是同一个运行环境，",
+              "start": 4.55,
+              "end": 6.258
+            },
+            {
+              "id": "03-02-d",
+              "text": "命令也不能随便混用。",
+              "start": 6.258,
+              "end": 7.872
+            }
+          ]
+        },
+        {
+          "segmentId": "03-03",
+          "audioFile": "audio/scene-03/03-03.mp3",
+          "cues": [
+            {
+              "id": "03-03-a",
+              "text": "先看自己当前在哪个终端里，",
+              "start": 0.083,
+              "end": 1.858
+            },
+            {
+              "id": "03-03-b",
+              "text": "再选择对应的安装入口。",
+              "start": 1.858,
+              "end": 3.528
+            }
+          ]
+        },
+        {
+          "segmentId": "03-04",
+          "audioFile": "audio/scene-03/03-04.mp3",
+          "cues": [
+            {
+              "id": "03-04-a",
+              "text": "如果使用 WSL，",
+              "start": 0.083,
+              "end": 1.433
+            },
+            {
+              "id": "03-04-b",
+              "text": "就要在 WSL 终端内部执行 Linux 方式的命令；",
+              "start": 1.433,
+              "end": 4.475
+            },
+            {
+              "id": "03-04-c",
+              "text": "不要在 PowerShell 里复制一条 WSL 命令，",
+              "start": 4.475,
+              "end": 7.058
+            },
+            {
+              "id": "03-04-d",
+              "text": "然后把它当成自己已经进入了 WSL。",
+              "start": 7.058,
+              "end": 9.552
+            }
+          ]
+        },
+        {
+          "segmentId": "03-05",
+          "audioFile": "audio/scene-03/03-05.mp3",
+          "cues": [
+            {
+              "id": "03-05-a",
+              "text": "记住一句话：先识别终端，再执行命令。",
+              "start": 0.083,
+              "end": 2.904
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sceneId": "04",
+      "file": "subtitles/scene-04.json",
+      "segments": [
+        {
+          "segmentId": "04-01",
+          "audioFile": "audio/scene-04/04-01.mp3",
+          "cues": [
+            {
+              "id": "04-01-a",
+              "text": "大多数情况下，官方原生安装应该是默认入口。",
+              "start": 0.083,
+              "end": 3.288
+            }
+          ]
+        },
+        {
+          "segmentId": "04-02",
+          "audioFile": "audio/scene-04/04-02.mp3",
+          "cues": [
+            {
+              "id": "04-02-a",
+              "text": "它更适合作为第一次安装的路径，",
+              "start": 0.083,
+              "end": 2.033
+            },
+            {
+              "id": "04-02-b",
+              "text": "后续更新也更直接。",
+              "start": 2.033,
+              "end": 3.552
+            }
+          ]
+        },
+        {
+          "segmentId": "04-03",
+          "audioFile": "audio/scene-04/04-03.mp3",
+          "cues": [
+            {
+              "id": "04-03-a",
+              "text": "npm 可以作为备选，",
+              "start": 0.083,
+              "end": 1.525
+            },
+            {
+              "id": "04-03-b",
+              "text": "但它会把包管理、权限、",
+              "start": 1.525,
+              "end": 3.017
+            },
+            {
+              "id": "04-03-c",
+              "text": "版本冲突和后续维护一起带进来。",
+              "start": 3.017,
+              "end": 5.283
+            },
+            {
+              "id": "04-03-d",
+              "text": "只有在你明确需要 npm，",
+              "start": 5.283,
+              "end": 6.808
+            },
+            {
+              "id": "04-03-e",
+              "text": "或者当前环境确实适合 npm 时，再考虑这条路。",
+              "start": 6.808,
+              "end": 10.104
+            }
+          ]
+        },
+        {
+          "segmentId": "04-04",
+          "audioFile": "audio/scene-04/04-04.mp3",
+          "cues": [
+            {
+              "id": "04-04-a",
+              "text": "还有一个常见坑：遇到 npm 权限错误，",
+              "start": 0.083,
+              "end": 2.633
+            },
+            {
+              "id": "04-04-b",
+              "text": "不要条件反射地给命令加上 sudo。",
+              "start": 2.633,
+              "end": 4.752
+            }
+          ]
+        },
+        {
+          "segmentId": "04-05",
+          "audioFile": "audio/scene-04/04-05.mp3",
+          "cues": [
+            {
+              "id": "04-05-a",
+              "text": "先换回官方安装方式，",
+              "start": 0.083,
+              "end": 1.558
+            },
+            {
+              "id": "04-05-b",
+              "text": "或者先处理真正的权限和环境问题。",
+              "start": 1.558,
+              "end": 3.9
+            },
+            {
+              "id": "04-05-c",
+              "text": "用更高权限把错误压过去，",
+              "start": 3.9,
+              "end": 5.717
+            },
+            {
+              "id": "04-05-d",
+              "text": "往往只是把问题留到更新和维护时再爆出来。",
+              "start": 5.717,
+              "end": 8.52
+            }
+          ]
+        },
+        {
+          "segmentId": "04-06",
+          "audioFile": "audio/scene-04/04-06.mp3",
+          "cues": [
+            {
+              "id": "04-06-a",
+              "text": "所以安装方式的简单优先级是：",
+              "start": 0.083,
+              "end": 2.283
+            },
+            {
+              "id": "04-06-b",
+              "text": "官方原生安装优先，",
+              "start": 2.283,
+              "end": 3.725
+            },
+            {
+              "id": "04-06-c",
+              "text": "包管理器按需选择，",
+              "start": 3.725,
+              "end": 4.95
+            },
+            {
+              "id": "04-06-d",
+              "text": "npm 最后考虑。",
+              "start": 4.95,
+              "end": 6.336
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sceneId": "05",
+      "file": "subtitles/scene-05.json",
+      "segments": [
+        {
+          "segmentId": "05-01",
+          "audioFile": "audio/scene-05/05-01.mp3",
+          "cues": [
+            {
+              "id": "05-01-a",
+              "text": "安装命令结束以后，不要马上进入下一步。",
+              "start": 0.083,
+              "end": 2.712
+            }
+          ]
+        },
+        {
+          "segmentId": "05-02",
+          "audioFile": "audio/scene-05/05-02.mp3",
+          "cues": [
+            {
+              "id": "05-02-a",
+              "text": "先打开一个新的终端，",
+              "start": 0.083,
+              "end": 1.358
+            },
+            {
+              "id": "05-02-b",
+              "text": "让新的 PATH 配置真正生效。",
+              "start": 1.358,
+              "end": 3.24
+            }
+          ]
+        },
+        {
+          "segmentId": "05-03",
+          "audioFile": "audio/scene-05/05-03.mp3",
+          "cues": [
+            {
+              "id": "05-03-a",
+              "text": "然后运行 claude --version。",
+              "start": 0.083,
+              "end": 1.728
+            }
+          ]
+        },
+        {
+          "segmentId": "05-04",
+          "audioFile": "audio/scene-05/05-04.mp3",
+          "cues": [
+            {
+              "id": "05-04-a",
+              "text": "如果能返回版本信息，",
+              "start": 0.083,
+              "end": 1.467
+            },
+            {
+              "id": "05-04-b",
+              "text": "说明系统已经找到了 Claude Code 命令。",
+              "start": 1.467,
+              "end": 3.888
+            }
+          ]
+        },
+        {
+          "segmentId": "05-05",
+          "audioFile": "audio/scene-05/05-05.mp3",
+          "cues": [
+            {
+              "id": "05-05-a",
+              "text": "如果提示找不到命令，",
+              "start": 0.083,
+              "end": 1.383
+            },
+            {
+              "id": "05-05-b",
+              "text": "先检查 PATH 和当前终端，",
+              "start": 1.383,
+              "end": 3.083
+            },
+            {
+              "id": "05-05-c",
+              "text": "不要立刻重复安装。",
+              "start": 3.083,
+              "end": 4.464
+            }
+          ]
+        },
+        {
+          "segmentId": "05-06",
+          "audioFile": "audio/scene-05/05-06.mp3",
+          "cues": [
+            {
+              "id": "05-06-a",
+              "text": "遇到更复杂的情况，再运行 claude doctor，",
+              "start": 0.083,
+              "end": 2.492
+            },
+            {
+              "id": "05-06-b",
+              "text": "让它把安装、配置和更新状态列出来。",
+              "start": 2.492,
+              "end": 4.896
+            }
+          ]
+        },
+        {
+          "segmentId": "05-07",
+          "audioFile": "audio/scene-05/05-07.mp3",
+          "cues": [
+            {
+              "id": "05-07-a",
+              "text": "这两个命令的作用不一样：",
+              "start": 0.083,
+              "end": 1.408
+            },
+            {
+              "id": "05-07-b",
+              "text": "claude --version 证明命令能不能被找到，",
+              "start": 1.408,
+              "end": 3.492
+            },
+            {
+              "id": "05-07-c",
+              "text": "claude doctor 帮你定位安装之后到底是哪一环出了问题。",
+              "start": 3.492,
+              "end": 6.72
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sceneId": "06",
+      "file": "subtitles/scene-06.json",
+      "segments": [
+        {
+          "segmentId": "06-01",
+          "audioFile": "audio/scene-06/06-01.mp3",
+          "cues": [
+            {
+              "id": "06-01-a",
+              "text": "现在终端已经能找到 Claude Code，",
+              "start": 0.083,
+              "end": 2.092
+            },
+            {
+              "id": "06-01-b",
+              "text": "但它还不知道你要使用哪个账号。",
+              "start": 2.092,
+              "end": 4.104
+            }
+          ]
+        },
+        {
+          "segmentId": "06-02",
+          "audioFile": "audio/scene-06/06-02.mp3",
+          "cues": [
+            {
+              "id": "06-02-a",
+              "text": "进入一个项目目录，运行 claude，",
+              "start": 0.083,
+              "end": 1.933
+            },
+            {
+              "id": "06-02-b",
+              "text": "按照提示在浏览器里完成授权，",
+              "start": 1.933,
+              "end": 3.892
+            },
+            {
+              "id": "06-02-c",
+              "text": "再回到终端继续操作。",
+              "start": 3.892,
+              "end": 5.496
+            }
+          ]
+        },
+        {
+          "segmentId": "06-03",
+          "audioFile": "audio/scene-06/06-03.mp3",
+          "cues": [
+            {
+              "id": "06-03-a",
+              "text": "这里要分清两件事：安装成功，",
+              "start": 0.083,
+              "end": 2.025
+            },
+            {
+              "id": "06-03-b",
+              "text": "只代表程序已经在电脑上；",
+              "start": 2.025,
+              "end": 3.633
+            },
+            {
+              "id": "06-03-c",
+              "text": "登录完成，才代表它具备使用当前账号工作的条件。",
+              "start": 3.633,
+              "end": 7.056
+            }
+          ]
+        },
+        {
+          "segmentId": "06-04",
+          "audioFile": "audio/scene-06/06-04.mp3",
+          "cues": [
+            {
+              "id": "06-04-a",
+              "text": "也就是说，命令可用，",
+              "start": 0.083,
+              "end": 1.492
+            },
+            {
+              "id": "06-04-b",
+              "text": "不等于账号已经授权。",
+              "start": 1.492,
+              "end": 3.048
+            }
+          ]
+        },
+        {
+          "segmentId": "06-05",
+          "audioFile": "audio/scene-06/06-05.mp3",
+          "cues": [
+            {
+              "id": "06-05-a",
+              "text": "第一次启动时，把这次登录完整走通，",
+              "start": 0.083,
+              "end": 2.408
+            },
+            {
+              "id": "06-05-b",
+              "text": "后面才能验证真正的使用链路。",
+              "start": 2.408,
+              "end": 4.488
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sceneId": "07",
+      "file": "subtitles/scene-07.json",
+      "segments": [
+        {
+          "segmentId": "07-01",
+          "audioFile": "audio/scene-07/07-01.mp3",
+          "cues": [
+            {
+              "id": "07-01-a",
+              "text": "如果你是在远程服务器、",
+              "start": 0.083,
+              "end": 1.425
+            },
+            {
+              "id": "07-01-b",
+              "text": "SSH，或者某些 WSL 环境中运行，",
+              "start": 1.425,
+              "end": 4.258
+            },
+            {
+              "id": "07-01-c",
+              "text": "浏览器可能不会在当前设备自动打开。",
+              "start": 4.258,
+              "end": 6.864
+            }
+          ]
+        },
+        {
+          "segmentId": "07-02",
+          "audioFile": "audio/scene-07/07-02.mp3",
+          "cues": [
+            {
+              "id": "07-02-a",
+              "text": "这时候不用重装，也不用一直等弹窗出现。",
+              "start": 0.083,
+              "end": 2.736
+            }
+          ]
+        },
+        {
+          "segmentId": "07-03",
+          "audioFile": "audio/scene-07/07-03.mp3",
+          "cues": [
+            {
+              "id": "07-03-a",
+              "text": "按照终端提示，把 OAuth 地址复制出来，",
+              "start": 0.083,
+              "end": 2.492
+            },
+            {
+              "id": "07-03-b",
+              "text": "在另一台能打开浏览器的设备上完成授权，",
+              "start": 2.492,
+              "end": 5.092
+            },
+            {
+              "id": "07-03-c",
+              "text": "再把授权结果带回终端。",
+              "start": 5.092,
+              "end": 6.864
+            }
+          ]
+        },
+        {
+          "segmentId": "07-04",
+          "audioFile": "audio/scene-07/07-04.mp3",
+          "cues": [
+            {
+              "id": "07-04-a",
+              "text": "整个过程可以理解成三步：",
+              "start": 0.083,
+              "end": 1.75
+            },
+            {
+              "id": "07-04-b",
+              "text": "复制 URL，完成授权，",
+              "start": 1.75,
+              "end": 3.442
+            },
+            {
+              "id": "07-04-c",
+              "text": "再把结果交回当前终端。",
+              "start": 3.442,
+              "end": 5.16
+            }
+          ]
+        },
+        {
+          "segmentId": "07-05",
+          "audioFile": "audio/scene-07/07-05.mp3",
+          "cues": [
+            {
+              "id": "07-05-a",
+              "text": "如果交互式登录不方便，",
+              "start": 0.083,
+              "end": 1.45
+            },
+            {
+              "id": "07-05-b",
+              "text": "也可以使用更明确的 claude auth login 入口，",
+              "start": 1.45,
+              "end": 3.8
+            },
+            {
+              "id": "07-05-c",
+              "text": "按照提示完成登录。",
+              "start": 3.8,
+              "end": 5.232
+            }
+          ]
+        },
+        {
+          "segmentId": "07-06",
+          "audioFile": "audio/scene-07/07-06.mp3",
+          "cues": [
+            {
+              "id": "07-06-a",
+              "text": "远程环境的关键不是换一套软件，",
+              "start": 0.083,
+              "end": 2.258
+            },
+            {
+              "id": "07-06-b",
+              "text": "而是把浏览器授权和终端之间的这条回路接通。",
+              "start": 2.258,
+              "end": 5.184
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sceneId": "08",
+      "file": "subtitles/scene-08.json",
+      "segments": [
+        {
+          "segmentId": "08-01",
+          "audioFile": "audio/scene-08/08-01.mp3",
+          "cues": [
+            {
+              "id": "08-01-a",
+              "text": "登录完成以后，不要马上把 Claude Code 交给一个复杂项目。",
+              "start": 0.083,
+              "end": 3.456
+            }
+          ]
+        },
+        {
+          "segmentId": "08-02",
+          "audioFile": "audio/scene-08/08-02.mp3",
+          "cues": [
+            {
+              "id": "08-02-a",
+              "text": "先创建一个空的测试目录，",
+              "start": 0.083,
+              "end": 1.55
+            },
+            {
+              "id": "08-02-b",
+              "text": "在里面启动 Claude Code。",
+              "start": 1.55,
+              "end": 3.168
+            }
+          ]
+        },
+        {
+          "segmentId": "08-03",
+          "audioFile": "audio/scene-08/08-03.mp3",
+          "cues": [
+            {
+              "id": "08-03-a",
+              "text": "这样做的好处是，第一次验证只需要观察工具本身，",
+              "start": 0.083,
+              "end": 3.208
+            },
+            {
+              "id": "08-03-b",
+              "text": "不会把真实项目里的配置、",
+              "start": 3.208,
+              "end": 4.6
+            },
+            {
+              "id": "08-03-c",
+              "text": "依赖和历史问题一起带进来。",
+              "start": 4.6,
+              "end": 6.792
+            }
+          ]
+        },
+        {
+          "segmentId": "08-04",
+          "audioFile": "audio/scene-08/08-04.mp3",
+          "cues": [
+            {
+              "id": "08-04-a",
+              "text": "进入之后，可以先输入 /help，",
+              "start": 0.083,
+              "end": 1.758
+            },
+            {
+              "id": "08-04-b",
+              "text": "确认交互和命令列表都能正常打开。",
+              "start": 1.758,
+              "end": 4.176
+            }
+          ]
+        },
+        {
+          "segmentId": "08-05",
+          "audioFile": "audio/scene-08/08-05.mp3",
+          "cues": [
+            {
+              "id": "08-05-a",
+              "text": "接着提出一个很小、结果明确的任务，",
+              "start": 0.083,
+              "end": 2.208
+            },
+            {
+              "id": "08-05-b",
+              "text": "比如：在 test.py 文件里写一个打印 hello world 的函数。",
+              "start": 2.208,
+              "end": 5.856
+            }
+          ]
+        },
+        {
+          "segmentId": "08-06",
+          "audioFile": "audio/scene-08/08-06.mp3",
+          "cues": [
+            {
+              "id": "08-06-a",
+              "text": "第一次任务越小，越容易看清楚它到底做了什么，",
+              "start": 0.083,
+              "end": 2.992
+            },
+            {
+              "id": "08-06-b",
+              "text": "也越容易在出现问题时定位原因。",
+              "start": 2.992,
+              "end": 5.232
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sceneId": "09",
+      "file": "subtitles/scene-09.json",
+      "segments": [
+        {
+          "segmentId": "09-01",
+          "audioFile": "audio/scene-09/09-01.mp3",
+          "cues": [
+            {
+              "id": "09-01-a",
+              "text": "这一步是第一次使用里最重要的环节。",
+              "start": 0.083,
+              "end": 2.52
+            }
+          ]
+        },
+        {
+          "segmentId": "09-02",
+          "audioFile": "audio/scene-09/09-02.mp3",
+          "cues": [
+            {
+              "id": "09-02-a",
+              "text": "Claude Code 收到任务以后，",
+              "start": 0.083,
+              "end": 1.5
+            },
+            {
+              "id": "09-02-b",
+              "text": "不是悄悄把文件改完，",
+              "start": 1.5,
+              "end": 2.842
+            },
+            {
+              "id": "09-02-c",
+              "text": "而是会先把准备进行的修改展示出来。",
+              "start": 2.842,
+              "end": 5.136
+            }
+          ]
+        },
+        {
+          "segmentId": "09-03",
+          "audioFile": "audio/scene-09/09-03.mp3",
+          "cues": [
+            {
+              "id": "09-03-a",
+              "text": "先看 diff。",
+              "start": 0.083,
+              "end": 1.104
+            }
+          ]
+        },
+        {
+          "segmentId": "09-04",
+          "audioFile": "audio/scene-09/09-04.mp3",
+          "cues": [
+            {
+              "id": "09-04-a",
+              "text": "确认文件名、具体内容和修改范围都符合预期，",
+              "start": 0.083,
+              "end": 3.158
+            },
+            {
+              "id": "09-04-b",
+              "text": "再允许它写入文件。",
+              "start": 3.158,
+              "end": 4.56
+            }
+          ]
+        },
+        {
+          "segmentId": "09-05",
+          "audioFile": "audio/scene-09/09-05.mp3",
+          "cues": [
+            {
+              "id": "09-05-a",
+              "text": "如果不符合预期，就先拒绝或提出调整，",
+              "start": 0.083,
+              "end": 2.608
+            },
+            {
+              "id": "09-05-b",
+              "text": "让它重新生成修改方案。",
+              "start": 2.608,
+              "end": 4.32
+            }
+          ]
+        },
+        {
+          "segmentId": "09-06",
+          "audioFile": "audio/scene-09/09-06.mp3",
+          "cues": [
+            {
+              "id": "09-06-a",
+              "text": "确认之后，文件才真正落盘，",
+              "start": 0.083,
+              "end": 2.05
+            },
+            {
+              "id": "09-06-b",
+              "text": "测试目录里也才会出现 test.py。",
+              "start": 2.05,
+              "end": 4.608
+            }
+          ]
+        },
+        {
+          "segmentId": "09-07",
+          "audioFile": "audio/scene-09/09-07.mp3",
+          "cues": [
+            {
+              "id": "09-07-a",
+              "text": "这个过程可以压缩成四步：",
+              "start": 0.083,
+              "end": 1.692
+            },
+            {
+              "id": "09-07-b",
+              "text": "提出目标，生成修改，",
+              "start": 1.692,
+              "end": 3.15
+            },
+            {
+              "id": "09-07-c",
+              "text": "人工检查 diff，确认后写入。",
+              "start": 3.15,
+              "end": 5.16
+            }
+          ]
+        },
+        {
+          "segmentId": "09-08",
+          "audioFile": "audio/scene-09/09-08.mp3",
+          "cues": [
+            {
+              "id": "09-08-a",
+              "text": "所以 Claude Code 的核心节奏不是“说一句话，",
+              "start": 0.083,
+              "end": 2.6
+            },
+            {
+              "id": "09-08-b",
+              "text": "文件就被偷偷改掉”，",
+              "start": 2.6,
+              "end": 3.858
+            },
+            {
+              "id": "09-08-c",
+              "text": "而是先给出方案，再由你确认是否执行。",
+              "start": 3.858,
+              "end": 6.528
+            }
+          ]
+        },
+        {
+          "segmentId": "09-09",
+          "audioFile": "audio/scene-09/09-09.mp3",
+          "cues": [
+            {
+              "id": "09-09-a",
+              "text": "走完这一步，安装才真正被验证成了“可以使用”。",
+              "start": 0.083,
+              "end": 3.024
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sceneId": "10",
+      "file": "subtitles/scene-10.json",
+      "segments": [
+        {
+          "segmentId": "10-01",
+          "audioFile": "audio/scene-10/10-01.mp3",
+          "cues": [
+            {
+              "id": "10-01-a",
+              "text": "如果中间出现报错，不要第一反应就是重新安装。",
+              "start": 0.083,
+              "end": 3.216
+            }
+          ]
+        },
+        {
+          "segmentId": "10-02",
+          "audioFile": "audio/scene-10/10-02.mp3",
+          "cues": [
+            {
+              "id": "10-02-a",
+              "text": "先问一个问题：错误发生在哪一层？",
+              "start": 0.083,
+              "end": 2.424
+            }
+          ]
+        },
+        {
+          "segmentId": "10-03",
+          "audioFile": "audio/scene-10/10-03.mp3",
+          "cues": [
+            {
+              "id": "10-03-a",
+              "text": "是当前终端和命令不匹配，",
+              "start": 0.083,
+              "end": 1.775
+            },
+            {
+              "id": "10-03-b",
+              "text": "还是网络返回了异常？",
+              "start": 1.775,
+              "end": 3.288
+            }
+          ]
+        },
+        {
+          "segmentId": "10-04",
+          "audioFile": "audio/scene-10/10-04.mp3",
+          "cues": [
+            {
+              "id": "10-04-a",
+              "text": "是 PATH 没有找到命令，",
+              "start": 0.083,
+              "end": 1.425
+            },
+            {
+              "id": "10-04-b",
+              "text": "还是系统资源、运行库、",
+              "start": 1.425,
+              "end": 3.0
+            },
+            {
+              "id": "10-04-c",
+              "text": "账号权限出了问题？",
+              "start": 3.0,
+              "end": 4.44
+            }
+          ]
+        },
+        {
+          "segmentId": "10-05",
+          "audioFile": "audio/scene-10/10-05.mp3",
+          "cues": [
+            {
+              "id": "10-05-a",
+              "text": "也有一种情况，是同一台电脑上装了多个来源的 Claude",
+              "start": 0.083,
+              "end": 3.067
+            },
+            {
+              "id": "10-05-b",
+              "text": "Code，导致版本和路径互相冲突。",
+              "start": 3.067,
+              "end": 5.424
+            }
+          ]
+        },
+        {
+          "segmentId": "10-06",
+          "audioFile": "audio/scene-10/10-06.mp3",
+          "cues": [
+            {
+              "id": "10-06-a",
+              "text": "判断清楚层级以后，",
+              "start": 0.083,
+              "end": 1.283
+            },
+            {
+              "id": "10-06-b",
+              "text": "再选择对应处理方式。",
+              "start": 1.283,
+              "end": 2.88
+            }
+          ]
+        },
+        {
+          "segmentId": "10-07",
+          "audioFile": "audio/scene-10/10-07.mp3",
+          "cues": [
+            {
+              "id": "10-07-a",
+              "text": "比如找不到命令，先查 PATH；",
+              "start": 0.083,
+              "end": 1.892
+            },
+            {
+              "id": "10-07-b",
+              "text": "行为异常，检查是不是有多个安装；",
+              "start": 1.892,
+              "end": 4.042
+            },
+            {
+              "id": "10-07-c",
+              "text": "登录失败，先看账号和环境变量；",
+              "start": 4.042,
+              "end": 6.217
+            },
+            {
+              "id": "10-07-d",
+              "text": "安装器下载异常，再回头检查网络和平台。",
+              "start": 6.217,
+              "end": 9.192
+            }
+          ]
+        },
+        {
+          "segmentId": "10-08",
+          "audioFile": "audio/scene-10/10-08.mp3",
+          "cues": [
+            {
+              "id": "10-08-a",
+              "text": "排错的原则只有一句：",
+              "start": 0.083,
+              "end": 1.4
+            },
+            {
+              "id": "10-08-b",
+              "text": "先对症，再下药，",
+              "start": 1.4,
+              "end": 2.633
+            },
+            {
+              "id": "10-08-c",
+              "text": "不要把所有问题都当成“没装好”。",
+              "start": 2.633,
+              "end": 4.68
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sceneId": "11",
+      "file": "subtitles/scene-11.json",
+      "segments": [
+        {
+          "segmentId": "11-01",
+          "audioFile": "audio/scene-11/11-01.mp3",
+          "cues": [
+            {
+              "id": "11-01-a",
+              "text": "维护 Claude Code 时，也要记住一个原则：",
+              "start": 0.083,
+              "end": 2.333
+            },
+            {
+              "id": "11-01-b",
+              "text": "安装来源决定维护方式。",
+              "start": 2.333,
+              "end": 4.224
+            }
+          ]
+        },
+        {
+          "segmentId": "11-02",
+          "audioFile": "audio/scene-11/11-02.mp3",
+          "cues": [
+            {
+              "id": "11-02-a",
+              "text": "官方原生安装、Homebrew、",
+              "start": 0.083,
+              "end": 1.592
+            },
+            {
+              "id": "11-02-b",
+              "text": "WinGet 和 npm，",
+              "start": 1.592,
+              "end": 2.85
+            },
+            {
+              "id": "11-02-c",
+              "text": "各自对应不同的升级与卸载命令，不能混着维护。",
+              "start": 2.85,
+              "end": 5.856
+            }
+          ]
+        },
+        {
+          "segmentId": "11-03",
+          "audioFile": "audio/scene-11/11-03.mp3",
+          "cues": [
+            {
+              "id": "11-03-a",
+              "text": "如果最初使用官方方式安装，",
+              "start": 0.083,
+              "end": 1.792
+            },
+            {
+              "id": "11-03-b",
+              "text": "优先使用它对应的更新入口；",
+              "start": 1.792,
+              "end": 3.683
+            },
+            {
+              "id": "11-03-c",
+              "text": "如果使用包管理器，就交给原来的包管理器处理。",
+              "start": 3.683,
+              "end": 6.696
+            }
+          ]
+        },
+        {
+          "segmentId": "11-04",
+          "audioFile": "audio/scene-11/11-04.mp3",
+          "cues": [
+            {
+              "id": "11-04-a",
+              "text": "另外，卸载程序本体，",
+              "start": 0.083,
+              "end": 1.583
+            },
+            {
+              "id": "11-04-b",
+              "text": "不等于删除所有配置、",
+              "start": 1.583,
+              "end": 2.908
+            },
+            {
+              "id": "11-04-c",
+              "text": "授权和会话历史。",
+              "start": 2.908,
+              "end": 4.536
+            }
+          ]
+        },
+        {
+          "segmentId": "11-05",
+          "audioFile": "audio/scene-11/11-05.mp3",
+          "cues": [
+            {
+              "id": "11-05-a",
+              "text": "如果只是排查普通问题，",
+              "start": 0.083,
+              "end": 1.492
+            },
+            {
+              "id": "11-05-b",
+              "text": "不要一上来就做彻底清理。",
+              "start": 1.492,
+              "end": 3.384
+            }
+          ]
+        },
+        {
+          "segmentId": "11-06",
+          "audioFile": "audio/scene-11/11-06.mp3",
+          "cues": [
+            {
+              "id": "11-06-a",
+              "text": "删除用户配置、缓存或项目本地设置之前，",
+              "start": 0.083,
+              "end": 2.975
+            },
+            {
+              "id": "11-06-b",
+              "text": "先确认这些内容是否还需要，",
+              "start": 2.975,
+              "end": 4.6
+            },
+            {
+              "id": "11-06-c",
+              "text": "因为彻底清理通常是不可逆的。",
+              "start": 4.6,
+              "end": 6.744
+            }
+          ]
+        },
+        {
+          "segmentId": "11-07",
+          "audioFile": "audio/scene-11/11-07.mp3",
+          "cues": [
+            {
+              "id": "11-07-a",
+              "text": "先确认来源，再执行维护；",
+              "start": 0.083,
+              "end": 1.942
+            },
+            {
+              "id": "11-07-b",
+              "text": "先确认后果，再做清理。",
+              "start": 1.942,
+              "end": 3.744
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sceneId": "12",
+      "file": "subtitles/scene-12.json",
+      "segments": [
+        {
+          "segmentId": "12-01",
+          "audioFile": "audio/scene-12/12-01.mp3",
+          "cues": [
+            {
+              "id": "12-01-a",
+              "text": "现在回到开头的问题：",
+              "start": 0.083,
+              "end": 1.408
+            },
+            {
+              "id": "12-01-b",
+              "text": "什么状态才算真的装好了？",
+              "start": 1.408,
+              "end": 3.24
+            }
+          ]
+        },
+        {
+          "segmentId": "12-02",
+          "audioFile": "audio/scene-12/12-02.mp3",
+          "cues": [
+            {
+              "id": "12-02-a",
+              "text": "你应该能确认四件事。",
+              "start": 0.083,
+              "end": 1.608
+            }
+          ]
+        },
+        {
+          "segmentId": "12-03",
+          "audioFile": "audio/scene-12/12-03.mp3",
+          "cues": [
+            {
+              "id": "12-03-a",
+              "text": "第一，当前环境满足要求。",
+              "start": 0.083,
+              "end": 2.088
+            }
+          ]
+        },
+        {
+          "segmentId": "12-04",
+          "audioFile": "audio/scene-12/12-04.mp3",
+          "cues": [
+            {
+              "id": "12-04-a",
+              "text": "第二，安装入口和当前终端是匹配的。",
+              "start": 0.083,
+              "end": 2.712
+            }
+          ]
+        },
+        {
+          "segmentId": "12-05",
+          "audioFile": "audio/scene-12/12-05.mp3",
+          "cues": [
+            {
+              "id": "12-05-a",
+              "text": "第三，claude --version 和登录流程都已经验证通过。",
+              "start": 0.083,
+              "end": 3.264
+            }
+          ]
+        },
+        {
+          "segmentId": "12-06",
+          "audioFile": "audio/scene-12/12-06.mp3",
+          "cues": [
+            {
+              "id": "12-06-a",
+              "text": "第四，你在测试目录里完成过一次小任务，",
+              "start": 0.083,
+              "end": 2.733
+            },
+            {
+              "id": "12-06-b",
+              "text": "并且先看过 diff，再确认文件写入。",
+              "start": 2.733,
+              "end": 5.112
+            }
+          ]
+        },
+        {
+          "segmentId": "12-07",
+          "audioFile": "audio/scene-12/12-07.mp3",
+          "cues": [
+            {
+              "id": "12-07-a",
+              "text": "所以，Claude Code 的安装不是执行一条命令，",
+              "start": 0.083,
+              "end": 2.708
+            },
+            {
+              "id": "12-07-b",
+              "text": "而是把环境、命令、",
+              "start": 2.708,
+              "end": 3.95
+            },
+            {
+              "id": "12-07-c",
+              "text": "账号和第一次任务这条链路完整打通。",
+              "start": 3.95,
+              "end": 6.504
+            }
+          ]
+        },
+        {
+          "segmentId": "12-08",
+          "audioFile": "audio/scene-12/12-08.mp3",
+          "cues": [
+            {
+              "id": "12-08-a",
+              "text": "下一节，我们会拆开 Claude Code 背后的“代理循环”，",
+              "start": 0.083,
+              "end": 2.942
+            },
+            {
+              "id": "12-08-b",
+              "text": "看看一句自然语言指令是怎样变成一次真实文件修改的。",
+              "start": 2.942,
+              "end": 6.264
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
