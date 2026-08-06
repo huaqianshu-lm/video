@@ -2,10 +2,10 @@
 
 ## 当前阶段
 
-- `claude-code-install` 已接入真实音频、逐句字幕和 Manifest 时间轴，12 个 Scene 的 41 个主要视觉锚点也已绑定到 Segment 局部时间；当前等待人工逐幕同步复核。
+- `claude-code-install` 已接入真实音频、逐句字幕和 Manifest 时间轴，12 个 Scene 的 41 个主要视觉锚点也已绑定到 Segment 局部时间；GitHub Linux 冒烟渲染已通过，当前等待完整 MP4。
 - `claude-code-what-is-v2` 已接入 14 个 Scene、166 段音频、269 条字幕 Cue 和约 645.744 秒真实时间线。
 - 字幕已改为顶层 overlay，Linux 渲染前强制校验 CJK 字体，音频已预挂载并按 Segment 驱动画面。
-- GitHub Actions 已拆分为 `Smoke test video` 和 `Render full video` 两条独立工作流；冒烟工作流会渲染 3 张代表帧和前 10 秒短片，人工确认后才执行约 40 分钟的完整渲染。
+- GitHub Actions 已拆分为 `Smoke test video` 和 `Render full video` 两条独立工作流；冒烟 Run `31066848943` 已生成并检查 3 张代表帧和前 10 秒短片，现可执行完整渲染。
 - 本机 Chromium 因旧版 macOS 返回 `SIGTRAP`，最终画面验证改由 GitHub Actions 完成。
 
 ## 已完成（最近 10 条）
@@ -15,23 +15,23 @@
 - 2026-08-06：完成 `claude-code-install` 的 Segment 驱动画面映射；12 个 Scene 共配置 41 个主要视觉锚点，列表、终端输出、Diff 确认和总结卡片使用 Scene 局部 Segment 时间触发。
 - 2026-08-06：根据人工复核反馈，Scene 12 四张总结卡片统一提前 0.4 秒入场，补偿淡入动画相对口播的感知滞后。
 - 2026-08-06：修正 Scene 12 四张卡片的语义 Segment 映射为 `12-03`、`12-04`、`12-05`、`12-06`，并将顶部标题下移 28px 避开进度条。
+- 2026-08-06：将 `claude-code-install` 音频资源打包入仓，GitHub 两条渲染工作流切换到当前 Composition；提交 `a935e71` 已推送，冒烟 Run `31066848943` 成功。
 - 2026-08-05：完成 `claude-code-install` 的横屏 Remotion 配置和主组件，接入 12 个 Scene、1920×1080、30fps 的 `claude-code-install` Composition；当时使用口播估算时长，未接入音频和 SRT。
 - 2026-08-05：完成 `claude-code-install/visual-prototype.html`，使用无依赖 HTML + CSS + 少量 JS 展示 12 个可切换 Scene、Scene 09 的确认写入示意和 Scene 12 延迟出现的下节预告；等待用户确认后进入 Remotion。
 - 2026-08-05：完成并补充 `claude-code-install/content-analysis.md`，将原文整理为安装前提、平台分流、验证登录、首次任务和排错维护五层知识骨架，并在末尾加入简短下节预告；已作为 Video Narrative 的输入。
 - 2026-08-05：完成 `claude-code-install/video-narrative.md`，按环境判断、安装入口、验证、登录、第一次任务、排错维护和结尾预告重组观众认知顺序；已作为 Scene Script 的输入。
-- 2026-08-05：完成 `claude-code-install/scene-script.md`，拆分为 12 个视觉事件，明确每幕认知任务、口播方向、画面、Scene Type、Video Value 和信息分工；待用户确认后继续。
 
 ## 进行中
 
-- `claude-code-install` 的音频、字幕、时间轴和主要视觉事件已接入；当前只剩 Studio 中的人工逐幕音画同步与文字溢出复核。
-- `Smoke test video` 已实现，等待在 GitHub Actions 首次运行并人工检查 Artifact。
-- 完整渲染等待冒烟截图和 10 秒短片确认通过。
+- `claude-code-install` 的音频、字幕、时间轴和主要视觉事件已接入；冒烟产物已检查通过，当前只剩完整 MP4 产物核对。
+- `Smoke test video` 已在 GitHub Actions 成功运行，3 张代表帧和 10 秒短片已检查通过。
+- `Render full video` 已准备触发，预计在 GitHub Actions 上生成完整 `claude-code-install.mp4` Artifact。
 
 ## 下一步
 
-1. 在 Remotion Studio 中人工复核 12 个 Scene 的音画同步与文字溢出。
-2. 根据逐幕反馈修正配置或通用场景组件。
-3. 预览确认后再进入项目统一的冒烟检查流程。
+1. 触发并等待 GitHub Actions 的 `Render full video` 完整渲染。
+2. 下载完整 MP4 Artifact，核对文件存在、时长、分辨率、帧率和音频轨。
+3. 根据完整产物检查结果决定是否需要继续修正配置或通用场景组件。
 
 ## 阻塞
 
@@ -53,8 +53,8 @@
 - 2026-08-06：视觉 Segment 映射校验通过；12 组 reveal 映射共 41 个局部时间点，均能找到对应 Segment 且落在所属 Scene 时长内；修正绝对时间误用后 `npm run check` 和 Studio bundling 通过。
 - 2026-08-06：Scene 12 视觉起点修正后，`npm run check`、`git diff --check`、四个局部起点边界校验和 Studio bundling 均通过；音频与字幕时间轴未改变。
 - 2026-08-06：Scene 12 卡片语义映射修正后，四个卡片起点均早于对应音频，动画完成时间落在场景内；`npm run check`、`git diff --check` 和局部时间校验通过。
+- 2026-08-06：GitHub 冒烟 Run `31066848943` 成功；3 张代表帧为 1920×1080，前 10 秒 Artifact 为 1920×1080、30fps、H.264 + AAC，时长 10.048 秒。
 - 2026-08-05：`npm install` 成功，`node --version` 为 v22.21.0，`npm run check` 通过；`npm run preview -- --port 3010` 成功启动并完成 Remotion bundling，随后已停止 Studio 进程。
 - 2026-08-05：源码级验证 `claude-code-install/visual-prototype.html`；包含 12 个 Scene、12 个 Scene 选择按钮，JavaScript 语法检查通过，无行尾空白，CSS 明确按 16:9 构图且未引入外部依赖。
 - 2026-08-05：已完整读取 `claude-code-install/source.md`，生成并补充 `content-analysis.md`；文件包含核心命题、知识关系、视频价值、取舍项、时效性核验清单和末尾下节预告。
 - 2026-08-05：已基于 Content Analysis 生成 `claude-code-install/video-narrative.md`；文档包含八段叙事结构、状态变化主线、第一次任务高潮、内容边界、视觉方向和末尾下节预告，且未进入 Scene Script。
-- 2026-08-05：已基于 Video Narrative 生成 `claude-code-install/scene-script.md`；包含 12 个 Scene，Scene 09 聚焦 diff 确认，Scene 12 承担唯一的结尾下节预告；`git diff --check` 通过。
