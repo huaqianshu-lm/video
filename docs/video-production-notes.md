@@ -613,6 +613,23 @@ de
 ### 当前项目处理状态
 
 当前 `claude-code-what-is` 已通过人工反馈逐场景微调 `subtitleCues`，但这属于样片救急方案。后续制作第二条视频前，应优先按本文档的推荐流程准备逐句字幕时间轴。
+## 2026-08-06：GitHub Actions 远程渲染带音频视频
+
+### 问题
+
+本机 Chromium 因旧版 macOS 返回 `SIGTRAP`，无法可靠生成最终 still 或 MP4；同时 `local/` 和 `public/local-assets/` 按项目规则不提交到 Git。
+
+### 解决方案
+
+1. 将当前视频需要的 `public/local-assets/<video-slug>/` 打包为 `assets/<video-slug>-assets.zip`，只把压缩包提交到仓库。
+2. GitHub Actions 解压资源后，先运行 `npm run check` 和资源数量校验，再执行冒烟工作流。
+3. 冒烟工作流先渲染 3 张代表帧和前 10 秒短片；确认分辨率、字幕、字体和音频轨正常后，再触发完整渲染。
+4. 完整渲染结束后，从 Artifact 下载 MP4，并用 `ffprobe` 核对分辨率、帧率、视频编码、音频编码、采样率、声道和总时长。
+
+### 本次结果
+
+`claude-code-install` 的冒烟 Run `31066848943` 和完整 Run `31067176077` 均成功。最终 MP4 为 1920×1080、30fps、H.264 + AAC、48kHz 双声道，时长约 365.782 秒。
+
 ## 2026-08-02：Linux 渲染中文变方框，字幕边界帧偶尔空白
 
 ### 问题现象
