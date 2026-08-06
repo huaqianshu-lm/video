@@ -36,12 +36,12 @@ jobs:
       - name: Extract video assets
         run: |
           mkdir -p public/local-assets
-          unzip -q assets/claude-code-what-is-v2-assets.zip -d public/local-assets
+          unzip -q assets/claude-code-install-assets.zip -d public/local-assets
 
       - name: Verify render inputs
         run: |
-          test -f public/local-assets/claude-code-what-is-v2/captions.vtt
-          test "$(find public/local-assets/claude-code-what-is-v2/audio -type f -name '*.mp3' | wc -l | tr -d ' ')" -eq 166
+          test -f public/local-assets/claude-code-install/subtitles/captions.vtt
+          test "$(find public/local-assets/claude-code-install/audio -type f -name '*.mp3' | wc -l | tr -d ' ')" -eq 76
 
       - name: Type-check project
         run: npm run check
@@ -49,17 +49,17 @@ jobs:
       - name: Render representative frames
         run: |
           mkdir -p smoke
-          npx remotion still claude-code-what-is-v2 --frame=30 --output=smoke/frame-000030.png
-          npx remotion still claude-code-what-is-v2 --frame=660 --output=smoke/frame-000660.png
-          npx remotion still claude-code-what-is-v2 --frame=18000 --output=smoke/frame-018000.png
+          npx remotion still claude-code-install --frame=30 --output=smoke/frame-000030.png
+          npx remotion still claude-code-install --frame=5486 --output=smoke/frame-005486.png
+          npx remotion still claude-code-install --frame=10900 --output=smoke/frame-010900.png
 
       - name: Render first 10 seconds
-        run: npx remotion render claude-code-what-is-v2 smoke/first-10-seconds.mp4 --frames=0-299
+        run: npx remotion render claude-code-install smoke/first-10-seconds.mp4 --frames=0-299
 
       - name: Upload smoke-test artifacts
         uses: actions/upload-artifact@v6
         with:
-          name: claude-code-what-is-v2-smoke-test
+          name: claude-code-install-smoke-test
           path: smoke/
           if-no-files-found: error
           retention-days: 7

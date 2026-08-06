@@ -1,4 +1,4 @@
-export type VideoFormat = 'vertical';
+export type VideoFormat = 'vertical' | 'horizontal';
 
 export type SceneType =
   | 'opening'
@@ -14,6 +14,8 @@ export type BaseSceneConfig = {
   durationSeconds: number;
   headline: string;
   caption: string[];
+  showCaption?: boolean;
+  visualRevealSeconds?: number[];
 };
 
 export type VisualTone = 'muted' | 'accent' | 'success' | 'warning';
@@ -102,7 +104,9 @@ export type SceneConfig =
   | SummarySceneConfig;
 
 export type AudioTrackConfig = {
+  id?: string;
   src: string;
+  startSeconds?: number;
   durationSeconds: number;
 };
 

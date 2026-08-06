@@ -168,6 +168,7 @@ export const ComparisonScene = ({scene}: ComparisonSceneProps) => {
     leadInSeconds: Math.max(1.2, scene.durationSeconds * 0.1),
     leadOutSeconds: scene.durationSeconds * (compact ? 0.5 : 0.62),
     revealSeconds: 0.6,
+    startSeconds: scene.visualRevealSeconds,
   });
   const itemRevealFrames = columns.map((column, index) => {
     const timing = getColumnTiming(index, columns.length, scene.durationSeconds);
@@ -222,7 +223,7 @@ export const ComparisonScene = ({scene}: ComparisonSceneProps) => {
           </div>
         </div>
       </SceneContainer>
-      <Caption lines={scene.caption} durationSeconds={scene.durationSeconds} />
+      {scene.showCaption !== false ? <Caption lines={scene.caption} durationSeconds={scene.durationSeconds} /> : null}
     </>
   );
 };

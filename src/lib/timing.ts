@@ -42,6 +42,7 @@ type DistributedRevealOptions = {
   leadInSeconds?: number;
   leadOutSeconds?: number;
   revealSeconds?: number;
+  startSeconds?: number[];
 };
 
 export const getDistributedRevealFrames = ({
@@ -51,6 +52,7 @@ export const getDistributedRevealFrames = ({
   leadInSeconds = 1,
   leadOutSeconds = 1,
   revealSeconds = 0.5,
+  startSeconds,
 }: DistributedRevealOptions) => {
   if (count <= 0) {
     return [];
@@ -60,6 +62,22 @@ export const getDistributedRevealFrames = ({
   const leadInFrames = secondsToFrames(leadInSeconds, fps);
   const leadOutFrames = secondsToFrames(leadOutSeconds, fps);
   const revealFrames = Math.max(1, secondsToFrames(revealSeconds, fps));
+
+  if (startSeconds) {
+    if (startSeconds.length !== count) {
+      throw new Error(`Expected ${count} explicit reveal times, received ${startSeconds.length}`);
+    }
+
+    return startSeconds.map((seconds) => {
+      const startFrame = secondsToFrames(Math.max(0, seconds), fps);
+
+      return {
+        startFrame,
+        endFrame: startFrame + revealFrames,
+      };
+    });
+  }
+
   const firstStartFrame = Math.min(leadInFrames, Math.max(0, durationFrames - revealFrames));
   const lastStartFrame = Math.max(firstStartFrame, durationFrames - leadOutFrames - revealFrames);
   const gapFrames = count === 1 ? 0 : (lastStartFrame - firstStartFrame) / (count - 1);
@@ -133,7 +151,10 @@ export const estimateSceneDurationSeconds = (scene: SceneConfig, fps: number) =>
 
 export const getTotalDurationSeconds = (config: VideoConfig) => {
   const sceneDuration = config.scenes.reduce((total, scene) => total + scene.durationSeconds, 0);
-  const audioDuration = config.audioTracks?.reduce((total, track) => total + track.durationSeconds, 0) ?? 0;
+  const audioDuration = config.audioTracks?.reduce((total, track) => {
+    const startSeconds = track.startSeconds ?? total;
+    return Math.max(total, startSeconds + track.durationSeconds);
+  }, 0) ?? 0;
   const subtitleDuration = config.subtitleCues?.reduce((latest, cue) => Math.max(latest, cue.endSeconds), 0) ?? 0;
 
   return Math.max(sceneDuration, audioDuration, subtitleDuration);

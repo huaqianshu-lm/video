@@ -29,6 +29,7 @@ export const OpeningScene = ({scene}: OpeningSceneProps) => {
     leadInSeconds: 3,
     leadOutSeconds: 2.4,
     revealSeconds: 0.55,
+    startSeconds: scene.visualRevealSeconds,
   });
 
   return (
@@ -158,7 +159,7 @@ export const OpeningScene = ({scene}: OpeningSceneProps) => {
           </div>
         </div>
       </SceneContainer>
-      <Caption lines={scene.caption} durationSeconds={scene.durationSeconds} />
+      {scene.showCaption !== false ? <Caption lines={scene.caption} durationSeconds={scene.durationSeconds} /> : null}
     </>
   );
 };
