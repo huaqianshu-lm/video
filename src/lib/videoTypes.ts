@@ -52,6 +52,8 @@ export type ComparisonColumn = {
   title: string;
   items: string[];
   visualSteps?: VisualBeat[];
+  workflowTitle?: string;
+  workflowStatus?: string;
 };
 
 type TwoColumnComparisonSceneConfig = BaseSceneConfig & {
