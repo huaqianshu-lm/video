@@ -2,6 +2,15 @@ name: Render full video
 
 on:
   workflow_dispatch:
+    inputs:
+      video_slug:
+        description: Video slug used by source and asset paths
+        required: true
+        type: string
+      composition_id:
+        description: Remotion Composition ID
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -11,6 +20,9 @@ jobs:
     name: Render complete MP4
     runs-on: ubuntu-latest
     timeout-minutes: 90
+    env:
+      VIDEO_SLUG: ${{ inputs.video_slug }}
+      COMPOSITION_ID: ${{ inputs.composition_id }}
 
     steps:
       - name: Checkout
@@ -33,26 +45,35 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Validate workflow inputs
+        run: |
+          [[ "$VIDEO_SLUG" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]]
+          [[ "$COMPOSITION_ID" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]]
+          test -f "assets/${VIDEO_SLUG}-assets.zip"
+          test -f "src/videos/${VIDEO_SLUG}/generated/audio-manifest.json"
+
       - name: Extract video assets
         run: |
           mkdir -p public/local-assets
-          unzip -q assets/claude-code-install-assets.zip -d public/local-assets
+          unzip -q "assets/${VIDEO_SLUG}-assets.zip" -d public/local-assets
 
       - name: Verify render inputs
         run: |
-          test -f public/local-assets/claude-code-install/subtitles/captions.vtt
-          test "$(find public/local-assets/claude-code-install/audio -type f -name '*.mp3' | wc -l | tr -d ' ')" -eq 76
+          test -f "public/local-assets/${VIDEO_SLUG}/subtitles/captions.vtt"
+          expected_audio_count="$(VIDEO_SLUG="$VIDEO_SLUG" node -e "const manifest = require('./src/videos/' + process.env.VIDEO_SLUG + '/generated/audio-manifest.json'); console.log(manifest.scenes.reduce((count, scene) => count + scene.segments.length, 0));")"
+          actual_audio_count="$(find "public/local-assets/${VIDEO_SLUG}/audio" -type f -name '*.mp3' | wc -l | tr -d ' ')"
+          test "$actual_audio_count" -eq "$expected_audio_count"
 
       - name: Type-check project
         run: npm run check
 
-      - name: Render claude-code-install
-        run: npx remotion render claude-code-install out/claude-code-install.mp4
+      - name: Render complete video
+        run: npx remotion render "$COMPOSITION_ID" "out/${VIDEO_SLUG}.mp4"
 
       - name: Upload rendered video
         uses: actions/upload-artifact@v6
         with:
-          name: claude-code-install
-          path: out/claude-code-install.mp4
+          name: ${{ inputs.video_slug }}
+          path: out/${{ inputs.video_slug }}.mp4
           if-no-files-found: error
           retention-days: 7
