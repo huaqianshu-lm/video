@@ -78,7 +78,7 @@ jobs:
           if (!Array.isArray(scenes) || scenes.length < 3) {
             throw new Error('Expected at least 3 scenes in timeline manifest');
           }
-          const frameInScene = (scene) => Math.round((scene.offset + Math.min(1, scene.duration / 2)) * fps);
+          const frameInScene = (scene) => Math.round((scene.offset + scene.duration * 0.65) * fps);
           console.log(`early=${frameInScene(scenes[0])}`);
           console.log(`middle=${frameInScene(scenes[Math.floor(scenes.length / 2)])}`);
           console.log(`late=${frameInScene(scenes[scenes.length - 1])}`);
