@@ -102,7 +102,7 @@ TTS 不直接读取原始文章、Scene Script 或带制作备注的口播草稿
 | `sceneId` | 所属 Scene |
 | `segmentId` | 固定句段 ID，例如 `03-02` |
 | `order` | Scene 和 Segment 顺序 |
-| `text` | 最终朗读文本，也是字幕文本源 |
+| `text` | 最终朗读文本；字幕由此派生，但上屏前去掉句末标点，保留句内标点 |
 | `voice` | 声音配置 |
 | `rate` | 目标语速配置 |
 
@@ -142,7 +142,7 @@ video-assets/
 
 1. Scene 和 Segment 数量与 TTS Script 一致。
 2. 每个 Manifest 引用的文件都存在。
-3. 字幕文本与冻结口播一致，时间落在所属 Segment 内。
+3. 字幕文本按句末标点清理规则与冻结口播一致，时间落在所属 Segment 内。
 4. 最后一条字幕结束时间和音频总时长合理。
 5. 没有重复 ID、缺失 ID、负时间或时间倒序。
 6. 抽听开头、中段、结尾和包含技术词的 Segment。

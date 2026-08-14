@@ -12,24 +12,27 @@
 
 「源文档 → 分阶段生产资料 → TTS → 音频／字幕回传 → Remotion 音画同步 → 人工确认 → GitHub Actions 渲染与轮询」端到端方案记录在 `docs/END-TO-END-VIDEO-PRODUCTION-PLAN.md`。当前第一条真实验证视频已完成 TTS、Remotion 接入和 Gate 3，GitHub Actions 已支持通过受控输入渲染不同视频；自动 TTS、后台常驻轮询和批量任务编排仍未实现，具体真实进度以 `ROADMAP.md` 为准。
 
-## 端到端试点的人工 Gate
+## 端到端试点的人工 Gate 与内部审查
 
-端到端试点不在每份 Markdown 生成后单独停下来确认，而是将连续生产阶段合并为以下人工确认点：
+端到端试点不在每份 Markdown 生成后单独停下来确认。Gate 1 默认由 Agent 完成内容一致性、事实边界、叙事关系和基线结构审查；只有遇到无法从源文档判断的重大取舍，才向用户提出单点问题。需要用户直接判断画面和交付质量的阶段，仍保留人工确认：
 
-- Gate 1：完成 `content-analysis.md`、`video-narrative.md` 和 `scene-script.md`，统一确认核心命题、信息取舍、叙事路径、Scene 拆分和 Video Value。
+- Gate 1：完成 `content-analysis.md`、`video-narrative.md` 和 `scene-script.md`，由 Agent 完成核心命题、信息取舍、叙事路径、Scene 拆分、Video Value 和基线结构审查；默认不暂停等待用户逐篇确认。
 - Gate 2：完成 `narration-script.md`、`visual-script.md` 和 `visual-prototype.html`，统一确认口播、视觉表达、声音与画面的互补关系、构图和信息密度。
+- `tts-script.json` 内部审查：由 Agent 自动完成 Scene／Segment 数量、ID、空文本、口播覆盖和内部制作文字检查；不单独暂停等待用户确认。
 - TTS 质检：确认发音、声音自然度、目标语速、停顿、字幕文本和字幕时间；这是进入 Remotion 前的阻塞性检查点，不单独计入正式 Gate 数量。
 - Gate 3：确认 Remotion 音画预览中的同步、字幕、动画节奏、信息密度和溢出情况。
 - Smoke Render 检查：确认远程冒烟结果、代表帧、字体、资源和音轨后，才允许进入完整渲染；这是远程渲染流程中的阻塞性检查点。
 - Gate 4：确认最终完整 MP4 的内容、声音、字幕、画面和交付质量。
 
-Gate 不通过时，依据问题回退到对应的内部生产阶段；不默认从源文档重新开始。`content-analysis.md` 单独生成完成后，不要求用户单独确认，必须与后续两份内容方案资料一起进入 Gate 1。
+Gate 不通过时，依据问题回退到对应的内部生产阶段；不默认从源文档重新开始。`content-analysis.md` 单独生成完成后，不要求用户单独确认，必须与后续两份内容方案资料一起完成 Gate 1 内部审查。
 
 ## Narration Script 与 TTS 输入边界
 
 - `narration-script.md` 是面向人工确认的口播文档，Scene 下只能放实际需要朗读的内容；不得把“本段口播作用”、视觉说明、制作备注、Gate 检查清单或其他内部说明放进 Scene 的口播段落中。
 - TTS 不直接消费整份制作文档。Gate 2 通过后，必须先从纯口播的 `narration-script.md` 派生独立的 `tts-script.json`，完成 Scene／Segment 拆分和 TTS 文本清理，再把 `tts-script.json` 交给 TTS。
-- 音频、字幕和时间轴只能从经过确认的 `tts-script.json` 生成；交给 TTS 前必须检查生成的 Segment 中没有内部制作文字。
+- narrated 视频的 TTS 默认语速为 `+25%`；调用 TTS 前必须显式检查并传入 `--rate +25%`，除非用户明确指定其他语速。当前 `claude-code-third-party-models` 已生成的 `+0%` 音频保持不变，不回溯重做。
+- 生成字幕时，去掉每条字幕文本句末的标点符号；句内标点符号保留。该清理只作用于字幕展示文本，不得修改 TTS 朗读文本、音频或时间轴；字幕来源一致性校验应按“应用此规则后的字幕文本”进行。
+- 音频、字幕和时间轴只能从经过 Agent 校验并在 Gate 2 冻结的 `tts-script.json` 生成；交给 TTS 前必须检查生成的 Segment 中没有内部制作文字。
 - 参考格式以 `videos/claude-code-what-is/narration-script.md` 为准：标题和分隔线可以存在，但每个 Scene 下的正文必须全部是实际口播。
 
 ## 单条视频生产资料的基线复用
@@ -38,7 +41,7 @@ Gate 不通过时，依据问题回退到对应的内部生产阶段；不默认
 - 在没有经过用户确认的新基线前，`videos/claude-code-what-is/` 中同名文件是七层生产资料的格式基线。新主题可以改变知识内容、Scene 数量和具体画面，但各文件的职责、标题层级、描述粒度和上下游边界应保持一致。
 - `narration-script.md` 沿用基线中的纯口播结构；`visual-script.md` 沿用“全局视觉原则 → 逐 Scene 视觉设计 → 全片视觉类型／组件／动画标准 → 下一步”的结构；`visual-prototype.html` 沿用 Scene 容器、幕内预览字幕、上一幕／下一幕／自动播放和进度提示的原型结构。
 - 不允许因为新主题内容不同就另起一套生产资料模板。现有基线确实无法表达需求时，必须先指出缺口、说明准备新增的结构及其影响，获得用户确认后再扩展。
-- 每个 Gate 提交人工确认前，必须把新视频的同名文件与基线文件做一次结构和交付边界对照；不能只检查 Scene 数量或 Markdown 是否能打开。
+- 每个 Gate 提交人工确认或完成内部审查前，必须把新视频的同名文件与基线文件做一次结构和交付边界对照；不能只检查 Scene 数量或 Markdown 是否能打开。
 
 ## MVP 验证目标
 
@@ -68,7 +71,7 @@ Gate 不通过时，依据问题回退到对应的内部生产阶段；不默认
 
 ## 第一阶段范围
 
-本节约束现有 MVP 样片的范围，不阻止已经启动的单条端到端验证视频。端到端试点允许在 Gate 2 通过、真实 TTS 接口确认后接入 TTS，但仍只验证一条 `narrated` 视频，不代表通用自动 TTS 或自动化视频平台已经实现。
+本节约束现有 MVP 样片的范围，不阻止已经启动的单条端到端验证视频。端到端试点允许在 Gate 2 通过后使用项目既定 TTS 入口接入 TTS，但仍只验证一条 `narrated` 视频，不代表通用自动 TTS 或自动化视频平台已经实现。
 
 只做：
 
@@ -229,9 +232,9 @@ Gate 不通过时，依据问题回退到对应的内部生产阶段；不默认
 2. 更新真实进度：同步维护 `ROADMAP.md`。
 3. 查阅 `docs/VIDEO-PRODUCTION-RULES.md` 和 `docs/VIDEO-PROJECT-WORKFLOW.md`；`docs/article-to-video-complete-workflow-summary.md` 作为完整流程说明书，只有需要了解完整背景时再查阅，不作为日常执行规则。
 4. 在 `videos/<video-slug>/` 中编写或更新 `source.md`。
-5. 连续编写或更新 `content-analysis.md`、`video-narrative.md` 和 `scene-script.md`，运行内容资料一致性检查后，进入 Gate 1。
+5. 连续编写或更新 `content-analysis.md`、`video-narrative.md` 和 `scene-script.md`，运行内容资料一致性检查并完成 Gate 1 内部审查，不默认暂停等待用户确认。
 6. Gate 1 通过后，连续编写或更新 `narration-script.md`、`visual-script.md` 和 Visual Prototype：`videos/<video-slug>/visual-prototype.html`，完成后进入 Gate 2。
-7. Gate 2 通过后，冻结 Narration Script；`narrated` 视频生成 `tts-script.json` 并调用已确认的 TTS，`visual-only` 视频跳过 TTS，按视觉事件建立内容驱动时间轴。
+7. Gate 2 通过后，冻结 Narration Script；`narrated` 视频由 Agent 派生并校验 `tts-script.json`，再调用项目既定 TTS，`visual-only` 视频跳过 TTS，按视觉事件建立内容驱动时间轴。
 8. `narrated` 视频接收并校验 TTS 音频、字幕和时间数据，完成人工 TTS 质检；校验或质检未通过时，回退到对应的 TTS Segment 或 Narration Script。
 9. 编写或更新 TypeScript 视频配置，必要时实现或修改场景组件和基础组件。
 10. 检查 Node.js 版本：`node --version`。

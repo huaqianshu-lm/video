@@ -1,0 +1,354 @@
+{
+  "schemaVersion": "1.0",
+  "videoId": "claude-code-third-party-models",
+  "voice": {
+    "name": "zh-CN-XiaoxiaoNeural",
+    "rate": "+0%",
+    "pitch": "+0Hz",
+    "volume": "+0%"
+  },
+  "scenes": [
+    {
+      "sceneId": "01",
+      "segments": [
+        {
+          "id": "01-01",
+          "file": "audio/scene-01/01-01.mp3",
+          "text": "如果你每天都在用 Claude Code，API 账单高得心疼，或者官方接口连起来总是不稳定，那你可能会想到一个办法：换成 DeepSeek 之类的第三方模型。",
+          "duration": 13.104
+        },
+        {
+          "id": "01-02",
+          "file": "audio/scene-01/01-02.mp3",
+          "text": "但先别急着复制配置。",
+          "duration": 2.448
+        },
+        {
+          "id": "01-03",
+          "file": "audio/scene-01/01-03.mp3",
+          "text": "第三方模型不是人人都该换的省钱神器。轻度用户为了省一点钱，可能要花更多时间排查环境变量；主要做复杂架构和疑难调试的人，也可能用稳定性换来更低的价格。",
+          "duration": 15.912
+        },
+        {
+          "id": "01-04",
+          "file": "audio/scene-01/01-04.mp3",
+          "text": "所以这篇先不从命令开始，而是先回答一个问题：你到底值不值得换？",
+          "duration": 6.72
+        }
+      ],
+      "narrationDuration": 38.184
+    },
+    {
+      "sceneId": "02",
+      "segments": [
+        {
+          "id": "02-01",
+          "file": "audio/scene-02/02-01.mp3",
+          "text": "第三方模型最吸引人的地方有两个：价格可能低很多，而且像 DeepSeek 这样的国内服务，通常更容易获得直连体验。",
+          "duration": 10.416
+        },
+        {
+          "id": "02-02",
+          "file": "audio/scene-02/02-02.mp3",
+          "text": "但交换条件也很明确。",
+          "duration": 2.616
+        },
+        {
+          "id": "02-03",
+          "file": "audio/scene-02/02-03.mp3",
+          "text": "复杂代码任务的能力，工具调用和多步 Agent 的稳定性，还有出了问题之后的官方支持，都可能和 Anthropic 官方模型不一样。",
+          "duration": 11.04
+        },
+        {
+          "id": "02-04",
+          "file": "audio/scene-02/02-04.mp3",
+          "text": "如果你是 API 重度用户，或者确实有连接问题，第三方值得评估。",
+          "duration": 6.552
+        },
+        {
+          "id": "02-05",
+          "file": "audio/scene-02/02-05.mp3",
+          "text": "如果你已经有 Claude 订阅，只做轻量任务，或者主要处理不能出错的复杂重构，那就别只为了小额节省急着切换。",
+          "duration": 10.008
+        }
+      ],
+      "narrationDuration": 40.632
+    },
+    {
+      "sceneId": "03",
+      "segments": [
+        {
+          "id": "03-01",
+          "file": "audio/scene-03/03-01.mp3",
+          "text": "那接入第三方，究竟换掉了什么？",
+          "duration": 3.264
+        },
+        {
+          "id": "03-02",
+          "file": "audio/scene-03/03-02.mp3",
+          "text": "可以把 Claude Code 想成车壳。它仍然负责读项目、调用工具、修改文件，以及推进整个 Agent 任务。",
+          "duration": 9.384
+        },
+        {
+          "id": "03-03",
+          "file": "audio/scene-03/03-03.mp3",
+          "text": "你改变的是它发请求的后端路径：请求先从 Claude Code 出发，发到一个兼容接口，再由那个接口交给具体模型回答，结果最后返回终端。",
+          "duration": 12.264
+        },
+        {
+          "id": "03-04",
+          "file": "audio/scene-03/03-04.mp3",
+          "text": "所以，Claude Code 没有被换掉，换的是它背后的模型路径。",
+          "duration": 5.712
+        },
+        {
+          "id": "03-05",
+          "file": "audio/scene-03/03-05.mp3",
+          "text": "这里有一个特别容易搞错的点：ANTHROPIC_BASE_URL 主要决定请求发到哪里，不负责决定哪个模型回答。",
+          "duration": 10.56
+        },
+        {
+          "id": "03-06",
+          "file": "audio/scene-03/03-06.mp3",
+          "text": "地址和模型名，是两个需要配对的配置。",
+          "duration": 4.08
+        }
+      ],
+      "narrationDuration": 45.264
+    },
+    {
+      "sceneId": "04",
+      "segments": [
+        {
+          "id": "04-01",
+          "file": "audio/scene-04/04-01.mp3",
+          "text": "把配置拆开，其实就是三类信息。",
+          "duration": 3.552
+        },
+        {
+          "id": "04-02",
+          "file": "audio/scene-04/04-02.mp3",
+          "text": "第一类是地址。ANTHROPIC_BASE_URL 告诉 Claude Code，请求要发到哪个兼容接口。",
+          "duration": 9.408
+        },
+        {
+          "id": "04-03",
+          "file": "audio/scene-04/04-03.mp3",
+          "text": "第二类是身份。ANTHROPIC_AUTH_TOKEN 通常用来携带第三方服务提供的 Token，具体要以供应商的接口要求为准。",
+          "duration": 11.568
+        },
+        {
+          "id": "04-04",
+          "file": "audio/scene-04/04-04.mp3",
+          "text": "第三类是模型。ANTHROPIC_MODEL，以及 Opus、Sonnet、Haiku 这些默认档位变量，决定实际由哪个模型回答。",
+          "duration": 11.208
+        },
+        {
+          "id": "04-05",
+          "file": "audio/scene-04/04-05.mp3",
+          "text": "用 DeepSeek 举例时，地址和模型名都只能看作示例。平台会更新接口和模型名称，最终要以当前官方文档为准。",
+          "duration": 11.16
+        },
+        {
+          "id": "04-06",
+          "file": "audio/scene-04/04-06.mp3",
+          "text": "换句话说，地址负责找对门，Token 负责进门，模型名负责叫对人。三者缺一个，配置就可能看起来完成了，实际上却没有按预期运行。",
+          "duration": 13.2
+        }
+      ],
+      "narrationDuration": 60.096
+    },
+    {
+      "sceneId": "05",
+      "segments": [
+        {
+          "id": "05-01",
+          "file": "audio/scene-05/05-01.mp3",
+          "text": "还有一个很常见的坑：你在终端里执行 export，或者在 PowerShell 里设置 $env:，只代表当前窗口暂时拥有这组配置。",
+          "duration": 11.184
+        },
+        {
+          "id": "05-02",
+          "file": "audio/scene-05/05-02.mp3",
+          "text": "终端一关，配置可能就消失。要长期使用，才考虑写进 shell 配置文件或系统环境变量。",
+          "duration": 8.856
+        },
+        {
+          "id": "05-03",
+          "file": "audio/scene-05/05-03.mp3",
+          "text": "但持久化也意味着更长时间暴露密钥，所以 API Token 不要写进代码，不要提交 Git，也不要出现在可以分享的截图里。",
+          "duration": 11.208
+        },
+        {
+          "id": "05-04",
+          "file": "audio/scene-05/05-04.mp3",
+          "text": "画面里的密钥应该始终是占位符，而不是一串真实字符。",
+          "duration": 5.592
+        }
+      ],
+      "narrationDuration": 36.84
+    },
+    {
+      "sceneId": "06",
+      "segments": [
+        {
+          "id": "06-01",
+          "file": "audio/scene-06/06-01.mp3",
+          "text": "配置完成以后，别只看 Claude Code 能不能启动。",
+          "duration": 4.656
+        },
+        {
+          "id": "06-02",
+          "file": "audio/scene-06/06-02.mp3",
+          "text": "进入项目目录，启动 Claude Code，输入 /status，重点检查两项：Base URL 和 Model。",
+          "duration": 7.656
+        },
+        {
+          "id": "06-03",
+          "file": "audio/scene-06/06-03.mp3",
+          "text": "如果 Base URL 还是官方地址，通常是环境变量没有生效，或者新终端没有加载配置。",
+          "duration": 8.352
+        },
+        {
+          "id": "06-04",
+          "file": "audio/scene-06/06-04.mp3",
+          "text": "如果提示模型不存在，先回到供应商官方文档确认模型名有没有变化。",
+          "duration": 6.84
+        },
+        {
+          "id": "06-05",
+          "file": "audio/scene-06/06-05.mp3",
+          "text": "如果出现 401 或鉴权失败，再检查 Token 是否错误、过期，或者复制时多了空格。",
+          "duration": 8.544
+        },
+        {
+          "id": "06-06",
+          "file": "audio/scene-06/06-06.mp3",
+          "text": "真正的验收不是“我执行过配置命令”，而是状态输出证明请求已经发到了正确的地址，并且使用了预期的模型。",
+          "duration": 10.008
+        }
+      ],
+      "narrationDuration": 46.056
+    },
+    {
+      "sceneId": "07",
+      "segments": [
+        {
+          "id": "07-01",
+          "file": "audio/scene-07/07-01.mp3",
+          "text": "如果你的目标是省钱，也不一定要把所有任务都塞给同一个便宜模型。",
+          "duration": 6.264
+        },
+        {
+          "id": "07-02",
+          "file": "audio/scene-07/07-02.mp3",
+          "text": "更稳的做法是按任务分层。",
+          "duration": 2.952
+        },
+        {
+          "id": "07-03",
+          "file": "audio/scene-07/07-03.mp3",
+          "text": "架构设计、跨模块重构和疑难调试，交给能力更强的模型。",
+          "duration": 6.072
+        },
+        {
+          "id": "07-04",
+          "file": "audio/scene-07/07-04.mp3",
+          "text": "日常增删改查、写测试和补文档，可以使用性价比更高的模型。",
+          "duration": 6.312
+        },
+        {
+          "id": "07-05",
+          "file": "audio/scene-07/07-05.mp3",
+          "text": "轻量问答、后台杂活和子代理任务，再交给便宜快速的模型。",
+          "duration": 6.192
+        },
+        {
+          "id": "07-06",
+          "file": "audio/scene-07/07-06.mp3",
+          "text": "这样做的重点不是记住一组固定模型名，而是让模型选择跟任务复杂度匹配。",
+          "duration": 7.128
+        }
+      ],
+      "narrationDuration": 34.92
+    },
+    {
+      "sceneId": "08",
+      "segments": [
+        {
+          "id": "08-01",
+          "file": "audio/scene-08/08-01.mp3",
+          "text": "最后提醒几个容易被旧教程带偏的地方。",
+          "duration": 3.936
+        },
+        {
+          "id": "08-02",
+          "file": "audio/scene-08/08-02.mp3",
+          "text": "以前常见的 ANTHROPIC_SMALL_FAST_MODEL 已经可能被新的模型变量取代，不能看到网上的配置就原样复制。",
+          "duration": 11.352
+        },
+        {
+          "id": "08-03",
+          "file": "audio/scene-08/08-03.mp3",
+          "text": "ANTHROPIC_AUTH_TOKEN 和 ANTHROPIC_API_KEY 发送的请求头也不一样，第三方接口到底要求哪一种，要看供应商的说明。",
+          "duration": 13.296
+        },
+        {
+          "id": "08-04",
+          "file": "audio/scene-08/08-04.mp3",
+          "text": "而且，兼容 Anthropic 协议，不等于获得 Anthropic 官方支持。接入非第一方主机后，工具调用、MCP 搜索等高级能力也可能出现差异。",
+          "duration": 13.056
+        },
+        {
+          "id": "08-05",
+          "file": "audio/scene-08/08-05.mp3",
+          "text": "所以模型名、接口地址和变量行为，都要以当前官方文档为准。",
+          "duration": 6.456
+        }
+      ],
+      "narrationDuration": 48.096
+    },
+    {
+      "sceneId": "09",
+      "segments": [
+        {
+          "id": "09-01",
+          "file": "audio/scene-09/09-01.mp3",
+          "text": "现在把整件事串起来。",
+          "duration": 2.568
+        },
+        {
+          "id": "09-02",
+          "file": "audio/scene-09/09-02.mp3",
+          "text": "第三方模型适合 API 用量很高、官方连接困难，或者愿意接受实验性差异的人。",
+          "duration": 7.776
+        },
+        {
+          "id": "09-03",
+          "file": "audio/scene-09/09-03.mp3",
+          "text": "它不适合已经有固定订阅、使用量很小，或者主要依赖复杂任务稳定性的人。",
+          "duration": 7.08
+        },
+        {
+          "id": "09-04",
+          "file": "audio/scene-09/09-04.mp3",
+          "text": "真正的接入也不是只改一个 URL，而是把地址、身份和模型配对，再用 /status 看证据，最后按任务分层使用。",
+          "duration": 10.464
+        },
+        {
+          "id": "09-05",
+          "file": "audio/scene-09/09-05.mp3",
+          "text": "所以第三方模型不是必修课，而是一条可以验证、可以分层，也可以随时切回官方的后端路径。",
+          "duration": 8.928
+        },
+        {
+          "id": "09-06",
+          "file": "audio/scene-09/09-06.mp3",
+          "text": "省钱之前，先确认自己真的需要省这笔钱；切换之后，也始终把判断和回退权留在自己手里。",
+          "duration": 9.288
+        }
+      ],
+      "narrationDuration": 46.104
+    }
+  ]
+}

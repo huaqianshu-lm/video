@@ -1,0 +1,326 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Claude Code 第三方模型 · Visual Prototype</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #070c16;
+        --panel: rgba(15, 25, 43, .94);
+        --panel-soft: rgba(23, 37, 62, .78);
+        --line: rgba(148, 163, 184, .22);
+        --text: #eef4ff;
+        --muted: #9aabc6;
+        --blue: #66adff;
+        --purple: #b08cff;
+        --green: #6fe3a7;
+        --orange: #ffb86b;
+        --red: #ff7f9c;
+      }
+
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background:
+          radial-gradient(circle at 12% 12%, rgba(79, 125, 255, .18), transparent 30%),
+          radial-gradient(circle at 88% 82%, rgba(153, 82, 255, .14), transparent 30%),
+          var(--bg);
+        color: var(--text);
+        font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+      }
+
+      .app { width: min(1440px, 96vw); margin: 20px auto 28px; }
+      .prototype-header { display: flex; justify-content: space-between; align-items: center; gap: 18px; margin-bottom: 14px; }
+      .prototype-header h1 { margin: 0; font-size: clamp(17px, 2vw, 27px); letter-spacing: .02em; }
+      .controls { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+      button { border: 1px solid rgba(126, 154, 213, .44); border-radius: 8px; padding: 8px 12px; background: rgba(16, 25, 43, .86); color: var(--text); cursor: pointer; }
+      button:hover, button:focus-visible { border-color: var(--blue); outline: none; }
+
+      .stage { position: relative; aspect-ratio: 16 / 9; overflow: hidden; border: 1px solid rgba(126, 154, 213, .25); border-radius: 16px; background: linear-gradient(145deg, rgba(14, 23, 40, .97), rgba(7, 13, 25, .98)); box-shadow: 0 22px 80px rgba(0, 0, 0, .34); }
+      .stage::before { content: ""; position: absolute; inset: 0; pointer-events: none; opacity: .24; background-image: linear-gradient(rgba(136, 164, 215, .06) 1px, transparent 1px), linear-gradient(90deg, rgba(136, 164, 215, .06) 1px, transparent 1px); background-size: 36px 36px; mask-image: linear-gradient(to bottom, black, transparent 80%); }
+      .topbar { position: absolute; z-index: 3; top: 0; left: 0; right: 0; display: flex; justify-content: space-between; padding: 2.1% 3.2%; color: var(--muted); font: 600 clamp(9px, 1vw, 13px)/1 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .12em; }
+      .brand { color: #cfe0ff; }
+      .scene-label { color: var(--blue); }
+      .scene { position: absolute; inset: 0; display: none; padding: 8.5% 7% 9%; }
+      .scene.active { display: block; animation: sceneIn .35s ease-out both; }
+      @keyframes sceneIn { from { opacity: 0; transform: translateX(14px); } to { opacity: 1; transform: translateX(0); } }
+      .scene h2 { margin: 0; max-width: 86%; font-size: clamp(24px, 3.25vw, 48px); line-height: 1.15; letter-spacing: -.03em; }
+      .scene h2 .blue { color: var(--blue); } .scene h2 .purple { color: var(--purple); } .scene h2 .green { color: var(--green); } .scene h2 .orange { color: var(--orange); }
+      .lead { margin: 1.1% 0 3.2%; color: var(--muted); font-size: clamp(12px, 1.35vw, 18px); }
+      .caption { position: absolute; left: 50%; bottom: 2.2%; transform: translateX(-50%); max-width: 82%; padding: 8px 16px; border: 1px solid rgba(255,255,255,.1); border-radius: 999px; background: rgba(5, 9, 17, .86); color: #dae7fb; text-align: center; font-size: clamp(11px, 1.25vw, 16px); line-height: 1.3; white-space: nowrap; }
+      .subtitle-preview { position: absolute; z-index: 4; left: 50%; bottom: 8.2%; transform: translateX(-50%); width: min(72%, 920px); padding: 9px 18px; border-radius: 8px; background: rgba(5, 9, 17, .88); color: #fff; text-align: center; font-size: clamp(12px, 1.35vw, 17px); line-height: 1.35; }
+      .muted { color: var(--muted); } .green-text { color: var(--green); } .orange-text { color: var(--orange); } .purple-text { color: var(--purple); } .red-text { color: var(--red); }
+      .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+      .card { border: 1px solid var(--line); border-radius: 14px; background: var(--panel); box-shadow: inset 0 1px rgba(255,255,255,.035); }
+      .tag { display: inline-flex; padding: 5px 8px; border-radius: 999px; color: var(--muted); background: rgba(148,163,184,.1); font: 600 clamp(9px, .9vw, 12px)/1 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .08em; }
+      .arrow { color: var(--muted); font-size: clamp(22px, 3vw, 42px); }
+
+      /* Scene 01 */
+      .balance { display: grid; grid-template-columns: 1fr 1.3fr 1fr; align-items: center; gap: 2%; height: 58%; }
+      .benefit, .cost { display: grid; gap: 12px; }
+      .balance-card { padding: 7% 8%; min-height: 105px; }
+      .balance-card strong { display: block; margin-bottom: 8px; font-size: clamp(16px, 2vw, 27px); }
+      .balance-card span { color: var(--muted); font-size: clamp(11px, 1.2vw, 16px); }
+      .benefit .balance-card { border-color: rgba(176, 140, 255, .48); }
+      .cost .balance-card { border-color: rgba(255, 184, 107, .45); }
+      .scale { position: relative; height: 160px; }
+      .scale::before { content: ""; position: absolute; left: 50%; top: 20px; width: 5px; height: 100px; transform: translateX(-50%); background: linear-gradient(var(--blue), rgba(102,173,255,.12)); }
+      .scale::after { content: ""; position: absolute; left: 50%; top: 17px; width: 34px; height: 34px; transform: translateX(-50%) rotate(45deg); border: 2px solid var(--blue); background: var(--bg); }
+      .beam { position: absolute; left: 8%; right: 8%; top: 68px; height: 5px; border-radius: 99px; background: linear-gradient(90deg, var(--purple), var(--blue), var(--orange)); transform: rotate(-2deg); box-shadow: 0 0 20px rgba(102,173,255,.32); }
+      .scale-label { position: absolute; top: 96px; left: 50%; transform: translateX(-50%); width: 100%; text-align: center; color: var(--muted); font-size: clamp(11px, 1.1vw, 15px); }
+
+      /* Scene 02 */
+      .compare { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 2.5%; height: 57%; }
+      .model-card { min-height: 250px; padding: 6%; }
+      .model-card h3 { margin: 15px 0 20px; font-size: clamp(20px, 2.4vw, 33px); }
+      .model-card ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 12px; color: var(--muted); font-size: clamp(12px, 1.25vw, 17px); }
+      .model-card li::before { content: "✓"; margin-right: 9px; color: var(--green); }
+      .model-card.third { border-color: rgba(176,140,255,.48); } .model-card.official { border-color: rgba(102,173,255,.48); }
+      .swap { text-align: center; } .swap strong { display: block; margin-top: 12px; color: var(--orange); font-size: clamp(12px, 1.25vw, 17px); }
+
+      /* Scene 03 */
+      .route { display: grid; grid-template-columns: 1fr auto 1.1fr auto 1fr; align-items: center; gap: 2%; height: 55%; }
+      .route-card { min-height: 170px; padding: 7%; display: flex; flex-direction: column; justify-content: center; gap: 14px; text-align: center; }
+      .route-card strong { font-size: clamp(16px, 2vw, 27px); } .route-card span { color: var(--muted); font-size: clamp(11px, 1.15vw, 15px); }
+      .route-card.client { border-color: rgba(102,173,255,.58); } .route-card.gateway { border-color: rgba(176,140,255,.58); } .route-card.model { border-color: rgba(111,227,167,.58); }
+      .packet { display: inline-block; padding: 7px 12px; border: 1px solid rgba(111,227,167,.48); border-radius: 8px; color: var(--green); background: rgba(111,227,167,.08); font: 12px ui-monospace, SFMono-Regular, Menlo, monospace; animation: packetMove 3.4s infinite ease-in-out; }
+      @keyframes packetMove { 0%, 22% { transform: translateX(0); opacity: .45; } 45%, 62% { transform: translateX(120px); opacity: 1; } 82%, 100% { transform: translateX(0); opacity: .45; } }
+      .shell-line { margin: 2% auto 0; width: 74%; padding: 10px 14px; border: 1px dashed rgba(102,173,255,.38); border-radius: 9px; text-align: center; color: var(--muted); font: clamp(10px, 1vw, 13px) ui-monospace, SFMono-Regular, Menlo, monospace; }
+
+      /* Scene 04 */
+      .config-layout { display: grid; grid-template-columns: .95fr 1.2fr; gap: 4%; height: 59%; align-items: center; }
+      .config-list { display: grid; gap: 12px; }
+      .config-card { padding: 4.5% 5%; display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; border-left: 3px solid var(--purple); }
+      .config-card strong { font: clamp(11px, 1.25vw, 16px) ui-monospace, SFMono-Regular, Menlo, monospace; } .config-card span { color: var(--muted); font-size: clamp(11px, 1.1vw, 15px); }
+      .request-card { padding: 6%; }
+      .request-card h3 { margin: 0 0 17px; font-size: clamp(17px, 1.8vw, 24px); }
+      .request-row { display: flex; justify-content: space-between; gap: 14px; padding: 13px 0; border-bottom: 1px solid var(--line); font: clamp(10px, 1.1vw, 14px) ui-monospace, SFMono-Regular, Menlo, monospace; }
+      .request-row:last-child { border-bottom: 0; } .request-row b { color: var(--green); font-weight: 500; }
+
+      /* Scene 05 */
+      .lifecycle { display: grid; grid-template-columns: 1.2fr auto 1fr; align-items: center; gap: 3%; height: 59%; }
+      .terminal { overflow: hidden; }
+      .terminal-head { display: flex; gap: 6px; padding: 11px 14px; border-bottom: 1px solid var(--line); background: rgba(0,0,0,.18); }
+      .terminal-head i { display: block; width: 9px; height: 9px; border-radius: 50%; background: #ff6b81; } .terminal-head i:nth-child(2) { background: #ffca6b; } .terminal-head i:nth-child(3) { background: #6be1a4; }
+      .terminal-body { padding: 5%; min-height: 210px; font: clamp(10px, 1.05vw, 14px)/1.75 ui-monospace, SFMono-Regular, Menlo, monospace; }
+      .terminal-body .prompt { color: var(--green); } .terminal-body .command { color: #fff; } .terminal-body .line { color: var(--muted); }
+      .lock-card { padding: 9%; text-align: center; border-color: rgba(255,184,107,.48); } .lock { font-size: clamp(32px, 5vw, 64px); color: var(--orange); } .lock-card strong { display: block; margin-top: 12px; font-size: clamp(14px, 1.5vw, 20px); }
+
+      /* Scene 06 */
+      .status-layout { display: grid; grid-template-columns: 1.3fr .8fr; gap: 4%; height: 60%; }
+      .status-terminal { height: 100%; }
+      .status-body { padding: 5%; font: clamp(10px, 1.1vw, 15px)/1.8 ui-monospace, SFMono-Regular, Menlo, monospace; }
+      .status-body .wrong { color: var(--red); } .status-body .right { color: var(--green); }
+      .checks { display: grid; align-content: center; gap: 12px; }
+      .check { padding: 5%; border-radius: 10px; border: 1px solid var(--line); background: var(--panel-soft); font-size: clamp(11px, 1.15vw, 15px); }
+      .check strong { display: block; margin-bottom: 5px; } .check small { color: var(--muted); } .check.ok { border-color: rgba(111,227,167,.55); } .check.bad { border-color: rgba(255,127,156,.45); }
+
+      /* Scene 07 */
+      .routing { display: grid; grid-template-columns: .9fr 1.5fr; gap: 5%; height: 59%; align-items: center; }
+      .tasks, .models { display: grid; gap: 12px; }
+      .task-card, .model-tier { padding: 4.5% 5%; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+      .task-card strong, .model-tier strong { font-size: clamp(13px, 1.5vw, 20px); } .task-card span, .model-tier span { color: var(--muted); font-size: clamp(10px, 1.1vw, 14px); }
+      .task-card { border-color: rgba(102,173,255,.36); } .model-tier.strong { border-color: rgba(255,184,107,.58); } .model-tier.balance { border-color: rgba(102,173,255,.55); } .model-tier.fast { border-color: rgba(111,227,167,.55); }
+      .routing-arrow { color: var(--muted); font: 20px ui-monospace, SFMono-Regular, Menlo, monospace; }
+
+      /* Scene 08 */
+      .warnings { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; height: 53%; align-items: center; }
+      .warning { padding: 8% 7%; min-height: 180px; border-color: rgba(255,184,107,.45); text-align: center; }
+      .warning .symbol { color: var(--orange); font-size: clamp(28px, 4vw, 54px); } .warning h3 { margin: 12px 0 9px; font-size: clamp(15px, 1.7vw, 23px); } .warning p { margin: 0; color: var(--muted); font-size: clamp(10px, 1.1vw, 14px); line-height: 1.5; }
+      .docs { width: 66%; margin: 2% auto 0; padding: 10px 14px; border: 1px dashed rgba(176,140,255,.55); border-radius: 8px; color: var(--purple); text-align: center; font: clamp(10px, 1.1vw, 14px) ui-monospace, SFMono-Regular, Menlo, monospace; }
+
+      /* Scene 09 */
+      .closing { display: grid; grid-template-columns: .75fr 1.4fr; gap: 5%; height: 60%; align-items: center; }
+      .conclusions { display: grid; gap: 10px; } .conclusion { padding: 4.5% 6%; border-left: 3px solid var(--blue); font-size: clamp(13px, 1.5vw, 20px); background: var(--panel-soft); }
+      .final-route { padding: 7%; text-align: center; }
+      .final-route .chain { display: flex; justify-content: center; align-items: center; gap: 10px; flex-wrap: wrap; margin: 20px 0; }
+      .node { padding: 11px 14px; border: 1px solid var(--line); border-radius: 9px; background: rgba(23,37,62,.9); font: clamp(10px, 1.1vw, 14px) ui-monospace, SFMono-Regular, Menlo, monospace; }
+      .node.blue-node { border-color: rgba(102,173,255,.6); } .node.purple-node { border-color: rgba(176,140,255,.6); } .node.green-node { border-color: rgba(111,227,167,.6); }
+      .switch { display: inline-flex; align-items: center; gap: 10px; color: var(--muted); font-size: clamp(10px, 1.05vw, 14px); } .toggle { width: 52px; height: 27px; padding: 3px; border-radius: 99px; background: rgba(176,140,255,.5); } .toggle::after { content: ""; display: block; width: 21px; height: 21px; margin-left: 25px; border-radius: 50%; background: white; }
+      .final-message { margin-top: 16px; color: var(--green); font-size: clamp(15px, 1.65vw, 23px); font-weight: 700; }
+
+      .progress { display: flex; justify-content: center; gap: 7px; margin-top: 15px; flex-wrap: wrap; }
+      .pill { width: 32px; height: 5px; border-radius: 99px; background: rgba(126,154,213,.28); } .pill.active { background: var(--blue); }
+      .hint { margin: 9px 0 0; color: var(--muted); text-align: center; font-size: 12px; }
+      @media (max-width: 800px) { .app { margin-top: 10px; } .prototype-header { align-items: flex-start; flex-direction: column; } .controls { justify-content: flex-start; } .scene { padding-left: 5%; padding-right: 5%; } .caption { white-space: normal; width: 82%; } }
+    </style>
+  </head>
+  <body>
+    <main class="app">
+      <header class="prototype-header">
+        <h1>Claude Code 第三方模型 · 9 Scenes</h1>
+        <nav class="controls" aria-label="Scene 导航">
+          <button type="button" id="previous">上一幕</button>
+          <button type="button" id="next">下一幕</button>
+          <button type="button" id="auto">自动播放</button>
+        </nav>
+      </header>
+
+      <section class="stage" aria-live="polite">
+        <div class="topbar"><span class="brand">CLAUDE CODE / THIRD-PARTY MODELS</span><span id="sceneLabel">SCENE 01 / 09</span></div>
+
+        <section class="scene active" data-scene="1">
+          <h2>第三方模型，<span class="orange">值得换吗？</span></h2>
+          <p class="lead">先判断，再配置。</p>
+          <div class="balance">
+            <div class="benefit"><div class="card balance-card"><strong class="purple-text">省钱</strong><span>API 用量高时，成本可能低很多</span></div><div class="card balance-card"><strong class="purple-text">国内直连</strong><span>连接路径可能更容易</span></div></div>
+            <div class="scale"><div class="beam"></div><div class="scale-label">收益和代价，需要同时计算</div></div>
+            <div class="cost"><div class="card balance-card"><strong class="orange-text">能力</strong><span>复杂任务结果可能不同</span></div><div class="card balance-card"><strong class="orange-text">稳定与支持</strong><span>兼容不等于官方兜底</span></div></div>
+          </div>
+          <div class="caption">第三方模型，值得换吗？</div>
+        </section>
+
+        <section class="scene" data-scene="2">
+          <h2>便宜和直连，<span class="orange">换来了什么？</span></h2>
+          <p class="lead">第三方不是全面领先，而是一笔取舍。</p>
+          <div class="compare">
+            <div class="card model-card third"><span class="tag">THIRD-PARTY</span><h3 class="purple-text">成本／连接</h3><ul><li>价格可能更低</li><li>部分服务更易直连</li><li>适合重度 API 用户</li></ul></div>
+            <div class="swap"><div class="arrow">⇄</div><strong>交换</strong></div>
+            <div class="card model-card official"><span class="tag">OFFICIAL</span><h3 class="blue">能力／稳定</h3><ul><li>复杂任务更稳</li><li>工具调用更有保障</li><li>有官方支持边界</li></ul></div>
+          </div>
+          <div class="caption">省钱 + 直连，换来能力 + 稳定性差异</div>
+        </section>
+
+        <section class="scene" data-scene="3">
+          <h2>你到底<span class="blue">换了什么</span>？</h2>
+          <p class="lead">Claude Code 的外壳不变，改变的是请求路径。</p>
+          <div class="route">
+            <div class="card route-card client"><strong>Claude Code</strong><span>read · edit · run</span><span class="packet">request</span></div><div class="arrow">→</div>
+            <div class="card route-card gateway"><strong class="purple-text">兼容接口</strong><span class="mono">BASE_URL</span><span>请求去这里</span></div><div class="arrow">→</div>
+            <div class="card route-card model"><strong class="green-text">示例模型</strong><span class="mono">MODEL</span><span>由它回答</span></div>
+          </div>
+          <div class="shell-line">Claude Code 外壳：仍然负责项目上下文、工具调用和 Agent 工作流</div>
+          <div class="caption">Claude Code 不变，请求路径改变；URL ≠ Model</div>
+        </section>
+
+        <section class="scene" data-scene="4">
+          <h2><span class="purple">三个变量</span>，三种职责</h2>
+          <p class="lead">地址找对门，Token 进对门，模型叫对人。</p>
+          <div class="config-layout">
+            <div class="config-list">
+              <div class="card config-card"><div><strong>ANTHROPIC_BASE_URL</strong><br /><span>请求发到哪里</span></div><span class="purple-text">地址</span></div>
+              <div class="card config-card"><div><strong>ANTHROPIC_AUTH_TOKEN</strong><br /><span>&lt;YOUR_API_KEY&gt;</span></div><span class="orange-text">身份</span></div>
+              <div class="card config-card"><div><strong>ANTHROPIC_MODEL</strong><br /><span>example-model</span></div><span class="green-text">模型</span></div>
+            </div>
+            <div class="card request-card"><h3>Outgoing Request</h3><div class="request-row"><span>Destination</span><b>example-provider</b></div><div class="request-row"><span>Authorization</span><b>&lt;MASKED&gt;</b></div><div class="request-row"><span>Model</span><b>example-model</b></div></div>
+          </div>
+          <div class="caption">BASE_URL = 去哪里　 AUTH_TOKEN = 用谁的身份　 MODEL = 谁来回答</div>
+        </section>
+
+        <section class="scene" data-scene="5">
+          <h2>当前终端有效，<span class="orange">不等于永久生效</span></h2>
+          <p class="lead">临时环境变量有生命周期，Token 也有安全边界。</p>
+          <div class="lifecycle">
+            <div class="card terminal"><div class="terminal-head"><i></i><i></i><i></i></div><div class="terminal-body"><div><span class="prompt">$</span> <span class="command">export ANTHROPIC_MODEL=example</span></div><div class="line">session: <span class="green-text">active</span></div><div class="line">config: <span class="green-text">loaded</span></div><br /><div><span class="prompt">$</span> <span class="command">exit</span></div><div class="line">window closed</div></div></div>
+            <div class="arrow">→</div>
+            <div class="card lock-card"><div class="lock">▣</div><strong class="orange-text">&lt;YOUR_API_KEY&gt;</strong><span class="muted">不要写入代码<br />不要提交 Git</span></div>
+          </div>
+          <div class="caption">当前会话 ≠ 永久配置</div>
+        </section>
+
+        <section class="scene" data-scene="6">
+          <h2>用 <span class="blue mono">/status</span> 验收，<span class="green">不要凭感觉</span></h2>
+          <p class="lead">真正的配置结论，要由状态输出证明。</p>
+          <div class="status-layout">
+            <div class="card terminal status-terminal"><div class="terminal-head"><i></i><i></i><i></i></div><div class="status-body"><div><span class="prompt">$</span> claude</div><div><span class="prompt">&gt;</span> /status</div><br /><div>Base URL: <span class="wrong">official</span></div><div>Model: <span class="wrong">not_found</span></div><br /><div>Base URL: <span class="right">https://example-provider/anthropic</span></div><div>Model: <span class="right">example-model</span></div></div></div>
+            <div class="checks"><div class="check bad"><strong class="red-text">Base URL 仍是官方地址</strong><small>检查环境变量是否生效</small></div><div class="check bad"><strong class="red-text">Model not_found</strong><small>回到供应商文档确认名称</small></div><div class="check ok"><strong class="green-text">verified</strong><small>地址和模型都符合预期</small></div></div>
+          </div>
+          <div class="caption">/status：Base URL + Model，才是实际路由证据</div>
+        </section>
+
+        <section class="scene" data-scene="7">
+          <h2>别让所有任务都走<span class="green">同一个模型</span></h2>
+          <p class="lead">按任务复杂度分层，省钱和质量才有机会兼得。</p>
+          <div class="routing">
+            <div class="tasks"><div class="card task-card"><strong>架构设计</strong><span>硬任务</span></div><div class="card task-card"><strong>日常编码</strong><span>常规任务</span></div><div class="card task-card"><strong>后台杂活</strong><span>轻任务</span></div></div>
+            <div class="models"><div class="card model-tier strong"><strong class="orange-text">强模型</strong><span>跨模块重构／疑难调试</span></div><div class="routing-arrow">↑　任务复杂度　↓</div><div class="card model-tier balance"><strong class="blue">平衡模型</strong><span>增删改查／测试／文档</span></div><div class="card model-tier fast"><strong class="green-text">快速模型</strong><span>问答／后台／子代理</span></div></div>
+          </div>
+          <div class="caption">硬任务 → 强模型　日常活 → 平衡模型　后台活 → 快速模型</div>
+        </section>
+
+        <section class="scene" data-scene="8">
+          <h2>兼容接口，<span class="orange">不等于官方支持</span></h2>
+          <p class="lead">旧教程会过期，接口行为也会变化。</p>
+          <div class="warnings">
+            <div class="card warning"><div class="symbol">!</div><h3>弃用变量</h3><p class="mono">SMALL_FAST_MODEL<br /><span class="red-text">deprecated?</span></p></div>
+            <div class="card warning"><div class="symbol">↔</div><h3>鉴权方式</h3><p class="mono">AUTH_TOKEN<br />≠ API_KEY</p></div>
+            <div class="card warning"><div class="symbol">⚠</div><h3>高级能力差异</h3><p>MCP／工具调用<br /><span class="orange-text">可能不同</span></p></div>
+          </div>
+          <div class="docs">check current official docs → 地址、模型名、变量行为，以当前文档为准</div>
+          <div class="caption">兼容 ≠ 官方背书</div>
+        </section>
+
+        <section class="scene" data-scene="9">
+          <h2>把<span class="green">切换权</span>留在自己手里</h2>
+          <p class="lead">第三方模型不是必修课，是一条可验证、可分层、可回退的路径。</p>
+          <div class="closing">
+            <div class="conclusions"><div class="conclusion">先判断</div><div class="conclusion">再验证</div><div class="conclusion">按任务分层</div><div class="conclusion">保留回退权</div></div>
+            <div class="card final-route"><div class="chain"><span class="node blue-node">Claude Code</span><span class="arrow">→</span><span class="node purple-node">兼容接口</span><span class="arrow">→</span><span class="node green-node">模型</span></div><div class="switch"><span>third-party</span><span class="toggle"></span><span>official</span></div><div class="final-message">可验证 · 可分层 · 可回退</div></div>
+          </div>
+          <div class="caption">省钱之前，先确认自己真的需要省这笔钱。</div>
+        </section>
+      </section>
+      <div class="subtitle-preview" id="subtitlePreview">如果你每天都在用 Claude Code，API 账单高得心疼，你可能会想到换第三方模型。</div>
+
+      <div class="progress" id="progress"></div>
+      <p class="hint">使用左右方向键或按钮切换 Scene；自动播放用于检查整体构图和信息密度。</p>
+    </main>
+
+    <script>
+      const scenes = [...document.querySelectorAll('.scene')];
+      const label = document.getElementById('sceneLabel');
+      const progress = document.getElementById('progress');
+      const subtitlePreview = document.getElementById('subtitlePreview');
+      const autoButton = document.getElementById('auto');
+      let index = 0;
+      let timer = null;
+      const subtitleTexts = [
+        '如果你每天都在用 Claude Code，API 账单高得心疼，你可能会想到换第三方模型。',
+        '第三方模型最吸引人的地方，是价格可能更低，也可能更容易直连。',
+        'Claude Code 的外壳不变，改变的是它发请求的后端路径。',
+        'BASE_URL 决定去哪里，AUTH_TOKEN 负责身份，MODEL 决定谁来回答。',
+        '当前终端有效，不等于关闭窗口之后仍然有效。',
+        '真正的验收不是执行过命令，而是 /status 给出正确的地址和模型。',
+        '更稳的做法，是按任务复杂度给模型分层。',
+        '兼容 Anthropic 协议，不等于获得 Anthropic 官方支持。',
+        '第三方模型是一条可验证、可分层、可回退的后端路径。'
+      ];
+
+      function renderProgress() {
+        progress.innerHTML = scenes.map((_, sceneIndex) => `<span class="pill ${sceneIndex === index ? 'active' : ''}" title="Scene ${sceneIndex + 1}"></span>`).join('');
+        label.textContent = `SCENE ${String(index + 1).padStart(2, '0')} / ${String(scenes.length).padStart(2, '0')}`;
+      }
+
+      function show(nextIndex) {
+        index = (nextIndex + scenes.length) % scenes.length;
+        scenes.forEach((scene, sceneIndex) => scene.classList.toggle('active', sceneIndex === index));
+        subtitlePreview.textContent = subtitleTexts[index];
+        renderProgress();
+      }
+
+      function toggleAuto() {
+        if (timer) {
+          clearInterval(timer);
+          timer = null;
+          autoButton.textContent = '自动播放';
+        } else {
+          timer = setInterval(() => show(index + 1), 4600);
+          autoButton.textContent = '停止播放';
+        }
+      }
+
+      document.getElementById('previous').addEventListener('click', () => show(index - 1));
+      document.getElementById('next').addEventListener('click', () => show(index + 1));
+      autoButton.addEventListener('click', toggleAuto);
+      document.addEventListener('keydown', (event) => {
+        if (event.key === 'ArrowLeft') show(index - 1);
+        if (event.key === 'ArrowRight') show(index + 1);
+        if (event.key === ' ') { event.preventDefault(); toggleAuto(); }
+      });
+      renderProgress();
+    </script>
+  </body>
+</html>

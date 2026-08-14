@@ -1,0 +1,1284 @@
+{
+  "schemaVersion": "1.0",
+  "videoId": "claude-code-third-party-models",
+  "scenes": [
+    {
+      "sceneId": "01",
+      "file": "subtitles/scene-01.json",
+      "segments": [
+        {
+          "segmentId": "01-01",
+          "audioFile": "audio/scene-01/01-01.mp3",
+          "cues": [
+            {
+              "id": "01-01-a",
+              "text": "如果你每天都在用 Claude Code，",
+              "start": 0.1,
+              "end": 2.712
+            },
+            {
+              "id": "01-01-b",
+              "text": "API 账单高得心疼，",
+              "start": 2.712,
+              "end": 4.775
+            },
+            {
+              "id": "01-01-c",
+              "text": "或者官方接口连起来总是不稳定，",
+              "start": 4.775,
+              "end": 7.638
+            },
+            {
+              "id": "01-01-d",
+              "text": "那你可能会想到一个办法：",
+              "start": 7.638,
+              "end": 9.988
+            },
+            {
+              "id": "01-01-e",
+              "text": "换成 DeepSeek 之类的第三方模型。",
+              "start": 9.988,
+              "end": 13.104
+            }
+          ]
+        },
+        {
+          "segmentId": "01-02",
+          "audioFile": "audio/scene-01/01-02.mp3",
+          "cues": [
+            {
+              "id": "01-02-a",
+              "text": "但先别急着复制配置。",
+              "start": 0.1,
+              "end": 2.448
+            }
+          ]
+        },
+        {
+          "segmentId": "01-03",
+          "audioFile": "audio/scene-01/01-03.mp3",
+          "cues": [
+            {
+              "id": "01-03-a",
+              "text": "第三方模型不是人人都该换的省钱神器。",
+              "start": 0.1,
+              "end": 4.075
+            },
+            {
+              "id": "01-03-b",
+              "text": "轻度用户为了省一点钱，",
+              "start": 4.075,
+              "end": 6.412
+            },
+            {
+              "id": "01-03-c",
+              "text": "可能要花更多时间排查环境变量；",
+              "start": 6.412,
+              "end": 9.412
+            },
+            {
+              "id": "01-03-d",
+              "text": "主要做复杂架构和疑难调试的人，",
+              "start": 9.412,
+              "end": 12.488
+            },
+            {
+              "id": "01-03-e",
+              "text": "也可能用稳定性换来更低的价格。",
+              "start": 12.488,
+              "end": 15.912
+            }
+          ]
+        },
+        {
+          "segmentId": "01-04",
+          "audioFile": "audio/scene-01/01-04.mp3",
+          "cues": [
+            {
+              "id": "01-04-a",
+              "text": "所以这篇先不从命令开始，",
+              "start": 0.1,
+              "end": 2.875
+            },
+            {
+              "id": "01-04-b",
+              "text": "而是先回答一个问题：",
+              "start": 2.875,
+              "end": 4.775
+            },
+            {
+              "id": "01-04-c",
+              "text": "你到底值不值得换？",
+              "start": 4.775,
+              "end": 6.72
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sceneId": "02",
+      "file": "subtitles/scene-02.json",
+      "segments": [
+        {
+          "segmentId": "02-01",
+          "audioFile": "audio/scene-02/02-01.mp3",
+          "cues": [
+            {
+              "id": "02-01-a",
+              "text": "第三方模型最吸引人的地方有两个：",
+              "start": 0.1,
+              "end": 3.188
+            },
+            {
+              "id": "02-01-b",
+              "text": "价格可能低很多，",
+              "start": 3.188,
+              "end": 4.875
+            },
+            {
+              "id": "02-01-c",
+              "text": "而且像 DeepSeek 这样的国内服务，",
+              "start": 4.875,
+              "end": 7.45
+            },
+            {
+              "id": "02-01-d",
+              "text": "通常更容易获得直连体验。",
+              "start": 7.45,
+              "end": 10.416
+            }
+          ]
+        },
+        {
+          "segmentId": "02-02",
+          "audioFile": "audio/scene-02/02-02.mp3",
+          "cues": [
+            {
+              "id": "02-02-a",
+              "text": "但交换条件也很明确。",
+              "start": 0.1,
+              "end": 2.616
+            }
+          ]
+        },
+        {
+          "segmentId": "02-03",
+          "audioFile": "audio/scene-02/02-03.mp3",
+          "cues": [
+            {
+              "id": "02-03-a",
+              "text": "复杂代码任务的能力，",
+              "start": 0.1,
+              "end": 2.025
+            },
+            {
+              "id": "02-03-b",
+              "text": "工具调用和多步 Agent 的稳定性，",
+              "start": 2.025,
+              "end": 5.062
+            },
+            {
+              "id": "02-03-c",
+              "text": "还有出了问题之后的官方支持，",
+              "start": 5.062,
+              "end": 7.525
+            },
+            {
+              "id": "02-03-d",
+              "text": "都可能和 Anthropic 官方模型不一样。",
+              "start": 7.525,
+              "end": 11.04
+            }
+          ]
+        },
+        {
+          "segmentId": "02-04",
+          "audioFile": "audio/scene-02/02-04.mp3",
+          "cues": [
+            {
+              "id": "02-04-a",
+              "text": "如果你是 API 重度用户，",
+              "start": 0.1,
+              "end": 2.612
+            },
+            {
+              "id": "02-04-b",
+              "text": "或者确实有连接问题，",
+              "start": 2.612,
+              "end": 4.562
+            },
+            {
+              "id": "02-04-c",
+              "text": "第三方值得评估。",
+              "start": 4.562,
+              "end": 6.552
+            }
+          ]
+        },
+        {
+          "segmentId": "02-05",
+          "audioFile": "audio/scene-02/02-05.mp3",
+          "cues": [
+            {
+              "id": "02-05-a",
+              "text": "如果你已经有 Claude 订阅，",
+              "start": 0.1,
+              "end": 2.138
+            },
+            {
+              "id": "02-05-b",
+              "text": "只做轻量任务，",
+              "start": 2.138,
+              "end": 3.625
+            },
+            {
+              "id": "02-05-c",
+              "text": "或者主要处理不能出错的复杂重构，",
+              "start": 3.625,
+              "end": 6.6
+            },
+            {
+              "id": "02-05-d",
+              "text": "那就别只为了小额节省急着切换。",
+              "start": 6.6,
+              "end": 10.008
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sceneId": "03",
+      "file": "subtitles/scene-03.json",
+      "segments": [
+        {
+          "segmentId": "03-01",
+          "audioFile": "audio/scene-03/03-01.mp3",
+          "cues": [
+            {
+              "id": "03-01-a",
+              "text": "那接入第三方，",
+              "start": 0.1,
+              "end": 1.5
+            },
+            {
+              "id": "03-01-b",
+              "text": "究竟换掉了什么？",
+              "start": 1.5,
+              "end": 3.264
+            }
+          ]
+        },
+        {
+          "segmentId": "03-02",
+          "audioFile": "audio/scene-03/03-02.mp3",
+          "cues": [
+            {
+              "id": "03-02-a",
+              "text": "可以把 Claude Code 想成车壳。",
+              "start": 0.1,
+              "end": 2.825
+            },
+            {
+              "id": "03-02-b",
+              "text": "它仍然负责读项目、",
+              "start": 2.825,
+              "end": 4.625
+            },
+            {
+              "id": "03-02-c",
+              "text": "调用工具、修改文件，",
+              "start": 4.625,
+              "end": 6.825
+            },
+            {
+              "id": "03-02-d",
+              "text": "以及推进整个 Agent 任务。",
+              "start": 6.825,
+              "end": 9.384
+            }
+          ]
+        },
+        {
+          "segmentId": "03-03",
+          "audioFile": "audio/scene-03/03-03.mp3",
+          "cues": [
+            {
+              "id": "03-03-a",
+              "text": "你改变的是它发请求的后端路径：",
+              "start": 0.1,
+              "end": 3.013
+            },
+            {
+              "id": "03-03-b",
+              "text": "请求先从 Claude Code 出发，",
+              "start": 3.013,
+              "end": 5.3
+            },
+            {
+              "id": "03-03-c",
+              "text": "发到一个兼容接口，",
+              "start": 5.3,
+              "end": 6.912
+            },
+            {
+              "id": "03-03-d",
+              "text": "再由那个接口交给具体模型回答，",
+              "start": 6.912,
+              "end": 10.05
+            },
+            {
+              "id": "03-03-e",
+              "text": "结果最后返回终端。",
+              "start": 10.05,
+              "end": 12.264
+            }
+          ]
+        },
+        {
+          "segmentId": "03-04",
+          "audioFile": "audio/scene-03/03-04.mp3",
+          "cues": [
+            {
+              "id": "03-04-a",
+              "text": "所以，Claude Code 没有被换掉，",
+              "start": 0.1,
+              "end": 2.95
+            },
+            {
+              "id": "03-04-b",
+              "text": "换的是它背后的模型路径。",
+              "start": 2.95,
+              "end": 5.712
+            }
+          ]
+        },
+        {
+          "segmentId": "03-05",
+          "audioFile": "audio/scene-03/03-05.mp3",
+          "cues": [
+            {
+              "id": "03-05-a",
+              "text": "这里有一个特别容易搞错的点：",
+              "start": 0.1,
+              "end": 2.438
+            },
+            {
+              "id": "03-05-b",
+              "text": "ANTHROPIC_BASE_URL 主要",
+              "start": 2.438,
+              "end": 6.05
+            },
+            {
+              "id": "03-05-c",
+              "text": "决定请求发到哪里，",
+              "start": 6.05,
+              "end": 7.888
+            },
+            {
+              "id": "03-05-d",
+              "text": "不负责决定哪个模型回答。",
+              "start": 7.888,
+              "end": 10.56
+            }
+          ]
+        },
+        {
+          "segmentId": "03-06",
+          "audioFile": "audio/scene-03/03-06.mp3",
+          "cues": [
+            {
+              "id": "03-06-a",
+              "text": "地址和模型名，",
+              "start": 0.1,
+              "end": 1.637
+            },
+            {
+              "id": "03-06-b",
+              "text": "是两个需要配对的配置。",
+              "start": 1.637,
+              "end": 4.08
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sceneId": "04",
+      "file": "subtitles/scene-04.json",
+      "segments": [
+        {
+          "segmentId": "04-01",
+          "audioFile": "audio/scene-04/04-01.mp3",
+          "cues": [
+            {
+              "id": "04-01-a",
+              "text": "把配置拆开，",
+              "start": 0.1,
+              "end": 1.387
+            },
+            {
+              "id": "04-01-b",
+              "text": "其实就是三类信息。",
+              "start": 1.387,
+              "end": 3.552
+            }
+          ]
+        },
+        {
+          "segmentId": "04-02",
+          "audioFile": "audio/scene-04/04-02.mp3",
+          "cues": [
+            {
+              "id": "04-02-a",
+              "text": "第一类是地址。",
+              "start": 0.1,
+              "end": 1.925
+            },
+            {
+              "id": "04-02-b",
+              "text": "ANTHROPIC_BASE_URL 告诉 ",
+              "start": 1.925,
+              "end": 5.763
+            },
+            {
+              "id": "04-02-c",
+              "text": "Claude Code，请求要发到哪个兼容接口。",
+              "start": 5.763,
+              "end": 9.408
+            }
+          ]
+        },
+        {
+          "segmentId": "04-03",
+          "audioFile": "audio/scene-04/04-03.mp3",
+          "cues": [
+            {
+              "id": "04-03-a",
+              "text": "第二类是身份。",
+              "start": 0.1,
+              "end": 1.9
+            },
+            {
+              "id": "04-03-b",
+              "text": "ANTHROPIC_AUTH_TOKEN 通常用来",
+              "start": 1.9,
+              "end": 5.787
+            },
+            {
+              "id": "04-03-c",
+              "text": "携带第三方服务提供的 Token，",
+              "start": 5.787,
+              "end": 8.4
+            },
+            {
+              "id": "04-03-d",
+              "text": "具体要以供应商的接口要求为准。",
+              "start": 8.4,
+              "end": 11.568
+            }
+          ]
+        },
+        {
+          "segmentId": "04-04",
+          "audioFile": "audio/scene-04/04-04.mp3",
+          "cues": [
+            {
+              "id": "04-04-a",
+              "text": "第三类是模型。",
+              "start": 0.1,
+              "end": 2.013
+            },
+            {
+              "id": "04-04-b",
+              "text": "ANTHROPIC_MODEL，",
+              "start": 2.013,
+              "end": 4.088
+            },
+            {
+              "id": "04-04-c",
+              "text": "以及 Opus、",
+              "start": 4.088,
+              "end": 5.35
+            },
+            {
+              "id": "04-04-d",
+              "text": "Sonnet、Haiku 这些默认档位变量，",
+              "start": 5.35,
+              "end": 8.588
+            },
+            {
+              "id": "04-04-e",
+              "text": "决定实际由哪个模型回答。",
+              "start": 8.588,
+              "end": 11.208
+            }
+          ]
+        },
+        {
+          "segmentId": "04-05",
+          "audioFile": "audio/scene-04/04-05.mp3",
+          "cues": [
+            {
+              "id": "04-05-a",
+              "text": "用 DeepSeek 举例时，",
+              "start": 0.1,
+              "end": 1.925
+            },
+            {
+              "id": "04-05-b",
+              "text": "地址和模型名都只能看作示例。",
+              "start": 1.925,
+              "end": 5.2
+            },
+            {
+              "id": "04-05-c",
+              "text": "平台会更新接口和模型名称，",
+              "start": 5.2,
+              "end": 8.2
+            },
+            {
+              "id": "04-05-d",
+              "text": "最终要以当前官方文档为准。",
+              "start": 8.2,
+              "end": 11.16
+            }
+          ]
+        },
+        {
+          "segmentId": "04-06",
+          "audioFile": "audio/scene-04/04-06.mp3",
+          "cues": [
+            {
+              "id": "04-06-a",
+              "text": "换句话说，地址负责找对门，",
+              "start": 0.1,
+              "end": 2.812
+            },
+            {
+              "id": "04-06-b",
+              "text": "Token 负责进门，",
+              "start": 2.812,
+              "end": 4.362
+            },
+            {
+              "id": "04-06-c",
+              "text": "模型名负责叫对人。",
+              "start": 4.362,
+              "end": 6.562
+            },
+            {
+              "id": "04-06-d",
+              "text": "三者缺一个，",
+              "start": 6.562,
+              "end": 7.9
+            },
+            {
+              "id": "04-06-e",
+              "text": "配置就可能看起来完成了，",
+              "start": 7.9,
+              "end": 10.438
+            },
+            {
+              "id": "04-06-f",
+              "text": "实际上却没有按预期运行。",
+              "start": 10.438,
+              "end": 13.2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sceneId": "05",
+      "file": "subtitles/scene-05.json",
+      "segments": [
+        {
+          "segmentId": "05-01",
+          "audioFile": "audio/scene-05/05-01.mp3",
+          "cues": [
+            {
+              "id": "05-01-a",
+              "text": "还有一个很常见的坑：",
+              "start": 0.1,
+              "end": 1.962
+            },
+            {
+              "id": "05-01-b",
+              "text": "你在终端里执行 export，",
+              "start": 1.962,
+              "end": 4.287
+            },
+            {
+              "id": "05-01-c",
+              "text": "或者在 PowerShell 里设置 $env:，",
+              "start": 4.287,
+              "end": 7.475
+            },
+            {
+              "id": "05-01-d",
+              "text": "只代表当前窗口暂时拥有这组配置。",
+              "start": 7.475,
+              "end": 11.184
+            }
+          ]
+        },
+        {
+          "segmentId": "05-02",
+          "audioFile": "audio/scene-05/05-02.mp3",
+          "cues": [
+            {
+              "id": "05-02-a",
+              "text": "终端一关，配置可能就消失。",
+              "start": 0.1,
+              "end": 3.188
+            },
+            {
+              "id": "05-02-b",
+              "text": "要长期使用，",
+              "start": 3.188,
+              "end": 4.525
+            },
+            {
+              "id": "05-02-c",
+              "text": "才考虑写进 shell 配置文件或系统",
+              "start": 4.525,
+              "end": 7.412
+            },
+            {
+              "id": "05-02-d",
+              "text": "环境变量。",
+              "start": 7.412,
+              "end": 8.856
+            }
+          ]
+        },
+        {
+          "segmentId": "05-03",
+          "audioFile": "audio/scene-05/05-03.mp3",
+          "cues": [
+            {
+              "id": "05-03-a",
+              "text": "但持久化也意味着更长时间暴露密钥，",
+              "start": 0.1,
+              "end": 3.625
+            },
+            {
+              "id": "05-03-b",
+              "text": "所以 API Token 不要写进代码，",
+              "start": 3.625,
+              "end": 6.7
+            },
+            {
+              "id": "05-03-c",
+              "text": "不要提交 Git，",
+              "start": 6.7,
+              "end": 8.025
+            },
+            {
+              "id": "05-03-d",
+              "text": "也不要出现在可以分享的截图里。",
+              "start": 8.025,
+              "end": 11.208
+            }
+          ]
+        },
+        {
+          "segmentId": "05-04",
+          "audioFile": "audio/scene-05/05-04.mp3",
+          "cues": [
+            {
+              "id": "05-04-a",
+              "text": "画面里的密钥应该始终是占位符，",
+              "start": 0.1,
+              "end": 3.212
+            },
+            {
+              "id": "05-04-b",
+              "text": "而不是一串真实字符。",
+              "start": 3.212,
+              "end": 5.592
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sceneId": "06",
+      "file": "subtitles/scene-06.json",
+      "segments": [
+        {
+          "segmentId": "06-01",
+          "audioFile": "audio/scene-06/06-01.mp3",
+          "cues": [
+            {
+              "id": "06-01-a",
+              "text": "配置完成以后，",
+              "start": 0.1,
+              "end": 1.475
+            },
+            {
+              "id": "06-01-b",
+              "text": "别只看 Claude Code 能不能启动。",
+              "start": 1.475,
+              "end": 4.656
+            }
+          ]
+        },
+        {
+          "segmentId": "06-02",
+          "audioFile": "audio/scene-06/06-02.mp3",
+          "cues": [
+            {
+              "id": "06-02-a",
+              "text": "进入项目目录，",
+              "start": 0.1,
+              "end": 1.387
+            },
+            {
+              "id": "06-02-b",
+              "text": "启动 Claude Code，",
+              "start": 1.387,
+              "end": 2.8
+            },
+            {
+              "id": "06-02-c",
+              "text": "输入 /status，",
+              "start": 2.8,
+              "end": 4.075
+            },
+            {
+              "id": "06-02-d",
+              "text": "重点检查两项：",
+              "start": 4.075,
+              "end": 5.575
+            },
+            {
+              "id": "06-02-e",
+              "text": "Base URL 和 Model。",
+              "start": 5.575,
+              "end": 7.656
+            }
+          ]
+        },
+        {
+          "segmentId": "06-03",
+          "audioFile": "audio/scene-06/06-03.mp3",
+          "cues": [
+            {
+              "id": "06-03-a",
+              "text": "如果 Base URL 还是官方地址，",
+              "start": 0.1,
+              "end": 3.138
+            },
+            {
+              "id": "06-03-b",
+              "text": "通常是环境变量没有生效，",
+              "start": 3.138,
+              "end": 5.575
+            },
+            {
+              "id": "06-03-c",
+              "text": "或者新终端没有加载配置。",
+              "start": 5.575,
+              "end": 8.352
+            }
+          ]
+        },
+        {
+          "segmentId": "06-04",
+          "audioFile": "audio/scene-06/06-04.mp3",
+          "cues": [
+            {
+              "id": "06-04-a",
+              "text": "如果提示模型不存在，",
+              "start": 0.1,
+              "end": 2.1
+            },
+            {
+              "id": "06-04-b",
+              "text": "先回到供应商官方文档确认模型名",
+              "start": 2.1,
+              "end": 5.213
+            },
+            {
+              "id": "06-04-c",
+              "text": "有没有变化。",
+              "start": 5.213,
+              "end": 6.84
+            }
+          ]
+        },
+        {
+          "segmentId": "06-05",
+          "audioFile": "audio/scene-06/06-05.mp3",
+          "cues": [
+            {
+              "id": "06-05-a",
+              "text": "如果出现 401 或鉴权失败，",
+              "start": 0.1,
+              "end": 3.0
+            },
+            {
+              "id": "06-05-b",
+              "text": "再检查 Token 是否错误、",
+              "start": 3.0,
+              "end": 5.375
+            },
+            {
+              "id": "06-05-c",
+              "text": "过期，或者复制时多了空格。",
+              "start": 5.375,
+              "end": 8.544
+            }
+          ]
+        },
+        {
+          "segmentId": "06-06",
+          "audioFile": "audio/scene-06/06-06.mp3",
+          "cues": [
+            {
+              "id": "06-06-a",
+              "text": "真正的验收不是“我执行过配置命令”，",
+              "start": 0.1,
+              "end": 3.4
+            },
+            {
+              "id": "06-06-b",
+              "text": "而是状态输出证明请求已经发到了正确的",
+              "start": 3.4,
+              "end": 6.912
+            },
+            {
+              "id": "06-06-c",
+              "text": "地址，并且使用了预期的模型。",
+              "start": 6.912,
+              "end": 10.008
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sceneId": "07",
+      "file": "subtitles/scene-07.json",
+      "segments": [
+        {
+          "segmentId": "07-01",
+          "audioFile": "audio/scene-07/07-01.mp3",
+          "cues": [
+            {
+              "id": "07-01-a",
+              "text": "如果你的目标是省钱，",
+              "start": 0.1,
+              "end": 1.962
+            },
+            {
+              "id": "07-01-b",
+              "text": "也不一定要把所有任务都塞给同一个",
+              "start": 1.962,
+              "end": 4.775
+            },
+            {
+              "id": "07-01-c",
+              "text": "便宜模型。",
+              "start": 4.775,
+              "end": 6.264
+            }
+          ]
+        },
+        {
+          "segmentId": "07-02",
+          "audioFile": "audio/scene-07/07-02.mp3",
+          "cues": [
+            {
+              "id": "07-02-a",
+              "text": "更稳的做法是按任务分层。",
+              "start": 0.1,
+              "end": 2.952
+            }
+          ]
+        },
+        {
+          "segmentId": "07-03",
+          "audioFile": "audio/scene-07/07-03.mp3",
+          "cues": [
+            {
+              "id": "07-03-a",
+              "text": "架构设计、跨模块重构和疑难调试，",
+              "start": 0.1,
+              "end": 3.775
+            },
+            {
+              "id": "07-03-b",
+              "text": "交给能力更强的模型。",
+              "start": 3.775,
+              "end": 6.072
+            }
+          ]
+        },
+        {
+          "segmentId": "07-04",
+          "audioFile": "audio/scene-07/07-04.mp3",
+          "cues": [
+            {
+              "id": "07-04-a",
+              "text": "日常增删改查、",
+              "start": 0.1,
+              "end": 1.738
+            },
+            {
+              "id": "07-04-b",
+              "text": "写测试和补文档，",
+              "start": 1.738,
+              "end": 3.5
+            },
+            {
+              "id": "07-04-c",
+              "text": "可以使用性价比更高的模型。",
+              "start": 3.5,
+              "end": 6.312
+            }
+          ]
+        },
+        {
+          "segmentId": "07-05",
+          "audioFile": "audio/scene-07/07-05.mp3",
+          "cues": [
+            {
+              "id": "07-05-a",
+              "text": "轻量问答、后台杂活和子代理任务，",
+              "start": 0.1,
+              "end": 3.725
+            },
+            {
+              "id": "07-05-b",
+              "text": "再交给便宜快速的模型。",
+              "start": 3.725,
+              "end": 6.192
+            }
+          ]
+        },
+        {
+          "segmentId": "07-06",
+          "audioFile": "audio/scene-07/07-06.mp3",
+          "cues": [
+            {
+              "id": "07-06-a",
+              "text": "这样做的重点不是记住一组固定模型名，",
+              "start": 0.1,
+              "end": 3.625
+            },
+            {
+              "id": "07-06-b",
+              "text": "而是让模型选择跟任务复杂度匹配。",
+              "start": 3.625,
+              "end": 7.128
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sceneId": "08",
+      "file": "subtitles/scene-08.json",
+      "segments": [
+        {
+          "segmentId": "08-01",
+          "audioFile": "audio/scene-08/08-01.mp3",
+          "cues": [
+            {
+              "id": "08-01-a",
+              "text": "最后提醒几个容易被旧教程带偏的地方。",
+              "start": 0.1,
+              "end": 3.936
+            }
+          ]
+        },
+        {
+          "segmentId": "08-02",
+          "audioFile": "audio/scene-08/08-02.mp3",
+          "cues": [
+            {
+              "id": "08-02-a",
+              "text": "以前常见的 ANTHROPIC_SMALL_",
+              "start": 0.1,
+              "end": 3.9
+            },
+            {
+              "id": "08-02-b",
+              "text": "FAST_MODEL 已经可能被新的模型变量",
+              "start": 3.9,
+              "end": 7.338
+            },
+            {
+              "id": "08-02-c",
+              "text": "取代，不能看到网上的配置就",
+              "start": 7.338,
+              "end": 9.863
+            },
+            {
+              "id": "08-02-d",
+              "text": "原样复制。",
+              "start": 9.863,
+              "end": 11.352
+            }
+          ]
+        },
+        {
+          "segmentId": "08-03",
+          "audioFile": "audio/scene-08/08-03.mp3",
+          "cues": [
+            {
+              "id": "08-03-a",
+              "text": "ANTHROPIC_AUTH_TOKEN 和 ",
+              "start": 0.1,
+              "end": 3.625
+            },
+            {
+              "id": "08-03-b",
+              "text": "ANTHROPIC_API_KEY 发送的请求",
+              "start": 3.625,
+              "end": 7.375
+            },
+            {
+              "id": "08-03-c",
+              "text": "头也不一样，",
+              "start": 7.375,
+              "end": 8.6
+            },
+            {
+              "id": "08-03-d",
+              "text": "第三方接口到底要求哪一种，",
+              "start": 8.6,
+              "end": 11.238
+            },
+            {
+              "id": "08-03-e",
+              "text": "要看供应商的说明。",
+              "start": 11.238,
+              "end": 13.296
+            }
+          ]
+        },
+        {
+          "segmentId": "08-04",
+          "audioFile": "audio/scene-08/08-04.mp3",
+          "cues": [
+            {
+              "id": "08-04-a",
+              "text": "而且，兼容 Anthropic 协议，",
+              "start": 0.1,
+              "end": 2.825
+            },
+            {
+              "id": "08-04-b",
+              "text": "不等于获得 Anthropic 官方支持。",
+              "start": 2.825,
+              "end": 6.025
+            },
+            {
+              "id": "08-04-c",
+              "text": "接入非第一方主机后，",
+              "start": 6.025,
+              "end": 8.0
+            },
+            {
+              "id": "08-04-d",
+              "text": "工具调用、MCP 搜索等高级能力也可能",
+              "start": 8.0,
+              "end": 11.625
+            },
+            {
+              "id": "08-04-e",
+              "text": "出现差异。",
+              "start": 11.625,
+              "end": 13.056
+            }
+          ]
+        },
+        {
+          "segmentId": "08-05",
+          "audioFile": "audio/scene-08/08-05.mp3",
+          "cues": [
+            {
+              "id": "08-05-a",
+              "text": "所以模型名、",
+              "start": 0.1,
+              "end": 1.587
+            },
+            {
+              "id": "08-05-b",
+              "text": "接口地址和变量行为，",
+              "start": 1.587,
+              "end": 3.837
+            },
+            {
+              "id": "08-05-c",
+              "text": "都要以当前官方文档为准。",
+              "start": 3.837,
+              "end": 6.456
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sceneId": "09",
+      "file": "subtitles/scene-09.json",
+      "segments": [
+        {
+          "segmentId": "09-01",
+          "audioFile": "audio/scene-09/09-01.mp3",
+          "cues": [
+            {
+              "id": "09-01-a",
+              "text": "现在把整件事串起来。",
+              "start": 0.1,
+              "end": 2.568
+            }
+          ]
+        },
+        {
+          "segmentId": "09-02",
+          "audioFile": "audio/scene-09/09-02.mp3",
+          "cues": [
+            {
+              "id": "09-02-a",
+              "text": "第三方模型适合 API 用量很高、",
+              "start": 0.1,
+              "end": 3.312
+            },
+            {
+              "id": "09-02-b",
+              "text": "官方连接困难，",
+              "start": 3.312,
+              "end": 4.85
+            },
+            {
+              "id": "09-02-c",
+              "text": "或者愿意接受实验性差异的人。",
+              "start": 4.85,
+              "end": 7.776
+            }
+          ]
+        },
+        {
+          "segmentId": "09-03",
+          "audioFile": "audio/scene-09/09-03.mp3",
+          "cues": [
+            {
+              "id": "09-03-a",
+              "text": "它不适合已经有固定订阅、",
+              "start": 0.1,
+              "end": 2.438
+            },
+            {
+              "id": "09-03-b",
+              "text": "使用量很小，",
+              "start": 2.438,
+              "end": 3.825
+            },
+            {
+              "id": "09-03-c",
+              "text": "或者主要依赖复杂任务稳定性的人。",
+              "start": 3.825,
+              "end": 7.08
+            }
+          ]
+        },
+        {
+          "segmentId": "09-04",
+          "audioFile": "audio/scene-09/09-04.mp3",
+          "cues": [
+            {
+              "id": "09-04-a",
+              "text": "真正的接入也不是只改一个 URL，",
+              "start": 0.1,
+              "end": 3.188
+            },
+            {
+              "id": "09-04-b",
+              "text": "而是把地址、身份和模型配对，",
+              "start": 3.188,
+              "end": 6.188
+            },
+            {
+              "id": "09-04-c",
+              "text": "再用 /status 看证据，",
+              "start": 6.188,
+              "end": 8.0
+            },
+            {
+              "id": "09-04-d",
+              "text": "最后按任务分层使用。",
+              "start": 8.0,
+              "end": 10.464
+            }
+          ]
+        },
+        {
+          "segmentId": "09-05",
+          "audioFile": "audio/scene-09/09-05.mp3",
+          "cues": [
+            {
+              "id": "09-05-a",
+              "text": "所以第三方模型不是必修课，",
+              "start": 0.1,
+              "end": 3.125
+            },
+            {
+              "id": "09-05-b",
+              "text": "而是一条可以验证、",
+              "start": 3.125,
+              "end": 4.638
+            },
+            {
+              "id": "09-05-c",
+              "text": "可以分层，也可以随时切回官方的",
+              "start": 4.638,
+              "end": 7.475
+            },
+            {
+              "id": "09-05-d",
+              "text": "后端路径。",
+              "start": 7.475,
+              "end": 8.928
+            }
+          ]
+        },
+        {
+          "segmentId": "09-06",
+          "audioFile": "audio/scene-09/09-06.mp3",
+          "cues": [
+            {
+              "id": "09-06-a",
+              "text": "省钱之前，",
+              "start": 0.1,
+              "end": 1.363
+            },
+            {
+              "id": "09-06-b",
+              "text": "先确认自己真的需要省这笔钱；",
+              "start": 1.363,
+              "end": 4.275
+            },
+            {
+              "id": "09-06-c",
+              "text": "切换之后，也始终把判断和回退权留在",
+              "start": 4.275,
+              "end": 7.875
+            },
+            {
+              "id": "09-06-d",
+              "text": "自己手里。",
+              "start": 7.875,
+              "end": 9.288
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

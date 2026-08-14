@@ -52,23 +52,21 @@ const WorkflowSketch = ({
   steps,
   active,
   compact,
-  columnTitle,
+  workflowTitle,
+  workflowStatus,
 }: {
   steps: VisualBeat[];
   active: boolean;
   compact: boolean;
-  columnTitle: string;
+  workflowTitle: string;
+  workflowStatus: string;
 }) => {
   const activeIndex = Math.min(steps.length - 1, active ? 3 : 2);
-  const isClaude = /Claude/i.test(columnTitle);
-  const isCopilot = /Copilot/i.test(columnTitle);
-  const title = isClaude ? 'project flow' : isCopilot ? 'autocomplete' : 'copy-paste loop';
-  const statusLabel = isClaude ? '读改跑验' : isCopilot ? '编辑中补全' : '来回搬运上下文';
 
   return (
-    <MockWindow title={title} bodyStyle={{padding: compact ? 14 : 18}}>
-      <div style={{display: 'grid', gap: compact ? 10 : 14, gridTemplateColumns: compact || isClaude ? '1fr' : '1fr 1fr'}}>
-        {(compact || isClaude ? steps : steps.slice(0, 4)).map((step, index) => {
+    <MockWindow title={workflowTitle} bodyStyle={{padding: compact ? 14 : 18}}>
+      <div style={{display: 'grid', gap: compact ? 10 : 14, gridTemplateColumns: '1fr'}}>
+        {(compact ? steps : steps.slice(0, 4)).map((step, index) => {
           const isActive = active && index <= activeIndex;
 
           return (
@@ -88,15 +86,15 @@ const WorkflowSketch = ({
                 padding: compact ? '9px 10px' : '12px 14px',
               }}
             >
-              <span style={{color: isActive ? colors.accent : colors.muted}}>{isClaude ? '→' : index % 2 === 0 ? '↗' : '↙'}</span>
+              <span style={{color: isActive ? colors.accent : colors.muted}}>→</span>
               {step.title}
             </div>
           );
         })}
       </div>
       <div style={{marginTop: compact ? 12 : 16}}>
-        <StatusChip active={active} tone={isClaude ? 'accent' : 'warning'}>
-          {statusLabel}
+        <StatusChip active={active} tone="accent">
+          {workflowStatus}
         </StatusChip>
       </div>
     </MockWindow>
@@ -147,7 +145,13 @@ const Column = ({
       >
         {column.title}
       </div>
-      <WorkflowSketch steps={steps} active={active} compact={compact} columnTitle={column.title} />
+      <WorkflowSketch
+        steps={steps}
+        active={active}
+        compact={compact}
+        workflowTitle={column.workflowTitle ?? column.title}
+        workflowStatus={column.workflowStatus ?? '当前任务路径'}
+      />
       <div style={{marginTop: compact ? 18 : 24}}>
         <MiniFlow items={steps} activeIndex={activeIndex} compact />
       </div>

@@ -1,0 +1,482 @@
+{
+  "schemaVersion": "1.0",
+  "videoId": "claude-code-third-party-models",
+  "sceneBuffer": 0.0,
+  "duration": 396.192,
+  "scenes": [
+    {
+      "sceneId": "01",
+      "offset": 0.0,
+      "narrationDuration": 38.184,
+      "buffer": 0.0,
+      "duration": 38.184,
+      "end": 38.184,
+      "segments": [
+        {
+          "segmentId": "01-01",
+          "offset": 0.0,
+          "duration": 13.104,
+          "end": 13.104,
+          "audioFile": "audio/scene-01/01-01.mp3",
+          "subtitleFile": "subtitles/scene-01.json"
+        },
+        {
+          "segmentId": "01-02",
+          "offset": 13.104,
+          "duration": 2.448,
+          "end": 15.552,
+          "audioFile": "audio/scene-01/01-02.mp3",
+          "subtitleFile": "subtitles/scene-01.json"
+        },
+        {
+          "segmentId": "01-03",
+          "offset": 15.552,
+          "duration": 15.912,
+          "end": 31.464,
+          "audioFile": "audio/scene-01/01-03.mp3",
+          "subtitleFile": "subtitles/scene-01.json"
+        },
+        {
+          "segmentId": "01-04",
+          "offset": 31.464,
+          "duration": 6.72,
+          "end": 38.184,
+          "audioFile": "audio/scene-01/01-04.mp3",
+          "subtitleFile": "subtitles/scene-01.json"
+        }
+      ]
+    },
+    {
+      "sceneId": "02",
+      "offset": 38.184,
+      "narrationDuration": 40.632,
+      "buffer": 0.0,
+      "duration": 40.632,
+      "end": 78.816,
+      "segments": [
+        {
+          "segmentId": "02-01",
+          "offset": 0.0,
+          "duration": 10.416,
+          "end": 10.416,
+          "audioFile": "audio/scene-02/02-01.mp3",
+          "subtitleFile": "subtitles/scene-02.json"
+        },
+        {
+          "segmentId": "02-02",
+          "offset": 10.416,
+          "duration": 2.616,
+          "end": 13.032,
+          "audioFile": "audio/scene-02/02-02.mp3",
+          "subtitleFile": "subtitles/scene-02.json"
+        },
+        {
+          "segmentId": "02-03",
+          "offset": 13.032,
+          "duration": 11.04,
+          "end": 24.072,
+          "audioFile": "audio/scene-02/02-03.mp3",
+          "subtitleFile": "subtitles/scene-02.json"
+        },
+        {
+          "segmentId": "02-04",
+          "offset": 24.072,
+          "duration": 6.552,
+          "end": 30.624,
+          "audioFile": "audio/scene-02/02-04.mp3",
+          "subtitleFile": "subtitles/scene-02.json"
+        },
+        {
+          "segmentId": "02-05",
+          "offset": 30.624,
+          "duration": 10.008,
+          "end": 40.632,
+          "audioFile": "audio/scene-02/02-05.mp3",
+          "subtitleFile": "subtitles/scene-02.json"
+        }
+      ]
+    },
+    {
+      "sceneId": "03",
+      "offset": 78.816,
+      "narrationDuration": 45.264,
+      "buffer": 0.0,
+      "duration": 45.264,
+      "end": 124.08,
+      "segments": [
+        {
+          "segmentId": "03-01",
+          "offset": 0.0,
+          "duration": 3.264,
+          "end": 3.264,
+          "audioFile": "audio/scene-03/03-01.mp3",
+          "subtitleFile": "subtitles/scene-03.json"
+        },
+        {
+          "segmentId": "03-02",
+          "offset": 3.264,
+          "duration": 9.384,
+          "end": 12.648,
+          "audioFile": "audio/scene-03/03-02.mp3",
+          "subtitleFile": "subtitles/scene-03.json"
+        },
+        {
+          "segmentId": "03-03",
+          "offset": 12.648,
+          "duration": 12.264,
+          "end": 24.912,
+          "audioFile": "audio/scene-03/03-03.mp3",
+          "subtitleFile": "subtitles/scene-03.json"
+        },
+        {
+          "segmentId": "03-04",
+          "offset": 24.912,
+          "duration": 5.712,
+          "end": 30.624,
+          "audioFile": "audio/scene-03/03-04.mp3",
+          "subtitleFile": "subtitles/scene-03.json"
+        },
+        {
+          "segmentId": "03-05",
+          "offset": 30.624,
+          "duration": 10.56,
+          "end": 41.184,
+          "audioFile": "audio/scene-03/03-05.mp3",
+          "subtitleFile": "subtitles/scene-03.json"
+        },
+        {
+          "segmentId": "03-06",
+          "offset": 41.184,
+          "duration": 4.08,
+          "end": 45.264,
+          "audioFile": "audio/scene-03/03-06.mp3",
+          "subtitleFile": "subtitles/scene-03.json"
+        }
+      ]
+    },
+    {
+      "sceneId": "04",
+      "offset": 124.08,
+      "narrationDuration": 60.096,
+      "buffer": 0.0,
+      "duration": 60.096,
+      "end": 184.176,
+      "segments": [
+        {
+          "segmentId": "04-01",
+          "offset": 0.0,
+          "duration": 3.552,
+          "end": 3.552,
+          "audioFile": "audio/scene-04/04-01.mp3",
+          "subtitleFile": "subtitles/scene-04.json"
+        },
+        {
+          "segmentId": "04-02",
+          "offset": 3.552,
+          "duration": 9.408,
+          "end": 12.96,
+          "audioFile": "audio/scene-04/04-02.mp3",
+          "subtitleFile": "subtitles/scene-04.json"
+        },
+        {
+          "segmentId": "04-03",
+          "offset": 12.96,
+          "duration": 11.568,
+          "end": 24.528,
+          "audioFile": "audio/scene-04/04-03.mp3",
+          "subtitleFile": "subtitles/scene-04.json"
+        },
+        {
+          "segmentId": "04-04",
+          "offset": 24.528,
+          "duration": 11.208,
+          "end": 35.736,
+          "audioFile": "audio/scene-04/04-04.mp3",
+          "subtitleFile": "subtitles/scene-04.json"
+        },
+        {
+          "segmentId": "04-05",
+          "offset": 35.736,
+          "duration": 11.16,
+          "end": 46.896,
+          "audioFile": "audio/scene-04/04-05.mp3",
+          "subtitleFile": "subtitles/scene-04.json"
+        },
+        {
+          "segmentId": "04-06",
+          "offset": 46.896,
+          "duration": 13.2,
+          "end": 60.096,
+          "audioFile": "audio/scene-04/04-06.mp3",
+          "subtitleFile": "subtitles/scene-04.json"
+        }
+      ]
+    },
+    {
+      "sceneId": "05",
+      "offset": 184.176,
+      "narrationDuration": 36.84,
+      "buffer": 0.0,
+      "duration": 36.84,
+      "end": 221.016,
+      "segments": [
+        {
+          "segmentId": "05-01",
+          "offset": 0.0,
+          "duration": 11.184,
+          "end": 11.184,
+          "audioFile": "audio/scene-05/05-01.mp3",
+          "subtitleFile": "subtitles/scene-05.json"
+        },
+        {
+          "segmentId": "05-02",
+          "offset": 11.184,
+          "duration": 8.856,
+          "end": 20.04,
+          "audioFile": "audio/scene-05/05-02.mp3",
+          "subtitleFile": "subtitles/scene-05.json"
+        },
+        {
+          "segmentId": "05-03",
+          "offset": 20.04,
+          "duration": 11.208,
+          "end": 31.248,
+          "audioFile": "audio/scene-05/05-03.mp3",
+          "subtitleFile": "subtitles/scene-05.json"
+        },
+        {
+          "segmentId": "05-04",
+          "offset": 31.248,
+          "duration": 5.592,
+          "end": 36.84,
+          "audioFile": "audio/scene-05/05-04.mp3",
+          "subtitleFile": "subtitles/scene-05.json"
+        }
+      ]
+    },
+    {
+      "sceneId": "06",
+      "offset": 221.016,
+      "narrationDuration": 46.056,
+      "buffer": 0.0,
+      "duration": 46.056,
+      "end": 267.072,
+      "segments": [
+        {
+          "segmentId": "06-01",
+          "offset": 0.0,
+          "duration": 4.656,
+          "end": 4.656,
+          "audioFile": "audio/scene-06/06-01.mp3",
+          "subtitleFile": "subtitles/scene-06.json"
+        },
+        {
+          "segmentId": "06-02",
+          "offset": 4.656,
+          "duration": 7.656,
+          "end": 12.312,
+          "audioFile": "audio/scene-06/06-02.mp3",
+          "subtitleFile": "subtitles/scene-06.json"
+        },
+        {
+          "segmentId": "06-03",
+          "offset": 12.312,
+          "duration": 8.352,
+          "end": 20.664,
+          "audioFile": "audio/scene-06/06-03.mp3",
+          "subtitleFile": "subtitles/scene-06.json"
+        },
+        {
+          "segmentId": "06-04",
+          "offset": 20.664,
+          "duration": 6.84,
+          "end": 27.504,
+          "audioFile": "audio/scene-06/06-04.mp3",
+          "subtitleFile": "subtitles/scene-06.json"
+        },
+        {
+          "segmentId": "06-05",
+          "offset": 27.504,
+          "duration": 8.544,
+          "end": 36.048,
+          "audioFile": "audio/scene-06/06-05.mp3",
+          "subtitleFile": "subtitles/scene-06.json"
+        },
+        {
+          "segmentId": "06-06",
+          "offset": 36.048,
+          "duration": 10.008,
+          "end": 46.056,
+          "audioFile": "audio/scene-06/06-06.mp3",
+          "subtitleFile": "subtitles/scene-06.json"
+        }
+      ]
+    },
+    {
+      "sceneId": "07",
+      "offset": 267.072,
+      "narrationDuration": 34.92,
+      "buffer": 0.0,
+      "duration": 34.92,
+      "end": 301.992,
+      "segments": [
+        {
+          "segmentId": "07-01",
+          "offset": 0.0,
+          "duration": 6.264,
+          "end": 6.264,
+          "audioFile": "audio/scene-07/07-01.mp3",
+          "subtitleFile": "subtitles/scene-07.json"
+        },
+        {
+          "segmentId": "07-02",
+          "offset": 6.264,
+          "duration": 2.952,
+          "end": 9.216,
+          "audioFile": "audio/scene-07/07-02.mp3",
+          "subtitleFile": "subtitles/scene-07.json"
+        },
+        {
+          "segmentId": "07-03",
+          "offset": 9.216,
+          "duration": 6.072,
+          "end": 15.288,
+          "audioFile": "audio/scene-07/07-03.mp3",
+          "subtitleFile": "subtitles/scene-07.json"
+        },
+        {
+          "segmentId": "07-04",
+          "offset": 15.288,
+          "duration": 6.312,
+          "end": 21.6,
+          "audioFile": "audio/scene-07/07-04.mp3",
+          "subtitleFile": "subtitles/scene-07.json"
+        },
+        {
+          "segmentId": "07-05",
+          "offset": 21.6,
+          "duration": 6.192,
+          "end": 27.792,
+          "audioFile": "audio/scene-07/07-05.mp3",
+          "subtitleFile": "subtitles/scene-07.json"
+        },
+        {
+          "segmentId": "07-06",
+          "offset": 27.792,
+          "duration": 7.128,
+          "end": 34.92,
+          "audioFile": "audio/scene-07/07-06.mp3",
+          "subtitleFile": "subtitles/scene-07.json"
+        }
+      ]
+    },
+    {
+      "sceneId": "08",
+      "offset": 301.992,
+      "narrationDuration": 48.096,
+      "buffer": 0.0,
+      "duration": 48.096,
+      "end": 350.088,
+      "segments": [
+        {
+          "segmentId": "08-01",
+          "offset": 0.0,
+          "duration": 3.936,
+          "end": 3.936,
+          "audioFile": "audio/scene-08/08-01.mp3",
+          "subtitleFile": "subtitles/scene-08.json"
+        },
+        {
+          "segmentId": "08-02",
+          "offset": 3.936,
+          "duration": 11.352,
+          "end": 15.288,
+          "audioFile": "audio/scene-08/08-02.mp3",
+          "subtitleFile": "subtitles/scene-08.json"
+        },
+        {
+          "segmentId": "08-03",
+          "offset": 15.288,
+          "duration": 13.296,
+          "end": 28.584,
+          "audioFile": "audio/scene-08/08-03.mp3",
+          "subtitleFile": "subtitles/scene-08.json"
+        },
+        {
+          "segmentId": "08-04",
+          "offset": 28.584,
+          "duration": 13.056,
+          "end": 41.64,
+          "audioFile": "audio/scene-08/08-04.mp3",
+          "subtitleFile": "subtitles/scene-08.json"
+        },
+        {
+          "segmentId": "08-05",
+          "offset": 41.64,
+          "duration": 6.456,
+          "end": 48.096,
+          "audioFile": "audio/scene-08/08-05.mp3",
+          "subtitleFile": "subtitles/scene-08.json"
+        }
+      ]
+    },
+    {
+      "sceneId": "09",
+      "offset": 350.088,
+      "narrationDuration": 46.104,
+      "buffer": 0.0,
+      "duration": 46.104,
+      "end": 396.192,
+      "segments": [
+        {
+          "segmentId": "09-01",
+          "offset": 0.0,
+          "duration": 2.568,
+          "end": 2.568,
+          "audioFile": "audio/scene-09/09-01.mp3",
+          "subtitleFile": "subtitles/scene-09.json"
+        },
+        {
+          "segmentId": "09-02",
+          "offset": 2.568,
+          "duration": 7.776,
+          "end": 10.344,
+          "audioFile": "audio/scene-09/09-02.mp3",
+          "subtitleFile": "subtitles/scene-09.json"
+        },
+        {
+          "segmentId": "09-03",
+          "offset": 10.344,
+          "duration": 7.08,
+          "end": 17.424,
+          "audioFile": "audio/scene-09/09-03.mp3",
+          "subtitleFile": "subtitles/scene-09.json"
+        },
+        {
+          "segmentId": "09-04",
+          "offset": 17.424,
+          "duration": 10.464,
+          "end": 27.888,
+          "audioFile": "audio/scene-09/09-04.mp3",
+          "subtitleFile": "subtitles/scene-09.json"
+        },
+        {
+          "segmentId": "09-05",
+          "offset": 27.888,
+          "duration": 8.928,
+          "end": 36.816,
+          "audioFile": "audio/scene-09/09-05.mp3",
+          "subtitleFile": "subtitles/scene-09.json"
+        },
+        {
+          "segmentId": "09-06",
+          "offset": 36.816,
+          "duration": 9.288,
+          "end": 46.104,
+          "audioFile": "audio/scene-09/09-06.mp3",
+          "subtitleFile": "subtitles/scene-09.json"
+        }
+      ]
+    }
+  ]
+}
