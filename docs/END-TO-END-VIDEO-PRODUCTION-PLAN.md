@@ -200,7 +200,7 @@ src/videos/<video-slug>/generated/
 9. 成功后下载最终 Artifact，并使用 `ffprobe` 验证分辨率、帧率、视频编码、音频编码、采样率、声道和总时长。
 10. 将最终 MP4 交给用户验收。
 
-当前 `.github/workflows/` 中的两条工作流已接收受控的 `video_slug` 和 `composition_id` 输入，资源包按 `assets/<video-slug>-assets.zip` 解析，音频数量从对应 Audio Manifest 自动读取，冒烟代表帧从 Timeline Manifest 的首个、中间和最后一个 Scene 自动选择。当前仍需通过 `claude-code-api-config` 的真实 Run 验证这套参数化契约，验证前不能视为已完成通用渲染闭环。
+当前 `.github/workflows/` 中的两条工作流已接收受控的 `video_slug` 和 `composition_id` 输入，资源包按 `assets/<video-slug>-assets.zip` 解析，音频数量从对应 Audio Manifest 自动读取，冒烟代表帧从 Timeline Manifest 的首个、中间和最后一个 Scene 自动选择，并取各 Scene 约 65% 的位置，确保主要视觉元素已有充分时间展开。当前仍需通过 `claude-code-api-config` 的真实 Run 验证这套参数化契约，验证前不能视为已完成通用渲染闭环。
 
 ## 10. 远程渲染失败回路
 

@@ -2,7 +2,7 @@
 
 ## 当前阶段
 
-- `claude-code-api-config` 已通过 Gate 3；60 段音频、111 条字幕 Cue 和 256.248 秒时间轴已冻结，当前正在启动 GitHub Actions 冒烟渲染。
+- `claude-code-api-config` 已通过 Gate 3；首次冒烟 Run `31790003590` 执行成功，但代表帧取样过早，当前正在修正取样位置并重跑冒烟。
 - `claude-code-install` 已接入真实音频、逐句字幕和 Manifest 时间轴，12 个 Scene 的 41 个主要视觉锚点也已绑定到 Segment 局部时间；GitHub 冒烟和完整 MP4 渲染均已通过并核验。
 - `claude-code-what-is-v2` 已接入 14 个 Scene、166 段音频、269 条字幕 Cue 和约 645.744 秒真实时间线。
 - 字幕已改为顶层 overlay，Linux 渲染前强制校验 CJK 字体，音频已预挂载并按 Segment 驱动画面。
@@ -19,15 +19,15 @@
 
 ## 进行中
 
-- `claude-code-api-config` 已通过 Gate 3，正在准备提交并触发 GitHub 冒烟渲染。
+- `claude-code-api-config` 首次冒烟 Run `31790003590` 执行成功，当前正在把代表帧从 Scene 开始后 1 秒改为 Scene 的 65% 位置并重跑。
 - 根目录 `video-production-process-part-1.md` 正根据用户反馈逐段修订；本轮已完成从文章开头到「总结」的正文。
 - `video-production-process-part-2.md` 至 `part-5.md` 已完成重写，等待用户整体审阅和反馈。
 - 端到端视频生产流程已完成第一条试点的 TTS、Remotion 接入和 GitHub 工作流参数化；20 分钟轮询仍依赖当前会话或后续监控任务。
 
 ## 下一步
 
-1. 选择性提交并推送 `claude-code-api-config` 的代码、资源包和参数化工作流。
-2. 触发并检查 GitHub 冒烟 Run，下载代表帧和前 10 秒短片进行验证。
+1. 提交并推送代表帧取样修正，重新触发 GitHub 冒烟 Run。
+2. 下载新 Run 的代表帧和前 10 秒短片进行验证。
 3. 冒烟结果经人工确认后，再触发完整 MP4 渲染。
 
 ## 阻塞
@@ -45,6 +45,7 @@
 
 ## 最近验证（最近 10 条）
 
+- 2026-08-14：GitHub 冒烟 Run `31790003590` 的 17 个步骤全部成功；Artifact SHA-256 一致，三张图片为 1920×1080，短片为 H.264＋AAC、30fps、48kHz 双声道、10.048 秒；人工检查确认字体和字幕正常，但中间与最后代表帧取样过早，需修正后重跑。
 - 2026-08-14：用户人工确认 `claude-code-api-config` 的 Studio 预览没有问题，Gate 3 通过；本次确认覆盖音画同步、字幕、动画节奏、信息密度和文字溢出。
 - 2026-08-14：参数化渲染工作流通过 YAML 语法检查；资源包包含 60 个 MP3 和 14 个字幕文件且压缩完整，Timeline 自动选出的冒烟帧为 30、3374、6534；Node.js `v22.21.0` 和 `npm run check` 通过。
 - 2026-08-14：`claude-code-api-config` 使用 Node.js `v22.21.0` 通过 `npm run check`；12 个 Scene、60 个音频资源、111 条字幕 Cue、256.248 秒 Timeline 和 `+25%` 语速通过资源校验，Remotion Studio 在 3001 端口完成构建。

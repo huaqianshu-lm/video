@@ -732,7 +732,7 @@ Remotion Studio 报错：`Expected 3 explicit reveal times, received 1`。
 1. 冒烟和完整渲染工作流只接收经过格式校验的 `video_slug` 与 `composition_id`。
 2. 资源包固定使用 `assets/<video-slug>-assets.zip`，解压到 `public/local-assets/`。
 3. 预期音频数量从 `src/videos/<video-slug>/generated/audio-manifest.json` 自动统计，不再维护人工数字。
-4. 冒烟代表帧从 Timeline Manifest 的首个、中间和最后一个 Scene 自动选择，避免每条视频手工计算固定帧。
+4. 冒烟代表帧从 Timeline Manifest 的首个、中间和最后一个 Scene 自动选择，并取各 Scene 约 65% 的位置，避免截到视觉元素尚未展开的空画面，也避免每条视频手工计算固定帧。
 5. Artifact 名称和最终 MP4 路径统一由 `video_slug` 派生。
 
 ### 以后流程
