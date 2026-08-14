@@ -1,5 +1,7 @@
 import {Composition} from 'remotion';
 import {getTotalDurationFrames} from './lib/timing';
+import {ClaudeCodeApiConfigVideo} from './videos/claude-code-api-config/ClaudeCodeApiConfigVideo';
+import {videoConfig as claudeCodeApiConfig} from './videos/claude-code-api-config/video.config';
 import {ClaudeCodeInstallVideo} from './videos/claude-code-install/ClaudeCodeInstallVideo';
 import {videoConfig as claudeCodeInstallConfig} from './videos/claude-code-install/video.config';
 import {ClaudeCodeWhatIsVideo} from './videos/claude-code-what-is/ClaudeCodeWhatIsVideo';
@@ -10,6 +12,14 @@ import {getVideo14TotalDurationFrames, video14Config} from './videos/claude-code
 export const Root = () => {
   return (
     <>
+      <Composition
+        id={claudeCodeApiConfig.slug}
+        component={ClaudeCodeApiConfigVideo}
+        durationInFrames={getTotalDurationFrames(claudeCodeApiConfig)}
+        fps={claudeCodeApiConfig.fps}
+        width={claudeCodeApiConfig.width}
+        height={claudeCodeApiConfig.height}
+      />
       <Composition
         id={claudeCodeInstallConfig.slug}
         component={ClaudeCodeInstallVideo}

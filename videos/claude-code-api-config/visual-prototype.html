@@ -1,0 +1,413 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Claude Code API 配置 · Visual Prototype</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #080d18;
+        --panel: rgba(16, 25, 43, 0.94);
+        --panel-soft: rgba(23, 35, 58, 0.78);
+        --line: rgba(148, 163, 184, 0.2);
+        --text: #eef4ff;
+        --muted: #98a8c2;
+        --blue: #61a8ff;
+        --purple: #a88bff;
+        --green: #69e0a4;
+        --orange: #ffb86b;
+        --red: #ff7f9c;
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background:
+          radial-gradient(circle at 15% 10%, rgba(83, 123, 255, 0.17), transparent 31%),
+          radial-gradient(circle at 88% 84%, rgba(146, 77, 255, 0.13), transparent 29%),
+          var(--bg);
+        color: var(--text);
+        font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+      }
+
+      .app {
+        width: min(1180px, 96vw);
+        margin: 32px auto 64px;
+      }
+
+      .prototype-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
+      .prototype-header h1 { margin: 0; font-size: 20px; font-weight: 700; letter-spacing: 0; }
+
+      .stage {
+        position: relative;
+        aspect-ratio: 16 / 9;
+        overflow: hidden;
+        border: 1px solid rgba(126, 154, 213, 0.3);
+        border-radius: 20px;
+        background: linear-gradient(145deg, rgba(10, 18, 33, 0.98), rgba(11, 17, 31, 0.95));
+        box-shadow: 0 28px 80px rgba(0, 0, 0, 0.42);
+      }
+
+      .stage::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        opacity: 0.45;
+        background-image: linear-gradient(rgba(122, 153, 214, 0.035) 1px, transparent 1px), linear-gradient(90deg, rgba(122, 153, 214, 0.035) 1px, transparent 1px);
+        background-size: 42px 42px;
+      }
+
+      .topbar, .content { position: relative; z-index: 1; }
+
+      .topbar {
+        height: 12%;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 4.2%;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.13);
+      }
+
+      .brand { color: var(--blue); font: 700 clamp(10px, 1.2vw, 15px)/1 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .13em; }
+      .scene-label { color: var(--muted); font-size: clamp(10px, 1.2vw, 15px); }
+
+      .content {
+        height: 88%;
+        padding: 3.5% 5.5% 1%;
+      }
+
+      .scene { display: none; position: relative; height: 100%; padding-bottom: 9%; animation: enter .38s ease both; }
+      .scene.active { display: block; }
+      @keyframes enter { from { opacity: 0; transform: translateX(18px); } to { opacity: 1; transform: translateX(0); } }
+
+      h1 { margin: 0 0 1.8%; font-size: clamp(20px, 3vw, 38px); line-height: 1.14; letter-spacing: -.03em; }
+      .lead { margin: 0 0 3%; color: var(--muted); font-size: clamp(11px, 1.5vw, 18px); }
+      .accent { color: var(--blue); }
+      .muted { color: var(--muted); }
+      .green { color: var(--green); }
+      .orange { color: var(--orange); }
+      .red { color: var(--red); }
+      .purple { color: var(--purple); }
+
+      .grid-2, .grid-3, .grid-4 { display: grid; gap: 2.2%; height: 61%; }
+      .grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
+      .card {
+        min-width: 0;
+        min-height: 0;
+        padding: 4.5%;
+        border: 1px solid var(--line);
+        border-radius: 13px;
+        background: linear-gradient(145deg, var(--panel), rgba(13, 21, 37, .86));
+      }
+      .card h2, .card h3 { margin: 0 0 7%; font-size: clamp(13px, 1.65vw, 21px); }
+      .card p { margin: 4% 0 0; color: var(--muted); font-size: clamp(10px, 1.25vw, 15px); line-height: 1.55; }
+      .tag { display: inline-block; padding: 4px 8px; border-radius: 999px; background: rgba(97, 168, 255, .12); color: var(--blue); font: 600 clamp(9px, 1vw, 13px)/1.2 ui-monospace, SFMono-Regular, Menlo, monospace; }
+      .status { display: flex; align-items: center; gap: 8px; margin: 9% 0 0; font: 600 clamp(10px, 1.15vw, 14px)/1.3 ui-monospace, SFMono-Regular, Menlo, monospace; }
+      .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); box-shadow: 0 0 12px currentColor; }
+      .dot.orange { background: var(--orange); }
+      .dot.red { background: var(--red); }
+
+      .terminal { height: 100%; padding: 0; overflow: hidden; background: #09111d; }
+      .terminal-head { display: flex; gap: 6px; align-items: center; height: 16%; padding: 0 5%; border-bottom: 1px solid var(--line); }
+      .terminal-head i { width: 7px; height: 7px; border-radius: 50%; background: var(--red); }
+      .terminal-head i:nth-child(2) { background: var(--orange); }
+      .terminal-head i:nth-child(3) { background: var(--green); }
+      .terminal-body { padding: 6%; font: clamp(10px, 1.22vw, 15px)/1.8 ui-monospace, SFMono-Regular, Menlo, monospace; }
+      .prompt { color: var(--green); }
+      .command { color: var(--text); }
+      .output { color: var(--muted); }
+
+      .conflict { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 3%; height: 64%; }
+      .arrow { color: var(--purple); font-size: clamp(24px, 4vw, 56px); text-align: center; }
+      .big-result { margin-top: 4%; color: var(--orange); font-size: clamp(17px, 2.2vw, 29px); font-weight: 700; text-align: center; }
+
+      .path-card { display: flex; flex-direction: column; justify-content: space-between; }
+      .path-card.subscription { border-color: rgba(97, 168, 255, .48); }
+      .path-card.api { border-color: rgba(168, 139, 255, .48); }
+      .path-icon { font-size: clamp(28px, 4vw, 52px); }
+      .path-title { margin-top: 5%; font-size: clamp(16px, 2vw, 25px); font-weight: 700; }
+      .path-meta { color: var(--muted); font-size: clamp(10px, 1.25vw, 15px); line-height: 1.7; }
+
+      .flow { display: flex; align-items: stretch; gap: 1.3%; height: 58%; }
+      .flow .card { flex: 1; display: flex; flex-direction: column; justify-content: space-between; }
+      .flow-arrow { align-self: center; color: var(--blue); font-size: clamp(18px, 2.5vw, 34px); }
+
+      .credential-card { height: 70%; display: flex; align-items: center; justify-content: center; text-align: center; }
+      .credential-card strong { display: block; margin-top: 10%; font-size: clamp(14px, 1.7vw, 22px); }
+      .question { margin-top: 4%; text-align: center; color: var(--orange); font-size: clamp(18px, 2.6vw, 33px); font-weight: 700; }
+
+      .stack-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2.3fr) minmax(0, .8fr); gap: 3%; height: 68%; align-items: center; }
+      .stack { display: grid; gap: 5px; }
+      .stack-row { min-height: 34px; display: grid; grid-template-columns: 35px 1fr auto; align-items: center; gap: 8px; padding: 0 3%; border: 1px solid rgba(148, 163, 184, .23); border-radius: 7px; background: var(--panel-soft); color: var(--muted); font: clamp(9px, 1.05vw, 13px)/1 ui-monospace, SFMono-Regular, Menlo, monospace; }
+      .stack-row.hit { color: var(--text); border-color: rgba(105, 224, 164, .7); background: rgba(62, 147, 105, .2); box-shadow: 0 0 22px rgba(105, 224, 164, .12); }
+      .stack-row.low { opacity: .6; }
+      .scan { align-self: stretch; display: flex; flex-direction: column; justify-content: space-between; padding: 4% 0; color: var(--purple); font-size: clamp(11px, 1.2vw, 15px); }
+      .scan-line { height: 2px; background: var(--purple); box-shadow: 0 0 12px var(--purple); }
+      .stack-rule { align-self: center; color: var(--orange); font-size: clamp(12px, 1.5vw, 18px); line-height: 1.5; }
+
+      .before-after { display: grid; grid-template-columns: 1fr auto 1fr; gap: 2%; align-items: center; height: 62%; }
+      .state-card { padding: 5%; border: 1px solid var(--line); border-radius: 13px; background: var(--panel); }
+      .state-card h2 { margin: 0 0 10%; font-size: clamp(13px, 1.6vw, 20px); }
+      .state-line { display: flex; justify-content: space-between; gap: 8px; padding: 4% 0; border-bottom: 1px solid var(--line); font: clamp(9px, 1.1vw, 14px)/1.3 ui-monospace, SFMono-Regular, Menlo, monospace; }
+      .state-line:last-child { border-bottom: 0; }
+
+      .entry-card { text-align: center; }
+      .entry-card .entry-name { margin: 11% 0 8%; font-size: clamp(16px, 2vw, 25px); font-weight: 700; }
+      .entry-card .entry-rule { color: var(--muted); font-size: clamp(10px, 1.25vw, 15px); line-height: 1.5; }
+      .boundary { margin-top: 4%; text-align: center; color: var(--orange); font-size: clamp(11px, 1.35vw, 16px); }
+
+      .identity-model { display: grid; grid-template-columns: .85fr 1.4fr; gap: 3%; height: 63%; }
+      .model-list { display: grid; gap: 7%; }
+      .model-item { display: grid; grid-template-columns: 1fr auto; align-items: center; padding: 0 5%; border: 1px solid var(--line); border-radius: 10px; background: var(--panel-soft); }
+      .model-item strong { font-size: clamp(12px, 1.5vw, 18px); }
+      .model-item span { color: var(--muted); font-size: clamp(10px, 1.1vw, 14px); }
+      .alias-row { display: flex; justify-content: center; gap: 8px; margin-top: 1.5%; color: var(--muted); font: 600 clamp(9px, 1vw, 12px)/1.2 ui-monospace, SFMono-Regular, Menlo, monospace; }
+
+      .priority-chain { display: grid; gap: 6px; height: 65%; }
+      .priority-chain div { display: flex; align-items: center; justify-content: space-between; padding: 0 3%; border-radius: 8px; background: var(--panel-soft); border: 1px solid var(--line); font: clamp(10px, 1.15vw, 14px)/1 ui-monospace, SFMono-Regular, Menlo, monospace; }
+      .priority-chain div:first-child { border-color: rgba(105, 224, 164, .7); color: var(--green); }
+      .final-state { height: 65%; display: flex; flex-direction: column; justify-content: center; gap: 8%; }
+      .final-state .state-line { padding: 4% 0; }
+
+      .check-layout { display: grid; grid-template-columns: 1.35fr .85fr; gap: 3%; height: 66%; }
+      .check-terminal { height: 100%; }
+      .check-result { display: flex; flex-direction: column; justify-content: center; }
+      .verified { margin-top: 10%; padding: 8%; border: 1px solid rgba(105, 224, 164, .55); border-radius: 12px; background: rgba(62, 147, 105, .14); }
+      .verified strong { display: block; margin-bottom: 8%; color: var(--green); font-size: clamp(15px, 1.8vw, 23px); }
+      .summary-row { display: flex; justify-content: center; gap: 2%; margin-top: 2.3%; color: var(--muted); font-size: clamp(9px, 1.1vw, 14px); }
+      .teaser { margin: 2.2% auto 0; width: 70%; padding: 1.3% 2%; border: 1px solid rgba(168, 139, 255, .45); border-radius: 9px; text-align: center; color: var(--purple); font: 600 clamp(10px, 1.25vw, 15px)/1.2 ui-monospace, SFMono-Regular, Menlo, monospace; }
+
+      /* Scene 12 需要同时容纳验收、总结和下一篇预告，避免预告被挤出横屏画布。 */
+      .scene[data-scene="12"] h1 { margin-bottom: .7%; font-size: clamp(18px, 2.45vw, 31px); }
+      .scene[data-scene="12"] .lead { margin-bottom: 1.2%; font-size: clamp(10px, 1.2vw, 15px); }
+      .scene[data-scene="12"] .check-layout { height: 48%; gap: 2%; }
+      .scene[data-scene="12"] .check-terminal .terminal-body { padding: 3%; font-size: clamp(8px, .95vw, 12px); line-height: 1.35; }
+      .scene[data-scene="12"] .verified { margin-top: 0; padding: 5%; }
+      .scene[data-scene="12"] .summary-row { margin-top: 1%; font-size: clamp(8px, 1vw, 12px); }
+      .scene[data-scene="12"] .teaser { width: 82%; margin-top: 1%; padding: 1% 1.5%; font-size: clamp(9px, 1.05vw, 13px); }
+
+      .caption { position: absolute; left: 50%; bottom: 1.2%; transform: translateX(-50%); max-width: 84%; padding: 8px 14px; border: 1px solid rgba(255,255,255,.08); border-radius: 12px; background: rgba(6,10,18,.84); color: #dbe7fb; text-align: center; font-size: clamp(11px, 1.4vw, 17px); line-height: 1.35; white-space: nowrap; }
+
+      .controls { display: flex; align-items: center; gap: 10px; }
+      .controls button { border: 1px solid rgba(126, 154, 213, .42); border-radius: 8px; padding: 8px 12px; background: rgba(16, 25, 43, .8); color: var(--text); cursor: pointer; }
+      .controls button:hover, .controls button:focus-visible { border-color: var(--blue); outline: none; }
+      .progress { display: flex; gap: 7px; margin-top: 18px; justify-content: center; flex-wrap: wrap; }
+      .pill { width: 32px; height: 5px; border-radius: 999px; background: rgba(126,154,213,.28); }
+      .pill.active { background: var(--blue); }
+      .hint { margin: 9px 0 0; color: var(--muted); font-size: 12px; }
+    </style>
+  </head>
+  <body>
+    <main class="app">
+      <header class="prototype-header">
+        <h1>Claude Code API 配置 · 12 Scenes</h1>
+        <div class="controls" aria-label="Scene 导航">
+          <button type="button" id="previous">上一幕</button>
+          <button type="button" id="next">下一幕</button>
+          <button type="button" id="auto">自动播放</button>
+        </div>
+      </header>
+      <section class="stage" aria-live="polite">
+        <header class="topbar">
+          <div class="brand">CLAUDE CODE / API CONFIG</div>
+          <div class="scene-label" id="sceneLabel">SCENE 01 / 12</div>
+        </header>
+        <div class="content">
+          <section class="scene active" data-scene="1">
+            <h1>登录了，为什么还会产生 <span class="orange">API 费用？</span></h1>
+            <p class="lead">先看见冲突，再解释冲突。</p>
+            <div class="conflict">
+              <div class="card terminal"><div class="terminal-head"><i></i><i></i><i></i></div><div class="terminal-body"><div><span class="prompt">$</span> <span class="command">/login</span></div><div class="output">Claude subscription: <span class="green">connected</span></div></div></div>
+              <div class="arrow">≠</div>
+              <div class="card"><span class="tag">BILLING</span><h2 class="big-result">API usage</h2><p>usage continues<br /><span class="orange">$ ...</span></p><div class="status"><span class="dot orange"></span> API 费用持续增加</div></div>
+            </div>
+            <div class="big-result">登录状态 ≠ 实际生效身份</div>
+            <div class="caption">登录状态不等于实际生效身份。</div>
+          </section>
+
+          <section class="scene" data-scene="2">
+            <h1>先判断：<span class="accent">订阅</span> 还是 <span class="purple">API key</span>？</h1>
+            <p class="lead">两条路径，两种使用方式。</p>
+            <div class="grid-2">
+              <div class="card path-card subscription"><div><div class="path-icon">◉</div><div class="path-title">订阅登录</div><div class="path-meta">个人日常交互式开发<br />月度订阅 · 浏览器授权</div></div><span class="tag">日常使用</span></div>
+              <div class="card path-card api"><div><div class="path-icon purple">⌘</div><div class="path-title">API key</div><div class="path-meta">脚本 / CI / 团队按量<br />按 token 计费 · 环境变量</div></div><span class="tag" style="color:var(--purple);background:rgba(168,139,255,.13)">自动化</span></div>
+            </div>
+            <div class="caption">先根据使用场景选择路径，不要先复制命令。</div>
+          </section>
+
+          <section class="scene" data-scene="3">
+            <h1>订阅登录：<span class="accent">`claude` 到浏览器授权</span></h1>
+            <p class="lead">跨过两个界面，回到一个已授权的终端。</p>
+            <div class="flow">
+              <div class="card terminal"><div class="terminal-head"><i></i><i></i><i></i></div><div class="terminal-body"><span class="prompt">$</span> <span class="command">claude</span><div class="output">Opening browser...</div></div></div><div class="flow-arrow">→</div>
+              <div class="card"><span class="tag">BROWSER</span><h2>Claude.ai</h2><p>Sign in<br /><span class="green">Authorization complete</span></p><div class="status"><span class="dot"></span> OAuth</div></div><div class="flow-arrow">→</div>
+              <div class="card terminal"><div class="terminal-head"><i></i><i></i><i></i></div><div class="terminal-body"><div class="green">Authenticated</div><div class="output">Back to terminal</div></div></div>
+            </div>
+            <div class="alias-row"><span>复制登录链接</span><span>·</span><span>远程环境粘贴代码</span><span>·</span><span>/logout 换账号</span></div>
+            <div class="caption">订阅登录的主路径是：启动 CLI，浏览器授权，再回到终端。</div>
+          </section>
+
+          <section class="scene" data-scene="4">
+            <h1>API key：<span class="purple">Console、环境变量、批准</span></h1>
+            <p class="lead">一条独立的凭证配置链路。</p>
+            <div class="flow">
+              <div class="card"><span class="tag">01 CONSOLE</span><h2>Create API key</h2><p>生成密钥<br />只展示占位符</p><div class="status"><span class="dot"></span> Created</div></div><div class="flow-arrow">→</div>
+              <div class="card terminal"><div class="terminal-head"><i></i><i></i><i></i></div><div class="terminal-body"><div class="output">Environment</div><div class="command">ANTHROPIC_API_KEY=</div><div class="purple">sk-ant-你的密钥</div></div></div><div class="flow-arrow">→</div>
+              <div class="card"><span class="tag">03 CLAUDE CODE</span><h2>Approve key</h2><p>启动后批准一次</p><div class="status"><span class="dot"></span> Approved</div></div>
+            </div>
+            <div class="boundary red">不要写入代码 · 不要提交 Git · 不要分享真实 key</div>
+            <div class="caption">API key 的路径是：Console 创建，环境变量提供，启动时批准。</div>
+          </section>
+
+          <section class="scene" data-scene="5">
+            <h1>两条身份 <span class="orange">可以同时存在</span></h1>
+            <p class="lead">问题不是“有没有登录”，而是“谁先被读取”。</p>
+            <div class="grid-2">
+              <div class="card credential-card"><div><span class="tag">PRESENT</span><strong class="accent">OAuth subscription</strong><p>/login 已完成，但不一定命中</p></div></div>
+              <div class="card credential-card"><div><span class="tag" style="color:var(--purple);background:rgba(168,139,255,.13)">PRESENT</span><strong class="purple">ANTHROPIC_API_KEY</strong><p>环境变量也已经存在</p></div></div>
+            </div>
+            <div class="question">谁先被读取？</div>
+            <div class="caption">两个凭证可以同时存在，真正决定生效顺序的是优先级。</div>
+          </section>
+
+          <section class="scene" data-scene="6">
+            <h1>六层身份验证 <span class="accent">优先级栈</span></h1>
+            <p class="lead">从上往下找第一个有值的层。</p>
+            <div class="stack-layout">
+              <div class="scan"><span>scan ↓</span><div class="scan-line"></div><span class="muted">first PRESENT</span></div>
+              <div class="stack">
+                <div class="stack-row"><b>1</b><span>云提供商</span><small>EMPTY</small></div>
+                <div class="stack-row"><b>2</b><span>ANTHROPIC_AUTH_TOKEN</span><small>EMPTY</small></div>
+                <div class="stack-row hit"><b>3</b><span>ANTHROPIC_API_KEY</span><small>PRESENT · USED</small></div>
+                <div class="stack-row"><b>4</b><span>apiKeyHelper</span><small>EMPTY</small></div>
+                <div class="stack-row"><b>5</b><span>CLAUDE_CODE_OAUTH_TOKEN</span><small>EMPTY</small></div>
+                <div class="stack-row low"><b>6</b><span>/login 订阅</span><small>PRESENT</small></div>
+              </div>
+              <div class="stack-rule">高优先级<br /><span class="orange">覆盖</span><br />低优先级</div>
+            </div>
+            <div class="caption">Claude Code 从上往下检查，跳过空层，停在第一个有值的层。</div>
+          </section>
+
+          <section class="scene" data-scene="7">
+            <h1>为什么 API key 会 <span class="orange">盖过订阅？</span></h1>
+            <p class="lead">把优先级规则应用回开场案例。</p>
+            <div class="before-after">
+              <div class="state-card stack"><div class="stack-row"><b>1</b><span>云提供商</span><small>EMPTY</small></div><div class="stack-row"><b>2</b><span>ANTHROPIC_AUTH_TOKEN</span><small>EMPTY</small></div><div class="stack-row hit"><b>3</b><span>ANTHROPIC_API_KEY</span><small>USED</small></div><div class="stack-row"><b>4</b><span>apiKeyHelper</span><small>EMPTY</small></div><div class="stack-row"><b>5</b><span>CLAUDE_CODE_OAUTH_TOKEN</span><small>EMPTY</small></div><div class="stack-row low"><b>6</b><span>/login subscription</span><small>SKIPPED</small></div></div>
+              <div class="arrow">→</div>
+              <div class="card"><span class="tag">BILLING</span><h2 class="orange">API usage</h2><p>订阅存在<br />但没有命中</p><div class="status"><span class="dot orange"></span> 实际身份：API key</div></div>
+            </div>
+            <div class="big-result">API key 有值 → 订阅被覆盖</div>
+            <div class="caption">API key 命中第三层，底部订阅虽然存在，却被跳过。</div>
+          </section>
+
+          <section class="scene" data-scene="8">
+            <h1>切回订阅：<span class="green">先清理，再复查</span></h1>
+            <p class="lead">不是重新登录，而是移除更高优先级的覆盖源。</p>
+            <div class="before-after">
+              <div class="card terminal"><div class="terminal-head"><i></i><i></i><i></i></div><div class="terminal-body"><span class="prompt">$</span> <span class="command">unset ANTHROPIC_API_KEY</span><div class="output">$ claude</div><div class="command">/status</div></div></div>
+              <div class="arrow">→</div>
+              <div class="state-card"><h2>优先级与复查结果</h2><div class="state-line"><span>ANTHROPIC_API_KEY</span><strong class="muted">EMPTY</strong></div><div class="state-line"><span>/login subscription</span><strong class="green">USED</strong></div><div class="state-line"><span>Auth</span><strong class="green">Claude subscription</strong></div></div>
+            </div>
+            <div class="alias-row"><span>补充入口</span><span>·</span><span>/config 关闭自定义 API 密钥</span></div>
+            <div class="boundary">清除覆盖源 → `/status` 复查</div>
+            <div class="caption">清除覆盖源之后，再用 /status 复查实际身份。</div>
+          </section>
+
+          <section class="scene" data-scene="9">
+            <h1>CLI、Desktop、Web：<span class="accent">入口边界不同</span></h1>
+            <p class="lead">不同入口，不同凭证读取范围。</p>
+            <div class="grid-3">
+              <div class="card entry-card"><span class="tag">TERMINAL</span><div class="entry-name accent">CLI</div><div class="entry-rule">环境变量<br />+ OAuth</div></div>
+              <div class="card entry-card"><span class="tag">DESKTOP</span><div class="entry-name">Desktop</div><div class="entry-rule">OAuth</div></div>
+              <div class="card entry-card"><span class="tag">WEB</span><div class="entry-name purple">Web</div><div class="entry-rule">订阅凭证</div></div>
+            </div>
+            <div class="boundary">把 API key 拖到其他入口：不是同一读取范围</div>
+            <div class="caption">不同入口有不同的凭证读取范围，不要把 CLI 的规则直接套到 Desktop 或 Web。</div>
+          </section>
+
+          <section class="scene" data-scene="10">
+            <h1>身份确认后，<span class="accent">再选择模型</span></h1>
+            <p class="lead">这是两个独立的问题。</p>
+            <div class="identity-model">
+              <div class="card"><span class="tag">IDENTITY</span><h2 class="accent">Claude subscription</h2><p>用谁的额度？</p><div class="status"><span class="dot"></span> Auth verified</div></div>
+              <div class="model-list"><div class="model-item"><strong>复杂推理</strong><span class="purple">opus</span></div><div class="model-item"><strong>日常编程</strong><span class="accent">sonnet</span></div><div class="model-item"><strong>简单快速任务</strong><span class="green">haiku</span></div></div>
+            </div>
+            <div class="alias-row"><span>default</span><span>·</span><span>best</span><span>·</span><span>opusplan</span></div>
+            <div class="summary-row"><span>身份决定“用谁的额度”</span><span>·</span><span>模型决定“让谁来干活”</span></div>
+            <div class="caption">身份决定用谁的额度，模型决定让谁来干活。</div>
+          </section>
+
+          <section class="scene" data-scene="11">
+            <h1>模型配置也有自己的 <span class="purple">优先级</span></h1>
+            <p class="lead">身份链路和模型链路分别判断。</p>
+            <div class="identity-model">
+              <div class="priority-chain"><div><span>/model</span><strong class="green">最高</strong></div><div><span>claude --model</span><span>覆盖</span></div><div><span>ANTHROPIC_MODEL</span><span>覆盖</span></div><div><span>settings.json</span><span>默认</span></div></div>
+              <div class="card final-state"><span class="tag">CURRENT MODEL</span><div class="state-line"><span>Before</span><strong class="muted">default</strong></div><div class="state-line"><span>/model sonnet</span><strong class="green">sonnet</strong></div><p>/model > --model > 环境变量 > settings</p></div>
+            </div>
+            <div class="caption">模型配置的优先级是：/model &gt; --model &gt; 环境变量 &gt; settings。</div>
+          </section>
+
+          <section class="scene" data-scene="12">
+            <h1>用 <span class="accent">/status</span> 验收：不要凭感觉判断</h1>
+            <p class="lead">把身份和模型检查变成可重复执行的闭环。</p>
+            <div class="check-layout">
+              <div class="card terminal check-terminal"><div class="terminal-head"><i></i><i></i><i></i></div><div class="terminal-body"><div><span class="prompt">$</span> claude</div><div class="command">/status</div><div class="output">Auth: Claude subscription (OAuth)</div><div class="output">Model: sonnet</div><div class="command">/model</div><div class="command">echo $ANTHROPIC_API_KEY</div><div class="command">unset ANTHROPIC_API_KEY</div><div class="command">/status</div></div></div>
+              <div class="check-result"><div class="verified"><strong>✓ Status verified</strong><div class="state-line"><span>Auth</span><b>Subscription</b></div><div class="state-line"><span>Model</span><b>sonnet</b></div></div></div>
+            </div>
+            <div class="summary-row"><span>订阅在底层</span><span>·</span><span>/status 看事实</span><span>·</span><span>模型按任务选</span></div>
+            <div class="teaser">05 · 接入第三方 / 国产模型　|　ANTHROPIC_BASE_URL</div>
+            <div class="caption">不确定在用谁，就按这套闭环检查，必要时清理后再次 /status。</div>
+          </section>
+        </div>
+      </section>
+      <div class="progress" id="progress" aria-label="Scene 进度"></div>
+      <p class="hint">使用按钮或键盘 ← / → 切换。此原型用于确认横屏构图、信息层级和状态变化。</p>
+    </main>
+    <script>
+      const scenes = [...document.querySelectorAll('.scene')];
+      const label = document.querySelector('#sceneLabel');
+      const progress = document.querySelector('#progress');
+      const autoButton = document.querySelector('#auto');
+      let current = 0;
+      let timer = null;
+
+      function renderProgress() {
+        progress.innerHTML = scenes.map((_, index) => `<span class="pill ${index === current ? 'active' : ''}" title="Scene ${index + 1}"></span>`).join('');
+      }
+
+      function showScene(index) {
+        current = (index + scenes.length) % scenes.length;
+        scenes.forEach((scene, sceneIndex) => scene.classList.toggle('active', sceneIndex === current));
+        label.textContent = `SCENE ${String(current + 1).padStart(2, '0')} / ${String(scenes.length).padStart(2, '0')}`;
+        renderProgress();
+      }
+
+      function toggleAuto() {
+        if (timer) {
+          clearInterval(timer);
+          timer = null;
+          autoButton.textContent = '自动播放';
+          return;
+        }
+        timer = setInterval(() => showScene(current + 1), 4300);
+        autoButton.textContent = '停止播放';
+      }
+
+      document.querySelector('#previous').addEventListener('click', () => showScene(current - 1));
+      document.querySelector('#next').addEventListener('click', () => showScene(current + 1));
+      autoButton.addEventListener('click', toggleAuto);
+      document.addEventListener('keydown', (event) => {
+        if (event.key === 'ArrowLeft') showScene(current - 1);
+        if (event.key === 'ArrowRight') showScene(current + 1);
+      });
+      showScene(0);
+    </script>
+  </body>
+</html>

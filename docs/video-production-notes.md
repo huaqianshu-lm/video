@@ -12,6 +12,45 @@
 - 以后流程：下次如何提前避免。
 - 教程素材：可以写进文章的经验总结。
 
+## 2026-08-14：字幕 Cue 切分必须保留原文中的边界空格
+
+### 问题现象
+
+`claude-code-api-config` 的 `08-04` 原文包含 `API 密钥`。字幕生成器恰好在 `API` 与 `密钥` 之间切分 Cue，并对每条 Cue 调用 `.strip()`，导致两条 Cue 拼接后变成 `API密钥`，不再与冻结版 TTS Script 逐字一致。
+
+### 处理方式
+
+1. Cue 文本直接保留原文切片，不再删除切分边界上的空格。
+2. 重新生成 Subtitle Manifest、SRT、VTT 和 Timeline Manifest。
+3. 对全部 Segment 执行 `Cue 文本按顺序拼接 === tts-script.json text` 校验，不只检查 Cue 数量和时间。
+
+### 以后流程
+
+字幕确定性校验必须同时覆盖文本、时间和来源关系。对于中英文混排内容，尤其要检查英文缩写与中文之间的空格是否在 Cue 切分时丢失；任何 Segment 拼接不一致都应阻止回传和 Remotion 接入。
+
+## 2026-08-14：跨项目调用 TTS 要使用 TTS 项目的虚拟环境，并允许按 Segment 恢复
+
+### 问题现象
+
+Video 项目把口播稿交给独立 TTS 项目后，使用系统 `python3` 调用音频生成脚本时提示未安装 `edge-tts`；切换到 TTS 项目自带的 `.venv/bin/python` 后，生成过程中又可能因外部 TTS 连接重置而在某个 Segment 中断。
+
+### 处理方式
+
+1. 不安装或修改系统 Python，优先检查并使用 TTS 项目自己的虚拟环境。
+2. 使用 TTS 脚本的稳定 `segmentId` 和跳过已有产物能力，从失败 Segment 继续生成。
+3. 单 Segment 重试时避免立即重建完整 Manifest；等所有 Segment 完成后，再统一生成 `audio-manifest.json`、字幕 Manifest 和 Timeline Manifest。
+4. 生成完成后同时校验音频、Timing、字幕 Cue、总时长、语速参数和跨项目 Manifest 副本。
+
+### 以后流程
+
+跨项目 TTS 的实际调用顺序固定为：
+
+```text
+Video narration-script.md → TTS tts-script.json → TTS .venv/bin/python → Segment 音频／Timing → 字幕／Timeline → Video 资源回传
+```
+
+网络连接重置只重试受影响的 Segment，不重复生成已通过校验的音频；如果 TTS 项目不支持跳过和幂等，不能直接把它接入自动化流程。
+
 ## 2026-08-06：总结卡片需要早于口播开始入场
 
 当视觉卡片使用约半秒的淡入和上移动画，并且把动画起点直接绑定到对应音频 Segment 起点时，观众会感知到卡片滞后于口播。此时不应改动音频或字幕时间轴，而应让视觉锚点提前一小段时间入场。本片 Scene 12 的四张总结卡片统一提前 0.4 秒，保留动画完成时间，同时让关键词出现时卡片已经基本可见。
@@ -116,7 +155,7 @@
 检查 Word Boundary 首词 → 检查 MP3 前置静音 → 检查 volume／fade → 检查媒体预挂载与缓冲
 ```
 
-音频驱动画面不要再使用脱离语义的固定帧。应把关键视觉事件直接绑定到 Segment ID；只有同一 Segment 内部的微动画，才使用少量相对帧偏移。
+音频驱动画面不要再使用脱离语义的固定帧。应把关键视觉事件直接绑定到 Segment ID；只有同一 Segment 内部的微动画，才使用少量相对帧偏移。同一个 Segment 内连续口播了多个独立视觉项时，不要重新均匀估算时间，应使用该 Segment 返回的 Word Boundary，把每个视觉项绑定到对应关键词的局部起点。
 
 ## 2026-08-02：按 Segment 交付的 TTS 应直接驱动 Remotion 时间线
 
@@ -650,3 +689,103 @@ de
 ### 以后流程
 
 渲染包含中文的视频前，先确认执行环境具备 CJK 字体；接入逐句字幕后，同时检查 Cue 的连续性和按帧映射后的覆盖情况。
+
+## 2026-08-14：显式视觉展开时间必须匹配画面元素数量
+
+### 问题现象
+
+Remotion Studio 报错：`Expected 3 explicit reveal times, received 1`。
+
+### 根因
+
+`visualRevealSeconds` 会直接传给场景组件的 `getDistributedRevealFrames`，它要求时间数组长度等于该组件实际渲染的元素数量。例如 `OpeningScene` 有 3 张卡片，`StepListScene` 有多个步骤，`TerminalScene` 有多条输出；不能直接把 1～2 个音频 Segment 起点当成全部画面元素的展开时间。
+
+### 解决方案
+
+1. 只有显式时间点数量与场景画面元素数量完全一致时，才传入 `visualRevealSeconds`。
+2. 数量不一致时省略显式时间点，让场景组件按自己的场景时长自动均匀展开。
+3. 如果以后需要精确绑定，应先为每个视觉元素建立独立的机器可读视觉锚点，再生成与元素数量严格匹配的时间数组。
+
+## 2026-08-14：Narration Script 不能直接作为 TTS 输入
+
+### 问题现象
+
+`claude-code-api-config` 的字幕中出现了“本段口播作用：”等制作内部文字。原因是把包含口播作用说明和 Gate 检查清单的整份 `narration-script.md` 直接交给 TTS 项目解析，TTS 将这些内容生成了音频和字幕。
+
+### 根因
+
+项目既有流程明确区分 `Narration Script` 和 `TTS Script`。`narration-script.md` 是面向人工确认的口播文档，`tts-script.json` 才是交给 TTS 的清理后、机器可读输入。本次错误跳过了独立的 TTS Script 派生步骤；TTS 解析器按 Scene 下的非空段落处理，无法替制作人员判断哪些文字“不应该朗读”。
+
+### 固定规则
+
+1. `narration-script.md` 的每个 Scene 下只能保留实际口播；“本段口播作用”、视觉说明、制作备注和 Gate 检查清单不能放入 Scene 口播正文。
+2. Gate 2 通过后，先生成独立的 `tts-script.json`，再调用 TTS；不能把整份制作说明 Markdown 直接交给 TTS。
+
+## 2026-08-14：GitHub 渲染工作流应从 Manifest 派生校验和冒烟帧
+
+### 问题现象
+
+早期 GitHub Actions 工作流把视频 slug、Composition ID、资源包路径、音频数量和三张代表帧全部写死为 `claude-code-install`。制作下一条视频时，即使 Remotion 已经完成，直接触发仍会渲染旧视频。
+
+### 处理方式
+
+1. 冒烟和完整渲染工作流只接收经过格式校验的 `video_slug` 与 `composition_id`。
+2. 资源包固定使用 `assets/<video-slug>-assets.zip`，解压到 `public/local-assets/`。
+3. 预期音频数量从 `src/videos/<video-slug>/generated/audio-manifest.json` 自动统计，不再维护人工数字。
+4. 冒烟代表帧从 Timeline Manifest 的首个、中间和最后一个 Scene 自动选择，避免每条视频手工计算固定帧。
+5. Artifact 名称和最终 MP4 路径统一由 `video_slug` 派生。
+
+### 以后流程
+
+每条新视频进入远程渲染前，只需要确认 slug、Composition ID、资源压缩包和三份 Manifest 一致。首次参数化后仍必须用真实 Run 验证工作流；冒烟 Artifact 未通过人工检查前，不能触发完整渲染。
+3. 调用 TTS 前检查 `tts-script.json` 的 Segment 文本，只允许实际口播内容；检查通过后，音频、字幕和时间轴必须由同一份 TTS Script 派生。
+4. 参考 `videos/claude-code-what-is/narration-script.md` 的格式，不新增“口播作用”这类夹在口播正文中的内部标注。
+
+### 以后流程
+
+```text
+narration-script.md（纯口播、人工确认）
+  → tts-script.json（拆 Segment、清理文本、机器校验）
+  → TTS 音频／字幕／时间轴
+  → Video 项目回传与质检
+```
+
+## 2026-08-14：Visual Script 与 Visual Prototype 必须逐 Scene 对照
+
+### 检查规则
+
+Gate 2 检查 `Visual Script` 和 `Visual Prototype` 时，不能只检查 Scene 数量。还要逐 Scene 对照：
+
+1. Scene 编号、标题和顺序一致。
+2. Visual Script 中承诺的主要状态变化，在 Prototype 中有对应的可见表达；如果 Prototype 只是静态结构，不能把未实现的动作当成已验证动画。
+3. Visual Script 中列出的屏幕文字、别名和辅助标签，要么在 Prototype 中出现，要么从 Visual Script 删除，避免两个文档表达不同设计。
+4. Prototype 中每个 Scene 自带的 `.caption` 只是静态原型中的字幕效果预览，不是最终 TTS 字幕，不能把它当成字幕产物。
+5. Gate 检查结论应进入审查记录或流程状态，不要用它替代 Visual Script 中面向后续实现的全片标准和下一步说明。
+
+## 2026-08-14：新视频必须复用已验证的同名生产资料模板
+
+### 问题现象
+
+`claude-code-api-config` 的主题内容虽然成立，但 Gate 2 三份资料被重新设计成另一套格式：Narration Script 在每幕口播后加入“本段口播作用”和 Gate 检查，Visual Script 改成编号章节和简化 Scene 模板，Visual Prototype 也改用了另一套 Scene 容器、固定字幕区和编号按钮。结果是 TTS 输入边界失效，Visual Script 与 Prototype 也出现状态和标签不对应。
+
+### 根因
+
+误把“根据新原文生成内容”理解成“为新视频重新设计制作资料”。项目真正需要验证的是已有方法能否复用和打通；新主题只改变每层承载的内容，不自动授权改变文档格式、描述粒度、视觉语言和上下游契约。
+
+### 固定规则
+
+1. 在没有确认新基线前，以 `videos/claude-code-what-is/` 中的同名文件作为格式和交付基线。
+2. 新视频允许改变 Scene 数量、主题知识和具体视觉对象，但不自行改写七层资料的职责和模板。
+3. Gate 2 至少对照 Narration Script、Visual Script 和 Visual Prototype 的结构、Scene 顺序、幕内信息和交互方式。
+4. 基线无法覆盖时先停下来说明缺口，获得确认后再扩展，不能边生成边发明新模板。
+
+### 以后流程
+
+```text
+读取新原文
+  → 打开基线目录中的同名文件
+  → 保留模板和交付边界
+  → 替换并重组新主题内容
+  → 同名文件逐项回归对照
+  → 进入人工 Gate
+```

@@ -1,0 +1,1104 @@
+{
+  "schemaVersion": "1.0",
+  "videoId": "claude-code-api-config",
+  "scenes": [
+    {
+      "sceneId": "01",
+      "file": "subtitles/scene-01.json",
+      "segments": [
+        {
+          "segmentId": "01-01",
+          "audioFile": "audio/scene-01/01-01.mp3",
+          "cues": [
+            {
+              "id": "01-01-a",
+              "text": "你明明已经通过 /login 登录了 Max，",
+              "start": 0.09,
+              "end": 2.57
+            },
+            {
+              "id": "01-01-b",
+              "text": "为什么 API 账单还在持续增加？",
+              "start": 2.57,
+              "end": 5.376
+            }
+          ]
+        },
+        {
+          "segmentId": "01-02",
+          "audioFile": "audio/scene-01/01-02.mp3",
+          "cues": [
+            {
+              "id": "01-02-a",
+              "text": "问题可能不在登录，",
+              "start": 0.09,
+              "end": 1.56
+            },
+            {
+              "id": "01-02-b",
+              "text": "而在环境里还留着一个优先级更高的 API key。",
+              "start": 1.56,
+              "end": 5.208
+            }
+          ]
+        },
+        {
+          "segmentId": "01-03",
+          "audioFile": "audio/scene-01/01-03.mp3",
+          "cues": [
+            {
+              "id": "01-03-a",
+              "text": "登录进去，不等于当前用对了身份。",
+              "start": 0.09,
+              "end": 2.856
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sceneId": "02",
+      "file": "subtitles/scene-02.json",
+      "segments": [
+        {
+          "segmentId": "02-01",
+          "audioFile": "audio/scene-02/02-01.mp3",
+          "cues": [
+            {
+              "id": "02-01-a",
+              "text": "先别急着复制命令，",
+              "start": 0.09,
+              "end": 1.62
+            },
+            {
+              "id": "02-01-b",
+              "text": "先判断自己属于哪种使用场景。",
+              "start": 1.62,
+              "end": 4.32
+            }
+          ]
+        },
+        {
+          "segmentId": "02-02",
+          "audioFile": "audio/scene-02/02-02.mp3",
+          "cues": [
+            {
+              "id": "02-02-a",
+              "text": "个人日常的交互式开发，",
+              "start": 0.09,
+              "end": 1.75
+            },
+            {
+              "id": "02-02-b",
+              "text": "优先用订阅登录。",
+              "start": 1.75,
+              "end": 3.336
+            }
+          ]
+        },
+        {
+          "segmentId": "02-03",
+          "audioFile": "audio/scene-02/02-03.mp3",
+          "cues": [
+            {
+              "id": "02-03-a",
+              "text": "要嵌进脚本、CI，",
+              "start": 0.09,
+              "end": 1.8
+            },
+            {
+              "id": "02-03-b",
+              "text": "或者按团队用量结算，",
+              "start": 1.8,
+              "end": 3.36
+            },
+            {
+              "id": "02-03-c",
+              "text": "才考虑 API key。",
+              "start": 3.36,
+              "end": 5.088
+            }
+          ]
+        },
+        {
+          "segmentId": "02-04",
+          "audioFile": "audio/scene-02/02-04.mp3",
+          "cues": [
+            {
+              "id": "02-04-a",
+              "text": "它们不是同一套账，",
+              "start": 0.09,
+              "end": 1.39
+            },
+            {
+              "id": "02-04-b",
+              "text": "也不是同一种使用方式。",
+              "start": 1.39,
+              "end": 3.288
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sceneId": "03",
+      "file": "subtitles/scene-03.json",
+      "segments": [
+        {
+          "segmentId": "03-01",
+          "audioFile": "audio/scene-03/03-01.mp3",
+          "cues": [
+            {
+              "id": "03-01-a",
+              "text": "如果你是个人订阅用户，",
+              "start": 0.09,
+              "end": 1.69
+            },
+            {
+              "id": "03-01-b",
+              "text": "装好 Claude Code 后直接运行 claude。",
+              "start": 1.69,
+              "end": 4.272
+            }
+          ]
+        },
+        {
+          "segmentId": "03-02",
+          "audioFile": "audio/scene-03/03-02.mp3",
+          "cues": [
+            {
+              "id": "03-02-a",
+              "text": "首次启动会打开浏览器，",
+              "start": 0.09,
+              "end": 2.15
+            },
+            {
+              "id": "03-02-b",
+              "text": "登录 Claude.ai，",
+              "start": 2.15,
+              "end": 3.66
+            },
+            {
+              "id": "03-02-c",
+              "text": "完成授权后回到终端。",
+              "start": 3.66,
+              "end": 5.688
+            }
+          ]
+        },
+        {
+          "segmentId": "03-03",
+          "audioFile": "audio/scene-03/03-03.mp3",
+          "cues": [
+            {
+              "id": "03-03-a",
+              "text": "如果浏览器没有自动打开，",
+              "start": 0.09,
+              "end": 1.93
+            },
+            {
+              "id": "03-03-b",
+              "text": "可以复制链接。",
+              "start": 1.93,
+              "end": 3.264
+            }
+          ]
+        },
+        {
+          "segmentId": "03-04",
+          "audioFile": "audio/scene-03/03-04.mp3",
+          "cues": [
+            {
+              "id": "03-04-a",
+              "text": "在远程环境里，也可能需要把登录代码粘贴回终端。",
+              "start": 0.09,
+              "end": 3.96
+            }
+          ]
+        },
+        {
+          "segmentId": "03-05",
+          "audioFile": "audio/scene-03/03-05.mp3",
+          "cues": [
+            {
+              "id": "03-05-a",
+              "text": "需要换账号时，先使用 /logout。",
+              "start": 0.09,
+              "end": 2.76
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sceneId": "04",
+      "file": "subtitles/scene-04.json",
+      "segments": [
+        {
+          "segmentId": "04-01",
+          "audioFile": "audio/scene-04/04-01.mp3",
+          "cues": [
+            {
+              "id": "04-01-a",
+              "text": "需要 API key 时，",
+              "start": 0.09,
+              "end": 1.63
+            },
+            {
+              "id": "04-01-b",
+              "text": "先在 Claude Console 创建密钥。",
+              "start": 1.63,
+              "end": 3.84
+            }
+          ]
+        },
+        {
+          "segmentId": "04-02",
+          "audioFile": "audio/scene-04/04-02.mp3",
+          "cues": [
+            {
+              "id": "04-02-a",
+              "text": "再把它配置到 ANTHROPIC_API_KEY，",
+              "start": 0.09,
+              "end": 3.59
+            },
+            {
+              "id": "04-02-b",
+              "text": "启动 Claude Code 后批准一次。",
+              "start": 3.59,
+              "end": 5.856
+            }
+          ]
+        },
+        {
+          "segmentId": "04-03",
+          "audioFile": "audio/scene-04/04-03.mp3",
+          "cues": [
+            {
+              "id": "04-03-a",
+              "text": "注意，密钥本身就是钱。",
+              "start": 0.09,
+              "end": 2.16
+            }
+          ]
+        },
+        {
+          "segmentId": "04-04",
+          "audioFile": "audio/scene-04/04-04.mp3",
+          "cues": [
+            {
+              "id": "04-04-a",
+              "text": "不要写进代码，不要提交 Git，",
+              "start": 0.09,
+              "end": 2.23
+            },
+            {
+              "id": "04-04-b",
+              "text": "也不要贴进可分享的文件。",
+              "start": 2.23,
+              "end": 4.296
+            }
+          ]
+        },
+        {
+          "segmentId": "04-05",
+          "audioFile": "audio/scene-04/04-05.mp3",
+          "cues": [
+            {
+              "id": "04-05-a",
+              "text": "画面里的 key 只能是占位符，",
+              "start": 0.09,
+              "end": 2.03
+            },
+            {
+              "id": "04-05-b",
+              "text": "不能使用真实密钥。",
+              "start": 2.03,
+              "end": 3.696
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sceneId": "05",
+      "file": "subtitles/scene-05.json",
+      "segments": [
+        {
+          "segmentId": "05-01",
+          "audioFile": "audio/scene-05/05-01.mp3",
+          "cues": [
+            {
+              "id": "05-01-a",
+              "text": "真正容易出问题的地方在这里：",
+              "start": 0.09,
+              "end": 2.13
+            },
+            {
+              "id": "05-01-b",
+              "text": "订阅凭证和 API key 可以同时存在。",
+              "start": 2.13,
+              "end": 5.376
+            }
+          ]
+        },
+        {
+          "segmentId": "05-02",
+          "audioFile": "audio/scene-05/05-02.mp3",
+          "cues": [
+            {
+              "id": "05-02-a",
+              "text": "你可能已经登录了订阅，",
+              "start": 0.09,
+              "end": 1.63
+            },
+            {
+              "id": "05-02-b",
+              "text": "但环境变量里仍然有 API key。",
+              "start": 1.63,
+              "end": 4.344
+            }
+          ]
+        },
+        {
+          "segmentId": "05-03",
+          "audioFile": "audio/scene-05/05-03.mp3",
+          "cues": [
+            {
+              "id": "05-03-a",
+              "text": "接下来决定实际身份的，",
+              "start": 0.09,
+              "end": 1.85
+            },
+            {
+              "id": "05-03-b",
+              "text": "就不是你的主观选择，",
+              "start": 1.85,
+              "end": 3.34
+            },
+            {
+              "id": "05-03-c",
+              "text": "而是凭证的优先级。",
+              "start": 3.34,
+              "end": 5.088
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sceneId": "06",
+      "file": "subtitles/scene-06.json",
+      "segments": [
+        {
+          "segmentId": "06-01",
+          "audioFile": "audio/scene-06/06-01.mp3",
+          "cues": [
+            {
+              "id": "06-01-a",
+              "text": "源文档给出的身份优先级，",
+              "start": 0.09,
+              "end": 2.02
+            },
+            {
+              "id": "06-01-b",
+              "text": "从高到低共有六层。",
+              "start": 2.02,
+              "end": 3.912
+            }
+          ]
+        },
+        {
+          "segmentId": "06-02",
+          "audioFile": "audio/scene-06/06-02.mp3",
+          "cues": [
+            {
+              "id": "06-02-a",
+              "text": "最上面是云提供商。",
+              "start": 0.09,
+              "end": 1.848
+            }
+          ]
+        },
+        {
+          "segmentId": "06-03",
+          "audioFile": "audio/scene-06/06-03.mp3",
+          "cues": [
+            {
+              "id": "06-03-a",
+              "text": "接下来依次是 ANTHROPIC_AUTH_TOKEN、",
+              "start": 0.09,
+              "end": 3.75
+            },
+            {
+              "id": "06-03-b",
+              "text": "ANTHROPIC_API_KEY、",
+              "start": 3.75,
+              "end": 6.3
+            },
+            {
+              "id": "06-03-c",
+              "text": "apiKeyHelper 和 CLAUDE_CODE_OAUTH",
+              "start": 6.3,
+              "end": 9.85
+            },
+            {
+              "id": "06-03-d",
+              "text": "_TOKEN。",
+              "start": 9.85,
+              "end": 11.184
+            }
+          ]
+        },
+        {
+          "segmentId": "06-04",
+          "audioFile": "audio/scene-06/06-04.mp3",
+          "cues": [
+            {
+              "id": "06-04-a",
+              "text": "最后才是 /login 的订阅凭证。",
+              "start": 0.09,
+              "end": 2.472
+            }
+          ]
+        },
+        {
+          "segmentId": "06-05",
+          "audioFile": "audio/scene-06/06-05.mp3",
+          "cues": [
+            {
+              "id": "06-05-a",
+              "text": "Claude Code 会从上往下检查，",
+              "start": 0.09,
+              "end": 2.15
+            },
+            {
+              "id": "06-05-b",
+              "text": "跳过空层，停在第一个有值的层。",
+              "start": 2.15,
+              "end": 4.752
+            }
+          ]
+        },
+        {
+          "segmentId": "06-06",
+          "audioFile": "audio/scene-06/06-06.mp3",
+          "cues": [
+            {
+              "id": "06-06-a",
+              "text": "越靠上的凭证，越可能覆盖下面的凭证。",
+              "start": 0.09,
+              "end": 3.216
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sceneId": "07",
+      "file": "subtitles/scene-07.json",
+      "segments": [
+        {
+          "segmentId": "07-01",
+          "audioFile": "audio/scene-07/07-01.mp3",
+          "cues": [
+            {
+              "id": "07-01-a",
+              "text": "回到开场那个案例。",
+              "start": 0.09,
+              "end": 1.8
+            }
+          ]
+        },
+        {
+          "segmentId": "07-02",
+          "audioFile": "audio/scene-07/07-02.mp3",
+          "cues": [
+            {
+              "id": "07-02-a",
+              "text": "上面的几层大多为空，",
+              "start": 0.09,
+              "end": 1.7
+            },
+            {
+              "id": "07-02-b",
+              "text": "但第三层 ANTHROPIC_API_KEY 有值，",
+              "start": 1.7,
+              "end": 5.38
+            },
+            {
+              "id": "07-02-c",
+              "text": "所以扫描到这里就停下来了。",
+              "start": 5.38,
+              "end": 7.608
+            }
+          ]
+        },
+        {
+          "segmentId": "07-03",
+          "audioFile": "audio/scene-07/07-03.mp3",
+          "cues": [
+            {
+              "id": "07-03-a",
+              "text": "底部的订阅凭证虽然仍然存在，",
+              "start": 0.09,
+              "end": 2.45
+            },
+            {
+              "id": "07-03-b",
+              "text": "却没有成为实际使用的身份。",
+              "start": 2.45,
+              "end": 4.608
+            }
+          ]
+        },
+        {
+          "segmentId": "07-04",
+          "audioFile": "audio/scene-07/07-04.mp3",
+          "cues": [
+            {
+              "id": "07-04-a",
+              "text": "这就是为什么 Max 已经登录，",
+              "start": 0.09,
+              "end": 2.02
+            },
+            {
+              "id": "07-04-b",
+              "text": "账单却还是走 API。",
+              "start": 2.02,
+              "end": 4.104
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sceneId": "08",
+      "file": "subtitles/scene-08.json",
+      "segments": [
+        {
+          "segmentId": "08-01",
+          "audioFile": "audio/scene-08/08-01.mp3",
+          "cues": [
+            {
+              "id": "08-01-a",
+              "text": "想切回订阅，就先清掉覆盖订阅的环境变量：",
+              "start": 0.09,
+              "end": 3.42
+            },
+            {
+              "id": "08-01-b",
+              "text": "unset ANTHROPIC_API_KEY。",
+              "start": 3.42,
+              "end": 6.984
+            }
+          ]
+        },
+        {
+          "segmentId": "08-02",
+          "audioFile": "audio/scene-08/08-02.mp3",
+          "cues": [
+            {
+              "id": "08-02-a",
+              "text": "这一步不是重新登录，",
+              "start": 0.09,
+              "end": 1.78
+            },
+            {
+              "id": "08-02-b",
+              "text": "而是移除更高优先级的覆盖源。",
+              "start": 1.78,
+              "end": 4.2
+            }
+          ]
+        },
+        {
+          "segmentId": "08-03",
+          "audioFile": "audio/scene-08/08-03.mp3",
+          "cues": [
+            {
+              "id": "08-03-a",
+              "text": "然后重新进入 Claude Code，",
+              "start": 0.09,
+              "end": 1.98
+            },
+            {
+              "id": "08-03-b",
+              "text": "用 /status 查看实际身份。",
+              "start": 1.98,
+              "end": 4.224
+            }
+          ]
+        },
+        {
+          "segmentId": "08-04",
+          "audioFile": "audio/scene-08/08-04.mp3",
+          "cues": [
+            {
+              "id": "08-04-a",
+              "text": "交互模式里，也可以在 /config 关闭“使用自定义 API ",
+              "start": 0.09,
+              "end": 3.79
+            },
+            {
+              "id": "08-04-b",
+              "text": "密钥”的开关。",
+              "start": 3.79,
+              "end": 4.992
+            }
+          ]
+        },
+        {
+          "segmentId": "08-05",
+          "audioFile": "audio/scene-08/08-05.mp3",
+          "cues": [
+            {
+              "id": "08-05-a",
+              "text": "清理之后一定要复查，",
+              "start": 0.09,
+              "end": 1.69
+            },
+            {
+              "id": "08-05-b",
+              "text": "不要只凭命令执行成功就下结论。",
+              "start": 1.69,
+              "end": 4.44
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sceneId": "09",
+      "file": "subtitles/scene-09.json",
+      "segments": [
+        {
+          "segmentId": "09-01",
+          "audioFile": "audio/scene-09/09-01.mp3",
+          "cues": [
+            {
+              "id": "09-01-a",
+              "text": "还要注意入口边界。",
+              "start": 0.09,
+              "end": 1.776
+            }
+          ]
+        },
+        {
+          "segmentId": "09-02",
+          "audioFile": "audio/scene-09/09-02.mp3",
+          "cues": [
+            {
+              "id": "09-02-a",
+              "text": "源文档区分了 CLI、",
+              "start": 0.09,
+              "end": 1.81
+            },
+            {
+              "id": "09-02-b",
+              "text": "Desktop 和 Web。",
+              "start": 1.81,
+              "end": 3.36
+            }
+          ]
+        },
+        {
+          "segmentId": "09-03",
+          "audioFile": "audio/scene-09/09-03.mp3",
+          "cues": [
+            {
+              "id": "09-03-a",
+              "text": "终端 CLI 会读取相关环境变量。",
+              "start": 0.09,
+              "end": 3.168
+            }
+          ]
+        },
+        {
+          "segmentId": "09-04",
+          "audioFile": "audio/scene-09/09-04.mp3",
+          "cues": [
+            {
+              "id": "09-04-a",
+              "text": "Desktop 和远程会话只认 OAuth。",
+              "start": 0.09,
+              "end": 3.048
+            }
+          ]
+        },
+        {
+          "segmentId": "09-05",
+          "audioFile": "audio/scene-09/09-05.mp3",
+          "cues": [
+            {
+              "id": "09-05-a",
+              "text": "Claude Code on the Web 使用订阅凭证。",
+              "start": 0.09,
+              "end": 2.688
+            }
+          ]
+        },
+        {
+          "segmentId": "09-06",
+          "audioFile": "audio/scene-09/09-06.mp3",
+          "cues": [
+            {
+              "id": "09-06-a",
+              "text": "不要把一个入口的配置方式直接套到另一个入口，",
+              "start": 0.09,
+              "end": 3.29
+            },
+            {
+              "id": "09-06-b",
+              "text": "然后再把“不生效”误判成配置失败。",
+              "start": 3.29,
+              "end": 6.0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sceneId": "10",
+      "file": "subtitles/scene-10.json",
+      "segments": [
+        {
+          "segmentId": "10-01",
+          "audioFile": "audio/scene-10/10-01.mp3",
+          "cues": [
+            {
+              "id": "10-01-a",
+              "text": "身份确认之后，还有一个独立问题：",
+              "start": 0.09,
+              "end": 2.57
+            },
+            {
+              "id": "10-01-b",
+              "text": "让它用哪个模型。",
+              "start": 2.57,
+              "end": 4.056
+            }
+          ]
+        },
+        {
+          "segmentId": "10-02",
+          "audioFile": "audio/scene-10/10-02.mp3",
+          "cues": [
+            {
+              "id": "10-02-a",
+              "text": "可以把 Opus 看成处理复杂问题的资深工程师。",
+              "start": 0.09,
+              "end": 3.648
+            }
+          ]
+        },
+        {
+          "segmentId": "10-03",
+          "audioFile": "audio/scene-10/10-03.mp3",
+          "cues": [
+            {
+              "id": "10-03-a",
+              "text": "Sonnet 是日常主力。",
+              "start": 0.09,
+              "end": 2.04
+            }
+          ]
+        },
+        {
+          "segmentId": "10-04",
+          "audioFile": "audio/scene-10/10-04.mp3",
+          "cues": [
+            {
+              "id": "10-04-a",
+              "text": "Haiku 适合简单快速的任务。",
+              "start": 0.09,
+              "end": 2.472
+            }
+          ]
+        },
+        {
+          "segmentId": "10-05",
+          "audioFile": "audio/scene-10/10-05.mp3",
+          "cues": [
+            {
+              "id": "10-05-a",
+              "text": "常用别名包括 default、",
+              "start": 0.09,
+              "end": 1.79
+            },
+            {
+              "id": "10-05-b",
+              "text": "opus、sonnet、",
+              "start": 1.79,
+              "end": 3.12
+            },
+            {
+              "id": "10-05-c",
+              "text": "haiku、best 和 opusplan。",
+              "start": 3.12,
+              "end": 5.28
+            }
+          ]
+        },
+        {
+          "segmentId": "10-06",
+          "audioFile": "audio/scene-10/10-06.mp3",
+          "cues": [
+            {
+              "id": "10-06-a",
+              "text": "身份决定用谁的额度，",
+              "start": 0.09,
+              "end": 1.78
+            },
+            {
+              "id": "10-06-b",
+              "text": "模型决定让谁来干活。",
+              "start": 1.78,
+              "end": 3.84
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sceneId": "11",
+      "file": "subtitles/scene-11.json",
+      "segments": [
+        {
+          "segmentId": "11-01",
+          "audioFile": "audio/scene-11/11-01.mp3",
+          "cues": [
+            {
+              "id": "11-01-a",
+              "text": "模型也不是只在一个地方设置。",
+              "start": 0.09,
+              "end": 2.664
+            }
+          ]
+        },
+        {
+          "segmentId": "11-02",
+          "audioFile": "audio/scene-11/11-02.mp3",
+          "cues": [
+            {
+              "id": "11-02-a",
+              "text": "源文档给出的优先级是：",
+              "start": 0.09,
+              "end": 1.88
+            },
+            {
+              "id": "11-02-b",
+              "text": "会话内的 /model 最高。",
+              "start": 1.88,
+              "end": 3.792
+            }
+          ]
+        },
+        {
+          "segmentId": "11-03",
+          "audioFile": "audio/scene-11/11-03.mp3",
+          "cues": [
+            {
+              "id": "11-03-a",
+              "text": "其次是 claude --model、",
+              "start": 0.09,
+              "end": 1.51
+            },
+            {
+              "id": "11-03-b",
+              "text": "环境变量 ANTHROPIC_MODEL，",
+              "start": 1.51,
+              "end": 3.91
+            },
+            {
+              "id": "11-03-c",
+              "text": "最后是 settings.json。",
+              "start": 3.91,
+              "end": 6.168
+            }
+          ]
+        },
+        {
+          "segmentId": "11-04",
+          "audioFile": "audio/scene-11/11-04.mp3",
+          "cues": [
+            {
+              "id": "11-04-a",
+              "text": "所以，身份优先级和模型优先级",
+              "start": 0.09,
+              "end": 2.88
+            },
+            {
+              "id": "11-04-b",
+              "text": "要分别理解。",
+              "start": 2.88,
+              "end": 4.2
+            }
+          ]
+        },
+        {
+          "segmentId": "11-05",
+          "audioFile": "audio/scene-11/11-05.mp3",
+          "cues": [
+            {
+              "id": "11-05-a",
+              "text": "前者回答“用谁的额度”，",
+              "start": 0.09,
+              "end": 1.76
+            },
+            {
+              "id": "11-05-b",
+              "text": "后者回答“实际运行哪个模型”。",
+              "start": 1.76,
+              "end": 4.2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sceneId": "12",
+      "file": "subtitles/scene-12.json",
+      "segments": [
+        {
+          "segmentId": "12-01",
+          "audioFile": "audio/scene-12/12-01.mp3",
+          "cues": [
+            {
+              "id": "12-01-a",
+              "text": "最后实际检查一次。",
+              "start": 0.09,
+              "end": 1.848
+            }
+          ]
+        },
+        {
+          "segmentId": "12-02",
+          "audioFile": "audio/scene-12/12-02.mp3",
+          "cues": [
+            {
+              "id": "12-02-a",
+              "text": "进入 claude，用 /status 查看当前账户、",
+              "start": 0.09,
+              "end": 3.04
+            },
+            {
+              "id": "12-02-b",
+              "text": "身份和模型。",
+              "start": 3.04,
+              "end": 4.416
+            }
+          ]
+        },
+        {
+          "segmentId": "12-03",
+          "audioFile": "audio/scene-12/12-03.mp3",
+          "cues": [
+            {
+              "id": "12-03-a",
+              "text": "用 /model 查看或切换模型。",
+              "start": 0.09,
+              "end": 2.472
+            }
+          ]
+        },
+        {
+          "segmentId": "12-04",
+          "audioFile": "audio/scene-12/12-04.mp3",
+          "cues": [
+            {
+              "id": "12-04-a",
+              "text": "退出后检查 ANTHROPIC_API_KEY，",
+              "start": 0.09,
+              "end": 3.62
+            },
+            {
+              "id": "12-04-b",
+              "text": "必要时执行 unset，",
+              "start": 3.62,
+              "end": 5.06
+            },
+            {
+              "id": "12-04-c",
+              "text": "再回到 Claude Code 用 /status 复查。",
+              "start": 5.06,
+              "end": 7.656
+            }
+          ]
+        },
+        {
+          "segmentId": "12-05",
+          "audioFile": "audio/scene-12/12-05.mp3",
+          "cues": [
+            {
+              "id": "12-05-a",
+              "text": "你能说清楚当前用的是订阅还是 API key，",
+              "start": 0.09,
+              "end": 3.36
+            },
+            {
+              "id": "12-05-b",
+              "text": "运行的是哪个模型，",
+              "start": 3.36,
+              "end": 4.74
+            },
+            {
+              "id": "12-05-c",
+              "text": "这篇的核心目标就完成了。",
+              "start": 4.74,
+              "end": 6.768
+            }
+          ]
+        },
+        {
+          "segmentId": "12-06",
+          "audioFile": "audio/scene-12/12-06.mp3",
+          "cues": [
+            {
+              "id": "12-06-a",
+              "text": "下一条视频会继续解决一个自然延伸的问题。",
+              "start": 0.09,
+              "end": 3.672
+            }
+          ]
+        },
+        {
+          "segmentId": "12-07",
+          "audioFile": "audio/scene-12/12-07.mp3",
+          "cues": [
+            {
+              "id": "12-07-a",
+              "text": "既然请求可以通过不同身份发送，",
+              "start": 0.09,
+              "end": 2.37
+            },
+            {
+              "id": "12-07-b",
+              "text": "能不能把 Claude Code 接到第三方或国产模型？",
+              "start": 2.37,
+              "end": 5.76
+            }
+          ]
+        },
+        {
+          "segmentId": "12-08",
+          "audioFile": "audio/scene-12/12-08.mp3",
+          "cues": [
+            {
+              "id": "12-08-a",
+              "text": "线索是 ANTHROPIC_BASE_URL 改变请求",
+              "start": 0.09,
+              "end": 4.08
+            },
+            {
+              "id": "12-08-b",
+              "text": "发到哪里，而不是改变用哪个模型。",
+              "start": 4.08,
+              "end": 6.84
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
