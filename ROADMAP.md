@@ -14,6 +14,7 @@
 - 2026-08-14：补充字幕生成规则；字幕去掉句末标点、保留句内标点，且不修改 TTS 朗读文本、音频或时间轴，已同步到项目规范与流程说明。
 - 2026-08-14：完成 `claude-code-third-party-models` 的 Remotion Composition 接入；48 个音频轨道、156 条顶层字幕 Cue、9 个 Scene 和 396.192 秒时间轴均已接入，并移除不属于本片内容的通用顶部进度线。
 - 2026-08-14：发现并定位 `ComparisonScene` 中残留的 `copy-paste loop`／“来回搬运上下文”固定文案；已改为由每个对比列显式提供本片相关的工作流标题和状态。
+- 2026-08-14：将画面文字语义归属和最终输出清洁检查写入项目规范；Gate 2、Gate 3、Smoke Render 和 Gate 4 均须检查无参考视频残留文案及预览辅助内容。
 - 2026-08-14：完成 `claude-code-third-party-models` 的纯口播稿、Visual Script 和 9 Scene 横屏 Visual Prototype；口播正文、原型脚本、导航和幕内字幕结构均通过确定性检查。
 - 2026-08-14：完成 `claude-code-third-party-models` 的 `tts-script.json`；9 个 Scene、48 个 Segment 与纯口播稿逐段一致，未包含视觉或制作说明。
 - 2026-08-14：完成 `claude-code-third-party-models` 的 Source、Content Analysis、Video Narrative 和 Scene Script；9 个 Scene 已通过字段完整性、内容覆盖和基线结构检查。
@@ -52,6 +53,7 @@
 - narrated 视频 TTS 默认使用 `+25%` 语速；生成前显式校验 TTS 参数，字幕和时间轴必须基于加速后的实际音频重新生成。当前 `claude-code-third-party-models` 的 `+0%` 资源保持不变。
 - Linux 渲染必须安装并校验 CJK 字体；字幕必须放在明确的顶层 overlay；字幕 Cue 应按帧边界判断，不直接依赖浮点秒数。
 - 字幕、音频、场景节奏和 Remotion 配置的完整经验统一查阅 `docs/video-production-notes.md`，不在 Roadmap 重复记录。
+- 画面文字必须能追溯到当前视频生产资料；预览导航、调试标记和辅助说明不得进入最终 MP4，具体检查要求见 `CLAUDE.md` 和 `docs/video-production-notes.md`。
 
 ## 最近验证（最近 10 条）
 
