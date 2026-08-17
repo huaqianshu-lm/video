@@ -6,6 +6,8 @@ import {ClaudeCodeInstallVideo} from './videos/claude-code-install/ClaudeCodeIns
 import {videoConfig as claudeCodeInstallConfig} from './videos/claude-code-install/video.config';
 import {ClaudeCodeThirdPartyModelsVideo} from './videos/claude-code-third-party-models/ClaudeCodeThirdPartyModelsVideo';
 import {videoConfig as claudeCodeThirdPartyModelsConfig} from './videos/claude-code-third-party-models/video.config';
+import {ClaudeCodeCodingPlanVideo} from './videos/claude-code-coding-plan/ClaudeCodeCodingPlanVideo';
+import {videoConfig as claudeCodeCodingPlanConfig} from './videos/claude-code-coding-plan/video.config';
 import {ClaudeCodeWhatIsVideo} from './videos/claude-code-what-is/ClaudeCodeWhatIsVideo';
 import {ClaudeCodeWhatIsVideo14} from './videos/claude-code-what-is/ClaudeCodeWhatIsVideo14';
 import {videoConfig} from './videos/claude-code-what-is/video.config';
@@ -37,6 +39,14 @@ export const Root = () => {
         fps={claudeCodeThirdPartyModelsConfig.fps}
         width={claudeCodeThirdPartyModelsConfig.width}
         height={claudeCodeThirdPartyModelsConfig.height}
+      />
+      <Composition
+        id={claudeCodeCodingPlanConfig.slug}
+        component={ClaudeCodeCodingPlanVideo}
+        durationInFrames={getTotalDurationFrames(claudeCodeCodingPlanConfig)}
+        fps={claudeCodeCodingPlanConfig.fps}
+        width={claudeCodeCodingPlanConfig.width}
+        height={claudeCodeCodingPlanConfig.height}
       />
       <Composition
         id={`${videoConfig.slug}-legacy`}

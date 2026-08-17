@@ -19,6 +19,23 @@ export const SummaryScene = ({scene}: SummarySceneProps) => {
   const summaryStartFrame = Math.round(scene.durationSeconds * fps * 0.12);
   const summaryEndFrame = summaryStartFrame + Math.round(fps * 0.7);
   const roleCards = getRoleCards(scene);
+  const teaserStartFrame = Math.max(
+    summaryEndFrame + Math.round(fps * 1.2),
+    Math.round(scene.durationSeconds * fps * 0.72),
+  );
+  const teaser = scene.teaser;
+  const summaryCardsOpacity = teaser
+    ? interpolate(frame, [teaserStartFrame - Math.round(fps * 0.7), teaserStartFrame], [1, 0], {
+        extrapolateLeft: 'clamp',
+        extrapolateRight: 'clamp',
+      })
+    : 1;
+  const teaserOpacity = teaser
+    ? interpolate(frame, [teaserStartFrame, teaserStartFrame + Math.round(fps * 0.7)], [0, 1], {
+        extrapolateLeft: 'clamp',
+        extrapolateRight: 'clamp',
+      })
+    : 0;
   const bulletRevealFrames = getDistributedRevealFrames({
     count: roleCards.length,
     durationSeconds: scene.durationSeconds,
@@ -80,6 +97,7 @@ export const SummaryScene = ({scene}: SummarySceneProps) => {
               gap: 18,
               gridTemplateColumns: '1fr 1fr 1fr',
               margin: '58px auto 0',
+              opacity: summaryCardsOpacity,
               width: '100%',
             }}
           >
@@ -152,6 +170,35 @@ export const SummaryScene = ({scene}: SummarySceneProps) => {
               );
             })}
           </div>
+          {teaser ? (
+            <VisualCard
+              active
+              style={{
+                alignSelf: 'center',
+                marginTop: 28,
+                maxWidth: 1080,
+                opacity: teaserOpacity,
+                padding: '30px 42px',
+                textAlign: 'left',
+                transform: `translateY(${(1 - teaserOpacity) * 18}px)`,
+              }}
+            >
+              {teaser.label ? <StatusChip active tone={teaser.tone}>{teaser.label}</StatusChip> : null}
+              <div style={{color: colors.accent, fontSize: 38, fontWeight: 860, lineHeight: 1.2, marginTop: 14}}>
+                {teaser.title}
+              </div>
+              {teaser.description ? (
+                <div style={{color: colors.text, fontSize: 25, fontWeight: 650, lineHeight: 1.4, marginTop: 12}}>
+                  {teaser.description}
+                </div>
+              ) : null}
+              {teaser.items ? (
+                <div style={{color: colors.muted, display: 'flex', gap: 24, fontSize: 20, fontWeight: 700, marginTop: 16}}>
+                  {teaser.items.map((item) => <span key={item}>• {item}</span>)}
+                </div>
+              ) : null}
+            </VisualCard>
+          ) : null}
         </div>
       </SceneContainer>
       {scene.showCaption !== false ? <Caption lines={scene.caption} durationSeconds={scene.durationSeconds} /> : null}
