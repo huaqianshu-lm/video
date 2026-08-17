@@ -95,6 +95,7 @@ export type SummarySceneConfig = BaseSceneConfig & {
   bullets: string[];
   highlight: string;
   roleCards?: VisualBeat[];
+  teaser?: VisualBeat;
 };
 
 export type SceneConfig =
