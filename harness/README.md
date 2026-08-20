@@ -80,6 +80,18 @@ source
 - `claude-code-how-it-works` 等真实视频不会因为 Harness 测试被修改。
 - 真实工具适配至少完成一次受控 Smoke Render 验收后，才能宣称渲染适配可用。
 
+## 第一版验收状态
+
+Harness 0.1 已完成以下验证：
+
+- 阶段状态、产物清单、前置校验、Gate 审批／驳回、失败重试和断点续做：自动化测试通过。
+- Mock 流程：从初始化到 Gate 4 的完整流程通过。
+- GitHub Actions 真实适配器：已成功触发 `smoke-test-video.yml` 和 `render-video.yml`，并返回 Run 与 Artifact 元数据。
+- 真实视频只读回归：`claude-code-how-it-works`、`claude-code-first-run`、`claude-code-coding-plan` 和 `claude-code-third-party-models` 的 Source 至 Remotion 产物检查通过，目标视频目录未被修改。
+- `claude-code-how-it-works`：Smoke Render、完整 Render 和最终 Gate 4 已完成；完整 MP4 仍由 GitHub Actions Artifact 交付，不写入本机 `out/`。
+
+真实视频的画面、声音、字幕和最终交付质量仍由人工 Gate 确认，Harness 不替代人工判断。
+
 ## 实现顺序
 
 1. 状态模型、配置和产物清单。
@@ -98,3 +110,35 @@ npm test --prefix harness
 ```
 
 测试使用 Node 原生测试运行器和系统临时目录，不调用真实 TTS、GitHub Actions 或本机 MP4 渲染。
+
+## CLI 使用
+
+初始化和查看项目状态：
+
+```bash
+node harness/src/cli.mjs init <video-slug>
+node harness/src/cli.mjs status <video-slug>
+node harness/src/cli.mjs validate <video-slug> [stage]
+```
+
+阶段执行遵守当前阶段顺序；Gate 阶段会进入等待状态：
+
+```bash
+node harness/src/cli.mjs run <video-slug> [stage]
+node harness/src/cli.mjs approve <video-slug> <gate>
+node harness/src/cli.mjs reject <video-slug> <gate> --return-to <stage> --reason "<reason>"
+node harness/src/cli.mjs retry <video-slug> [stage]
+node harness/src/cli.mjs resume <video-slug>
+```
+
+执行真实 GitHub Actions 的 Smoke Render 或完整 Render 时，需要提供：
+
+```bash
+export GITHUB_TOKEN="<token>"
+export GITHUB_REPOSITORY="<owner>/<repo>"
+export GITHUB_REF_NAME="<branch>"
+node harness/src/cli.mjs run <video-slug> smoke-render
+node harness/src/cli.mjs run <video-slug> render
+```
+
+真实渲染使用 GitHub Actions，不使用本机 Remotion 渲染；适配器会等待对应 Run 完成，并把 Run 和 Artifact 元数据写入 Harness 阶段状态。
