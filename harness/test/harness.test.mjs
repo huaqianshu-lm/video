@@ -4,8 +4,12 @@ import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 import { createGitHubActionsAdapter, createMockAdapter } from "../src/adapters.mjs";
+import { artifactManifestFor } from "../src/artifacts.mjs";
+import { buildNextAction, buildProjectReport } from "../src/reports.mjs";
 import { initializeProject, loadProject } from "../src/storage.mjs";
-import { approveGate, rejectGate, resumeProject, runStage } from "../src/runner.mjs";
+import { approveGate, rejectGate, resumeProject, runStage, validateStage } from "../src/runner.mjs";
+import { ADAPTER_REQUIRED_STAGES, GATE_STAGES, STAGE_DEFINITIONS, STAGES } from "../src/stages.mjs";
+import { validateProjectStage } from "../src/validation.mjs";
 
 function createFixture() {
   const workspaceRoot = fs.mkdtempSync(path.join(os.tmpdir(), "video-harness-workspace-"));
@@ -30,7 +34,32 @@ function createFixture() {
   for (const relativePath of files) {
     const absolutePath = path.join(workspaceRoot, relativePath);
     fs.mkdirSync(path.dirname(absolutePath), { recursive: true });
-    fs.writeFileSync(absolutePath, "fixture\n", "utf8");
+    let content = "fixture\n";
+    if (relativePath.endsWith("scene-script.md")) content = "# Scene Script\n\n## Scene 01｜测试\n\n### purpose\n验证 Harness。\n";
+    if (relativePath.endsWith("narration-script.md")) content = "# Narration Script\n\n## Scene 01｜测试\n\n这是测试口播。\n";
+    if (relativePath.endsWith("visual-script.md")) content = "# Visual Script\n\n## Scene 01｜测试\n\n### 视觉目标\n展示测试状态。\n";
+    if (relativePath.endsWith("visual-prototype.html")) content = "<main><section class=\"scene\">Scene 01</section></main>\n";
+    if (relativePath.endsWith("tts-script.json")) content = JSON.stringify({
+      schemaVersion: "1.0",
+      scenes: [{ sceneId: "01", segments: [{ id: "01-01", text: "这是测试口播。" }] }],
+    });
+    if (relativePath.endsWith("audio-manifest.json")) content = JSON.stringify({
+      scenes: [{ sceneId: "01", segments: [{ id: "01-01", duration: 1 }] }],
+    });
+    if (relativePath.endsWith("subtitle-manifest.json")) content = JSON.stringify({
+      scenes: [{ sceneId: "01", segments: [{ segmentId: "01-01", cues: [{ start: 0, end: 0.9, text: "这是测试口播" }] }] }],
+    });
+    if (relativePath.endsWith("timeline-manifest.json")) content = JSON.stringify({
+      duration: 1,
+      scenes: [{
+        sceneId: "01",
+        offset: 0,
+        duration: 1,
+        end: 1,
+        segments: [{ segmentId: "01-01", offset: 0, duration: 1, end: 1 }],
+      }],
+    });
+    fs.writeFileSync(absolutePath, `${content}\n`, "utf8");
   }
 
   process.env.HARNESS_PROJECTS_DIR = projectsRoot;
@@ -42,6 +71,129 @@ function createFixture() {
 function loadFixture(slug) {
   return loadProject(slug);
 }
+
+function snapshotTree(roots) {
+  const entries = [];
+  function visit(root, current) {
+    if (!fs.existsSync(current)) return;
+    for (const entry of fs.readdirSync(current).sort()) {
+      const absolutePath = path.join(current, entry);
+      const relativePath = path.relative(root, absolutePath);
+      const stat = fs.statSync(absolutePath);
+      if (stat.isDirectory()) visit(root, absolutePath);
+      else entries.push(`${relativePath}:${stat.size}:${stat.mtimeMs}`);
+    }
+  }
+  for (const root of roots) visit(root, root);
+  return entries.sort();
+}
+
+test("defines one canonical workflow for all 15 production stages", () => {
+  assert.equal(STAGES.length, 15);
+  assert.deepEqual(Object.keys(STAGE_DEFINITIONS), STAGES);
+  assert.deepEqual([...GATE_STAGES], ["gate-2", "gate-3", "gate-4"]);
+  assert.deepEqual([...ADAPTER_REQUIRED_STAGES], ["smoke-render", "render"]);
+  assert.equal(STAGE_DEFINITIONS["narration-script"].artifacts[0], "videos/{slug}/narration-script.md");
+  assert.equal(STAGE_DEFINITIONS["gate-3"].kind, "gate");
+  assert.equal(STAGE_DEFINITIONS["gate-3"].requiresApproval, true);
+  assert.equal(STAGE_DEFINITIONS["gate-3"].previousStage, "remotion");
+  assert.equal(STAGE_DEFINITIONS["gate-3"].nextStage, "smoke-render");
+  assert.equal(STAGE_DEFINITIONS.render.artifacts[0], "out/{slug}.mp4");
+});
+
+test("rejects source-reference words in narration before TTS", () => {
+  const { slug } = createFixture();
+  const project = loadFixture(slug);
+  const narrationPath = path.join(project.config.workspaceRoot, `videos/${slug}/narration-script.md`);
+  fs.writeFileSync(narrationPath, "## Scene 01｜测试\n\n这篇文章会告诉你怎么做。\n", "utf8");
+
+  const issues = validateStage(loadFixture(slug), "narration-script");
+  assert.equal(issues.some((item) => item.code === "forbidden-source-reference"), true);
+  assert.equal(issues[0].path, `videos/${slug}/narration-script.md`);
+});
+
+test("checks TTS coverage and timeline segment alignment", () => {
+  const { slug } = createFixture();
+  const project = loadFixture(slug);
+  const ttsPath = path.join(project.config.workspaceRoot, `videos/${slug}/tts-script.json`);
+  fs.writeFileSync(ttsPath, JSON.stringify({
+    schemaVersion: "1.0",
+    scenes: [{ sceneId: "01", segments: [{ id: "01-01", text: "另一段口播。" }] }],
+  }), "utf8");
+
+  const issues = validateStage(loadFixture(slug), "subtitle-timeline");
+  assert.equal(issues.some((item) => item.code === "tts-narration-mismatch"), true);
+  assert.equal(issues.some((item) => item.code === "segment-id-mismatch"), false);
+});
+
+test("supports legacy read-only validation without weakening strict generation rules", () => {
+  const { slug } = createFixture();
+  const project = loadFixture(slug);
+  const narrationPath = path.join(project.config.workspaceRoot, `videos/${slug}/narration-script.md`);
+  fs.writeFileSync(narrationPath, "## Scene 01｜测试\n\n这篇文章只用于旧视频回归。\n", "utf8");
+
+  const strictIssues = validateStage(loadFixture(slug), "narration-script");
+  assert.equal(strictIssues.some((item) => item.severity === "error" && item.code === "forbidden-source-reference"), true);
+  const legacyProject = loadFixture(slug);
+  legacyProject.config.validationPolicy = "legacy";
+  const legacyIssues = validateStage(legacyProject, "narration-script");
+  assert.equal(legacyIssues.some((item) => item.severity === "warning" && item.code === "forbidden-source-reference"), true);
+});
+
+test("passes read-only regression for four real videos without writing their directories", () => {
+  const workspaceRoot = process.cwd();
+  const slugs = ["claude-code-how-it-works", "claude-code-first-run", "claude-code-coding-plan", "claude-code-third-party-models"];
+  for (const slug of slugs) {
+    const roots = [path.join(workspaceRoot, "videos", slug), path.join(workspaceRoot, "src", "videos", slug)];
+    const before = snapshotTree(roots);
+    const project = {
+      config: { slug, workspaceRoot, validationPolicy: "legacy" },
+      artifacts: { stages: artifactManifestFor(slug) },
+    };
+    const issues = ["scene-script", "narration-script", "tts", "subtitle-timeline"]
+      .flatMap((stage) => validateProjectStage(project, stage));
+    assert.equal(issues.filter((item) => item.severity === "error").length, 0, `${slug} has structural validation errors`);
+    assert.deepEqual(snapshotTree(roots), before, `${slug} changed during read-only validation`);
+  }
+});
+
+test("invalidates downstream stages when a succeeded artifact changes", () => {
+  const { slug } = createFixture();
+  const project = loadFixture(slug);
+  runToGate3(project);
+  approveGate(project, "gate-3");
+  runStage(project, "smoke-render", { adapters: { "smoke-render": createMockAdapter() } });
+  runStage(project, "render", { adapters: { render: createMockAdapter() } });
+  runStage(project, "gate-4");
+  approveGate(project, "gate-4");
+  assert.equal(loadFixture(slug).state.currentStage, "completed");
+
+  const sourcePath = path.join(project.config.workspaceRoot, `videos/${slug}/source.md`);
+  fs.appendFileSync(sourcePath, "\nchanged\n", "utf8");
+
+  const refreshed = loadFixture(slug).state;
+  assert.equal(refreshed.currentStage, "source");
+  assert.equal(refreshed.stages.source.status, "ready");
+  assert.equal(refreshed.stages["content-analysis"].status, "invalidated");
+  assert.equal(refreshed.stages["content-analysis"].invalidatedBy, "source");
+  assert.equal(refreshed.stages["gate-4"].status, "invalidated");
+});
+
+test("reports the next action for a ready stage and a waiting Gate", () => {
+  const { slug } = createFixture();
+  const project = loadFixture(slug);
+  assert.equal(buildNextAction(project).action, "run-stage");
+
+  runToGate3(project);
+  const gateAction = buildNextAction(loadFixture(slug));
+  assert.equal(gateAction.currentStage, "gate-3");
+  assert.equal(gateAction.action, "approve-or-reject-gate");
+  assert.equal(gateAction.requiresUser, true);
+
+  const report = buildProjectReport(loadFixture(slug));
+  assert.equal(report.stages.length, 15);
+  assert.equal(report.next.action, "approve-or-reject-gate");
+});
 
 function runToGate3(project) {
   const preGateStages = [
@@ -174,11 +326,45 @@ test("completes a GitHub Actions run and records its artifact metadata", async (
     id: 456,
     sizeInBytes: 789,
     expired: false,
+    archiveDownloadUrl: undefined,
+    createdAt: undefined,
+    expiresAt: undefined,
   }]);
+  assert.equal(result.outputs[0].artifactName, `${slug}-smoke-test`);
   assert.match(calls[0].url, /actions\/workflows\/smoke-test-video\.yml\/dispatches$/);
   assert.deepEqual(JSON.parse(calls[0].options.body), {
     ref: "feat/video-harness-v0.1",
     inputs: { video_slug: slug, composition_id: slug },
   });
   assert.equal(calls[0].options.headers.Authorization, "Bearer test-token");
+});
+
+test("rejects a successful GitHub Actions run without a usable artifact", async () => {
+  const { slug } = createFixture();
+  const responses = [
+    { status: 204, ok: true, text: async () => "" },
+    {
+      status: 200,
+      ok: true,
+      text: async () => JSON.stringify({ workflow_runs: [{ id: 789, head_branch: "main", created_at: "2026-08-20T00:00:01.000Z" }] }),
+    },
+    {
+      status: 200,
+      ok: true,
+      text: async () => JSON.stringify({ id: 789, status: "completed", conclusion: "success" }),
+    },
+    { status: 200, ok: true, text: async () => JSON.stringify({ artifacts: [] }) },
+  ];
+  const adapter = createGitHubActionsAdapter({
+    token: "test-token",
+    repository: "example/video",
+    ref: "main",
+    now: () => new Date("2026-08-20T00:00:00.000Z"),
+    discoveryPollIntervalMs: 0,
+    runPollIntervalMs: 0,
+    sleepImpl: async () => {},
+    fetchImpl: async () => responses.shift(),
+  });
+
+  await assert.rejects(() => adapter.run({ stage: "smoke-render", project: loadFixture(slug) }), /did not produce expected artifact/);
 });

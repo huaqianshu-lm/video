@@ -1,6 +1,7 @@
 import { isGateStage, nextStage, previousStage, stageIndex, ADAPTER_REQUIRED_STAGES, STAGES } from "./stages.mjs";
-import { validateStageArtifacts } from "./validation.mjs";
+import { validateProjectStage } from "./validation.mjs";
 import { writeJson } from "./storage.mjs";
+import { fingerprintStageArtifacts } from "./fingerprints.mjs";
 
 function saveState(project) {
   project.state.updatedAt = new Date().toISOString();
@@ -40,7 +41,9 @@ function completeStage(project, stage, outputs = []) {
   const item = project.state.stages[stage];
   item.status = "succeeded";
   item.error = null;
+  item.invalidatedBy = null;
   item.outputs = outputs;
+  item.outputFingerprint = fingerprintStageArtifacts(project, stage);
   item.updatedAt = new Date().toISOString();
   const following = nextStage(stage);
   if (following) {
@@ -61,6 +64,7 @@ function failAdapterStage(project, stage, error) {
   const item = project.state.stages[stage];
   item.status = "failed";
   item.error = failure;
+  item.invalidatedBy = null;
   item.updatedAt = new Date().toISOString();
   saveState(project);
   throw new Error(failure.message);
@@ -74,7 +78,7 @@ function completeAdapterStage(project, stage, result) {
 export function validateStage(project, requestedStage) {
   const stage = requestedStage ?? project.state.currentStage;
   requireKnownStage(stage);
-  return validateStageArtifacts(project, stage);
+  return validateProjectStage(project, stage);
 }
 
 export function runStage(project, requestedStage, { adapters = {} } = {}) {
@@ -105,6 +109,7 @@ export function runStage(project, requestedStage, { adapters = {} } = {}) {
       };
       item.status = "failed";
       item.error = error;
+      item.invalidatedBy = null;
       item.updatedAt = new Date().toISOString();
       saveState(project);
       throw new Error(error.message);
@@ -172,6 +177,8 @@ export function rejectGate(project, gate, returnTo, reason) {
     project.state.stages[stage].status = stage === returnTo ? "ready" : "pending";
     project.state.stages[stage].error = stage === gate ? rejection : null;
     project.state.stages[stage].outputs = [];
+    project.state.stages[stage].invalidatedBy = null;
+    project.state.stages[stage].outputFingerprint = null;
     project.state.stages[stage].updatedAt = new Date().toISOString();
   }
   project.state.currentStage = returnTo;
@@ -187,6 +194,7 @@ export function retryStage(project, requestedStage) {
   }
   project.state.stages[stage].status = "ready";
   project.state.stages[stage].error = null;
+  project.state.stages[stage].invalidatedBy = null;
   project.state.currentStage = stage;
   project.state.stages[stage].updatedAt = new Date().toISOString();
   saveState(project);

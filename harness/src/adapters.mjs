@@ -28,6 +28,27 @@ const DEFAULT_RUN_TIMEOUT_MS = 45 * 60 * 1_000;
 const DEFAULT_DISCOVERY_POLL_INTERVAL_MS = 5_000;
 const DEFAULT_RUN_POLL_INTERVAL_MS = 20 * 60 * 1_000;
 
+function expectedArtifactName(stage, slug) {
+  if (stage === "smoke-render") return `${slug}-smoke-test`;
+  if (stage === "render") return slug;
+  return null;
+}
+
+function requireUsableArtifact(stage, slug, artifacts) {
+  const expectedName = expectedArtifactName(stage, slug);
+  const artifact = artifacts.find((item) => item.name === expectedName);
+  if (!artifact) {
+    throw new Error(`GitHub Actions ${stage} did not produce expected artifact: ${expectedName}`);
+  }
+  if (artifact.expired) {
+    throw new Error(`GitHub Actions ${stage} produced an expired artifact: ${expectedName}`);
+  }
+  if (!artifact.id || !(artifact.size_in_bytes > 0)) {
+    throw new Error(`GitHub Actions ${stage} produced an unusable artifact: ${expectedName}`);
+  }
+  return artifact;
+}
+
 function sleep(milliseconds) {
   return new Promise((resolve) => setTimeout(resolve, milliseconds));
 }
@@ -76,7 +97,7 @@ export function createGitHubActionsAdapter({
         Accept: "application/vnd.github+json",
         Authorization: `Bearer ${token}`,
         "X-GitHub-Api-Version": "2022-11-28",
-        "User-Agent": "video-production-harness/0.1",
+        "User-Agent": "video-production-harness/0.2",
         ...(options.headers ?? {}),
       },
     });
@@ -191,6 +212,7 @@ export function createGitHubActionsAdapter({
     async run({ stage, project }) {
       const dispatch = await dispatchWorkflow({ stage, project });
       const { run, artifacts } = await waitForRun(dispatch);
+      const expectedArtifact = requireUsableArtifact(stage, dispatch.slug, artifacts);
       return {
         outputs: [
           {
@@ -202,11 +224,15 @@ export function createGitHubActionsAdapter({
             runUrl: run.html_url,
             status: run.status,
             conclusion: run.conclusion,
+            artifactName: expectedArtifact.name,
             artifacts: artifacts.map((artifact) => ({
               name: artifact.name,
               id: artifact.id,
               sizeInBytes: artifact.size_in_bytes,
               expired: artifact.expired,
+              archiveDownloadUrl: artifact.archive_download_url,
+              createdAt: artifact.created_at,
+              expiresAt: artifact.expires_at,
             })),
           },
         ],
