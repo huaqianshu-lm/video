@@ -4,6 +4,7 @@ import { initializeProject, loadProject } from "./storage.mjs";
 import { STAGES } from "./stages.mjs";
 import { approveGate, rejectGate, resumeProject, retryStage, runStage, validateStage } from "./runner.mjs";
 import { createGitHubActionsAdapterFromEnv } from "./adapters.mjs";
+import { buildNextAction, buildProjectReport } from "./reports.mjs";
 
 function usage() {
   console.log(`Usage:
@@ -15,6 +16,8 @@ function usage() {
   node harness/src/cli.mjs reject <slug> <gate> --return-to <stage> --reason <text>
   node harness/src/cli.mjs retry <slug> [stage]
   node harness/src/cli.mjs resume <slug>
+  node harness/src/cli.mjs next <slug> [--json]
+  node harness/src/cli.mjs report <slug> [--json]
 
 GitHub Actions adapter environment:
   GITHUB_TOKEN or GH_TOKEN, GITHUB_REPOSITORY, and GITHUB_REF_NAME (or HARNESS_GITHUB_REF)`);
@@ -39,6 +42,30 @@ function printStatus(project, asJson) {
   for (const stage of STAGES) {
     const item = state.stages[stage];
     console.log(`  ${stage}: ${item.status}`);
+  }
+}
+
+function printNext(next) {
+  console.log(`Current stage: ${next.currentStage}`);
+  console.log(`Status: ${next.status}`);
+  console.log(`Action: ${next.action}`);
+  console.log(`Message: ${next.message}`);
+  if (next.commands.length > 0) {
+    console.log("Commands:");
+    for (const command of next.commands) console.log(`  ${command}`);
+  }
+  if (next.issues.length > 0) {
+    console.log(`Issues: ${next.issues.length}`);
+    for (const issue of next.issues) console.log(`  [${issue.code}] ${issue.path ?? ""} ${issue.message}`.trim());
+  }
+}
+
+function printReport(report) {
+  printNext(report.next);
+  console.log("Stages:");
+  for (const item of report.stages) {
+    const suffix = item.invalidatedBy ? ` (invalidated by ${item.invalidatedBy})` : "";
+    console.log(`  ${item.stage}: ${item.status}, attempts=${item.attempts}${suffix}`);
   }
 }
 
@@ -71,9 +98,23 @@ async function main(args) {
     return 0;
   }
 
-  if (["validate", "run", "resume", "retry", "approve", "reject"].includes(command)) {
+  if (["validate", "run", "resume", "retry", "approve", "reject", "next", "report"].includes(command)) {
     validateSlug(slug);
     const project = loadProject(slug);
+
+    if (command === "next") {
+      const next = buildNextAction(project);
+      if (options.includes("--json")) console.log(JSON.stringify(next, null, 2));
+      else printNext(next);
+      return next.issues.some((issue) => issue.severity !== "warning") ? 1 : 0;
+    }
+
+    if (command === "report") {
+      const report = buildProjectReport(project);
+      if (options.includes("--json")) console.log(JSON.stringify(report, null, 2));
+      else printReport(report);
+      return report.next.issues.some((issue) => issue.severity !== "warning") ? 1 : 0;
+    }
 
     if (command === "validate") {
       const issues = validateStage(project, options[0]);
