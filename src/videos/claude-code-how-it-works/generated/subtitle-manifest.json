@@ -1,0 +1,882 @@
+{
+  "schemaVersion": "1.0",
+  "videoId": "claude-code-how-it-works",
+  "scenes": [
+    {
+      "sceneId": "01",
+      "file": "subtitles/scene-01.json",
+      "segments": [
+        {
+          "segmentId": "01-01",
+          "audioFile": "audio/scene-01/01-01.mp3",
+          "cues": [
+            {
+              "id": "01-01-a",
+              "text": "第一次用 Claude Code，",
+              "start": 0.09,
+              "end": 1.56
+            },
+            {
+              "id": "01-01-b",
+              "text": "最容易被一个场景弄懵",
+              "start": 1.56,
+              "end": 3.41
+            },
+            {
+              "id": "01-01-c",
+              "text": "你只问了一句“这个测试为什么挂了”，",
+              "start": 3.41,
+              "end": 5.51
+            },
+            {
+              "id": "01-01-d",
+              "text": "它却自己跑测试",
+              "start": 5.51,
+              "end": 6.77
+            },
+            {
+              "id": "01-01-e",
+              "text": "读报错、找到函数",
+              "start": 6.77,
+              "end": 8.37
+            },
+            {
+              "id": "01-01-f",
+              "text": "改掉代码，最后又跑了一遍测试",
+              "start": 8.37,
+              "end": 11.184
+            }
+          ]
+        },
+        {
+          "segmentId": "01-02",
+          "audioFile": "audio/scene-01/01-02.mp3",
+          "cues": [
+            {
+              "id": "01-02-a",
+              "text": "它不是只回你一段建议，",
+              "start": 0.09,
+              "end": 2.08
+            },
+            {
+              "id": "01-02-b",
+              "text": "而是真的在项目里连续做了几件事",
+              "start": 2.08,
+              "end": 4.848
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sceneId": "02",
+      "file": "subtitles/scene-02.json",
+      "segments": [
+        {
+          "segmentId": "02-01",
+          "audioFile": "audio/scene-02/02-01.mp3",
+          "cues": [
+            {
+              "id": "02-01-a",
+              "text": "这就是 Claude Code 和普通聊天框最大的区别",
+              "start": 0.09,
+              "end": 3.5
+            },
+            {
+              "id": "02-01-b",
+              "text": "聊天框主要负责回你文字",
+              "start": 3.5,
+              "end": 5.48
+            },
+            {
+              "id": "02-01-c",
+              "text": "Claude Code 会在项目里读文件",
+              "start": 5.48,
+              "end": 7.52
+            },
+            {
+              "id": "02-01-d",
+              "text": "改代码、跑命令，再看结果",
+              "start": 7.52,
+              "end": 10.104
+            }
+          ]
+        },
+        {
+          "segmentId": "02-02",
+          "audioFile": "audio/scene-02/02-02.mp3",
+          "cues": [
+            {
+              "id": "02-02-a",
+              "text": "那它凭什么知道下一步该干什么",
+              "start": 0.09,
+              "end": 2.58
+            },
+            {
+              "id": "02-02-b",
+              "text": "答案是一套固定的工作机制",
+              "start": 2.58,
+              "end": 4.872
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sceneId": "03",
+      "file": "subtitles/scene-03.json",
+      "segments": [
+        {
+          "segmentId": "03-01",
+          "audioFile": "audio/scene-03/03-01.mp3",
+          "cues": [
+            {
+              "id": "03-01-a",
+              "text": "Claude Code 干活时，",
+              "start": 0.09,
+              "end": 1.43
+            },
+            {
+              "id": "03-01-b",
+              "text": "会反复走三个动作",
+              "start": 1.43,
+              "end": 2.94
+            },
+            {
+              "id": "03-01-c",
+              "text": "先收集上下文，再采取行动，",
+              "start": 2.94,
+              "end": 5.1
+            },
+            {
+              "id": "03-01-d",
+              "text": "最后验证结果",
+              "start": 5.1,
+              "end": 6.6
+            }
+          ]
+        },
+        {
+          "segmentId": "03-02",
+          "audioFile": "audio/scene-03/03-02.mp3",
+          "cues": [
+            {
+              "id": "03-02-a",
+              "text": "换个更好记的说法，",
+              "start": 0.09,
+              "end": 1.42
+            },
+            {
+              "id": "03-02-b",
+              "text": "就是想、做、看",
+              "start": 1.42,
+              "end": 3.28
+            },
+            {
+              "id": "03-02-c",
+              "text": "结果不对，就从“看”回到“想”，",
+              "start": 3.28,
+              "end": 5.34
+            },
+            {
+              "id": "03-02-d",
+              "text": "再来一圈；任务有多复杂，",
+              "start": 5.34,
+              "end": 7.32
+            },
+            {
+              "id": "03-02-e",
+              "text": "循环就可能转多少轮",
+              "start": 7.32,
+              "end": 9.288
+            }
+          ]
+        },
+        {
+          "segmentId": "03-03",
+          "audioFile": "audio/scene-03/03-03.mp3",
+          "cues": [
+            {
+              "id": "03-03-a",
+              "text": "这套机制叫代理循环，",
+              "start": 0.09,
+              "end": 1.79
+            },
+            {
+              "id": "03-03-b",
+              "text": "也就是 agentic loop",
+              "start": 1.79,
+              "end": 3.672
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sceneId": "04",
+      "file": "subtitles/scene-04.json",
+      "segments": [
+        {
+          "segmentId": "04-01",
+          "audioFile": "audio/scene-04/04-01.mp3",
+          "cues": [
+            {
+              "id": "04-01-a",
+              "text": "拿刚才的失败测试来说，",
+              "start": 0.09,
+              "end": 1.83
+            },
+            {
+              "id": "04-01-b",
+              "text": "它先执行测试，读到报错",
+              "start": 1.83,
+              "end": 3.99
+            },
+            {
+              "id": "04-01-c",
+              "text": "再搜索相关文件，",
+              "start": 3.99,
+              "end": 5.33
+            },
+            {
+              "id": "04-01-d",
+              "text": "读函数逻辑；找到少掉的 return 后改文件，",
+              "start": 5.33,
+              "end": 8.32
+            },
+            {
+              "id": "04-01-e",
+              "text": "最后重新跑测试",
+              "start": 8.32,
+              "end": 10.008
+            }
+          ]
+        },
+        {
+          "segmentId": "04-02",
+          "audioFile": "audio/scene-04/04-02.mp3",
+          "cues": [
+            {
+              "id": "04-02-a",
+              "text": "模型负责判断和选择下一步，",
+              "start": 0.09,
+              "end": 2.31
+            },
+            {
+              "id": "04-02-b",
+              "text": "工具负责实际读取",
+              "start": 2.31,
+              "end": 3.81
+            },
+            {
+              "id": "04-02-c",
+              "text": "修改、执行和返回结果",
+              "start": 3.81,
+              "end": 6.24
+            },
+            {
+              "id": "04-02-d",
+              "text": "模型和工具一起，",
+              "start": 6.24,
+              "end": 7.56
+            },
+            {
+              "id": "04-02-e",
+              "text": "才让这个循环真正转起来",
+              "start": 7.56,
+              "end": 9.6
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sceneId": "05",
+      "file": "subtitles/scene-05.json",
+      "segments": [
+        {
+          "segmentId": "05-01",
+          "audioFile": "audio/scene-05/05-01.mp3",
+          "cues": [
+            {
+              "id": "05-01-a",
+              "text": "不过，自主工作不等于你只能在旁边干等",
+              "start": 0.09,
+              "end": 3.432
+            }
+          ]
+        },
+        {
+          "segmentId": "05-02",
+          "audioFile": "audio/scene-05/05-02.mp3",
+          "cues": [
+            {
+              "id": "05-02-a",
+              "text": "如果它跑偏了，或者正准备大范围修改不该动的文件，",
+              "start": 0.09,
+              "end": 3.89
+            },
+            {
+              "id": "05-02-b",
+              "text": "按下 Esc，当前工具调用会立刻取消",
+              "start": 3.89,
+              "end": 7.48
+            },
+            {
+              "id": "05-02-c",
+              "text": "你可以等它停下来，",
+              "start": 7.48,
+              "end": 8.74
+            },
+            {
+              "id": "05-02-d",
+              "text": "再给一条新的方向",
+              "start": 8.74,
+              "end": 10.344
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sceneId": "06",
+      "file": "subtitles/scene-06.json",
+      "segments": [
+        {
+          "segmentId": "06-01",
+          "audioFile": "audio/scene-06/06-01.mp3",
+          "cues": [
+            {
+              "id": "06-01-a",
+              "text": "如果你只是想补充上下文，",
+              "start": 0.09,
+              "end": 1.9
+            },
+            {
+              "id": "06-01-b",
+              "text": "不急着叫停，就直接打字并按 Enter",
+              "start": 1.9,
+              "end": 5.04
+            },
+            {
+              "id": "06-01-c",
+              "text": "当前操作会继续，",
+              "start": 5.04,
+              "end": 6.49
+            },
+            {
+              "id": "06-01-d",
+              "text": "Claude 做完手头这一步后再读取你的补充",
+              "start": 6.49,
+              "end": 9.648
+            }
+          ]
+        },
+        {
+          "segmentId": "06-02",
+          "audioFile": "audio/scene-06/06-02.mp3",
+          "cues": [
+            {
+              "id": "06-02-a",
+              "text": "所以你不需要憋出一条完美提示",
+              "start": 0.09,
+              "end": 2.66
+            },
+            {
+              "id": "06-02-b",
+              "text": "先给大方向，看它怎么做，",
+              "start": 2.66,
+              "end": 4.57
+            },
+            {
+              "id": "06-02-c",
+              "text": "不对就纠正；这是对话，",
+              "start": 4.57,
+              "end": 6.42
+            },
+            {
+              "id": "06-02-d",
+              "text": "不是一次性命令",
+              "start": 6.42,
+              "end": 7.968
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sceneId": "07",
+      "file": "subtitles/scene-07.json",
+      "segments": [
+        {
+          "segmentId": "07-01",
+          "audioFile": "audio/scene-07/07-01.mp3",
+          "cues": [
+            {
+              "id": "07-01-a",
+              "text": "模型要真正动手，",
+              "start": 0.09,
+              "end": 1.4
+            },
+            {
+              "id": "07-01-b",
+              "text": "靠的是工具。Claude Code 的内置工具可以分成五类",
+              "start": 1.4,
+              "end": 5.04
+            },
+            {
+              "id": "07-01-c",
+              "text": "文件操作、搜索",
+              "start": 5.04,
+              "end": 6.56
+            },
+            {
+              "id": "07-01-d",
+              "text": "执行、网络和代码智能",
+              "start": 6.56,
+              "end": 8.856
+            }
+          ]
+        },
+        {
+          "segmentId": "07-02",
+          "audioFile": "audio/scene-07/07-02.mp3",
+          "cues": [
+            {
+              "id": "07-02-a",
+              "text": "文件操作对应读写代码，",
+              "start": 0.09,
+              "end": 1.95
+            },
+            {
+              "id": "07-02-b",
+              "text": "搜索对应找文件和内容，",
+              "start": 1.95,
+              "end": 3.67
+            },
+            {
+              "id": "07-02-c",
+              "text": "执行对应终端、测试和 git，",
+              "start": 3.67,
+              "end": 6.04
+            },
+            {
+              "id": "07-02-d",
+              "text": "网络对应查网页和文档，",
+              "start": 6.04,
+              "end": 7.94
+            },
+            {
+              "id": "07-02-e",
+              "text": "代码智能则对应类型",
+              "start": 7.94,
+              "end": 9.71
+            },
+            {
+              "id": "07-02-f",
+              "text": "定义和引用",
+              "start": 9.71,
+              "end": 11.04
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sceneId": "08",
+      "file": "subtitles/scene-08.json",
+      "segments": [
+        {
+          "segmentId": "08-01",
+          "audioFile": "audio/scene-08/08-01.mp3",
+          "cues": [
+            {
+              "id": "08-01-a",
+              "text": "你说“修复失败的测试”，",
+              "start": 0.09,
+              "end": 1.66
+            },
+            {
+              "id": "08-01-b",
+              "text": "并不需要先告诉它每一步该用什么工具",
+              "start": 1.66,
+              "end": 4.536
+            }
+          ]
+        },
+        {
+          "segmentId": "08-02",
+          "audioFile": "audio/scene-08/08-02.mp3",
+          "cues": [
+            {
+              "id": "08-02-a",
+              "text": "它可能先跑测试，",
+              "start": 0.09,
+              "end": 1.35
+            },
+            {
+              "id": "08-02-b",
+              "text": "再读输出；接着搜索源文件，",
+              "start": 1.35,
+              "end": 3.54
+            },
+            {
+              "id": "08-02-c",
+              "text": "读懂逻辑，修改文件，",
+              "start": 3.54,
+              "end": 5.32
+            },
+            {
+              "id": "08-02-d",
+              "text": "最后再次测试",
+              "start": 5.32,
+              "end": 6.82
+            },
+            {
+              "id": "08-02-e",
+              "text": "每次工具返回的信息，",
+              "start": 6.82,
+              "end": 8.4
+            },
+            {
+              "id": "08-02-f",
+              "text": "都会成为模型选择下一步的依据",
+              "start": 8.4,
+              "end": 10.896
+            }
+          ]
+        },
+        {
+          "segmentId": "08-03",
+          "audioFile": "audio/scene-08/08-03.mp3",
+          "cues": [
+            {
+              "id": "08-03-a",
+              "text": "这六步，就是想",
+              "start": 0.09,
+              "end": 1.53
+            },
+            {
+              "id": "08-03-b",
+              "text": "做、看循环在工具层面的展开",
+              "start": 1.53,
+              "end": 4.272
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sceneId": "09",
+      "file": "subtitles/scene-09.json",
+      "segments": [
+        {
+          "segmentId": "09-01",
+          "audioFile": "audio/scene-09/09-01.mp3",
+          "cues": [
+            {
+              "id": "09-01-a",
+              "text": "那它能看到你电脑上的什么",
+              "start": 0.09,
+              "end": 2.36
+            },
+            {
+              "id": "09-01-b",
+              "text": "可以先记一句：它的视野，",
+              "start": 2.36,
+              "end": 4.38
+            },
+            {
+              "id": "09-01-c",
+              "text": "大致等于你在当前目录下的终端能摸到的东西",
+              "start": 4.38,
+              "end": 7.968
+            }
+          ]
+        },
+        {
+          "segmentId": "09-02",
+          "audioFile": "audio/scene-09/09-02.mp3",
+          "cues": [
+            {
+              "id": "09-02-a",
+              "text": "它能访问项目文件",
+              "start": 0.09,
+              "end": 1.43
+            },
+            {
+              "id": "09-02-b",
+              "text": "终端命令、git 状态",
+              "start": 1.43,
+              "end": 3.18
+            },
+            {
+              "id": "09-02-c",
+              "text": "CLAUDE.md 和你配置的扩展，",
+              "start": 3.18,
+              "end": 5.36
+            },
+            {
+              "id": "09-02-d",
+              "text": "所以能跨文件协调",
+              "start": 5.36,
+              "end": 6.78
+            },
+            {
+              "id": "09-02-e",
+              "text": "但这不等于它无条件翻遍整个硬盘，",
+              "start": 6.78,
+              "end": 9.42
+            },
+            {
+              "id": "09-02-f",
+              "text": "其他位置需要相应权限",
+              "start": 9.42,
+              "end": 11.496
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sceneId": "10",
+      "file": "subtitles/scene-10.json",
+      "segments": [
+        {
+          "segmentId": "10-01",
+          "audioFile": "audio/scene-10/10-01.mp3",
+          "cues": [
+            {
+              "id": "10-01-a",
+              "text": "安全边界主要有两道闸",
+              "start": 0.09,
+              "end": 2.29
+            },
+            {
+              "id": "10-01-b",
+              "text": "检查点像本地存档，",
+              "start": 2.29,
+              "end": 3.89
+            },
+            {
+              "id": "10-01-c",
+              "text": "能把 Claude 用编辑工具改过的文件恢复到之前的状态，",
+              "start": 3.89,
+              "end": 7.51
+            },
+            {
+              "id": "10-01-d",
+              "text": "但 bash 命令和数据库",
+              "start": 7.51,
+              "end": 9.3
+            },
+            {
+              "id": "10-01-e",
+              "text": "API、部署这类外部副作用不在它的回滚范围里",
+              "start": 9.3,
+              "end": 13.128
+            }
+          ]
+        },
+        {
+          "segmentId": "10-02",
+          "audioFile": "audio/scene-10/10-02.mp3",
+          "cues": [
+            {
+              "id": "10-02-a",
+              "text": "另一道是权限模式",
+              "start": 0.09,
+              "end": 1.81
+            },
+            {
+              "id": "10-02-b",
+              "text": "复杂任务可以先进入 Plan Mode，",
+              "start": 1.81,
+              "end": 4.16
+            },
+            {
+              "id": "10-02-c",
+              "text": "只读、只搜、先出计划，",
+              "start": 4.16,
+              "end": 6.23
+            },
+            {
+              "id": "10-02-d",
+              "text": "批准之后再动手",
+              "start": 6.23,
+              "end": 7.77
+            },
+            {
+              "id": "10-02-e",
+              "text": "一个管恢复，一个管动手前的自主权",
+              "start": 7.77,
+              "end": 10.752
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sceneId": "11",
+      "file": "subtitles/scene-11.json",
+      "segments": [
+        {
+          "segmentId": "11-01",
+          "audioFile": "audio/scene-11/11-01.mp3",
+          "cues": [
+            {
+              "id": "11-01-a",
+              "text": "想亲眼看一遍，可以在空目录里启动 Claude Code，",
+              "start": 0.09,
+              "end": 3.3
+            },
+            {
+              "id": "11-01-b",
+              "text": "进入 Plan Mode，然后让它创建一个 add.py 和几条",
+              "start": 3.3,
+              "end": 6.7
+            },
+            {
+              "id": "11-01-c",
+              "text": "测试，但先不要动手",
+              "start": 6.7,
+              "end": 8.784
+            }
+          ]
+        },
+        {
+          "segmentId": "11-02",
+          "audioFile": "audio/scene-11/11-02.mp3",
+          "cues": [
+            {
+              "id": "11-02-a",
+              "text": "你会先看到一份计划",
+              "start": 0.09,
+              "end": 1.61
+            },
+            {
+              "id": "11-02-b",
+              "text": "创建文件、创建测试",
+              "start": 1.61,
+              "end": 3.43
+            },
+            {
+              "id": "11-02-c",
+              "text": "运行测试。此时文件还没有被改动，",
+              "start": 3.43,
+              "end": 6.34
+            },
+            {
+              "id": "11-02-d",
+              "text": "它停在等你批准的状态",
+              "start": 6.34,
+              "end": 8.28
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sceneId": "12",
+      "file": "subtitles/scene-12.json",
+      "segments": [
+        {
+          "segmentId": "12-01",
+          "audioFile": "audio/scene-12/12-01.mp3",
+          "cues": [
+            {
+              "id": "12-01-a",
+              "text": "批准之后，它才会建文件",
+              "start": 0.09,
+              "end": 2.12
+            },
+            {
+              "id": "12-01-b",
+              "text": "写代码、运行测试",
+              "start": 2.12,
+              "end": 4.03
+            },
+            {
+              "id": "12-01-c",
+              "text": "你甚至可以故意把加法改成减法，",
+              "start": 4.03,
+              "end": 6.21
+            },
+            {
+              "id": "12-01-d",
+              "text": "再让它重新测试",
+              "start": 6.21,
+              "end": 7.64
+            },
+            {
+              "id": "12-01-e",
+              "text": "测试失败，就会把循环重新推回“想”",
+              "start": 7.64,
+              "end": 10.536
+            }
+          ]
+        },
+        {
+          "segmentId": "12-02",
+          "audioFile": "audio/scene-12/12-02.mp3",
+          "cues": [
+            {
+              "id": "12-02-a",
+              "text": "所以，Claude Code 不是许愿池，",
+              "start": 0.09,
+              "end": 2.34
+            },
+            {
+              "id": "12-02-b",
+              "text": "而是一个会自己想",
+              "start": 2.34,
+              "end": 3.63
+            },
+            {
+              "id": "12-02-c",
+              "text": "动手、检查的搭档",
+              "start": 3.63,
+              "end": 5.45
+            },
+            {
+              "id": "12-02-d",
+              "text": "你的工作，是给方向",
+              "start": 5.45,
+              "end": 7.09
+            },
+            {
+              "id": "12-02-e",
+              "text": "定验收标准，跑偏时拉它一把",
+              "start": 7.09,
+              "end": 9.672
+            }
+          ]
+        },
+        {
+          "segmentId": "12-03",
+          "audioFile": "audio/scene-12/12-03.mp3",
+          "cues": [
+            {
+              "id": "12-03-a",
+              "text": "下一篇是 04「API 配置」",
+              "start": 0.09,
+              "end": 2.24
+            },
+            {
+              "id": "12-03-b",
+              "text": "Claude Code 装好了",
+              "start": 2.24,
+              "end": 3.49
+            },
+            {
+              "id": "12-03-c",
+              "text": "原理也懂了，接下来把它连接到模型",
+              "start": 3.49,
+              "end": 6.384
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

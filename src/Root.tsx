@@ -12,6 +12,8 @@ import {ClaudeCodeWhatIsVideo} from './videos/claude-code-what-is/ClaudeCodeWhat
 import {ClaudeCodeWhatIsVideo14} from './videos/claude-code-what-is/ClaudeCodeWhatIsVideo14';
 import {videoConfig} from './videos/claude-code-what-is/video.config';
 import {getVideo14TotalDurationFrames, video14Config} from './videos/claude-code-what-is/video14.config';
+import {ClaudeCodeHowItWorksVideo} from './videos/claude-code-how-it-works/ClaudeCodeHowItWorksVideo';
+import {videoConfig as claudeCodeHowItWorksConfig} from './videos/claude-code-how-it-works/video.config';
 
 export const Root = () => {
   return (
@@ -63,6 +65,14 @@ export const Root = () => {
         fps={video14Config.fps}
         width={video14Config.width}
         height={video14Config.height}
+      />
+      <Composition
+        id={claudeCodeHowItWorksConfig.slug}
+        component={ClaudeCodeHowItWorksVideo}
+        durationInFrames={getTotalDurationFrames(claudeCodeHowItWorksConfig)}
+        fps={claudeCodeHowItWorksConfig.fps}
+        width={claudeCodeHowItWorksConfig.width}
+        height={claudeCodeHowItWorksConfig.height}
       />
     </>
   );

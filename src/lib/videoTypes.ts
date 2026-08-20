@@ -32,6 +32,11 @@ export type WorkspaceDemo = {
   files: string[];
   codeLines: string[];
   actions: VisualBeat[];
+  windowTitle?: string;
+  filePanelTitle?: string;
+  statusLabels?: string[];
+  command?: string;
+  readyStatus?: string;
 };
 
 export type OpeningSceneConfig = BaseSceneConfig & {
@@ -96,6 +101,7 @@ export type SummarySceneConfig = BaseSceneConfig & {
   highlight: string;
   roleCards?: VisualBeat[];
   teaser?: VisualBeat;
+  compactLayout?: boolean;
 };
 
 export type SceneConfig =
