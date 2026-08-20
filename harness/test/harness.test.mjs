@@ -6,9 +6,18 @@ import test from "node:test";
 import { createGitHubActionsAdapter, createMockAdapter } from "../src/adapters.mjs";
 import { artifactManifestFor } from "../src/artifacts.mjs";
 import { buildNextAction, buildProjectReport } from "../src/reports.mjs";
+import { buildTaskPacket } from "../src/context.mjs";
+import { buildProjectPlan } from "../src/plans.mjs";
 import { initializeProject, loadProject } from "../src/storage.mjs";
 import { approveGate, rejectGate, resumeProject, runStage, validateStage } from "../src/runner.mjs";
-import { ADAPTER_REQUIRED_STAGES, GATE_STAGES, STAGE_DEFINITIONS, STAGES } from "../src/stages.mjs";
+import {
+  ADAPTER_REQUIRED_STAGES,
+  DEFAULT_WORKFLOW_ID,
+  GATE_STAGES,
+  STAGE_DEFINITIONS,
+  STAGES,
+  WORKFLOW_DEFINITIONS,
+} from "../src/stages.mjs";
 import { validateProjectStage } from "../src/validation.mjs";
 
 function createFixture() {
@@ -91,6 +100,8 @@ function snapshotTree(roots) {
 test("defines one canonical workflow for all 15 production stages", () => {
   assert.equal(STAGES.length, 15);
   assert.deepEqual(Object.keys(STAGE_DEFINITIONS), STAGES);
+  assert.deepEqual(Object.keys(WORKFLOW_DEFINITIONS), [DEFAULT_WORKFLOW_ID]);
+  assert.deepEqual(WORKFLOW_DEFINITIONS.default.stages, STAGES);
   assert.deepEqual([...GATE_STAGES], ["gate-2", "gate-3", "gate-4"]);
   assert.deepEqual([...ADAPTER_REQUIRED_STAGES], ["smoke-render", "render"]);
   assert.equal(STAGE_DEFINITIONS["narration-script"].artifacts[0], "videos/{slug}/narration-script.md");
@@ -99,6 +110,70 @@ test("defines one canonical workflow for all 15 production stages", () => {
   assert.equal(STAGE_DEFINITIONS["gate-3"].previousStage, "remotion");
   assert.equal(STAGE_DEFINITIONS["gate-3"].nextStage, "smoke-render");
   assert.equal(STAGE_DEFINITIONS.render.artifacts[0], "out/{slug}.mp4");
+  for (const stage of STAGES) {
+    const definition = STAGE_DEFINITIONS[stage];
+    assert.equal(typeof definition.contract.objective, "string");
+    assert.ok(definition.contract.executor);
+    assert.ok(definition.contract.validation.length > 0);
+    assert.deepEqual(definition.contract.outputArtifacts, definition.artifacts);
+    assert.equal(definition.contract.nextStage, definition.nextStage);
+  }
+});
+
+test("initializes explicit workflow, style, and target project configuration", () => {
+  const { slug } = createFixture();
+  const project = loadFixture(slug);
+  assert.equal(project.config.workflow, "default");
+  assert.equal(project.config.workflowVersion, 1);
+  assert.equal(project.config.style, "current");
+  assert.equal(project.config.target, "gate-4");
+  assert.equal(project.config.harnessVersion, "0.3.0");
+});
+
+test("builds a single-stage context task packet with bounded read and write paths", () => {
+  const { slug } = createFixture();
+  const project = loadFixture(slug);
+  runStage(project, "source");
+
+  const packet = buildTaskPacket(loadFixture(slug));
+  assert.equal(packet.kind, "video-stage-task");
+  assert.equal(packet.project.currentStage, "content-analysis");
+  assert.equal(packet.task.executor, "agent");
+  assert.deepEqual(packet.task.inputStages, ["source"]);
+  assert.deepEqual(packet.context.readPaths, [`videos/${slug}/source.md`]);
+  assert.deepEqual(packet.context.writePaths, [`videos/${slug}/content-analysis.md`]);
+  assert.deepEqual(packet.context.style, {
+    id: "current",
+    version: 1,
+    path: "styles/current/STYLE.md",
+    description: "深色、克制、教程型的 16:9 横屏视频视觉基线。",
+  });
+  assert.equal(packet.task.fallbackStage, "source");
+  assert.match(packet.task.commands.execute, new RegExp(`run ${slug} content-analysis`));
+  assert.equal(packet.context.constraints.length, 3);
+});
+
+test("builds a read-only plan through an explicit target stage", () => {
+  const { slug } = createFixture();
+  const project = loadFixture(slug);
+  const plan = buildProjectPlan(project, "visual-prototype");
+
+  assert.equal(plan.kind, "video-stage-plan");
+  assert.equal(plan.target.stage, "visual-prototype");
+  assert.equal(plan.target.order, 6);
+  assert.equal(plan.target.overridden, true);
+  assert.deepEqual(plan.stages.map((item) => item.stage), [
+    "source",
+    "content-analysis",
+    "video-narrative",
+    "scene-script",
+    "narration-script",
+    "visual-script",
+    "visual-prototype",
+  ]);
+  assert.equal(plan.project.configuredTarget, "gate-4");
+  assert.equal(loadFixture(slug).config.target, "gate-4");
+  assert.throws(() => buildProjectPlan(project, "not-a-stage"), /Unknown target stage/);
 });
 
 test("rejects source-reference words in narration before TTS", () => {

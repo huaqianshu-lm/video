@@ -1,6 +1,12 @@
 import fs from "node:fs";
 import path from "node:path";
-import { HARNESS_VERSION, createStagesState, STAGES } from "./stages.mjs";
+import {
+  DEFAULT_WORKFLOW_ID,
+  HARNESS_VERSION,
+  WORKFLOW_DEFINITIONS,
+  createStagesState,
+  STAGES,
+} from "./stages.mjs";
 import { artifactManifestFor } from "./artifacts.mjs";
 import { fingerprintStageArtifacts } from "./fingerprints.mjs";
 
@@ -45,6 +51,10 @@ export function initializeProject(slug) {
     harnessVersion: HARNESS_VERSION,
     validationPolicy: "strict",
     slug,
+    workflow: DEFAULT_WORKFLOW_ID,
+    workflowVersion: WORKFLOW_DEFINITIONS[DEFAULT_WORKFLOW_ID].version,
+    style: "current",
+    target: "gate-4",
     createdAt: now,
     updatedAt: now,
     workspaceRoot: path.resolve(process.env.HARNESS_WORKSPACE_ROOT ?? repositoryRoot),

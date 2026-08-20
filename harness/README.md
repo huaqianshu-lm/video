@@ -1,8 +1,8 @@
-# Video Production Harness 0.2
+# Video Production Harness 0.3
 
 ## 目标
 
-把当前已经验证的视频生产流程包装成一个可检查、可暂停、可恢复的单视频编排层。0.2 在 0.1 的状态和 Gate 基础上，补充统一 Workflow、确定性校验、产物指纹、下游失效、下一步提示和远程 Artifact 验收；不追求自动替代内容判断，也不建设 Web 平台。
+把当前已经验证的视频生产流程包装成一个可检查、可暂停、可恢复的单视频编排层。0.3 在 0.2 的状态和 Gate 基础上，补充阶段契约、单视频项目配置、Agent 任务包、目标阶段规划和样式边界；不追求自动替代内容判断，也不建设 Web 平台。
 
 ## 仓库边界
 
@@ -34,6 +34,9 @@ Harness 可以读取并调用现有的：
 11. SHA-256 产物指纹和上游变化后的下游失效。
 12. `next` 和 `report` 状态报告。
 13. GitHub Actions Run 与 Artifact 有效性验收。
+14. Workflow 阶段契约：目标、输入、输出、执行者、校验、回退和下一阶段。
+15. `context` 单阶段任务包和只读 `plan --until` 目标阶段规划。
+16. `styles/current` 视觉基线及其版本信息。
 
 ### 不包含
 
@@ -144,6 +147,8 @@ node harness/src/cli.mjs status <video-slug>
 node harness/src/cli.mjs validate <video-slug> [stage]
 node harness/src/cli.mjs next <video-slug>
 node harness/src/cli.mjs report <video-slug>
+node harness/src/cli.mjs context <video-slug>
+node harness/src/cli.mjs plan <video-slug> --until visual-prototype
 node harness/src/cli.mjs next <video-slug> --json
 node harness/src/cli.mjs report <video-slug> --json
 ```
