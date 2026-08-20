@@ -52,6 +52,25 @@ function completeStage(project, stage, outputs = []) {
   saveState(project);
 }
 
+function failAdapterStage(project, stage, error) {
+  const failure = {
+    code: "adapter-failed",
+    stage,
+    message: error instanceof Error ? error.message : String(error),
+  };
+  const item = project.state.stages[stage];
+  item.status = "failed";
+  item.error = failure;
+  item.updatedAt = new Date().toISOString();
+  saveState(project);
+  throw new Error(failure.message);
+}
+
+function completeAdapterStage(project, stage, result) {
+  completeStage(project, stage, result?.outputs ?? []);
+  return { stage, status: "succeeded", nextStage: project.state.currentStage };
+}
+
 export function validateStage(project, requestedStage) {
   const stage = requestedStage ?? project.state.currentStage;
   requireKnownStage(stage);
@@ -93,19 +112,15 @@ export function runStage(project, requestedStage, { adapters = {} } = {}) {
 
     try {
       const result = adapter.run({ stage, project });
-      completeStage(project, stage, result?.outputs ?? []);
-      return { stage, status: "succeeded", nextStage: project.state.currentStage };
+      if (result && typeof result.then === "function") {
+        return result.then(
+          (resolved) => completeAdapterStage(project, stage, resolved),
+          (error) => failAdapterStage(project, stage, error),
+        );
+      }
+      return completeAdapterStage(project, stage, result);
     } catch (error) {
-      const failure = {
-        code: "adapter-failed",
-        stage,
-        message: error instanceof Error ? error.message : String(error),
-      };
-      item.status = "failed";
-      item.error = failure;
-      item.updatedAt = new Date().toISOString();
-      saveState(project);
-      throw new Error(failure.message);
+      return failAdapterStage(project, stage, error);
     }
   }
 

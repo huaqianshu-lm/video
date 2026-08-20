@@ -3,6 +3,7 @@
 import { initializeProject, loadProject } from "./storage.mjs";
 import { STAGES } from "./stages.mjs";
 import { approveGate, rejectGate, resumeProject, retryStage, runStage, validateStage } from "./runner.mjs";
+import { createGitHubActionsAdapterFromEnv } from "./adapters.mjs";
 
 function usage() {
   console.log(`Usage:
@@ -13,7 +14,10 @@ function usage() {
   node harness/src/cli.mjs approve <slug> <gate>
   node harness/src/cli.mjs reject <slug> <gate> --return-to <stage> --reason <text>
   node harness/src/cli.mjs retry <slug> [stage]
-  node harness/src/cli.mjs resume <slug>`);
+  node harness/src/cli.mjs resume <slug>
+
+GitHub Actions adapter environment:
+  GITHUB_TOKEN or GH_TOKEN, GITHUB_REPOSITORY, and GITHUB_REF_NAME (or HARNESS_GITHUB_REF)`);
 }
 
 function validateSlug(slug) {
@@ -38,7 +42,15 @@ function printStatus(project, asJson) {
   }
 }
 
-function main(args) {
+function configuredAdapters() {
+  if (!(process.env.GITHUB_TOKEN ?? process.env.GH_TOKEN)) {
+    return {};
+  }
+  const adapter = createGitHubActionsAdapterFromEnv();
+  return { "smoke-render": adapter, render: adapter };
+}
+
+async function main(args) {
   const [command, slug, ...options] = args;
   if (!command) {
     usage();
@@ -70,7 +82,7 @@ function main(args) {
     }
 
     if (command === "run") {
-      console.log(JSON.stringify(runStage(project, options[0]), null, 2));
+      console.log(JSON.stringify(await runStage(project, options[0], { adapters: configuredAdapters() }), null, 2));
       return 0;
     }
 
@@ -104,7 +116,7 @@ function main(args) {
 }
 
 try {
-  process.exitCode = main(process.argv.slice(2));
+  process.exitCode = await main(process.argv.slice(2));
 } catch (error) {
   console.error(`Harness error: ${error.message}`);
   process.exitCode = 1;

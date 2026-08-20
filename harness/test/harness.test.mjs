@@ -3,7 +3,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
-import { createMockAdapter } from "../src/adapters.mjs";
+import { createGitHubActionsAdapter, createMockAdapter } from "../src/adapters.mjs";
 import { initializeProject, loadProject } from "../src/storage.mjs";
 import { approveGate, rejectGate, resumeProject, runStage } from "../src/runner.mjs";
 
@@ -112,4 +112,73 @@ test("requires an explicit return stage when rejecting a Gate", () => {
   assert.equal(state.stages.remotion.status, "ready");
   assert.equal(state.stages["gate-3"].status, "pending");
   assert.equal(state.stages["gate-3"].error.message, "visual mismatch");
+});
+
+test("completes a GitHub Actions run and records its artifact metadata", async () => {
+  const { slug } = createFixture();
+  const responses = [
+    { status: 204, ok: true, text: async () => "" },
+    {
+      status: 200,
+      ok: true,
+      text: async () => JSON.stringify({
+        workflow_runs: [{
+          id: 123,
+          head_branch: "feat/video-harness-v0.1",
+          created_at: "2026-08-20T00:00:01.000Z",
+          status: "queued",
+          conclusion: null,
+          html_url: "https://github.com/example/video/actions/runs/123",
+        }],
+      }),
+    },
+    {
+      status: 200,
+      ok: true,
+      text: async () => JSON.stringify({
+        id: 123,
+        status: "completed",
+        conclusion: "success",
+        html_url: "https://github.com/example/video/actions/runs/123",
+      }),
+    },
+    {
+      status: 200,
+      ok: true,
+      text: async () => JSON.stringify({
+        artifacts: [{ name: `${slug}-smoke-test`, id: 456, size_in_bytes: 789, expired: false }],
+      }),
+    },
+  ];
+  const calls = [];
+  const adapter = createGitHubActionsAdapter({
+    token: "test-token",
+    repository: "example/video",
+    ref: "feat/video-harness-v0.1",
+    now: () => new Date("2026-08-20T00:00:00.000Z"),
+    discoveryPollIntervalMs: 0,
+    runPollIntervalMs: 0,
+    sleepImpl: async () => {},
+    fetchImpl: async (url, options) => {
+      calls.push({ url, options });
+      return responses.shift();
+    },
+  });
+
+  const project = loadFixture(slug);
+  const result = await adapter.run({ stage: "smoke-render", project });
+
+  assert.equal(result.outputs[0].runId, 123);
+  assert.deepEqual(result.outputs[0].artifacts, [{
+    name: `${slug}-smoke-test`,
+    id: 456,
+    sizeInBytes: 789,
+    expired: false,
+  }]);
+  assert.match(calls[0].url, /actions\/workflows\/smoke-test-video\.yml\/dispatches$/);
+  assert.deepEqual(JSON.parse(calls[0].options.body), {
+    ref: "feat/video-harness-v0.1",
+    inputs: { video_slug: slug, composition_id: slug },
+  });
+  assert.equal(calls[0].options.headers.Authorization, "Bearer test-token");
 });
