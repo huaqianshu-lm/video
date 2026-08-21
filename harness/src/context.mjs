@@ -99,6 +99,7 @@ export function buildTaskPacket(project) {
       inputArtifacts: inputs,
       outputArtifacts: outputs,
       validation: contract.validation,
+      manualChecks: contract.manualChecks,
       fallbackStage: contract.fallbackStage,
       nextStage: contract.nextStage,
       requiresApproval: definition.requiresApproval,

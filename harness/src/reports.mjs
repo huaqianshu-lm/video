@@ -1,4 +1,4 @@
-import { isGateStage, previousStage, STAGES } from "./stages.mjs";
+import { isGateStage, previousStage, STAGE_DEFINITIONS, STAGES } from "./stages.mjs";
 import { validateStage } from "./runner.mjs";
 
 function commandFor(project, command, stage = null) {
@@ -32,6 +32,7 @@ export function buildNextAction(project) {
       requiresUser: true,
       commands: [commandFor(project, "approve", stage)],
       issues,
+      manualChecks: STAGE_DEFINITIONS[stage].manualChecks,
     };
   }
   if (item.status === "failed") {
@@ -118,6 +119,7 @@ export function buildProjectReport(project) {
         invalidatedBy: item.invalidatedBy,
         outputCount: item.outputs.length,
         error: item.error,
+        manualChecks: STAGE_DEFINITIONS[stage].manualChecks,
         updatedAt: item.updatedAt,
       };
     }),
