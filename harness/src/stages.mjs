@@ -1,4 +1,4 @@
-export const HARNESS_VERSION = "0.3.0";
+export const HARNESS_VERSION = "0.4.0";
 
 const rawStageDefinitions = [
   {
@@ -72,6 +72,11 @@ const rawStageDefinitions = [
     inputStages: ["narration-script", "visual-script", "visual-prototype"],
     executor: "human",
     validation: ["manual-gate"],
+    manualChecks: [
+      "口播可以脱离制作资料独立面向观众表达，且没有来源指代或内部制作文字。",
+      "Visual Script 与 Visual Prototype 的 Scene、视觉事件和屏幕文字一致。",
+      "所有画面文字都能追溯到当前视频生产资料，未带入参考视频语义。",
+    ],
     fallbackStage: "visual-script",
   },
   {
@@ -113,6 +118,11 @@ const rawStageDefinitions = [
     inputStages: ["remotion"],
     executor: "human",
     validation: ["manual-gate", "clean-output-review"],
+    manualChecks: [
+      "音频、字幕、视觉事件和 Scene 边界同步。",
+      "字幕和主文字处于安全区，画面没有溢出、遮挡或白屏。",
+      "Composition 中没有预览导航、调试标记、辅助说明或无关文字。",
+    ],
     fallbackStage: "remotion",
   },
   {
@@ -143,6 +153,11 @@ const rawStageDefinitions = [
     inputStages: ["render"],
     executor: "human",
     validation: ["manual-gate", "final-output-review"],
+    manualChecks: [
+      "最终 MP4 的主题、口播、字幕、画面和 Scene 顺序完整一致。",
+      "声音自然，字幕无明显错字、错位、提前或滞后。",
+      "最终文件不包含预览控件、调试信息、参考视频残留文案或其他无关画面文字。",
+    ],
     fallbackStage: "render",
   },
 ];
@@ -151,6 +166,7 @@ const stageDefinitions = rawStageDefinitions.map((definition, order) => ({
   kind: "production",
   requiresApproval: definition.kind === "gate",
   requiresAdapter: false,
+  manualChecks: [],
   ...definition,
   order,
   previousStage: rawStageDefinitions[order - 1]?.stage ?? null,
@@ -161,6 +177,7 @@ const stageDefinitions = rawStageDefinitions.map((definition, order) => ({
     outputArtifacts: Object.freeze([...definition.artifacts]),
     executor: definition.executor,
     validation: Object.freeze([...(definition.validation ?? [])]),
+    manualChecks: Object.freeze([...(definition.manualChecks ?? [])]),
     fallbackStage: definition.fallbackStage,
     nextStage: rawStageDefinitions[order + 1]?.stage ?? null,
   }),

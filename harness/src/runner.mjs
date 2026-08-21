@@ -93,6 +93,15 @@ export function runStage(project, requestedStage, { adapters = {} } = {}) {
   saveState(project);
 
   if (isGateStage(stage)) {
+    const issues = validateStage(project, stage);
+    if (issues.length > 0) {
+      const error = { code: "validation-failed", stage, issues };
+      item.status = "failed";
+      item.error = error;
+      item.updatedAt = new Date().toISOString();
+      saveState(project);
+      throw new Error(`${issues.length} artifact validation issue(s) in ${stage}`);
+    }
     item.status = "waiting";
     item.updatedAt = new Date().toISOString();
     saveState(project);

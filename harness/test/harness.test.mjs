@@ -47,10 +47,13 @@ function createFixture() {
     const absolutePath = path.join(workspaceRoot, relativePath);
     fs.mkdirSync(path.dirname(absolutePath), { recursive: true });
     let content = "fixture\n";
-    if (relativePath.endsWith("scene-script.md")) content = "# Scene Script\n\n## Scene 01｜测试\n\n### purpose\n验证 Harness。\n";
+    if (relativePath.endsWith("content-analysis.md")) content = "# Content Analysis\n\n## 核心命题\n验证 Harness。\n\n## 关键关系\n输入、校验和输出。\n\n## 可视觉化内容\n展示阶段状态。\n";
+    if (relativePath.endsWith("video-narrative.md")) content = "# Video Narrative\n\n## 叙事目标\n解释流程。\n\n## 叙事原则\n先展示，再验证。\n\n## 整体叙事结构\n从输入到输出。\n";
+    if (relativePath.endsWith("scene-script.md")) content = "# Scene Script\n\n## Scene 01｜测试\n\n### 目的\n验证 Harness。\n\n### narrativeRole\n建立流程。\n\n### narrationIntent\n解释测试。\n\n### visualIntent\n展示测试状态。\n\n### visualType\n流程。\n\n### keyOnScreenText\nHarness。\n\n### videoValue\n让流程可检查。\n";
     if (relativePath.endsWith("narration-script.md")) content = "# Narration Script\n\n## Scene 01｜测试\n\n这是测试口播。\n";
-    if (relativePath.endsWith("visual-script.md")) content = "# Visual Script\n\n## Scene 01｜测试\n\n### 视觉目标\n展示测试状态。\n";
-    if (relativePath.endsWith("visual-prototype.html")) content = "<main><section class=\"scene\">Scene 01</section></main>\n";
+    if (relativePath.endsWith("visual-script.md")) content = "# Visual Script\n\n## 全局视觉原则\n保持清晰。\n\n## Scene 01｜测试\n\n### 视觉目标\n展示测试状态。\n\n### 画面结构\n一个状态卡片。\n\n### 动画\n淡入。\n\n### 屏幕文字\nHarness。\n\n### Visual Type\n流程。\n";
+    if (relativePath.endsWith("visual-prototype.html")) content = "<!doctype html><main><button>上一幕</button><button>下一幕</button><button>自动播放</button><div id=\"progress\"></div><section class=\"scene\">Scene 01</section></main>\n";
+    if (relativePath.endsWith("video.config.ts")) content = "const fps = 30; const subtitleManifest = {}; const timelineManifest = {}; export const videoConfig = { slug: 'fixture-video', format: 'horizontal', width: 1920, height: 1080, fps, scenes: [] };\n";
     if (relativePath.endsWith("tts-script.json")) content = JSON.stringify({
       schemaVersion: "1.0",
       scenes: [{ sceneId: "01", segments: [{ id: "01-01", text: "这是测试口播。" }] }],
@@ -130,7 +133,7 @@ test("initializes explicit workflow, style, and target project configuration", (
   assert.equal(project.config.workflowVersion, 1);
   assert.equal(project.config.style, "current");
   assert.equal(project.config.target, "gate-4");
-  assert.equal(project.config.harnessVersion, "0.3.0");
+  assert.equal(project.config.harnessVersion, "0.4.0");
 });
 
 test("builds a single-stage context task packet with bounded read and write paths", () => {
@@ -186,7 +189,7 @@ test("reports wildcard artifacts only when a matching file exists", () => {
       workflowVersion: 1,
       style: "current",
       target: "gate-4",
-      harnessVersion: "0.3.0",
+      harnessVersion: "0.4.0",
       sourceDirectory: `videos/${slug}`,
       remotionDirectory: `src/videos/${slug}`,
     },
@@ -270,6 +273,50 @@ test("supports legacy read-only validation without weakening strict generation r
   assert.equal(legacyIssues.some((item) => item.severity === "warning" && item.code === "forbidden-source-reference"), true);
 });
 
+test("blocks malformed production structure and Remotion configuration", () => {
+  const { slug } = createFixture();
+  const project = loadFixture(slug);
+  const root = project.config.workspaceRoot;
+
+  fs.writeFileSync(path.join(root, `videos/${slug}/content-analysis.md`), "# Content Analysis\n\n## 只有标题\n", "utf8");
+  const contentIssues = validateStage(loadFixture(slug), "content-analysis");
+  assert.equal(contentIssues.some((item) => item.code === "insufficient-headings"), true);
+  assert.equal(contentIssues.some((item) => item.code === "missing-structure"), true);
+
+  fs.writeFileSync(path.join(root, `videos/${slug}/scene-script.md`), "# Scene Script\n\n## Scene 01｜测试\n\n没有结构字段。\n", "utf8");
+  const sceneIssues = validateStage(loadFixture(slug), "scene-script");
+  assert.equal(sceneIssues.some((item) => item.code === "missing-scene-field"), true);
+
+  fs.writeFileSync(path.join(root, `videos/${slug}/visual-prototype.html`), "<main></main>\n", "utf8");
+  const prototypeIssues = validateStage(loadFixture(slug), "visual-prototype");
+  assert.equal(prototypeIssues.some((item) => item.code === "missing-prototype-scenes"), true);
+  assert.equal(prototypeIssues.some((item) => item.code === "missing-prototype-controls"), true);
+  assert.equal(prototypeIssues.some((item) => item.code === "missing-prototype-progress"), true);
+
+  fs.writeFileSync(path.join(root, `src/videos/${slug}/video.config.ts`), "export const videoConfig = { width: 1080, height: 1920, fps: 24 };\n", "utf8");
+  const remotionIssues = validateStage(loadFixture(slug), "remotion");
+  assert.equal(remotionIssues.some((item) => item.code === "invalid-video-size"), true);
+  assert.equal(remotionIssues.some((item) => item.code === "invalid-video-fps"), true);
+  assert.equal(remotionIssues.some((item) => item.code === "missing-video-scenes"), true);
+  assert.equal(remotionIssues.some((item) => item.code === "missing-resource-manifest"), true);
+});
+
+test("does not enter a Gate when its automatic checks fail", () => {
+  const { slug } = createFixture();
+  const project = loadFixture(slug);
+  const prototypePath = path.join(project.config.workspaceRoot, `videos/${slug}/visual-prototype.html`);
+  fs.writeFileSync(prototypePath, "<main></main>\n", "utf8");
+  project.state.currentStage = "gate-2";
+  for (const stage of ["source", "content-analysis", "video-narrative", "scene-script", "narration-script", "visual-script", "visual-prototype"]) {
+    project.state.stages[stage].status = "succeeded";
+  }
+  project.state.stages["gate-2"].status = "ready";
+
+  assert.throws(() => runStage(project, "gate-2"), /artifact validation issue\(s\) in gate-2/);
+  assert.equal(loadFixture(slug).state.stages["gate-2"].status, "failed");
+  assert.equal(loadFixture(slug).state.stages["gate-2"].error.code, "validation-failed");
+});
+
 test("passes read-only regression for four real videos without writing their directories", () => {
   const workspaceRoot = process.cwd();
   const slugs = ["claude-code-how-it-works", "claude-code-first-run", "claude-code-coding-plan", "claude-code-third-party-models"];
@@ -280,7 +327,7 @@ test("passes read-only regression for four real videos without writing their dir
       config: { slug, workspaceRoot, validationPolicy: "legacy" },
       artifacts: { stages: artifactManifestFor(slug) },
     };
-    const issues = ["scene-script", "narration-script", "tts", "subtitle-timeline"]
+    const issues = ["scene-script", "narration-script", "tts", "subtitle-timeline", "visual-prototype", "remotion"]
       .flatMap((stage) => validateProjectStage(project, stage));
     assert.equal(issues.filter((item) => item.severity === "error").length, 0, `${slug} has structural validation errors`);
     assert.deepEqual(snapshotTree(roots), before, `${slug} changed during read-only validation`);
@@ -319,6 +366,7 @@ test("reports the next action for a ready stage and a waiting Gate", () => {
   assert.equal(gateAction.currentStage, "gate-3");
   assert.equal(gateAction.action, "approve-or-reject-gate");
   assert.equal(gateAction.requiresUser, true);
+  assert.equal(gateAction.manualChecks.length, 3);
 
   const report = buildProjectReport(loadFixture(slug));
   assert.equal(report.stages.length, 15);
