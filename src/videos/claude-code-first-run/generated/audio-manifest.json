@@ -1,0 +1,258 @@
+{
+  "schemaVersion": "1.0",
+  "videoId": "claude-code-first-run",
+  "voice": {
+    "name": "zh-CN-XiaoxiaoNeural",
+    "rate": "+25%",
+    "pitch": "+0Hz",
+    "volume": "+0%"
+  },
+  "scenes": [
+    {
+      "sceneId": "01",
+      "segments": [
+        {
+          "id": "01-01",
+          "file": "audio/scene-01/01-01.mp3",
+          "text": "前面几篇，你已经把 Claude Code 装好、登录好，套餐也选好了。",
+          "duration": 4.536
+        },
+        {
+          "id": "01-02",
+          "file": "audio/scene-01/01-02.mp3",
+          "text": "但终端真正打开的那一刻，很多人还是会盯着光标发愣：我现在到底该敲什么？万一一句话说错，把代码搞坏了怎么办？",
+          "duration": 8.76
+        },
+        {
+          "id": "01-03",
+          "file": "audio/scene-01/01-03.mp3",
+          "text": "别紧张。这一篇我们只走一遍最简单的流程：建一个只有几行代码的小项目，让 Claude 先读懂它，再帮你改一处。全程不超过五分钟，先拿到第一次成功体验。",
+          "duration": 11.928
+        }
+      ],
+      "narrationDuration": 25.224
+    },
+    {
+      "sceneId": "02",
+      "segments": [
+        {
+          "id": "02-01",
+          "file": "audio/scene-02/02-01.mp3",
+          "text": "第一次用，别拿正式项目练手。",
+          "duration": 2.568
+        },
+        {
+          "id": "02-02",
+          "file": "audio/scene-02/02-02.mp3",
+          "text": "正式项目文件多、依赖杂，Claude 一上来读半天，你也不容易看清它到底做了什么。先建一个叫 hello-claude 的玩具项目，里面只放一个很短的 main.py。",
+          "duration": 10.848
+        },
+        {
+          "id": "02-03",
+          "file": "audio/scene-02/02-03.mp3",
+          "text": "打开终端，输入 mkdir hello-claude，再输入 cd hello-claude。然后创建这个 Python 文件，让它只有一个 add 函数，接收两个数，再把它们加起来。",
+          "duration": 10.08
+        },
+        {
+          "id": "02-04",
+          "file": "audio/scene-02/02-04.mp3",
+          "text": "这就是你的练车场。改砸了也没关系，重建一个就行。",
+          "duration": 4.344
+        }
+      ],
+      "narrationDuration": 27.84
+    },
+    {
+      "sceneId": "03",
+      "segments": [
+        {
+          "id": "03-01",
+          "file": "audio/scene-03/03-01.mp3",
+          "text": "项目建好以后，要在同一个文件夹里启动 Claude Code，输入 claude。",
+          "duration": 4.752
+        },
+        {
+          "id": "03-02",
+          "file": "audio/scene-03/03-02.mp3",
+          "text": "这里有一个新手最容易踩的坑：不要在桌面或者主目录里直接启动。Claude Code 会把你当前所在的目录当成工作区。你在哪儿启动，它就从哪儿开始读文件。",
+          "duration": 11.304
+        },
+        {
+          "id": "03-03",
+          "file": "audio/scene-03/03-03.mp3",
+          "text": "所以先进入 hello-claude，再启动 Claude。就像请装修师傅上门，得先把他领进要装修的那套房子。",
+          "duration": 7.44
+        }
+      ],
+      "narrationDuration": 23.496
+    },
+    {
+      "sceneId": "04",
+      "segments": [
+        {
+          "id": "04-01",
+          "file": "audio/scene-04/04-01.mp3",
+          "text": "启动以后，你会看到欢迎屏幕。第一次不用研究所有信息，只要先认住三样东西。",
+          "duration": 6.24
+        },
+        {
+          "id": "04-02",
+          "file": "audio/scene-04/04-02.mp3",
+          "text": "最底下的输入框，是你和 Claude 说话的地方。/help 可以查看可用命令。/resume 可以继续之前的会话，第一次使用时先不用管它。",
+          "duration": 9.48
+        },
+        {
+          "id": "04-03",
+          "file": "audio/scene-04/04-03.mp3",
+          "text": "输入框就是主战场。你不需要先学一套特殊语法，直接用大白话提需求就可以。",
+          "duration": 6.192
+        }
+      ],
+      "narrationDuration": 21.912
+    },
+    {
+      "sceneId": "05",
+      "segments": [
+        {
+          "id": "05-01",
+          "file": "audio/scene-05/05-01.mp3",
+          "text": "第一个真正的任务，不要直接让 Claude 改代码，先让它解释代码。",
+          "duration": 4.728
+        },
+        {
+          "id": "05-02",
+          "file": "audio/scene-05/05-02.mp3",
+          "text": "在输入框里输入：“解释 main.py 这个文件在做什么，用新手能理解的方式说明。”",
+          "duration": 6.144
+        },
+        {
+          "id": "05-03",
+          "file": "audio/scene-05/05-03.mp3",
+          "text": "Claude 会读取当前目录里的 main.py，告诉你这里定义了一个 add 函数，接收两个参数，返回它们相加的结果。",
+          "duration": 8.112
+        },
+        {
+          "id": "05-04",
+          "file": "audio/scene-05/05-04.mp3",
+          "text": "这一步有两个作用：确认它确实读到了你的真实文件，也确认安装和登录都正常。解释型任务只读不改，是第一次试水最稳的方式。",
+          "duration": 9.648
+        }
+      ],
+      "narrationDuration": 28.632
+    },
+    {
+      "sceneId": "06",
+      "segments": [
+        {
+          "id": "06-01",
+          "file": "audio/scene-06/06-01.mp3",
+          "text": "现在让 Claude 真正改一次代码。输入：“给这个函数增加类型注解，并补充基本的错误处理。”",
+          "duration": 7.104
+        },
+        {
+          "id": "06-02",
+          "file": "audio/scene-06/06-02.mp3",
+          "text": "这时 Claude 不会直接把文件改掉。它会先找到 main.py，把准备删除和新增的内容用 diff 展示出来，然后停下来等你批准。",
+          "duration": 9.504
+        },
+        {
+          "id": "06-03",
+          "file": "audio/scene-06/06-03.mp3",
+          "text": "红色或者减号开头的行，是旧内容；绿色或者加号开头的行，是新内容。第一次只要看懂这一次改动，选择“同意”就好，不要急着开启全部接受。",
+          "duration": 10.872
+        },
+        {
+          "id": "06-04",
+          "file": "audio/scene-06/06-04.mp3",
+          "text": "这一刻你完成的不是“让 AI 替你写代码”，而是一次真正的人机协作：Claude 提出改法，你看懂并决定是否落盘。",
+          "duration": 8.016
+        }
+      ],
+      "narrationDuration": 35.496
+    },
+    {
+      "sceneId": "07",
+      "segments": [
+        {
+          "id": "07-01",
+          "file": "audio/scene-07/07-01.mp3",
+          "text": "如果你发现刚才的改动不满意，可以直接告诉 Claude：“刚才的改动我不满意，帮我改回原来的样子。”",
+          "duration": 6.816
+        },
+        {
+          "id": "07-02",
+          "file": "audio/scene-07/07-02.mp3",
+          "text": "也可以使用检查点。输入 /rewind，或者在输入框为空时连按两次 Esc，就会打开回溯菜单。如果输入框里还有文字，双击 Esc 只会清空文字，所以回溯前要先清空输入框。",
+          "duration": 14.328
+        },
+        {
+          "id": "07-03",
+          "file": "audio/scene-07/07-03.mp3",
+          "text": "不过要分清楚：Checkpoint 是本地撤销，Git 才是永久历史。检查点适合刚改错时回到上一个状态，重要进度还是要交给 Git 保存。",
+          "duration": 10.128
+        }
+      ],
+      "narrationDuration": 31.272
+    },
+    {
+      "sceneId": "08",
+      "segments": [
+        {
+          "id": "08-01",
+          "file": "audio/scene-08/08-01.mp3",
+          "text": "现在把整条流程串起来。",
+          "duration": 2.208
+        },
+        {
+          "id": "08-02",
+          "file": "audio/scene-08/08-02.mp3",
+          "text": "第一步，创建 hello-claude，进入目录，写好 main.py。第二步，在这个目录里输入 claude。第三步，让它解释 main.py。第四步，让它增加类型注解和错误处理，看懂 diff 以后批准。",
+          "duration": 14.208
+        },
+        {
+          "id": "08-03",
+          "file": "audio/scene-08/08-03.mp3",
+          "text": "第五步，退出 Claude，回到终端查看 main.py。如果文件里出现了和刚才 diff 对得上的类型注解和错误处理，就说明你的第一个任务跑通了。",
+          "duration": 10.488
+        },
+        {
+          "id": "08-04",
+          "file": "audio/scene-08/08-04.mp3",
+          "text": "跑通比一开始就弄懂所有功能更重要。你已经完成了一次可复现的闭环。",
+          "duration": 5.568
+        }
+      ],
+      "narrationDuration": 32.472
+    },
+    {
+      "sceneId": "09",
+      "segments": [
+        {
+          "id": "09-01",
+          "file": "audio/scene-09/09-01.mp3",
+          "text": "这一篇你完成了从建项目、启动 Claude、解释代码，到修改代码并批准的完整任务。",
+          "duration": 6.24
+        },
+        {
+          "id": "09-02",
+          "file": "audio/scene-09/09-02.mp3",
+          "text": "以后再复杂的功能，本质上都建立在这个最小内核上：用自然语言提需求，看懂 diff，然后批准，或者在不满意时反悔。",
+          "duration": 9.12
+        },
+        {
+          "id": "09-03",
+          "file": "audio/scene-09/09-03.mp3",
+          "text": "人负责确认目标、看懂改动和做判断，Claude 负责读取、分析和执行具体步骤。",
+          "duration": 6.384
+        },
+        {
+          "id": "09-04",
+          "file": "audio/scene-09/09-04.mp3",
+          "text": "下一篇是“08：VS Code 集成”。命令行跑通以后，我们把 Claude Code 放到编辑器旁边，让代码和 diff 看起来更直观。",
+          "duration": 8.952
+        }
+      ],
+      "narrationDuration": 30.696
+    }
+  ]
+}

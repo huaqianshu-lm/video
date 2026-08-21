@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>功能怎么选 · Visual Prototype</title>
+  <style>
+    :root{--bg:#080d18;--panel:#101a2b;--panel2:#14233b;--line:#2b3d5c;--text:#eef4ff;--muted:#9cadc6;--blue:#73c8ff;--purple:#c39aff;--green:#72e1aa;--yellow:#f4cf72;--red:#fb8989}
+    *{box-sizing:border-box}
+    body{margin:0;background:radial-gradient(circle at 50% -20%,#1b3150 0,#080d18 58%);color:var(--text);font-family:Inter,"PingFang SC","Microsoft YaHei",sans-serif}
+    .shell{width:min(1500px,calc(100vw - 48px));margin:0 auto;padding:32px 0 28px}
+    .top{display:flex;justify-content:space-between;align-items:end;margin-bottom:20px}
+    .eyebrow,.badge{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--blue);font-weight:800}
+    h1{font-size:clamp(28px,3vw,50px);line-height:1.08;margin:8px 0 0}
+    .meta{text-align:right;color:var(--muted);font-size:13px;line-height:1.7}
+    .stage{position:relative;aspect-ratio:16/9;min-height:650px;overflow:hidden;border:1px solid var(--line);border-radius:18px;background:#0b1424;box-shadow:0 28px 80px #0009}
+    .scene{display:none;position:absolute;inset:0;padding:44px 58px 104px}
+    .scene.active{display:block}
+    h2{font-size:clamp(25px,2.7vw,44px);line-height:1.15;margin:12px 0 0;max-width:1000px}
+    .mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+    .muted{color:var(--muted)}.blue{color:var(--blue)}.purple{color:var(--purple)}.green{color:var(--green)}.yellow{color:var(--yellow)}.red{color:var(--red)}
+    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:30px}
+    .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:26px}
+    .card,.window,.table,.tree,.guard,.box{border:1px solid var(--line);border-radius:14px;background:linear-gradient(145deg,#14233a,#0e182a);box-shadow:0 12px 32px #0003}
+    .card{padding:18px}.window{overflow:hidden}.bar{height:30px;display:flex;gap:7px;align-items:center;padding:0 13px;border-bottom:1px solid var(--line);background:#0d1728}
+    .dot{width:8px;height:8px;border-radius:50%;background:#526984}.content{padding:18px;line-height:1.9}
+    .chips,.path,.summary{display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;margin-top:26px}
+    .chip,.node{padding:10px 14px;border:1px solid var(--line);border-radius:9px;background:#14233b;color:#dce8f9;font-size:14px}
+    .chip{animation:float 3.4s ease-in-out infinite}.chip:nth-child(2n){animation-delay:.4s}.chip:nth-child(3n){animation-delay:.8s}
+    @keyframes float{50%{transform:translateY(-5px);border-color:#58759f}}
+    .arrow{color:var(--muted);font-size:23px}.hero{display:flex;flex-direction:column;align-items:center;justify-content:center;height:360px;text-align:center}
+    .hero .question{font-size:clamp(28px,3.2vw,52px);font-weight:800}.hero .result{margin-top:25px;font-size:28px;color:var(--green)}
+    .loop{display:grid;grid-template-columns:repeat(3,1fr);gap:15px;margin-top:38px}
+    .loop .card{position:relative;min-height:170px}.hook{position:absolute;right:14px;top:14px;color:var(--yellow);font-size:25px}
+    .role{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:18px}.role div,.row{padding:10px 12px;border-radius:8px;background:#102035;font-size:14px}
+    .table{overflow:hidden;margin-top:28px}.thead,.tr{display:grid;grid-template-columns:1.2fr 1fr 1.2fr;gap:10px;padding:11px 14px;align-items:center}.thead{background:#172a43;color:var(--muted);font-size:13px}.tr{border-top:1px solid #22344e}.tr.active{background:#17352e;border-left:3px solid var(--green)}
+    .tree{padding:22px;margin-top:26px;min-height:320px}.question-row{display:flex;align-items:center;gap:10px;margin:9px 0}.question-row .q{min-width:190px;padding:10px 12px;border:1px solid var(--yellow);border-radius:9px;color:var(--yellow);background:#282514}.question-row .answer{padding:10px 12px;border:1px solid var(--line);border-radius:9px;background:#102035}
+    .compare{min-height:260px}.compare h3{font-size:23px;margin:8px 0 14px}.compare .row{margin-top:9px;border-left:3px solid var(--blue)}.compare .row.p{border-left-color:var(--purple)}
+    .timeline{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:35px}.timeline .card{position:relative;min-height:230px}.line{position:absolute;left:22px;right:22px;top:74px;height:3px;background:linear-gradient(90deg,var(--blue),var(--purple));opacity:.55}.event{position:relative;z-index:1;display:flex;justify-content:space-between;margin-top:48px}.event span{width:13px;height:13px;border-radius:50%;background:var(--blue);box-shadow:0 0 16px #73c8ff88}.event span:last-child{background:var(--purple)}
+    .guard{display:grid;grid-template-columns:1fr 80px 1fr;align-items:center;gap:14px;margin-top:40px;padding:26px}.gate{padding:20px;border:1px solid var(--yellow);border-radius:12px;background:#282514;text-align:center}.side-actions{display:grid;gap:9px}.side-actions div{padding:11px;border-left:3px solid var(--green);background:#123126;border-radius:7px}
+    .bundle{display:grid;grid-template-columns:1fr 1.1fr 1fr;gap:16px;align-items:center;margin-top:32px}.bundle .stack{display:grid;gap:9px}.box{padding:28px;text-align:center;border-color:var(--purple);background:linear-gradient(145deg,#2a2142,#17233b)}.box strong{display:block;font-size:32px;color:var(--purple);margin-bottom:10px}
+    .practice{display:grid;grid-template-columns:1.1fr 1fr 1fr;gap:12px;margin-top:26px}.practice .card{min-height:270px}.practice .item{display:flex;justify-content:space-between;padding:9px 11px;margin-top:8px;border-radius:7px;background:#102035;border-left:3px solid var(--blue);font-size:13px}.practice .item:nth-child(3n){border-left-color:var(--purple)}.practice .item:nth-child(4n){border-left-color:var(--yellow)}
+    .summary{height:250px;font-size:18px}.summary .node.active{border-color:var(--green);color:var(--green)}.preview{max-width:800px;margin:12px auto 0;padding:20px 24px;border:1px solid var(--purple);border-radius:14px;background:linear-gradient(135deg,#2a2142,#17243d);text-align:center}.preview strong{display:block;font-size:23px;line-height:1.35;color:var(--purple);margin-top:8px}
+    .caption{position:absolute;left:58px;right:58px;bottom:40px;padding:10px 14px;border-left:3px solid var(--blue);background:#0c1729ed;color:#cbdaf0;font-size:14px}
+    .controls{display:flex;justify-content:center;gap:10px;margin:16px 0 9px}.controls button{cursor:pointer;border:1px solid #456088;border-radius:8px;background:#111d32;color:#d9e5f7;padding:9px 14px;font-size:14px}.controls button:hover{border-color:var(--blue);color:#fff}
+    .progress{display:flex;justify-content:center;gap:7px;margin:12px 0 17px;flex-wrap:wrap}.pill{width:38px;height:5px;border-radius:99px;background:#263753}.pill.on{background:var(--blue);box-shadow:0 0 10px #73c8ff88}
+    .note{color:var(--muted);font-size:13px;line-height:1.7;text-align:center;margin:0 auto;max-width:980px}
+    @media(max-width:900px){.shell{width:calc(100vw - 24px);padding-top:18px}.top{display:block}.meta{text-align:left;margin-top:7px}.stage{min-height:650px}.scene{padding:28px 28px 96px}.caption{left:28px;right:28px}.grid2,.grid3,.loop,.timeline,.practice,.bundle,.guard{grid-template-columns:1fr}.role{grid-template-columns:1fr}.thead,.tr{grid-template-columns:1fr}.guard .arrow{display:none}.summary{height:300px}.preview{margin-top:0}}
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="top">
+      <div><div class="eyebrow">choosing-features · 11 Scenes</div><h1>功能怎么选：从需求走到方案</h1></div>
+      <div class="meta">16:9 横屏 · 1920 × 1080<br>Visual Prototype</div>
+    </header>
+
+    <div class="stage">
+      <section class="scene active">
+        <div class="eyebrow">Scene 01 · Need Mapping</div><h2>名词都懂，需求一来就卡</h2>
+        <div class="hero"><div class="chips"><span class="chip">CLAUDE.md</span><span class="chip">Skill</span><span class="chip">Hook</span><span class="chip">MCP</span><span class="chip">Subagent</span><span class="chip">slash command</span></div><div class="question">“我这个需求该用哪个？”</div><div class="result">需求 → 方案</div></div>
+        <div class="caption">问题不是名词不够熟，而是还没有建立从需求到方案的映射</div>
+      </section>
+
+      <section class="scene">
+        <div class="eyebrow">Scene 02 · Agent Loop</div><h2>六个挂钩，插在代理循环不同位置</h2>
+        <div class="loop"><div class="card"><span class="hook">⌁</span><div class="badge">想</div><h3>背景与规矩</h3><div class="muted">CLAUDE.md · Skill</div></div><div class="card"><span class="hook">⌁</span><div class="badge purple">做</div><h3>外部与分身</h3><div class="muted">MCP · Subagent</div></div><div class="card"><span class="hook">⌁</span><div class="badge yellow">看</div><h3>事件与主动流程</h3><div class="muted">Hook · slash command</div></div></div>
+        <div class="path"><span class="node">想</span><span class="arrow">→</span><span class="node">做</span><span class="arrow">→</span><span class="node">看</span><span class="arrow">↻</span></div>
+        <div class="caption">六个扩展点不是平行菜单，而是挂在代理循环不同位置的能力</div>
+      </section>
+
+      <section class="scene">
+        <div class="eyebrow">Scene 03 · Six Departments</div><h2>六个科室，各治什么</h2>
+        <div class="grid3"><div class="card"><div class="badge">CLAUDE.md</div><h3>每次都记住</h3><div class="role"><div>自动加载</div><div>全文常驻</div></div></div><div class="card"><div class="badge purple">Skill</div><h3>需要时调出</h3><div class="role"><div>自动或主动</div><div>按需加载</div></div></div><div class="card"><div class="badge">slash command</div><h3>主动一键触发</h3><div class="role"><div>用户输入</div><div>固定流程</div></div></div><div class="card"><div class="badge green">MCP</div><h3>接到外部世界</h3><div class="role"><div>工具调用</div><div>外部服务</div></div></div><div class="card"><div class="badge purple">Subagent</div><h3>独立分身</h3><div class="role"><div>派发任务</div><div>隔离窗口</div></div></div><div class="card"><div class="badge yellow">Hook</div><h3>自动扣扳机</h3><div class="role"><div>生命周期</div><div>固定动作</div></div></div></div>
+        <div class="caption">先记住主治范围：规矩、按需能力、主动流程、外部连接、隔离分身、事件动作</div>
+      </section>
+
+      <section class="scene">
+        <div class="eyebrow">Scene 04 · Decision Table</div><h2>需求表：先找最像你的一句话</h2>
+        <div class="table"><div class="thead"><span>你的需求</span><span>推荐方案</span><span>判断理由</span></div><div class="tr"><span>一律按项目约定来</span><b class="blue">CLAUDE.md</b><span class="muted">每次都看到</span></div><div class="tr active"><span>查公司数据库</span><b class="green">MCP</b><span>连接外部服务</span></div><div class="tr"><span>读几十个文件只要结论</span><b class="purple">Subagent</b><span class="muted">隔离上下文</span></div><div class="tr"><span>编辑后自动跑 ESLint</span><b class="yellow">Hook</b><span class="muted">固定时机动作</span></div></div>
+        <div class="caption">把心里的需求说成一句话，再用表格对号入座</div>
+      </section>
+
+      <section class="scene">
+        <div class="eyebrow">Scene 05 · Decision Tree</div><h2>四个问题，走完一棵决策树</h2>
+        <div class="tree"><div class="question-row"><span class="q">连外部？</span><span class="arrow">→</span><span class="answer green">MCP</span></div><div class="question-row"><span class="q">要硬保证？</span><span class="arrow">→</span><span class="answer yellow">Hook／权限规则</span></div><div class="question-row"><span class="q">要隔离？</span><span class="arrow">→</span><span class="answer purple">Subagent</span></div><div class="question-row"><span class="q">每次看还是按需看？</span><span class="arrow">→</span><span class="answer blue">CLAUDE.md／Skill／slash command</span></div></div>
+        <div class="caption">连外部？→ 要硬保证？→ 要隔离？→ 每次看还是按需看？</div>
+      </section>
+
+      <section class="scene">
+        <div class="eyebrow">Scene 06 · Skill vs Subagent</div><h2>Skill 和 Subagent：手册还是外派</h2>
+        <div class="grid2"><div class="window"><div class="bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div><div class="content"><div class="badge purple">Skill</div><h3>共享手册</h3><div class="row">内容进入主工作窗口</div><div class="row">适合参考资料和流程</div><div class="row">主上下文会承载内容</div></div></div><div class="window"><div class="bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div><div class="content"><div class="badge">Subagent</div><h3>独立外派</h3><div class="row">过程留在独立窗口</div><div class="row">适合大范围搜索和并行</div><div class="row green">只回传结论</div></div></div></div>
+        <div class="caption">要内容进我这儿用，选 Skill；要过程隔离、只要结论，选 Subagent</div>
+      </section>
+
+      <section class="scene">
+        <div class="eyebrow">Scene 07 · Loading Boundary</div><h2>CLAUDE.md 和 Skill：每次看还是按需看</h2>
+        <div class="timeline"><div class="card"><div class="badge blue">CLAUDE.md</div><h3>每个会话</h3><div class="line"></div><div class="event"><span></span><span></span></div><div class="path"><span class="node active">自动加载</span><span class="arrow">→</span><span class="node">背景</span></div></div><div class="card"><div class="badge purple">Skill</div><h3>需求出现时</h3><div class="line" style="background:linear-gradient(90deg,#293b5c,var(--purple))"></div><div class="event"><span style="background:#526984"></span><span style="background:var(--purple)"></span></div><div class="path"><span class="node">描述</span><span class="arrow">→</span><span class="node active">按需加载</span></div></div></div>
+        <div class="card" style="margin-top:18px;text-align:center"><span class="yellow">长参考资料不要全塞进 CLAUDE.md</span><span class="muted">　保持常驻上下文轻量</span></div>
+        <div class="caption">常驻规矩放 CLAUDE.md，偶尔查的知识和流程放 Skill</div>
+      </section>
+
+      <section class="scene">
+        <div class="eyebrow">Scene 08 · Guard Rails</div><h2>Hook 和权限规则：硬护栏怎么分工</h2>
+        <div class="guard"><div class="gate"><div class="badge yellow">权限规则</div><h3>准不准？</h3><div class="muted">声明式拒绝危险操作</div></div><div class="arrow">→</div><div class="side-actions"><div><b class="yellow">Hook</b>　拦截</div><div><b class="green">日志</b>　附带动作</div><div><b class="blue">通知／改写</b>　继续处理</div></div></div>
+        <div class="path"><span class="node red">文字提醒 = 请求</span><span class="arrow">≠</span><span class="node active">硬护栏 = 保证</span></div>
+        <div class="caption">纯准入判断优先权限规则；拦截之外还要做事，再使用 Hook</div>
+      </section>
+
+      <section class="scene">
+        <div class="eyebrow">Scene 09 · Composition + Plugin</div><h2>组合才是常态，Plugin 负责装箱</h2>
+        <div class="bundle"><div class="stack"><div class="node">Skill + MCP</div><div class="node">Skill + Subagent</div></div><div class="box"><strong>Plugin</strong><span>可安装单元</span><div class="muted" style="margin-top:12px">把能力装箱带走</div></div><div class="stack"><div class="node">CLAUDE.md + Skill</div><div class="node">Hook + MCP</div></div></div>
+        <div class="caption">MCP 负责接通，Skill 负责教会使用；Plugin 是组合能力的分发层</div>
+      </section>
+
+      <section class="scene">
+        <div class="eyebrow">Scene 10 · Practice</div><h2>A—G 需求清单，现场分诊</h2>
+        <div class="practice"><div class="card"><div class="badge">需求</div><div class="item"><span>A　一律用 pnpm</span><b class="blue">CLAUDE.md</b></div><div class="item"><span>B　查 PostgreSQL</span><b class="green">MCP</b></div><div class="item"><span>C　一键发版</span><b class="purple">slash command</b></div><div class="item"><span>D　自动格式化</span><b class="yellow">Hook</b></div></div><div class="card"><div class="badge">继续分诊</div><div class="item"><span>E　扫描目录找死代码</span><b class="purple">Subagent</b></div><div class="item"><span>F　偶尔查错误码</span><b class="purple">Skill</b></div><div class="item"><span>G　禁执行迁移</span><b class="yellow">权限规则／Hook</b></div></div><div class="card"><div class="badge">验证</div><h3>四问模型</h3><div class="row">外部？→ MCP</div><div class="row">保证？→ Hook／权限规则</div><div class="row">隔离？→ Subagent</div><div class="row">常驻／按需？→ CLAUDE.md／Skill</div></div></div>
+        <div class="caption">答案不是死记的：每一个落点都能由四个问题推出来</div>
+      </section>
+
+      <section class="scene">
+        <div class="eyebrow">Scene 11 · Summary + Preview</div><h2>四问锁定方案，下一篇见</h2>
+        <div class="summary"><span class="node">连外部？</span><span class="arrow">→</span><span class="node">要硬保证？</span><span class="arrow">→</span><span class="node">要隔离？</span><span class="arrow">→</span><span class="node active">常驻／按需</span></div>
+        <div class="preview"><div class="muted">下一篇</div><strong>31「settings.json：用户级 / 项目级配置」</strong></div>
+        <div class="caption">把需求翻译成问题，沿着决策树走到叶子；下一篇进入 settings.json</div>
+      </section>
+    </div>
+
+    <div class="controls"><button onclick="prevScene()">上一幕</button><button onclick="nextScene()">下一幕</button><button onclick="toggleAuto()" id="autoBtn">自动播放</button></div>
+    <div class="progress" id="progress"></div>
+    <p class="note">11 个 Scene · 16:9 横屏原型。用于检查画面语言、信息密度、选择路径、边界对比、预告停留和预览交互；不包含 TTS、音频、字幕、Timeline 或 Remotion 逻辑。</p>
+  </main>
+  <script>
+    const scenes=[...document.querySelectorAll('.scene')];let index=0,timer=null;const progress=document.getElementById('progress');
+    function renderProgress(){progress.innerHTML=scenes.map((_,i)=>'<div class="pill '+(i===index?'on':'')+'" title="Scene '+(i+1)+'"></div>').join('')}
+    function show(i){scenes[index].classList.remove('active');index=(i+scenes.length)%scenes.length;scenes[index].classList.add('active');renderProgress()}
+    function nextScene(){show(index+1)}function prevScene(){show(index-1)}
+    function toggleAuto(){const btn=document.getElementById('autoBtn');if(timer){clearInterval(timer);timer=null;btn.textContent='自动播放'}else{timer=setInterval(nextScene,4600);btn.textContent='停止播放'}}
+    renderProgress();document.addEventListener('keydown',event=>{if(event.key==='ArrowRight')nextScene();if(event.key==='ArrowLeft')prevScene()});
+  </script>
+</body>
+</html>

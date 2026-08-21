@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Skills 使用实例 · Visual Prototype</title>
+  <style>
+    :root{--bg:#080d17;--panel:#101a2c;--panel2:#14233a;--line:#2c4569;--text:#e5edf9;--muted:#91a6c6;--blue:#73c8ff;--purple:#c39cff;--green:#7fe3b1;--yellow:#f4cf79;--red:#ff8795;--shadow:0 18px 48px #0008}
+    *{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 50% 0,#172641 0,#080d17 54%);color:var(--text);font-family:Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif}.shell{max-width:1320px;margin:0 auto;padding:28px 30px 34px}.top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px}.eyebrow{color:var(--blue);font:12px ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.12em;text-transform:uppercase}.top h1{font-size:31px;line-height:1.2;margin:9px 0 0}.meta{color:var(--muted);font-size:13px;line-height:1.6;text-align:right}.stage{position:relative;aspect-ratio:16/9;min-height:590px;overflow:hidden;border:1px solid var(--line);border-radius:18px;background:linear-gradient(145deg,#0f1a2d,#0b1220);box-shadow:var(--shadow)}.scene{display:none;position:absolute;inset:0;padding:43px 54px 73px}.scene.active{display:block}.scene h2{font-size:32px;line-height:1.2;margin:12px 0 22px;max-width:1040px}.caption{position:absolute;left:54px;right:54px;bottom:22px;color:var(--muted);font-size:15px}.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}.muted{color:var(--muted)}.blue{color:var(--blue)}.purple{color:var(--purple)}.green{color:var(--green)}.yellow{color:var(--yellow)}.red{color:var(--red)}.window,.card,.pane,.path{background:linear-gradient(145deg,var(--panel2),#0f192b);border:1px solid var(--line);border-radius:14px;box-shadow:0 12px 28px #0005}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:15px}.content{padding:18px}.bar{height:30px;border-bottom:1px solid var(--line);padding:8px 12px}.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#60799e;margin-right:6px}.path{padding:19px}.path h3{font:15px ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--blue);margin:0 0 14px}.diff{display:grid;gap:9px}.diff div,.row{padding:10px 12px;border-radius:9px;background:#192b47;border-left:3px solid var(--purple);font-size:14px}.diff .hint{border-left-color:var(--green);color:var(--green)}.tree{font:15px/1.85 ui-monospace,SFMono-Regular,Menlo,monospace;color:#d2e0f5}.folder{color:var(--blue)}.file{color:var(--purple)}.big{text-align:center;font-size:27px;font-weight:800;margin:17px 0}.badge{display:inline-block;padding:5px 9px;border:1px solid #52698f;border-radius:99px;color:var(--muted);font:12px ui-monospace,SFMono-Regular,Menlo,monospace}.flow{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:21px;flex-wrap:wrap}.node{padding:12px 15px;border-radius:10px;border:1px solid #52698f;background:#172742;text-align:center}.node.active{border-color:var(--green);color:var(--green);box-shadow:0 0 18px #78e0ae22}.node.warn{border-color:var(--yellow);color:var(--yellow)}.arrow{font-size:24px;color:var(--blue);text-align:center}.terminal{padding:17px;background:#080f1b;border:1px solid #304466;border-radius:12px;font:14px/1.8 ui-monospace,SFMono-Regular,Menlo,monospace;color:#cbdaf0}.terminal .cmd{color:var(--blue)}.terminal .ok{color:var(--green)}.terminal .dim{color:#7186a7}.menu{display:grid;gap:10px}.menu-row{display:grid;grid-template-columns:255px 1fr;align-items:center;gap:14px;padding:12px 15px;background:#111d32;border:1px solid var(--line);border-radius:10px}.menu-row .name{color:var(--blue);font:14px ui-monospace,SFMono-Regular,Menlo,monospace}.menu-row.hit{border-color:var(--purple);box-shadow:0 0 18px #bb91ff22}.full{padding:14px;border-radius:11px;border:1px solid var(--purple);background:#241b3c;color:#e7dbff;font:13px/1.7 ui-monospace,SFMono-Regular,Menlo,monospace}.scan{padding:17px;border-radius:13px;border:1px solid var(--line);background:#111d32}.scan .keyword{padding:10px 12px;border-radius:8px;background:#1c2c49;color:var(--yellow);font:14px ui-monospace,monospace}.target{margin-top:14px;padding:12px;border-radius:9px;border:1px solid var(--purple);background:#241b3c;color:#e6d8ff}.match{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:20px}.timeline{display:grid;grid-template-columns:1fr 1fr;gap:17px;margin-top:20px}.timeline .pane{padding:16px;min-height:145px}.meter{height:10px;background:#273955;border-radius:99px;overflow:hidden;margin-top:14px}.meter span{display:block;width:76%;height:100%;background:linear-gradient(90deg,var(--purple),var(--blue))}.compare{padding:17px}.compare h3{margin:9px 0 10px;font-size:18px}.compare p{margin:7px 0;font-size:14px}.troubleshoot{display:grid;grid-template-columns:1.55fr .75fr;gap:18px;margin-top:21px}.checks{display:grid;gap:10px}.check{display:grid;grid-template-columns:34px 1fr;align-items:center;padding:12px 14px;border-radius:10px;background:#111d32;border:1px solid var(--line)}.num{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;background:#22395d;color:var(--blue);font-weight:800}.key{padding:16px;border:1px solid var(--line);border-radius:12px;background:#111d32;font:13px/1.7 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--yellow)}.scope{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:20px}.scope .card{padding:18px}.git{margin-top:14px;padding:12px;border-left:3px solid var(--green);border-radius:8px;background:#142c2a;color:#bff3d8;font:13px ui-monospace,SFMono-Regular,Menlo,monospace}.trust{margin-top:14px;padding:11px 13px;border:1px solid #715f39;border-radius:9px;background:#2a2416;color:var(--yellow);font-size:13px}.lab{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:20px}.lab .pane{padding:16px}.lab h3{margin:0 0 12px;font-size:17px}.result{margin-top:14px;padding:13px;border-radius:10px;border:1px solid var(--green);background:#142c2a;color:#bff3d8;font-size:14px}.summary-flow{display:flex;align-items:center;justify-content:center;gap:9px;margin:32px 0 24px;flex-wrap:wrap}.preview{margin:0 auto;max-width:600px;padding:17px 22px;border:1px solid var(--purple);border-radius:14px;text-align:center;background:linear-gradient(135deg,#242244,#17223d);box-shadow:0 0 26px #bb91ff18}.preview .next{font-size:23px;font-weight:800;margin-top:7px}.controls{display:flex;justify-content:center;gap:10px;margin:16px 0 9px}.controls button{cursor:pointer;border:1px solid #456088;border-radius:8px;background:#111d32;color:#d9e5f7;padding:8px 13px;font-size:14px}.controls button:hover{border-color:var(--blue);color:#fff}.progress{display:flex;justify-content:center;gap:7px;margin:12px 0 17px;flex-wrap:wrap}.pill{width:34px;height:5px;border-radius:99px;background:#263753}.pill.on{background:var(--blue);box-shadow:0 0 10px #74c7ff88}.note{color:var(--muted);font-size:13px;line-height:1.7;text-align:center;margin:0 auto;max-width:930px}@media (max-width:900px){.shell{padding:18px}.top{display:block}.meta{text-align:left;margin-top:7px}.stage{min-height:570px}.scene{padding:30px 30px 62px}.scene h2{font-size:26px}.caption{left:30px;right:30px}.grid3,.grid2,.match,.timeline,.troubleshoot,.scope,.lab{grid-template-columns:1fr}.menu-row{grid-template-columns:1fr}.tree{font-size:13px}}
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="top">
+      <div><div class="eyebrow">Skills in Practice · 10 Scenes</div><h1>装一个、喊一声、看它干活</h1></div>
+      <div class="meta">16:9 横屏 · 1920 × 1080<br>Visual Prototype</div>
+    </header>
+
+    <div class="stage">
+      <section class="scene active">
+        <div class="eyebrow">Scene 01 · Before / After</div><h2>半天的活，为什么不到五分钟就出图？</h2>
+        <div class="grid2" style="margin-top:25px"><div class="path"><h3>没有 Skill · 手工流程</h3><div class="diff"><div>理节点</div><div>画草图</div><div>调配色</div><div>导出 PNG</div><div class="yellow">约半天</div></div></div><div class="path" style="border-color:#705a9f"><h3 style="color:var(--purple)">baoyu-diagram · 封装流程</h3><div class="terminal"><span class="cmd">帮我画一张这个项目的架构图</span><br><span class="dim">→ description match</span><br><span class="purple">→ dark design system</span><br><span class="ok">✓ SVG + @2x PNG</span></div><div class="big green">不到五分钟</div></div></div>
+        <div class="caption">Skill 把重复流程压缩成一句目标和稳定产出</div>
+      </section>
+
+      <section class="scene">
+        <div class="eyebrow">Scene 02 · Inventory Check</div><h2>用之前，先查手里有哪些 Skill</h2>
+        <div class="grid2" style="margin-top:25px"><div class="terminal"><span class="cmd">&gt; 有哪些可用的 skill？</span><br><span class="ok">baoyu-diagram</span><br><span class="muted">生成架构图、流程图、时序图……</span><br><span class="ok">explain-casual</span><br><span class="muted">用大白话解释代码</span></div><div class="card" style="padding:20px"><div class="badge">工具入口</div><div class="row" style="margin-top:17px;border-left-color:var(--blue)"><span class="blue mono">/skills</span><br>查看和管理列表</div><div class="row" style="margin-top:11px;border-left-color:var(--yellow)"><span class="yellow mono">/doctor</span><br>检查描述预算与截断</div><div class="big blue" style="font-size:22px">先查家底</div></div></div>
+        <div class="caption">确认它在册，再开始调用</div>
+      </section>
+
+      <section class="scene">
+        <div class="eyebrow">Scene 03 · Trigger Chain</div><h2>拆开一个真实 Skill：<span class="purple mono">description</span> 是触发命门</h2>
+        <div class="grid2" style="margin-top:22px"><div class="window"><div class="bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div><div class="content tree"><span class="folder">baoyu-diagram/</span><br>├── <span class="file">SKILL.md</span> <span class="muted"># 必需</span><br>├── <span class="folder">references/</span><br>│&nbsp;&nbsp;├── flowchart.md<br>│&nbsp;&nbsp;└── sequence.md<br>└── <span class="folder">scripts/</span><br>&nbsp;&nbsp;&nbsp;&nbsp;└── main.ts</div></div><div class="card" style="padding:19px"><div class="row" style="border-left-color:var(--blue)"><span class="blue mono">description</span><br><span class="muted">什么时候使用</span></div><div class="arrow">↓</div><div class="full">Markdown 正文<br><span class="muted">调用之后怎么做</span></div><div class="flow"><div class="node">用户说法</div><div class="arrow">→</div><div class="node active">匹配 → 加载 → 产出</div></div></div></div>
+        <div class="caption">目录是能力边界，description 把用户说法接到流程上</div>
+      </section>
+
+      <section class="scene">
+        <div class="eyebrow">Scene 04 · Natural Language Invoke</div><h2>不记名字，也能用：让 Claude 自己匹配</h2>
+        <div class="match"><div class="scan"><div class="badge">自然语言</div><div class="keyword" style="margin-top:15px">帮我画一张图，说明 Claude 的「想→做→看」代理循环</div><div class="arrow">↓</div><div class="target"><span class="green">✓ match baoyu-diagram</span><br><span class="muted">读取流程图参考说明</span></div></div><div class="scan"><div class="badge">预期产出</div><div class="row" style="margin-top:15px;border-left-color:var(--purple)"><span class="purple mono">27-agent-loop.svg</span></div><div class="row" style="margin-top:10px;border-left-color:var(--green)"><span class="green mono">27-agent-loop@2x.png</span></div><div class="big green" style="font-size:22px">流程已复用</div></div></div>
+        <div class="caption">你只说要什么，Skill 负责按固定流程做出来</div>
+      </section>
+
+      <section class="scene">
+        <div class="eyebrow">Scene 05 · Two Entry Points</div><h2>不想等它猜？用 <span class="purple mono">/</span> 直接点名</h2>
+        <div class="grid2" style="margin-top:25px"><div class="card" style="padding:18px"><span class="badge">探索</span><h3 class="blue">让 Claude 自己挑</h3><div class="terminal"><span class="cmd">帮我画一张架构图</span><br><span class="dim">→ 匹配 description</span></div><p class="muted">不知道该用哪个 Skill 时</p></div><div class="card" style="padding:18px;border-color:#6b5695"><span class="badge" style="color:var(--purple)">明确目标</span><h3 class="purple">直接点名</h3><div class="terminal"><span class="cmd">/baoyu-diagram</span><br><span class="dim">画一张用户登录的时序图</span></div><p class="muted">知道名字或涉及副作用时</p></div></div><div class="flow"><div class="node active">同一份 Skill 流程</div></div>
+        <div class="caption">自动入口适合探索，斜杠入口适合明确调用</div>
+      </section>
+
+      <section class="scene">
+        <div class="eyebrow">Scene 06 · Troubleshooting</div><h2>喊了没反应？三步排查</h2>
+        <div class="troubleshoot"><div class="checks"><div class="check"><div class="num">1</div><div><span class="yellow">说法太含糊？</span><br><span class="muted">换成：帮我画一张架构图</span></div></div><div class="check"><div class="num">2</div><div><span class="blue">Skill 在册吗？</span><br><span class="muted">问：有哪些可用的 skill？</span></div></div><div class="check"><div class="num">3</div><div><span class="purple">还是不触发？</span><br><span class="muted">用：/baoyu-diagram 点名兜底</span></div></div></div><div class="key"><span class="yellow">触发太勤？</span><br><br><span class="mono">disable-model-invocation: true</span><br><span class="muted">只允许用户手动调用</span></div></div>
+        <div class="caption">先改匹配，再查在册，最后用手动入口定位</div>
+      </section>
+
+      <section class="scene">
+        <div class="eyebrow">Scene 07 · Project Sharing</div><h2>想让全队都能用：把 Skill 放进项目</h2>
+        <div class="scope"><div class="card"><div class="tree"><span class="folder">~/.claude/skills/</span> <span class="muted">个人／本机</span><br>└── explain-casual/<br>&nbsp;&nbsp;&nbsp;&nbsp;└── <span class="file">SKILL.md</span></div><div class="trust">只在你的电脑上，跨项目可用</div></div><div class="card"><div class="tree"><span class="folder">.claude/skills/</span> <span class="muted">项目／团队</span><br>└── team-commit/<br>&nbsp;&nbsp;&nbsp;&nbsp;└── <span class="file">SKILL.md</span></div><div class="git">$ git add .claude/skills/<br>✓ clone 后团队共享</div></div></div><div class="trust" style="margin-top:15px">⚠ 信任外部仓库前，先查看项目 skills 申请了哪些权限</div>
+        <div class="caption">路径决定范围，Git 带来共享，信任检查守住边界</div>
+      </section>
+
+      <section class="scene">
+        <div class="eyebrow">Scene 08 · Build from Zero</div><h2>从零造一个：<span class="purple mono">explain-casual</span></h2>
+        <div class="grid2" style="margin-top:22px"><div class="terminal"><span class="cmd">$ mkdir -p ~/.claude/skills/explain-casual</span><br><span class="dim">created directory</span><br><span class="cmd">$ write SKILL.md</span><br><span class="dim">description + 3-step rule</span><br><span class="cmd">$ claude</span><br><span class="ok">● restart session</span></div><div class="card" style="padding:18px"><div class="row" style="border-left-color:var(--blue)"><span class="blue mono">description</span><br>用大白话讲讲这段代码</div><div class="row" style="margin-top:10px;border-left-color:var(--purple)"><span class="purple">SKILL.md 规则</span><br>整体作用 → 关键代码 → 潜在坑</div><div class="big green" style="font-size:22px">最小可复用能力</div></div></div>
+        <div class="caption">真实用户说法写进 description，正文写成可执行的三步规则</div>
+      </section>
+
+      <section class="scene">
+        <div class="eyebrow">Scene 09 · Dual-path Verification</div><h2>两条入口，同一份说明</h2>
+        <div class="lab"><div class="pane"><h3 class="blue">自动触发</h3><div class="terminal"><span class="cmd">用大白话讲讲这段代码</span><br><span class="dim">→ description match</span></div><div class="result">整体作用 → 关键代码 → 潜在坑</div></div><div class="pane"><h3 class="purple">手动触发</h3><div class="terminal"><span class="cmd">/explain-casual</span><br><span class="dim">→ manual invoke</span></div><div class="result">整体作用 → 关键代码 → 潜在坑</div></div></div><div class="flow"><div class="node active">同一份 SKILL.md</div><div class="arrow">→</div><div class="node active">explain-casual 已验证</div></div>
+        <div class="caption">入口不同，背后是同一套可复用规则</div>
+      </section>
+
+      <section class="scene">
+        <div class="eyebrow">Scene 10 · Summary + Preview</div><h2>把重复流程封装起来，下一步自己造 Skill</h2>
+        <div class="summary-flow"><div class="node">查</div><div class="arrow">→</div><div class="node active">看</div><div class="arrow">→</div><div class="node active">触发</div><div class="arrow">→</div><div class="node active">排查</div><div class="arrow">→</div><div class="node active">共享／创建</div><div class="arrow">→</div><div class="node active">验证</div></div><div class="preview"><div class="muted">下一篇</div><div class="next">28「skill-creator：造你自己的 skill」</div><div class="muted" style="margin-top:9px">从会用别人的菜谱，走到自己写菜谱</div></div>
+        <div class="caption">Skill 让 Claude 在需要时调出专项能力</div>
+      </section>
+    </div>
+
+    <div class="controls"><button onclick="prevScene()">上一幕</button><button onclick="nextScene()">下一幕</button><button onclick="toggleAuto()" id="autoBtn">自动播放</button></div>
+    <div class="progress" id="progress"></div>
+    <p class="note">10 个 Scene · 16:9 横屏原型。用于检查画面语言、信息密度、状态变化和预览交互；不包含 TTS、音频、字幕文件、Timeline 或 Remotion 逻辑。</p>
+  </main>
+  <script>
+    const scenes=[...document.querySelectorAll('.scene')];
+    let index=0,timer=null;
+    const progress=document.getElementById('progress');
+    function renderProgress(){progress.innerHTML=scenes.map((_,i)=>'<div class="pill '+(i===index?'on':'')+'" title="Scene '+(i+1)+'"></div>').join('')}
+    function show(i){scenes[index].classList.remove('active');index=(i+scenes.length)%scenes.length;scenes[index].classList.add('active');renderProgress()}
+    function nextScene(){show(index+1)}
+    function prevScene(){show(index-1)}
+    function toggleAuto(){const btn=document.getElementById('autoBtn');if(timer){clearInterval(timer);timer=null;btn.textContent='自动播放'}else{timer=setInterval(nextScene,4600);btn.textContent='停止播放'}}
+    renderProgress();
+    document.addEventListener('keydown',event=>{if(event.key==='ArrowRight')nextScene();if(event.key==='ArrowLeft')prevScene()});
+  </script>
+</body>
+</html>

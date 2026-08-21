@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Claude Code 控制与模式 · Visual Prototype</title>
+<style>
+:root{--bg:#09101e;--panel:#101b30;--panel2:#14233d;--line:#2e4268;--text:#eef3ff;--muted:#9eafd0;--blue:#8ea4ff;--purple:#bd9cff;--green:#72dfad;--yellow:#f6cf79;--red:#ff8e9b}
+*{box-sizing:border-box}body{margin:0;background:#050a14;color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif}
+.shell{width:min(1500px,96vw);margin:24px auto}.topbar,.footerbar{display:flex;align-items:center;justify-content:space-between;gap:18px}.topbar{margin-bottom:14px}.topbar h1{font-size:20px;margin:0;font-weight:750;letter-spacing:.02em}.controls{display:flex;gap:8px}.controls button{border:1px solid var(--line);border-radius:9px;background:#101b30;color:var(--text);padding:9px 13px;cursor:pointer}.controls button:hover{border-color:var(--blue);background:#162544}
+.stage{position:relative;aspect-ratio:16/9;min-height:650px;border:1px solid #263756;border-radius:20px;background:radial-gradient(circle at 50% 10%,#17294a 0,#0b1426 45%,#07101e 100%);overflow:hidden;box-shadow:0 22px 70px #0008}
+.scene{display:none;position:absolute;inset:0;padding:56px 76px 78px}.scene.active{display:block;animation:enter .35s ease-out}@keyframes enter{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.eyebrow{font:13px ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--blue);letter-spacing:.08em;text-transform:uppercase}.scene h2{font-size:34px;margin:13px 0 30px;letter-spacing:-.03em}.caption{position:absolute;left:76px;right:76px;bottom:27px;text-align:center;color:#cfdbf4;font-size:16px}.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}.muted{color:var(--muted)}.accent{color:var(--blue)}.purple{color:var(--purple)}.green{color:var(--green)}.yellow{color:var(--yellow)}.red{color:var(--red)}
+.console{max-width:760px;margin:0 auto;padding:26px;border:1px solid var(--line);border-radius:16px;background:#0b1323;box-shadow:0 20px 50px #0004}.bar{height:12px;display:flex;gap:7px;margin-bottom:23px}.dot{width:10px;height:10px;border-radius:50%;background:#455473}.dot:first-child{background:#ff8e9b}.dot:nth-child(2){background:#f6cf79}.dot:nth-child(3){background:#72dfad}.prompt{font:20px ui-monospace,monospace;color:#fff}.wait{margin-top:18px;padding:15px;border-left:3px solid var(--yellow);color:var(--muted);font:16px ui-monospace,monospace}
+.knobs{display:flex;justify-content:center;gap:18px;margin-top:28px}.knob{min-width:180px;padding:18px;border-radius:15px;border:1px solid var(--line);background:var(--panel);text-align:center}.knob strong{display:block;font-size:20px;margin-bottom:7px}.knob span{font:13px ui-monospace,monospace;color:var(--muted)}
+.hub{height:350px;display:grid;grid-template-columns:1fr 1.1fr 1fr;gap:25px;align-items:center}.hub-side{display:flex;flex-direction:column;gap:12px}.hub-card,.center-card{padding:20px;border:1px solid var(--line);border-radius:16px;background:var(--panel)}.hub-card strong,.center-card strong{font-size:20px}.hub-card span{display:block;margin-top:10px;font:14px ui-monospace,monospace;color:var(--muted)}.center-card{text-align:center;background:var(--panel2);border-color:#536aa5}.link{height:1px;background:linear-gradient(90deg,transparent,var(--blue),transparent);margin:8px 0}
+.process{display:grid;grid-template-columns:1.1fr 1fr;gap:28px;align-items:center}.log{padding:22px;border-radius:15px;background:#08101e;border:1px solid var(--line);font:15px/2 ui-monospace,monospace}.log .line{display:block}.keylist{display:grid;gap:9px}.keyrow{display:flex;justify-content:space-between;gap:16px;padding:12px 15px;border-radius:10px;border:1px solid var(--line);background:var(--panel)}.keyrow b{font:15px ui-monospace,monospace;color:var(--yellow)}.keyrow span{color:var(--muted);font-size:14px;text-align:right}
+.loop{height:350px;position:relative;display:flex;align-items:center;justify-content:center;gap:20px}.mode{padding:19px 25px;border:1px solid var(--line);background:var(--panel);border-radius:14px;font:17px ui-monospace,monospace}.mode.hot{border-color:var(--purple);box-shadow:0 0 26px #bd9cff25}.arrow{font-size:30px;color:var(--blue)}.optional{position:absolute;right:40px;top:35px;display:grid;gap:10px}.outside{position:absolute;left:40px;bottom:38px;padding:14px;border:1px dashed var(--yellow);border-radius:12px;color:var(--yellow);font:14px ui-monospace,monospace}
+.flow{display:grid;grid-template-columns:repeat(5,1fr);gap:13px;align-items:center;height:350px}.flowbox{padding:20px 14px;min-height:110px;text-align:center;border:1px solid var(--line);border-radius:14px;background:var(--panel)}.flowbox strong{display:block;font-size:18px;margin-bottom:10px}.flowbox span{font:13px/1.6 ui-monospace,monospace;color:var(--muted)}.flowbox.locked{border-color:var(--red)}.flowarrow{text-align:center;color:var(--blue);font-size:28px}
+.branches{height:350px;display:grid;grid-template-columns:1fr 1.4fr 1fr;gap:20px;align-items:center}.approve{padding:24px;border:1px solid var(--yellow);border-radius:16px;text-align:center;background:#2a2418}.options{display:grid;gap:10px}.option{padding:13px;border:1px solid var(--line);border-radius:11px;background:var(--panel);font-size:14px}.option strong{display:block;color:var(--purple);margin-bottom:5px}.return{padding:16px;border:1px dashed var(--line);border-radius:11px;text-align:center;color:var(--muted);font-size:14px}
+.compare{display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:stretch;height:300px}.comparebox{padding:25px;border:1px solid var(--line);border-radius:16px;background:var(--panel)}.comparebox h3{margin:0 0 18px;font-size:20px}.metric{display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid #263756;font:14px ui-monospace,monospace}.metric:last-child{border-bottom:0}.choices{display:flex;gap:10px;margin-top:18px}.choice{padding:10px 13px;border-radius:9px;background:#192846;color:var(--muted);font-size:13px}
+.editor{display:grid;grid-template-columns:1.4fr .8fr;gap:22px;align-items:center}.inputbox{padding:23px;border:1px solid var(--line);border-radius:15px;background:#0b1323;font:16px/1.9 ui-monospace,monospace}.modebar{display:flex;gap:8px;margin-bottom:16px}.modebar span{padding:6px 10px;border-radius:7px;background:#1b2a49;color:var(--muted);font-size:12px}.modebar .selected{background:#2d4070;color:#fff}.gestures{display:grid;grid-template-columns:repeat(2,1fr);gap:9px}.gesture{padding:13px;border:1px solid var(--line);border-radius:10px;background:var(--panel);font:14px ui-monospace,monospace}.fit{margin-top:14px;color:var(--yellow);font-size:14px;text-align:center}
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;height:310px;align-items:center}.step{padding:20px;border:1px solid var(--line);border-radius:15px;background:var(--panel);min-height:155px}.step .num{display:inline-flex;width:28px;height:28px;align-items:center;justify-content:center;border-radius:50%;background:#2c3e68;color:#fff;margin-bottom:15px}.step h3{margin:0 0 10px;font-size:17px}.step p{margin:0;color:var(--muted);font:13px/1.7 ui-monospace,monospace}.step.done{border-color:var(--green)}.step.done .num{background:#21654d}
+.practice{display:grid;grid-template-columns:1.2fr .8fr;gap:24px;align-items:center}.tasklog{padding:22px;border:1px solid var(--line);border-radius:15px;background:#09111f;font:14px/1.9 ui-monospace,monospace}.tasklog .stopped{border-left:3px solid var(--yellow);padding-left:12px;color:var(--yellow)}.redirect{padding:18px;border-radius:13px;background:var(--panel2);border:1px solid #536aa5;font:14px/1.8 ui-monospace,monospace}.fast-result{margin-top:15px;padding:14px;border:1px dashed var(--green);color:var(--green);border-radius:10px;font:14px ui-monospace,monospace}
+.summary{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;max-width:930px;margin:0 auto}.sumrow{padding:20px;border:1px solid var(--line);border-radius:13px;background:var(--panel)}.sumrow strong{display:block;font-size:18px;margin-bottom:10px}.sumrow span{font:14px/1.8 ui-monospace,monospace;color:var(--muted)}.preview{max-width:640px;margin:28px auto 0;padding:19px;text-align:center;border:1px solid #7258a9;border-radius:14px;background:#1a1730}.preview small{color:var(--muted)}.preview strong{display:block;font-size:23px;color:var(--purple);margin-top:6px}
+.footerbar{margin-top:12px}.progress{display:flex;gap:7px;flex-wrap:wrap}.pill{width:28px;height:5px;border-radius:99px;background:#263756}.pill.on{background:var(--blue)}.note{margin:0;color:var(--muted);font-size:12px}
+@media(max-width:900px){.scene{padding:32px 30px 68px}.scene h2{font-size:26px}.caption{left:30px;right:30px}.hub,.process,.branches,.practice,.editor{grid-template-columns:1fr}.hub{height:auto}.hub-side{flex-direction:row}.flow{grid-template-columns:1fr;height:auto}.flowarrow{transform:rotate(90deg)}.compare,.steps{height:auto}.summary{grid-template-columns:1fr}.stage{min-height:720px}.optional{position:static;margin-top:18px}.outside{position:static;margin-top:18px}}
+</style>
+</head>
+<body>
+<div class="shell">
+  <header class="topbar">
+    <h1>Claude Code 控制与模式 · 11 Scenes</h1>
+    <div class="controls">
+      <button onclick="prevScene()">上一幕</button>
+      <button onclick="nextScene()">下一幕</button>
+      <button onclick="toggleAuto()" id="autoBtn">自动播放</button>
+    </div>
+  </header>
+
+  <main class="stage">
+    <section class="scene active">
+      <div class="eyebrow">Scene 01 · Opening</div>
+      <h2>会话不是输入框加回车</h2>
+      <div class="console">
+        <div class="bar"><i class="dot"></i><i class="dot"></i><i class="dot"></i></div>
+        <div class="prompt">&gt; 输入提示，按回车</div>
+        <div class="wait">等待 Claude 输出……</div>
+      </div>
+      <div class="knobs">
+        <div class="knob"><strong class="purple">自主权</strong><span>Shift+Tab</span></div>
+        <div class="knob"><strong class="accent">过程</strong><span>Esc · Ctrl+C · Ctrl+B</span></div>
+        <div class="knob"><strong class="yellow">响应</strong><span>Option+P · /fast</span></div>
+      </div>
+      <div class="caption">从“打字、回车、等”到会话控制台</div>
+    </section>
+
+    <section class="scene">
+      <div class="eyebrow">Scene 02 · Control Categories</div>
+      <h2>三类开关，各管一摊</h2>
+      <div class="hub">
+        <div class="hub-side">
+          <div class="hub-card"><strong class="purple">自主权</strong><span>Shift+Tab</span></div>
+          <div class="hub-card"><strong class="accent">过程</strong><span>Esc · Ctrl+C · Ctrl+B</span></div>
+        </div>
+        <div class="center-card"><strong>Claude 会话</strong><div class="link"></div><span class="muted">想控制什么，先找对一类</span></div>
+        <div class="hub-side">
+          <div class="hub-card"><strong class="yellow">响应</strong><span>Option+P · /fast</span></div>
+          <div class="hub-card"><strong class="green">目标</strong><span>随时调整方向</span></div>
+        </div>
+      </div>
+      <div class="caption">自主权、过程、响应：会话控制的三张地图</div>
+    </section>
+
+    <section class="scene">
+      <div class="eyebrow">Scene 03 · Process Controls</div>
+      <h2>跑偏了，先把方向盘拿回来</h2>
+      <div class="process">
+        <div class="log"><span class="line">&gt; Running task...</span><span class="line">Reading project files...</span><span class="line">Editing login.js...</span><span class="line stopped">⏸ Esc · 已完成保留</span><span class="line muted">输入框：重新说明方向</span></div>
+        <div class="keylist">
+          <div class="keyrow"><b>Esc</b><span>暂停 + 重定向</span></div>
+          <div class="keyrow"><b>Esc Esc</b><span>清草稿／打开回退</span></div>
+          <div class="keyrow"><b>Ctrl+C</b><span>中断／清空／再按退出</span></div>
+          <div class="keyrow"><b>Ctrl+D</b><span>直接退出</span></div>
+          <div class="keyrow"><b>Ctrl+B</b><span>后台继续</span></div>
+        </div>
+      </div>
+      <div class="caption">Esc 不是撤销，是暂停并把控制权交还给你</div>
+    </section>
+
+    <section class="scene">
+      <div class="eyebrow">Scene 04 · Permission Loop</div>
+      <h2>Shift+Tab：默认三档怎么转</h2>
+      <div class="loop">
+        <div class="mode hot">default</div><div class="arrow">→</div><div class="mode">acceptEdits</div><div class="arrow">→</div><div class="mode">plan</div><div class="arrow">→</div><div class="mode hot">default</div>
+        <div class="optional"><div class="mode">bypassPermissions</div><div class="mode">auto</div></div>
+        <div class="outside">dontAsk<br><small>启动时指定，不进循环</small></div>
+      </div>
+      <div class="caption">默认三档循环；可选模式满足条件后插入</div>
+    </section>
+
+    <section class="scene">
+      <div class="eyebrow">Scene 05 · Plan Mode</div>
+      <h2>先出方案，再决定怎么动手</h2>
+      <div class="flow">
+        <div class="flowbox"><strong class="accent">Research</strong><span>读取文件<br>探索项目结构</span></div><div class="flowarrow">→</div>
+        <div class="flowbox"><strong class="purple">Write plan</strong><span>整理步骤<br>提出修改方案</span></div><div class="flowarrow">→</div>
+        <div class="flowbox locked"><strong class="yellow">等待批准</strong><span>No source edits<br>源码保持未修改</span></div>
+      </div>
+      <div class="caption">Plan Mode：只走戏，不实拍</div>
+    </section>
+
+    <section class="scene">
+      <div class="eyebrow">Scene 06 · Approval Branch</div>
+      <h2>批准计划，也是在选择怎么执行</h2>
+      <div class="branches">
+        <div class="approve"><strong>等待批准</strong><div class="muted" style="margin-top:10px">Ctrl+G 编辑计划</div></div>
+        <div class="options">
+          <div class="option"><strong>批准并自动执行</strong>进入自动执行</div>
+          <div class="option"><strong>批准并接受编辑</strong>改码免问</div>
+          <div class="option"><strong>手动审查</strong>逐个确认编辑</div>
+          <div class="option"><strong>继续规划</strong>回到计划阶段</div>
+        </div>
+        <div class="return">批准动作<br><span class="muted">同时选定后续自主权</span></div>
+      </div>
+      <div class="caption">批准不是一个继续按钮，而是一组选项</div>
+    </section>
+
+    <section class="scene">
+      <div class="eyebrow">Scene 07 · Fast Mode</div>
+      <h2>/fast 买的是速度，不是质量</h2>
+      <div class="compare">
+        <div class="comparebox">
+          <h3 class="purple">同一个 Opus</h3>
+          <div class="metric"><span>/fast</span><b class="green">最多 2.5 倍</b></div>
+          <div class="metric"><span>响应</span><b class="green">更快</b></div>
+          <div class="metric"><span>代价</span><b class="yellow">每个 token 更贵</b></div>
+          <div class="choices"><span class="choice">实时调 Bug</span><span class="choice">赶截止时间</span></div>
+        </div>
+        <div class="comparebox">
+          <h3 class="yellow">努力级别</h3>
+          <div class="metric"><span>思考</span><b class="yellow">少想一点</b></div>
+          <div class="metric"><span>复杂任务</span><b class="red">质量可能下降</b></div>
+          <div class="metric"><span>适合</span><b class="muted">简单任务</b></div>
+          <div class="choices"><span class="choice">长任务</span><span class="choice">批处理</span></div>
+        </div>
+      </div>
+      <div class="caption">速度优先还是成本优先？别把 /fast 和努力级别混为一谈</div>
+    </section>
+
+    <section class="scene">
+      <div class="eyebrow">Scene 08 · Vim Editor</div>
+      <h2>Vim 模式：输入框里的 NORMAL 与 INSERT</h2>
+      <div class="editor">
+        <div class="inputbox">
+          <div class="modebar"><span class="selected">NORMAL</span><span>INSERT</span></div>
+          <div>修复登录流程中的 <span class="yellow">bug</span></div>
+          <div class="muted">按 dd 删除一行 · cw 改当前词 · 0 跳到行首 · u 撤销</div>
+        </div>
+        <div><div class="gestures"><div class="gesture">dd · 删整行</div><div class="gesture">cw · 改当前词</div><div class="gesture">0 · 行首</div><div class="gesture">$ · 行尾</div><div class="gesture">u · 撤销</div><div class="gesture">i / a · 开始输入</div></div><div class="fit">/config → 编辑器模式 → vim<br>Vim 党适合，新手可跳过</div></div>
+      </div>
+      <div class="caption">Vim 是输入效率的可选增强，不是必修课</div>
+    </section>
+
+    <section class="scene">
+      <div class="eyebrow">Scene 09 · Practice 1–3</div>
+      <h2>练习前三步：观察、计划、批准</h2>
+      <div class="steps">
+        <div class="step done"><span class="num">1</span><h3>观察状态栏</h3><p>Shift+Tab<br>default → acceptEdits → plan</p></div>
+        <div class="step done"><span class="num">2</span><h3>只出方案</h3><p>plan<br>hello.txt · 文件未创建</p></div>
+        <div class="step done"><span class="num">3</span><h3>批准后执行</h3><p>accept edits on<br>hello.txt · 文件已创建</p></div>
+      </div>
+      <div class="caption">批准前不存在，批准后才创建</div>
+    </section>
+
+    <section class="scene">
+      <div class="eyebrow">Scene 10 · Practice 4–5</div>
+      <h2>练习后两步：Esc 喊停，/fast 看取舍</h2>
+      <div class="practice">
+        <div class="tasklog"><div>&gt; Reading project files...</div><div>&gt; Running long task...</div><div class="stopped">Esc → 保留已完成 → 重定向</div><div class="muted">&gt; 继续执行新的指令</div></div>
+        <div><div class="redirect">/fast<br><span class="green">Fast mode ON</span><br><span class="muted">或：不可用也正常</span></div><div class="fast-result">控制权回到用户手里</div></div>
+      </div>
+      <div class="caption">喊停不是崩溃；能开就体验，不能开也正常</div>
+    </section>
+
+    <section class="scene">
+      <div class="eyebrow">Scene 11 · Summary + Preview</div>
+      <h2>会话跑起来以后，你仍然握着方向盘</h2>
+      <div class="summary">
+        <div class="sumrow"><strong class="purple">自主权</strong><span>Shift+Tab<br>Plan Mode</span></div>
+        <div class="sumrow"><strong class="accent">过程</strong><span>Esc · Ctrl+C<br>Ctrl+D · Ctrl+B</span></div>
+        <div class="sumrow"><strong class="yellow">响应</strong><span>模型 · 扩展思考<br>/fast</span></div>
+      </div>
+      <div class="preview"><small>下一篇 36</small><strong>斜杠命令（Slash Commands）</strong><span class="muted">把固定流程压成一个 / 入口</span></div>
+      <div class="caption">从只会等待，升级成全程可控</div>
+    </section>
+  </main>
+
+  <footer class="footerbar">
+    <div class="progress" id="progress"></div>
+    <p class="note">11 个 Scene · 16:9 横屏原型。用于检查控制分类、模式循环、Plan Mode、速度取舍、Vim 状态、练习结果和下一篇预告；不包含 TTS、音频、字幕时间轴、Remotion 或渲染逻辑。</p>
+  </footer>
+</div>
+<script>
+const scenes=Array.from(document.querySelectorAll(".scene"));
+let index=0,timer=null;
+const progress=document.getElementById("progress");
+function renderProgress(){progress.innerHTML=scenes.map(function(_,i){return '<div class="pill '+(i===index?"on":"")+'" title="Scene '+(i+1)+'"></div>'}).join("")}
+function show(next){scenes[index].classList.remove("active");index=(next+scenes.length)%scenes.length;scenes[index].classList.add("active");renderProgress()}
+function nextScene(){show(index+1)}function prevScene(){show(index-1)}
+function toggleAuto(){const btn=document.getElementById("autoBtn");if(timer){clearInterval(timer);timer=null;btn.textContent="自动播放"}else{timer=setInterval(nextScene,4600);btn.textContent="停止播放"}}
+renderProgress();
+document.addEventListener("keydown",function(event){if(event.key==="ArrowRight")nextScene();if(event.key==="ArrowLeft")prevScene()});
+</script>
+</body>
+</html>

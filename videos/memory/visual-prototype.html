@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Claude Code「记忆系统」Visual Prototype</title>
+  <style>
+    :root{--bg:#080b12;--panel:#111827;--panel2:#151d2d;--line:#26334d;--text:#f3f6ff;--muted:#95a2bd;--blue:#6ca6ff;--purple:#c08cff;--green:#68d391;--red:#ff7c8b;--yellow:#f5c66b}
+    *{box-sizing:border-box}
+    body{margin:0;background:radial-gradient(circle at 50% 0%,#16213a 0,#080b12 48%);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;min-height:100vh;display:flex;justify-content:center;align-items:center;padding:28px}
+    .app{width:min(1180px,100%)}
+    .topbar{display:flex;justify-content:space-between;align-items:end;margin-bottom:16px}
+    .brand{font-size:14px;color:var(--muted);letter-spacing:.12em;text-transform:uppercase}
+    .title{font-size:14px;color:var(--muted)}
+    .viewport{position:relative;aspect-ratio:16/9;border:1px solid #31415f;border-radius:18px;overflow:hidden;background:linear-gradient(135deg,#0f1728,#090d15 68%);box-shadow:0 24px 80px #0008}
+    .scene{display:none;position:absolute;inset:0;padding:62px 78px 86px;overflow:hidden}
+    .scene.active{display:block}
+    .eyebrow{font-size:13px;color:var(--muted);letter-spacing:.14em;text-transform:uppercase;margin-bottom:18px}
+    h1,h2{margin:0 0 34px;line-height:1.13;letter-spacing:-.03em}
+    h1{font-size:clamp(38px,4.2vw,64px);max-width:900px}
+    h2{font-size:clamp(28px,3.1vw,46px);max-width:900px}
+    .sub{color:var(--muted);font-size:18px;line-height:1.55}
+    .accent{color:var(--purple)}.blue{color:var(--blue)}.green{color:var(--green)}.red{color:var(--red)}.yellow{color:var(--yellow)}
+    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:22px;align-items:center}
+    .card,.window,.memory,.terminal,.route,.timecard{border:1px solid var(--line);background:linear-gradient(145deg,#151e30,#0f1625);border-radius:14px;padding:24px;box-shadow:0 10px 30px #0003}
+    .card h3{font-size:22px;margin:0 0 16px}.card p{color:var(--muted);line-height:1.55;margin:8px 0}
+    .tag{display:inline-flex;border:1px solid var(--line);border-radius:999px;padding:7px 12px;margin:4px 4px 0 0;color:var(--muted);font-size:14px}
+    .tag.blue{border-color:#3865a3;color:#a7c9ff}.tag.purple{border-color:#77509e;color:#dfc5ff}.tag.red{border-color:#8b4351;color:#ffb7c0}.tag.green{border-color:#397a5e;color:#a9f0c6}
+    .warning{font-size:44px;font-weight:750;color:var(--red);letter-spacing:-.04em}.strike{text-decoration:line-through;text-decoration-color:var(--red);opacity:.58}
+    .memory-row{display:flex;align-items:center;gap:16px;margin:16px 0}.memory-row .label{min-width:160px;color:var(--muted)}.bar{height:12px;flex:1;border-radius:99px;background:#27344b;overflow:hidden}.fill{height:100%;width:68%;background:linear-gradient(90deg,var(--blue),var(--purple));border-radius:inherit}
+    .flow{display:flex;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap;margin-top:38px}.node{min-width:150px;text-align:center;padding:18px 16px;border:1px solid var(--line);border-radius:12px;background:#121b2c;font-weight:700}.node.blue{border-color:#3865a3}.node.purple{border-color:#77509e}.node.green{border-color:#397a5e}.arrow{color:var(--muted);font-size:28px}
+    .terminal{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:16px;line-height:1.85;color:#d8e1f2}.prompt{color:var(--green)}.log{color:var(--muted)}.success{color:var(--green)}
+    .filetree{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;line-height:1.9;color:#d4def2}.folder{color:var(--blue)}.file{color:#c4cce0}.muted{color:var(--muted)}
+    .limit{position:relative;padding:22px 26px;border:1px dashed var(--purple);border-radius:12px;background:linear-gradient(#221b37,#111827)}.limit-line{height:2px;background:var(--purple);margin:18px 0 12px}.limit-label{display:flex;justify-content:space-between;color:#ddc4ff;font-size:14px}
+    .checklist{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:12px}.check{padding:14px;border-radius:10px;background:#121b2b;border:1px solid var(--line);color:var(--muted)}.check strong{display:block;color:var(--text);margin-bottom:5px}
+    .gates{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:22px}.gate{min-height:142px;padding:20px;border-radius:12px;border:1px solid var(--line);background:#121b2b}.gate .q{color:var(--purple);font-size:18px;font-weight:700;margin-bottom:14px}.gate .answer{color:var(--muted);line-height:1.4}
+    .old{color:#778198;opacity:.6;font-size:30px;font-weight:700;text-decoration:line-through;text-decoration-color:var(--red)}
+    .timeline{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;align-items:center;margin-top:12px}.timecard{min-height:160px}.timecard .step{font-size:13px;color:var(--muted);margin-bottom:16px}.timecard .big{font-size:24px;font-weight:700;line-height:1.25}.connector{text-align:center;color:var(--purple);font-size:28px}
+    .summary{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:28px}.summary .card{min-height:150px}.summary .label{font-size:14px;color:var(--muted);margin-bottom:13px}.summary .big{font-size:22px;font-weight:700}
+    .teaser{height:100%;display:flex;align-items:center;justify-content:center;text-align:center}.teaser .card{width:min(700px,90%);padding:44px}.teaser h2{margin-bottom:18px}.teaser .next{font-size:18px;color:var(--muted);line-height:1.7}
+    .caption{position:absolute;left:78px;bottom:30px;color:var(--muted);font-size:16px}.caption strong{color:var(--text)}
+    .controls{display:flex;align-items:center;gap:10px;margin-top:14px}.controls button{border:1px solid var(--line);background:#111827;color:var(--text);border-radius:9px;padding:9px 14px;cursor:pointer}.controls button:hover{border-color:var(--blue)}.progress{display:flex;gap:5px;flex:1}.pill{height:5px;flex:1;border-radius:99px;background:#27344b}.pill.on{background:var(--purple)}.hint{color:var(--muted);font-size:12px}
+    @media(max-width:760px){body{padding:12px}.scene{padding:28px 26px 60px}.caption{left:26px;bottom:20px}.grid2,.timeline,.summary,.gates{grid-template-columns:1fr}.scene h1,.scene h2{margin-bottom:20px}.sub{font-size:14px}.warning{font-size:30px}.card,.window,.memory,.terminal,.route,.timecard{padding:16px}.flow{margin-top:18px}.connector{display:none}.controls{flex-wrap:wrap}.progress{order:3;flex-basis:100%}}
+  </style>
+</head>
+<body>
+  <main class="app">
+    <div class="topbar"><div class="brand">Claude Code · Memory</div><div class="title">横屏 Visual Prototype · 1920 × 1080</div></div>
+    <div class="viewport">
+      <section class="scene active">
+        <div class="eyebrow">Scene 01 · Stale Memory</div>
+        <h1>记得越多，真的越聪明吗？</h1>
+        <div class="grid2"><div class="memory"><div class="sub">曾经记录</div><div style="font-size:38px;font-weight:750;margin:12px 0">8081</div><span class="tag green">这次先用</span></div><div class="card"><div class="sub">两周后</div><div class="warning strike">8081</div><span class="tag red">已废弃</span><p>旧信息还在一本正经地提醒你</p></div></div>
+        <div class="caption"><strong>记错比不记更坑</strong></div>
+      </section>
+
+      <section class="scene">
+        <div class="eyebrow">Scene 02 · Two Memory Systems</div><h2>记忆不是一套，是两套</h2>
+        <div class="flow"><div class="node blue">CLAUDE.md<br><span class="sub">你写的规则</span></div><div class="arrow">↘</div><div class="node green" style="min-width:230px">新会话上下文</div><div class="arrow">↙</div><div class="node purple">自动记忆<br><span class="sub">它写的心得</span></div></div>
+        <div class="caption">两条通路，两个职责</div>
+      </section>
+
+      <section class="scene">
+        <div class="eyebrow">Scene 03 · CLAUDE.md</div><h2>你写的，是工作守则</h2>
+        <div class="grid2"><div class="card"><h3 class="blue">CLAUDE.md</h3><div><span class="tag blue">用户手动写</span><span class="tag blue">规则和指令</span></div><div style="margin-top:20px"><span class="tag green">项目级共享</span><span class="tag">全量加载</span></div></div><div class="window"><div class="sub">正式守则</div><div class="checklist"><div class="check"><strong>编程标准</strong>工作规则</div><div class="check"><strong>项目架构</strong>协作边界</div><div class="check"><strong>提交流程</strong>共享约定</div><div class="check"><strong>版本控制</strong>团队可见</div></div></div></div>
+        <div class="caption">解决：你希望 Claude 按什么规则工作</div>
+      </section>
+
+      <section class="scene">
+        <div class="eyebrow">Scene 04 · Auto Memory</div><h2>它写的，是工作心得</h2>
+        <div class="grid2"><div class="terminal"><div><span class="prompt">you &gt;</span> 记住：构建命令是 make build</div><div class="log">判断这条信息以后是否有用…</div><div class="success">Writing memory</div><div style="margin-top:16px"><span class="prompt">new session &gt;</span> 读回已保存内容</div><div class="success">Recalled memory</div></div><div class="memory"><div class="sub">MEMORY.md</div><div class="memory-row"><div class="label">make build</div><div class="bar"><div class="fill"></div></div></div><p class="sub">你要求它记，或它从你的纠正中学习</p></div></div>
+        <div class="caption">写入 → 召回</div>
+      </section>
+
+      <section class="scene">
+        <div class="eyebrow">Scene 05 · Storage Boundary</div><h2>它存在哪里，又加载多少？</h2>
+        <div class="grid2"><div class="window filetree"><div class="folder">~/.claude/projects/&lt;project&gt;/memory/</div><div>├── <span class="file">MEMORY.md</span></div><div>├── <span class="file">debugging.md</span></div><div>├── <span class="file">api-conventions.md</span></div><div>└── <span class="muted">...</span></div></div><div class="limit"><div class="sub">新会话自动读取</div><div class="limit-line"></div><div class="limit-label"><span>前 200 行</span><span>或前 25KB</span></div><p class="sub" style="margin-top:22px">超过边界的主题文件，按需读取</p></div></div>
+        <div class="caption">入口是 MEMORY.md，加载有上限</div>
+      </section>
+
+      <section class="scene">
+        <div class="eyebrow">Scene 06 · Audit with /memory</div><h2>记忆不是黑箱</h2>
+        <div class="grid2"><div class="terminal"><div><span class="prompt">&gt;</span> /memory</div><div class="success">Loaded memory files</div><div class="success">Open memory folder</div><div class="success">Edit / Delete</div><div class="success">Auto memory: ON</div></div><div class="card"><h3>/memory</h3><div class="checklist"><div class="check"><strong>查看</strong>当前加载文件</div><div class="check"><strong>打开</strong>自动记忆目录</div><div class="check"><strong>读改删</strong>Markdown 笔记</div><div class="check"><strong>切换</strong>自动记忆开关</div></div></div></div>
+        <div class="caption">查、改、删、关，都有入口</div>
+      </section>
+
+      <section class="scene">
+        <div class="eyebrow">Scene 07 · Three Filters</div><h2>记之前，先问三个问题</h2>
+        <div class="gates"><div class="gate"><div class="q">会不会变？</div><div class="answer">临时端口、临时变量<br><span class="red">不要记</span></div></div><div class="gate"><div class="q">能不能复用？</div><div class="answer">构建命令、架构事实<br><span class="green">值得记</span></div></div><div class="gate"><div class="q">敏不敏感？</div><div class="answer">密码、API key、token<br><span class="red">绝对不要记</span></div></div></div>
+        <div class="caption">稳定 · 复用 · 非敏感</div>
+      </section>
+
+      <section class="scene">
+        <div class="eyebrow">Scene 08 · Old Shortcut</div><h2><span class="old">#</span> 这个老快捷键，还要用吗？</h2>
+        <div class="flow"><div class="node" style="opacity:.55">#<br><span class="sub">早期做法</span></div><div class="arrow">→</div><div class="node purple">记住 xxx<br><span class="sub">自动记忆</span></div><div class="node blue">加进 CLAUDE.md<br><span class="sub">Git 守则</span></div><div class="node green">/memory<br><span class="sub">审计删改</span></div></div>
+        <div class="caption">按目标选择入口</div>
+      </section>
+
+      <section class="scene">
+        <div class="eyebrow">Scene 09 · Write One Memory</div><h2>让它记一条：从对话到文件</h2>
+        <div class="timeline"><div class="timecard"><div class="step">01 · 建立项目</div><div class="big">mkdir memory-demo</div><div class="sub">cd memory-demo</div></div><div class="timecard"><div class="step">02 · 提出请求</div><div class="big">记住：make build</div><div class="sub">claude</div></div><div class="timecard"><div class="step">03 · 确认落盘</div><div class="big success">Writing memory</div><div class="sub">MEMORY.md</div></div></div>
+        <div class="caption">对话 → 文件</div>
+      </section>
+
+      <section class="scene">
+        <div class="eyebrow">Scene 10 · Cross-session Recall</div><h2>新会话真的想起来了吗？</h2>
+        <div class="timeline"><div class="timecard"><div class="step">会话 A</div><div class="big">写入 make build</div><div class="sub">/exit</div></div><div class="connector">→</div><div class="timecard"><div class="step">记忆文件</div><div class="big">MEMORY.md</div><div class="sub">内容保留</div></div><div class="connector">→</div><div class="timecard"><div class="step">会话 B</div><div class="big success">make build</div><div class="sub success">Recalled memory</div></div></div>
+        <div class="caption">跨会话生效；记错的也可以删掉</div>
+      </section>
+
+      <section class="scene">
+        <div class="eyebrow">Scene 11 · Working Model</div><h2>记住该记的，忘掉该忘的</h2>
+        <div class="summary"><div class="card"><div class="label">规则</div><div class="big blue">CLAUDE.md</div><p>你写的工作守则</p></div><div class="card"><div class="label">经验</div><div class="big" style="color:var(--purple)">自动记忆</div><p>稳定、可复用的心得</p></div><div class="card"><div class="label">不要记</div><div class="big red">会变／一次性／敏感</div><p>避免未来误导</p></div></div>
+        <div class="caption">记忆不是越多越好</div>
+      </section>
+
+      <section class="scene">
+        <div class="eyebrow">Scene 12 · Next Episode</div><div class="teaser"><div class="card"><div class="sub">下一篇</div><h2>26「Agent Skills」</h2><div class="next"><span class="accent">记忆</span>：被动记住事实<br><span class="blue">Skills</span>：主动封装能力</div></div></div>
+      </section>
+    </div>
+    <div class="controls"><button id="prev">上一幕</button><button id="next">下一幕</button><button id="auto">自动播放</button><div class="progress" id="progress"></div><span class="hint">← → 切换</span></div>
+  </main>
+  <script>
+    const scenes=[...document.querySelectorAll('.scene')];
+    const progress=document.getElementById('progress');
+    const autoButton=document.getElementById('auto');
+    let index=0;let timer=null;
+    function render(){scenes.forEach((scene,i)=>scene.classList.toggle('active',i===index));progress.innerHTML=scenes.map((_,i)=>'<span class="pill '+(i===index?'on':'')+'"></span>').join('')}
+    function show(next){index=(next+scenes.length)%scenes.length;render()}
+    document.getElementById('prev').onclick=()=>show(index-1);
+    document.getElementById('next').onclick=()=>show(index+1);
+    autoButton.onclick=()=>{if(timer){clearInterval(timer);timer=null;autoButton.textContent='自动播放'}else{timer=setInterval(()=>show(index+1),4300);autoButton.textContent='停止播放'}};
+    document.addEventListener('keydown',event=>{if(event.key==='ArrowLeft')show(index-1);if(event.key==='ArrowRight')show(index+1)});
+    render();
+  </script>
+</body>
+</html>

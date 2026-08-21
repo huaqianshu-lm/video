@@ -79,7 +79,7 @@ export const ConceptScene = ({scene}: ConceptSceneProps) => {
                 marginTop: 42,
               }}
             >
-              <MockWindow title="claude-code-what-is — project" bodyStyle={{padding: 0}}>
+              <MockWindow title={demo.windowTitle ?? 'claude-code-what-is — project'} bodyStyle={{padding: 0}}>
                 <div style={{display: 'grid', gridTemplateColumns: '260px 1fr', minHeight: 555}}>
                   <div
                     style={{
@@ -88,7 +88,7 @@ export const ConceptScene = ({scene}: ConceptSceneProps) => {
                       padding: '24px 18px',
                     }}
                   >
-                    <div style={{color: colors.muted, fontSize: 18, fontWeight: 800, marginBottom: 16}}>PROJECT FILES</div>
+                    <div style={{color: colors.muted, fontSize: 18, fontWeight: 800, marginBottom: 16}}>{demo.filePanelTitle ?? 'PROJECT FILES'}</div>
                     {demo.files.map((file, index) => {
                       const active = index === activeFileIndex;
                       const seen = index <= activeFileIndex;
@@ -116,9 +116,16 @@ export const ConceptScene = ({scene}: ConceptSceneProps) => {
                       );
                     })}
                     <div style={{display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 20}}>
-                      <StatusChip active={activeActionIndex >= 0} style={{fontSize: 15, padding: '7px 10px'}}>reading</StatusChip>
-                      <StatusChip active={activeActionIndex >= 2} tone="success" style={{fontSize: 15, padding: '7px 10px'}}>editing</StatusChip>
-                      <StatusChip active={activeActionIndex >= 3} tone="warning" style={{fontSize: 15, padding: '7px 10px'}}>checking</StatusChip>
+                      {(demo.statusLabels ?? ['reading', 'editing', 'checking']).map((label, index) => (
+                        <StatusChip
+                          key={label}
+                          active={activeActionIndex >= index}
+                          tone={index === 0 ? 'accent' : index === 1 ? 'success' : 'warning'}
+                          style={{fontSize: 15, padding: '7px 10px'}}
+                        >
+                          {label}
+                        </StatusChip>
+                      ))}
                     </div>
                   </div>
                   <div style={{display: 'flex', flexDirection: 'column', padding: 22, position: 'relative'}}>
@@ -180,7 +187,9 @@ export const ConceptScene = ({scene}: ConceptSceneProps) => {
                       }}
                     >
                       <span style={{color: colors.accent}}>$ </span>
-                      {activeActionIndex >= 3 ? 'npm run check  ✓ passed' : 'waiting for command...'}
+                      {activeActionIndex >= demo.actions.length - 1
+                        ? `${demo.readyStatus ?? 'npm run check  ✓ passed'}`
+                        : (demo.command ? `${demo.command}  …` : 'waiting for command...')}
                     </div>
                   </div>
                 </div>

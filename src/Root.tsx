@@ -12,6 +12,8 @@ import {ClaudeCodeWhatIsVideo} from './videos/claude-code-what-is/ClaudeCodeWhat
 import {ClaudeCodeWhatIsVideo14} from './videos/claude-code-what-is/ClaudeCodeWhatIsVideo14';
 import {videoConfig} from './videos/claude-code-what-is/video.config';
 import {getVideo14TotalDurationFrames, video14Config} from './videos/claude-code-what-is/video14.config';
+import {ClaudeCodeFirstRunVideo} from './videos/claude-code-first-run/ClaudeCodeFirstRunVideo';
+import {videoConfig as claudeCodeFirstRunConfig} from './videos/claude-code-first-run/video.config';
 import {ClaudeCodeHowItWorksVideo} from './videos/claude-code-how-it-works/ClaudeCodeHowItWorksVideo';
 import {videoConfig as claudeCodeHowItWorksConfig} from './videos/claude-code-how-it-works/video.config';
 
@@ -25,6 +27,14 @@ export const Root = () => {
         fps={claudeCodeApiConfig.fps}
         width={claudeCodeApiConfig.width}
         height={claudeCodeApiConfig.height}
+      />
+      <Composition
+        id={claudeCodeFirstRunConfig.slug}
+        component={ClaudeCodeFirstRunVideo}
+        durationInFrames={getTotalDurationFrames(claudeCodeFirstRunConfig)}
+        fps={claudeCodeFirstRunConfig.fps}
+        width={claudeCodeFirstRunConfig.width}
+        height={claudeCodeFirstRunConfig.height}
       />
       <Composition
         id={claudeCodeInstallConfig.slug}

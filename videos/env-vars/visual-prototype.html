@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Claude Code 环境变量 · Visual Prototype</title>
+  <style>
+    :root {
+      --bg: #080b12;
+      --panel: #111722;
+      --panel-2: #162033;
+      --line: #2a3850;
+      --text: #edf2f8;
+      --muted: #91a0b6;
+      --accent: #7f9cff;
+      --teal: #69d6c5;
+      --green: #72d8a1;
+      --yellow: #e7c77b;
+      --red: #ef8f9b;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      background: radial-gradient(circle at 50% 0%, #17253d 0%, var(--bg) 58%);
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+    }
+    .shell { width: min(94vw, 1280px); }
+    .stage {
+      position: relative;
+      aspect-ratio: 16 / 9;
+      overflow: hidden;
+      border: 1px solid #2c3b55;
+      border-radius: 18px;
+      background: linear-gradient(145deg, #0f1623, #080b12 72%);
+      box-shadow: 0 24px 80px rgba(0,0,0,.42);
+    }
+    .scene { display: none; height: 100%; padding: 7.5% 8%; }
+    .scene.active { display: block; animation: enter .32s ease-out; }
+    @keyframes enter { from { opacity: .15; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .eyebrow { color: var(--teal); font-size: 13px; letter-spacing: .12em; text-transform: uppercase; font-weight: 800; }
+    h1, h2 { margin: 18px 0 28px; letter-spacing: -.04em; line-height: 1.1; }
+    h1 { font-size: clamp(36px, 4.5vw, 70px); max-width: 930px; }
+    h2 { font-size: clamp(28px, 3.2vw, 52px); max-width: 980px; }
+    .muted { color: var(--muted); }
+    .accent { color: var(--accent); }
+    .teal { color: var(--teal); }
+    .good { color: var(--green); }
+    .warn { color: var(--yellow); }
+    .bad { color: var(--red); }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+    .card, .terminal, .lane, .step, .file {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: rgba(17,23,34,.92);
+    }
+    .card { padding: 18px; }
+    .card h3 { margin: 0 0 10px; font-size: 18px; }
+    .card p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.55; }
+    .terminal { overflow: hidden; box-shadow: 0 16px 35px rgba(0,0,0,.24); }
+    .bar { height: 29px; padding: 8px 12px; background: #182131; border-bottom: 1px solid var(--line); }
+    .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; background: #718098; }
+    .dot:first-child { background: var(--red); }
+    .dot:nth-child(2) { background: var(--yellow); }
+    .dot:nth-child(3) { background: var(--green); }
+    .termtext { padding: 17px 19px; min-height: 158px; color: #bdc9dc; font: 13px/1.85 ui-monospace, SFMono-Regular, Menlo, monospace; }
+    .prompt { color: var(--teal); }
+    .command { color: var(--text); }
+    .ok { color: var(--green); }
+    .alert { color: var(--red); }
+    .caption { position: absolute; left: 8%; right: 8%; bottom: 7%; color: var(--muted); text-align: center; font-size: 15px; }
+    .pill-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px; }
+    .pill { border: 1px solid #33425c; border-radius: 999px; padding: 7px 11px; color: #cbd5e4; background: #111927; font-size: 12px; }
+    .scope { display: grid; grid-template-columns: .75fr 1fr 1.35fr; gap: 12px; align-items: stretch; margin-top: 30px; }
+    .scope .lane { min-height: 170px; padding: 17px; display: flex; flex-direction: column; justify-content: space-between; }
+    .scope .lane:nth-child(1) { border-color: #596983; }
+    .scope .lane:nth-child(2) { border-color: #657db6; }
+    .scope .lane:nth-child(3) { border-color: var(--teal); }
+    .lane strong { font-size: 18px; }
+    .code { color: var(--text); font: 12px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; }
+    .env-flow { display: grid; grid-template-columns: 1fr 110px 1fr; gap: 18px; align-items: center; margin-top: 30px; }
+    .flow-arrow { color: var(--accent); text-align: center; font-size: 36px; }
+    .env-box { display: grid; gap: 8px; }
+    .env-box .pill { border-radius: 8px; }
+    .files { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 18px; }
+    .file { padding: 15px; min-height: 102px; }
+    .file .path { color: var(--text); font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; word-break: break-word; }
+    .file .owner { margin-top: 10px; color: var(--muted); font-size: 12px; }
+    .tag { display: inline-block; margin-top: 10px; padding: 4px 7px; border-radius: 999px; font-size: 11px; }
+    .tag.git { color: var(--yellow); background: rgba(231,199,123,.1); }
+    .tag.local { color: var(--green); background: rgba(114,216,161,.1); }
+    .group { min-height: 178px; }
+    .group h3 { font-size: 16px; }
+    .group .code { margin-top: 11px; color: #c8d4e5; }
+    .session-flow { display: grid; grid-template-columns: 1fr 100px 1fr; gap: 16px; align-items: center; margin-top: 30px; }
+    .session { min-height: 175px; }
+    .restart { text-align: center; color: var(--accent); font-size: 14px; }
+    .restart .icon { display: block; font-size: 34px; margin-bottom: 8px; }
+    .priority { display: grid; gap: 10px; max-width: 760px; margin: 26px auto 0; }
+    .priority .step { padding: 14px 18px; display: flex; justify-content: space-between; align-items: center; }
+    .priority .step.top { border-color: var(--teal); background: rgba(105,214,197,.1); }
+    .priority .step.mid { border-color: var(--accent); }
+    .priority .step.low { border-color: #34425b; }
+    .priority .arrow { color: var(--accent); font-size: 20px; }
+    .practice { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; margin-top: 30px; }
+    .practice .step { min-height: 145px; padding: 13px 11px; }
+    .num { color: var(--teal); font-size: 12px; font-weight: 800; }
+    .practice .code { margin-top: 13px; word-break: break-word; }
+    .practice .desc { margin-top: 10px; color: var(--muted); font-size: 11px; }
+    .summary { max-width: 760px; margin: 24px auto 0; text-align: center; }
+    .summary .card { padding: 22px; }
+    .summary strong { display: block; font-size: 29px; margin-bottom: 7px; }
+    .preview { margin: 22px auto 0; max-width: 490px; padding: 17px 20px; border: 1px solid rgba(105,214,197,.6); border-radius: 12px; background: linear-gradient(100deg, rgba(105,214,197,.13), rgba(127,156,255,.12)); text-align: center; }
+    .controls { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 15px; }
+    button { border: 1px solid #33425c; border-radius: 8px; padding: 8px 14px; color: #d9e3f2; background: #111927; cursor: pointer; }
+    button:hover { border-color: var(--accent); }
+    .progress { display: flex; justify-content: center; gap: 6px; margin-top: 12px; }
+    .progress span { width: 22px; height: 4px; border-radius: 99px; background: #293650; }
+    .progress span.on { background: var(--accent); }
+    .note { margin-top: 9px; color: #77869d; text-align: center; font-size: 11px; }
+    @media (max-width: 860px) {
+      .scene { padding: 6% 6%; overflow-y: auto; }
+      .grid-4, .files { grid-template-columns: 1fr 1fr; }
+      .practice { grid-template-columns: repeat(3, 1fr); }
+      .caption { left: 6%; right: 6%; bottom: 4%; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <div class="stage" aria-label="Claude Code 环境变量横屏视觉原型">
+      <section class="scene active">
+        <div class="eyebrow">Scene 01 · Repeat</div>
+        <h1>每次打开，都要重新拨一遍</h1>
+        <div class="grid-2">
+          <div class="terminal"><div class="bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div><div class="termtext"><div class="prompt">$ claude</div><div class="command">/model</div><div>API_TIMEOUT_MS</div><div class="alert">DISABLE_TELEMETRY · unset</div></div></div>
+          <div class="terminal"><div class="bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div><div class="termtext"><div class="prompt">$ claude</div><div class="command">/model</div><div>API_TIMEOUT_MS</div><div class="alert">DISABLE_TELEMETRY · unset</div></div></div>
+        </div>
+        <div class="caption">每次重新设置</div>
+      </section>
+
+      <section class="scene">
+        <div class="eyebrow">Scene 02 · Startup Controls</div>
+        <h2>环境变量，是启动时读入的总开关</h2>
+        <div class="env-flow">
+          <div class="env-box"><span class="pill">ANTHROPIC_BASE_URL</span><span class="pill">API_TIMEOUT_MS</span><span class="pill">DISABLE_TELEMETRY</span></div>
+          <div class="flow-arrow">→</div>
+          <div class="card"><h3 class="teal">Claude Code 启动</h3><p>启动时读取 ENV，再决定底层行为</p><div class="pill-row"><span class="pill">连接</span><span class="pill">认证</span><span class="pill">超时</span><span class="pill">隐私</span></div></div>
+        </div>
+        <div class="caption">不是页面按钮，而是启动入口后的控制层</div>
+      </section>
+
+      <section class="scene">
+        <div class="eyebrow">Scene 03 · Scope</div>
+        <h2>三种设置方式，先看它要影响多久</h2>
+        <div class="scope">
+          <div class="lane"><strong>当前终端</strong><span class="code">export</span><span class="muted">临时试一次</span></div>
+          <div class="lane"><strong>这台机器</strong><span class="code">~/.zshrc</span><span class="muted">所有终端</span></div>
+          <div class="lane"><strong>跟配置走</strong><span class="code">settings.json → env</span><span class="muted">按配置范围生效</span></div>
+        </div>
+        <div class="caption">临时验证，再决定长期固定</div>
+      </section>
+
+      <section class="scene">
+        <div class="eyebrow">Scene 04 · Ownership</div>
+        <h2>文件位置，决定谁会被影响</h2>
+        <div class="files">
+          <div class="file"><div class="path">~/.claude/settings.json</div><div class="owner">你 · 所有项目</div></div>
+          <div class="file"><div class="path">.claude/settings.json</div><div class="owner">项目中的所有人</div><span class="tag git">进入 git</span></div>
+          <div class="file"><div class="path">.claude/settings.local.json</div><div class="owner">你 · 当前项目</div><span class="tag local">不进入 git</span></div>
+          <div class="file"><div class="path">托管设置</div><div class="owner">组织中的所有人</div></div>
+        </div>
+        <div class="card" style="margin-top:14px;text-align:center"><span class="bad">个人凭据</span><span class="muted"> → 项目共享设置：</span><span class="bad">阻断</span></div>
+      </section>
+
+      <section class="scene">
+        <div class="eyebrow">Scene 05 · Variable Map</div>
+        <h2>不用背全表，先按场景认识四组开关</h2>
+        <div class="grid-4">
+          <div class="card group"><h3 class="accent">连接与认证</h3><div class="code">ANTHROPIC_API_KEY<br>ANTHROPIC_BASE_URL<br>ANTHROPIC_MODEL</div></div>
+          <div class="card group"><h3 class="warn">超时</h3><div class="code">API_TIMEOUT_MS<br>600000<br><br>BASH_DEFAULT_TIMEOUT_MS<br>120000</div></div>
+          <div class="card group"><h3 class="teal">隐私遥测</h3><div class="code">DISABLE_TELEMETRY<br>DO_NOT_TRACK</div></div>
+          <div class="card group"><h3 class="good">多账号与上下文</h3><div class="code">CLAUDE_CONFIG_DIR<br>DISABLE_AUTO_COMPACT</div></div>
+        </div>
+      </section>
+
+      <section class="scene">
+        <div class="eyebrow">Scene 06 · Restart</div>
+        <h2>改了没变化？先确认你重启了</h2>
+        <div class="session-flow">
+          <div class="card session"><h3>旧会话</h3><div class="code">BASH_DEFAULT_TIMEOUT_MS</div><div class="pill-row"><span class="pill warn">120000</span><span class="pill">保持不变</span></div></div>
+          <div class="restart"><span class="icon">↻</span>退出 → 重新打开</div>
+          <div class="card session"><h3>新会话</h3><div class="code">BASH_DEFAULT_TIMEOUT_MS</div><div class="pill-row"><span class="pill good">300000</span><span class="pill">启动时读取</span></div></div>
+        </div>
+      </section>
+
+      <section class="scene">
+        <div class="eyebrow">Scene 07 · Precedence</div>
+        <h2>同一件事多处设置，到底谁说了算？</h2>
+        <div class="priority">
+          <div class="step top"><span><b>/model</b> 或 <b>--model</b></span><span class="arrow">最高</span></div>
+          <div class="step mid"><span><b>ANTHROPIC_MODEL</b></span><span class="arrow">覆盖</span></div>
+          <div class="step low"><span><b>settings.json</b> 的 <b>model</b></span><span class="arrow">兜底</span></div>
+        </div>
+        <div class="card" style="max-width:700px;margin:18px auto 0;text-align:center"><span class="teal">通则：</span>环境变量 &gt; 设置字段　<span class="warn">例外：</span>模型有更明确的会话选择</div>
+      </section>
+
+      <section class="scene">
+        <div class="eyebrow">Scene 08 · Verify</div>
+        <h2>先做一次实验，证明它真的生效</h2>
+        <div class="practice">
+          <div class="step"><div class="num">01</div><div class="code">默认<br>120000</div><div class="desc">记住基线</div></div>
+          <div class="step"><div class="num">02</div><div class="code">export BASH_DEFAULT_TIMEOUT_MS="300000"</div><div class="desc">临时设置</div></div>
+          <div class="step"><div class="num">03</div><div class="code">claude</div><div class="desc">重新打开</div></div>
+          <div class="step"><div class="num">04</div><div class="code good">读到<br>300000</div><div class="desc">验证生效</div></div>
+          <div class="step"><div class="num">05</div><div class="code warn">新终端<br>120000</div><div class="desc">验证范围</div></div>
+          <div class="step"><div class="num">06</div><div class="code">.claude/settings.local.json</div><div class="desc">再持久化</div></div>
+        </div>
+      </section>
+
+      <section class="scene">
+        <div class="eyebrow">Scene 09 · Summary + Next Episode</div>
+        <h2 style="text-align:center;margin-left:auto;margin-right:auto">把开关拨在正确的位置</h2>
+        <div class="summary"><div class="card"><strong class="teal">先试，再固化</strong><span class="muted">按影响范围选择配置位置</span><div class="pill-row" style="justify-content:center"><span class="pill">当前终端</span><span class="pill">机器配置</span><span class="pill">项目本地</span></div></div></div>
+        <div class="preview"><strong>下一篇：Git 工作流</strong><div class="muted" style="margin-top:7px">让 Claude Code 参与协作时，哪些动作可以交给它？</div></div>
+        <div class="caption">个人凭据不进 git</div>
+      </section>
+    </div>
+    <div class="controls"><button id="prev">上一幕</button><button id="next">下一幕</button><button id="auto">自动播放</button></div>
+    <div class="progress" id="progress" aria-label="场景进度"></div>
+    <div class="note">横屏 16:9 原型 · 仅用于验证构图、信息密度与状态变化</div>
+  </main>
+  <script>
+    const scenes = [...document.querySelectorAll('.scene')];
+    const progress = document.querySelector('#progress');
+    const auto = document.querySelector('#auto');
+    let index = 0;
+    let timer = null;
+    scenes.forEach((_, i) => {
+      const item = document.createElement('span');
+      item.addEventListener('click', () => show(i));
+      progress.appendChild(item);
+    });
+    function show(nextIndex) {
+      index = (nextIndex + scenes.length) % scenes.length;
+      scenes.forEach((scene, i) => scene.classList.toggle('active', i === index));
+      [...progress.children].forEach((item, i) => item.classList.toggle('on', i === index));
+    }
+    function stopAuto() {
+      if (timer) clearInterval(timer);
+      timer = null;
+      auto.textContent = '自动播放';
+    }
+    document.querySelector('#prev').addEventListener('click', () => { stopAuto(); show(index - 1); });
+    document.querySelector('#next').addEventListener('click', () => { stopAuto(); show(index + 1); });
+    auto.addEventListener('click', () => {
+      if (timer) { stopAuto(); return; }
+      timer = setInterval(() => show(index + 1), 4200);
+      auto.textContent = '停止播放';
+    });
+    show(0);
+  </script>
+</body>
+</html>

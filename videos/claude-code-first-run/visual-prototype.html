@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Claude Code 第一次使用 · 横屏视觉原型</title>
+<style>
+:root{--bg:#080d18;--panel:#111a2d;--panel2:#17233b;--line:#2b3a5f;--text:#eef3ff;--muted:#9aa9c8;--blue:#8ea9ff;--green:#6cdda7;--amber:#f4c56b;--red:#ff7d8a;--cyan:#73d7e8}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 15% 10%,rgba(142,169,255,.15),transparent 32%),radial-gradient(circle at 85% 85%,rgba(108,221,167,.08),transparent 35%),var(--bg);color:var(--text);font-family:Inter,"PingFang SC","Microsoft YaHei",sans-serif}.shell{width:min(1240px,96vw);margin:28px auto 60px}.topbar{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-bottom:16px}.topbar h1{margin:0;font-size:20px}.controls{display:flex;gap:8px;flex-wrap:wrap}button{border:1px solid var(--line);border-radius:9px;padding:8px 13px;background:#10192c;color:var(--text);cursor:pointer}button:hover{background:#172542}.stage{position:relative;aspect-ratio:16/9;overflow:hidden;border:1px solid #26375d;border-radius:18px;background:#0b1222;box-shadow:0 28px 70px rgba(0,0,0,.35)}.scene{position:absolute;inset:0;padding:44px 54px;opacity:0;transform:scale(.985);pointer-events:none;transition:opacity .45s ease,transform .45s ease}.scene.active{opacity:1;transform:none;pointer-events:auto}.eyebrow{font-size:12px;letter-spacing:.14em;color:var(--blue);text-transform:uppercase;margin-bottom:9px}.scene h2{font-size:31px;line-height:1.2;margin:0 0 22px}.caption{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);padding:9px 15px;border:1px solid rgba(255,255,255,.1);border-radius:12px;background:rgba(5,9,17,.88);font-size:16px;white-space:nowrap}.terminal{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:linear-gradient(180deg,#14213a,#0f172a);box-shadow:0 18px 42px rgba(0,0,0,.25)}.bar{height:32px;padding:0 12px;display:flex;align-items:center;gap:7px;border-bottom:1px solid var(--line);background:#10192b}.dot{width:8px;height:8px;border-radius:50%;background:#526482}.body{padding:20px}.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}.prompt{color:var(--muted)}.cursor{display:inline-block;width:9px;height:20px;margin-left:5px;vertical-align:-4px;background:var(--blue);animation:blink 1s steps(1) infinite}@keyframes blink{50%{opacity:0}}.question{display:flex;justify-content:center;align-items:center;gap:24px;height:300px}.question strong{font-size:52px;letter-spacing:.03em}.question span{font-size:24px;color:var(--muted)}.soft{color:var(--muted)}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:22px;align-items:center}.window{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:#111b30}.window .body{min-height:270px}.tree{font-family:ui-monospace,monospace;color:#c8d4ee;line-height:1.9}.tree .faint{color:#536684}.folder{padding:16px;border:1px solid #4765a0;border-radius:12px;background:#14233e;box-shadow:0 0 24px rgba(142,169,255,.12)}.folder-title{font-size:20px;font-weight:700;margin-bottom:13px}.code{font-family:ui-monospace,monospace;line-height:1.75;font-size:16px;color:#d5e0f7}.code .kw{color:#c59dff}.code .fn{color:var(--cyan)}.code .str{color:var(--green)}.command{padding:8px 0;color:#e8efff}.command b{color:var(--green)}.path{font-family:ui-monospace,monospace;font-size:18px;padding:15px;border-radius:10px;background:#0b1323;border:1px solid #25365b}.path .wrong{color:#647394}.path .right{color:var(--green)}.lock{margin-top:16px;padding:12px 14px;border:1px solid rgba(108,221,167,.35);border-radius:10px;background:rgba(108,221,167,.08);color:var(--green)}.welcome{height:320px;display:flex;flex-direction:column;justify-content:space-between}.welcome .hint{color:var(--muted);line-height:1.8}.input{padding:13px 15px;border:1px solid #5c79bd;border-radius:10px;background:#0d1629;box-shadow:0 0 24px rgba(142,169,255,.12)}.callouts{display:flex;gap:11px;flex-wrap:wrap;margin-top:12px}.callout,.tag{padding:9px 12px;border:1px solid var(--line);border-radius:9px;background:#16233c;color:#dbe5fb;font-size:14px}.callout.on,.tag.green{border-color:rgba(108,221,167,.45);background:rgba(108,221,167,.1);color:var(--green)}.scanbox{display:grid;grid-template-columns:1fr .95fr;gap:20px;align-items:center}.filecard,.result,.card{padding:19px;border:1px solid var(--line);border-radius:14px;background:#121d33}.status{display:inline-block;margin-top:12px;padding:5px 9px;border-radius:99px;font-size:12px}.status.read{color:var(--blue);background:rgba(142,169,255,.11)}.status.stable{color:var(--green);background:rgba(108,221,167,.11)}.result h3{margin:0 0 14px;font-size:18px}.result p{margin:9px 0;color:#d5e0f6}.scanline{height:3px;margin:14px 0;background:linear-gradient(90deg,transparent,var(--blue),transparent);animation:scan 2.1s ease-in-out infinite}@keyframes scan{50%{opacity:.35;transform:translateX(16px)}}.diff{display:grid;grid-template-columns:1fr 1fr;gap:12px}.diffcol{padding:14px;border:1px solid var(--line);border-radius:12px;background:#0d1628}.diffcol h3{margin:0 0 13px;font-size:13px;color:var(--muted);font-weight:500}.linecode{font-family:ui-monospace,monospace;font-size:14px;line-height:1.8;padding:4px 8px;border-radius:5px}.minus{color:#ffb3bb;background:rgba(255,125,138,.11)}.plus{color:#a9f1ca;background:rgba(108,221,167,.1)}.approval{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-top:16px}.choice{padding:10px 14px;border:1px solid var(--line);border-radius:9px;background:#15223a;font-size:14px}.choice.selected{border-color:var(--green);color:var(--green);background:rgba(108,221,167,.1)}.waiting{margin:0 0 12px;color:var(--amber);font-size:14px}.recovery{display:grid;grid-template-columns:1fr .9fr 1fr;align-items:center;gap:18px;height:300px}.current,.checkpoint{padding:18px;border:1px solid var(--line);border-radius:14px;background:#121d33;text-align:center}.current{border-color:rgba(244,197,107,.5)}.recovery-arrow{text-align:center;color:var(--blue);font-size:24px}.routes{display:flex;justify-content:center;gap:9px;margin:14px 0}.route{padding:10px 12px;border:1px solid #50679c;border-radius:9px;background:#172642}.boundaries{display:flex;justify-content:center;gap:12px;margin-top:20px}.boundary{padding:10px 14px;border-radius:9px;background:#192742;border:1px solid var(--line);font-size:14px}.boundary.git{border-color:rgba(108,221,167,.4);color:var(--green)}.steps{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;align-items:stretch;margin-top:34px}.step{position:relative;padding:18px 12px 15px;border:1px solid var(--line);border-radius:13px;background:#121d33;min-height:130px}.step::after{content:"→";position:absolute;right:-19px;top:48px;color:var(--blue);font-size:20px}.step:last-child::after{display:none}.step.on{border-color:#5e7dcc;box-shadow:0 0 22px rgba(142,169,255,.12)}.num{font-size:13px;color:var(--blue);margin-bottom:14px}.step b{display:block;font-size:17px;margin-bottom:8px}.step small{color:var(--muted);line-height:1.5}.done{margin:26px auto 0;width:max-content;padding:10px 15px;border-radius:10px;color:var(--green);background:rgba(108,221,167,.1);border:1px solid rgba(108,221,167,.4)}.summary{display:grid;grid-template-columns:1.2fr .8fr;gap:24px;align-items:center;height:350px}.loop{display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap}.loop .node{padding:17px 21px;border-radius:13px;background:#172640;border:1px solid #4f6ba5;font-size:18px}.loop .arrow{color:var(--blue);font-size:24px}.roles{display:grid;gap:10px}.role{padding:14px 16px;border-radius:11px;border:1px solid var(--line);background:#121d33}.role b{display:block;margin-bottom:6px}.role span{color:var(--muted);font-size:14px}.preview{margin-top:16px;padding:16px;border:1px solid rgba(244,197,107,.5);border-radius:13px;background:rgba(244,197,107,.08)}.preview b{display:block;color:var(--amber);margin-bottom:6px}.progress{display:flex;justify-content:center;gap:7px;margin-top:16px}.pill{width:30px;height:5px;border-radius:99px;background:#273653}.pill.on{background:var(--blue)}.note{margin-top:13px;text-align:center;color:var(--muted);font-size:13px}
+</style>
+</head>
+<body>
+<div class="shell">
+  <div class="topbar">
+    <h1>Claude Code 第一次使用 · 横屏视觉原型 · 9 Scenes</h1>
+    <div class="controls"><button onclick="prevScene()">上一幕</button><button onclick="nextScene()">下一幕</button><button id="autoBtn" onclick="toggleAuto()">自动播放</button></div>
+  </div>
+  <div class="stage">
+    <section class="scene active">
+      <div class="eyebrow">Scene 01 · Opening</div><h2>终端打开了，然后呢？</h2>
+      <div class="terminal"><div class="bar"><i class="dot"></i><i class="dot"></i><i class="dot"></i></div><div class="body question"><span class="mono prompt">$ <span class="cursor"></span></span><strong>然后呢？</strong><span>怕改坏</span></div></div>
+      <div class="caption">今天：跑通第一个任务 · 不超过五分钟</div>
+    </section>
+
+    <section class="scene">
+      <div class="eyebrow">Scene 02 · Safe Workspace</div><h2>先建一个可以重来的玩具项目</h2>
+      <div class="grid2"><div class="terminal"><div class="bar"><i class="dot"></i><i class="dot"></i><i class="dot"></i></div><div class="body mono"><div class="command">$ <b>mkdir hello-claude</b></div><div class="command">$ <b>cd hello-claude</b></div><div class="command">$ <b>create main.py</b></div><div class="soft">正式项目 / 文件多 / 依赖杂</div></div></div><div class="folder"><div class="folder-title">hello-claude</div><div class="tree">└── main.py</div><div class="code" style="margin-top:18px"><span class="kw">def</span> <span class="fn">add</span>(a, b):<br>&nbsp;&nbsp;<span class="kw">return</span> a + b</div></div></div>
+      <div class="caption">练车场：改砸了也能重建</div>
+    </section>
+
+    <section class="scene">
+      <div class="eyebrow">Scene 03 · Workspace Boundary</div><h2>一定要在项目目录里启动</h2>
+      <div class="terminal"><div class="bar"><i class="dot"></i><i class="dot"></i><i class="dot"></i></div><div class="body"><div class="path"><span class="wrong">~/ $ claude　← 不要在这里裸启</span><br><br><span class="right">~/hello-claude $ claude</span></div><div class="lock">当前目录 = 工作区　·　Claude 从这里读文件</div><div class="tree" style="margin-top:18px">hello-claude/<br>└── main.py</div></div></div>
+      <div class="caption">先进入 hello-claude，再启动 Claude</div>
+    </section>
+
+    <section class="scene">
+      <div class="eyebrow">Scene 04 · Welcome Screen</div><h2>欢迎屏幕先认住三样东西</h2>
+      <div class="window"><div class="bar"><i class="dot"></i><i class="dot"></i><i class="dot"></i></div><div class="body welcome"><div class="hint">Claude Code　·　当前会话<br>最近对话　·　最新更新提示</div><div><div class="input mono">输入你的需求<span class="cursor"></span></div><div class="callouts"><div class="callout on">输入框</div><div class="callout">/help：查看命令</div><div class="callout">/resume：继续会话</div></div></div></div></div>
+      <div class="caption">不用特殊语法，用大白话提需求</div>
+    </section>
+
+    <section class="scene">
+      <div class="eyebrow">Scene 05 · Read-only Verification</div><h2>先让 Claude 读懂，再让它动手</h2>
+      <div class="scanbox"><div class="filecard"><div class="mono">main.py</div><div class="scanline"></div><div class="code"><span class="kw">def</span> <span class="fn">add</span>(a, b):<br>&nbsp;&nbsp;<span class="kw">return</span> a + b</div><span class="status read">Reading</span><span class="status stable">Unchanged</span></div><div class="result"><h3>解释 main.py 这个文件在做什么</h3><p><span class="mono">add(a, b)</span></p><p class="soft">接收两个参数，返回它们相加的结果</p><div class="callouts"><span class="tag green">解释型：只读</span><span class="tag">修改型：需批准</span><span class="tag">生成型：需批准</span></div></div></div>
+      <div class="caption">先确认它读到了真实文件</div>
+    </section>
+
+    <section class="scene">
+      <div class="eyebrow">Scene 06 · Diff Review</div><h2>看懂 diff，再批准改动</h2>
+      <div class="terminal"><div class="bar"><i class="dot"></i><i class="dot"></i><i class="dot"></i></div><div class="body"><div class="waiting">等待批准 · 给这个函数增加类型注解，并补充基本的错误处理</div><div class="diff"><div class="diffcol"><h3>Before</h3><div class="linecode minus">- def add(a, b):</div><div class="linecode minus">- &nbsp;&nbsp;return a + b</div></div><div class="diffcol"><h3>Proposed Change</h3><div class="linecode plus">+ def add(a: float, b: float) -&gt; float:</div><div class="linecode plus">+ &nbsp;&nbsp;raise TypeError(...)</div><div class="linecode plus">+ &nbsp;&nbsp;return a + b</div></div></div><div class="approval"><span class="choice selected">同意 / Yes</span><span class="choice">本次会话不再问</span><span class="choice">拒绝 / No</span></div></div></div>
+      <div class="caption">先问后动 · 人负责确认</div>
+    </section>
+
+    <section class="scene">
+      <div class="eyebrow">Scene 07 · Recovery</div><h2>改错了，还有两条后悔药</h2>
+      <div class="recovery"><div class="current"><div class="soft">当前修改</div><div style="font-size:22px;margin-top:12px">main.py</div><div class="routes"><span class="route">改回去</span><span class="route">/rewind</span></div><div class="soft" style="font-size:13px">输入框为空时双击 Esc</div></div><div class="recovery-arrow">↔</div><div class="checkpoint"><div style="font-size:20px">Checkpoint</div><div class="soft" style="margin-top:10px">回到编辑前的状态</div></div></div><div class="boundaries"><span class="boundary">Checkpoint = 本地撤销</span><span class="boundary git">Git = 永久历史</span></div>
+      <div class="caption">能回去，不等于不用判断</div>
+    </section>
+
+    <section class="scene">
+      <div class="eyebrow">Scene 08 · Five-step Workflow</div><h2>五步跑通第一个任务</h2>
+      <div class="steps"><div class="step on"><div class="num">01</div><b>建项目</b><small>mkdir + cd</small></div><div class="step"><div class="num">02</div><b>启动</b><small>claude</small></div><div class="step"><div class="num">03</div><b>解释</b><small>解释 main.py</small></div><div class="step"><div class="num">04</div><b>批准</b><small>看 diff / 同意</small></div><div class="step"><div class="num">05</div><b>确认结果</b><small>cat main.py</small></div></div><div class="done">✓ 流程完成　·　a: float　·　raise TypeError(...)</div>
+      <div class="caption">跑通比一开始弄懂所有功能更重要</div>
+    </section>
+
+    <section class="scene">
+      <div class="eyebrow">Scene 09 · Summary</div><h2>第一次使用的最小内核</h2>
+      <div class="summary"><div><div class="loop"><span class="node">提需求</span><span class="arrow">→</span><span class="node">看 diff</span><span class="arrow">→</span><span class="node">批准 / 反悔</span></div><div class="note">一次可控、可检查、可恢复的协作闭环</div></div><div><div class="roles"><div class="role"><b>人</b><span>确认目标 · 看懂改动 · 做判断</span></div><div class="role"><b>Claude</b><span>读取 · 分析 · 执行</span></div></div><div class="preview"><b>下一篇：08 · VS Code 集成</b><span>让代码和 diff 并排出现</span></div></div></div>
+      <div class="caption">从第一次成功，进入下一步</div>
+    </section>
+  </div>
+  <div class="progress" id="progress"></div>
+  <div class="note">原型导航和进度提示仅服务于预览，不属于最终视频画面</div>
+</div>
+<script>
+const scenes=[...document.querySelectorAll('.scene')];
+const progress=document.getElementById('progress');
+const autoBtn=document.getElementById('autoBtn');
+let index=0;let timer=null;
+function renderProgress(){progress.innerHTML=scenes.map((_,i)=>`<span class="pill ${i===index?'on':''}" title="Scene ${i+1}"></span>`).join('')}
+function goTo(next){scenes[index].classList.remove('active');index=(next+scenes.length)%scenes.length;scenes[index].classList.add('active');renderProgress()}
+function nextScene(){goTo(index+1)}
+function prevScene(){goTo(index-1)}
+function toggleAuto(){if(timer){clearInterval(timer);timer=null;autoBtn.textContent='自动播放'}else{timer=setInterval(nextScene,5200);autoBtn.textContent='暂停播放'}}
+renderProgress();
+</script>
+</body>
+</html>

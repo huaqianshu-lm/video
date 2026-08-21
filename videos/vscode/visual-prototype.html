@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VS Code 集成 · Visual Prototype</title>
+<style>
+:root{
+  --bg:#080d18;--panel:#10192a;--panel2:#14233a;--line:#2c4263;
+  --text:#f1f5ff;--muted:#9cacc8;--blue:#8da9ff;--green:#68d5a3;
+  --red:#ff7e8d;--yellow:#f4ca70;
+}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(circle at 20% 0%,#172844 0,transparent 34%),var(--bg);color:var(--text);font-family:Inter,"PingFang SC","Microsoft YaHei",sans-serif}
+.shell{width:min(1240px,96vw);margin:28px auto 60px}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-bottom:16px}
+.topbar h1{font-size:20px;margin:0}
+.controls{display:flex;gap:8px;flex-wrap:wrap}
+button{border:1px solid var(--line);border-radius:9px;background:#111c30;color:var(--text);padding:8px 13px;cursor:pointer}
+button:hover{background:#1a2b47}
+.stage{position:relative;aspect-ratio:16/9;overflow:hidden;border:1px solid #30476b;border-radius:18px;background:#0d1626;box-shadow:0 24px 70px #0008}
+.scene{position:absolute;inset:0;padding:44px 52px;opacity:0;transform:translateY(7px) scale(.99);pointer-events:none;transition:.45s ease}
+.scene.active{opacity:1;transform:none;pointer-events:auto}
+.eyebrow{color:var(--blue);font:12px ui-monospace,monospace;letter-spacing:.12em;text-transform:uppercase;margin-bottom:10px}
+h2{font-size:30px;line-height:1.2;margin:0 0 22px}
+.caption{position:absolute;left:50%;bottom:19px;transform:translateX(-50%);padding:8px 15px;border:1px solid #ffffff18;border-radius:12px;background:#060b14e8;white-space:nowrap;font-size:16px}
+.window{background:linear-gradient(180deg,#14223a,#0f1829);border:1px solid var(--line);border-radius:12px;overflow:hidden;box-shadow:0 14px 35px #0005}
+.winbar{height:30px;border-bottom:1px solid var(--line);background:#10192b;display:flex;align-items:center;gap:6px;padding:0 11px}
+.dot{width:8px;height:8px;border-radius:50%;background:#526886}
+.ide{display:grid;grid-template-columns:160px 1fr 250px;grid-template-rows:1fr 70px;height:340px}
+.tree{padding:14px;color:var(--muted);font:13px/1.9 ui-monospace,monospace;border-right:1px solid var(--line)}
+.editor{padding:17px;font:14px/1.75 ui-monospace,monospace}
+.editor .dim{color:#7084a8}.editor .sel{background:#2e4b79;color:#fff;border-radius:3px;padding:1px 4px}
+.panel{padding:14px;border-left:1px solid var(--line);background:#111d32}
+.panel-title{font-size:13px;color:var(--blue);margin-bottom:12px}
+.panel-line{padding:8px 10px;border-radius:8px;background:#1a2c49;margin-top:8px;font-size:13px}
+.panel-line.ok{border:1px solid #3f9975;color:#b9f0d5}
+.terminal{grid-column:1/4;border-top:1px solid var(--line);padding:12px 17px;font:13px/1.55 ui-monospace,monospace;color:#c9d6ef}
+.terminal .bad{color:var(--red)}.terminal .good{color:var(--green)}
+.spark{position:absolute;right:288px;top:79px;padding:9px 12px;border:1px solid var(--blue);border-radius:9px;background:#1b3155;color:#dce6ff;box-shadow:0 0 20px #8da9ff55}
+.missing{border:1px dashed #a95768;color:#ffb3bd;padding:10px 13px;border-radius:9px;display:inline-block;margin-left:12px}
+.compare{display:grid;grid-template-columns:1fr 190px 1fr;align-items:center;gap:16px;height:330px}
+.core,.card{padding:19px;border:1px solid var(--line);border-radius:13px;background:#14233a}
+.core{border-color:#6d84c0;text-align:center;box-shadow:0 0 25px #7693dc25}
+.list{display:grid;gap:9px;margin-top:14px}
+.tag{padding:9px 11px;border-radius:8px;background:#1a2b47;color:#d7e2fb;font-size:13px}
+.arrow{color:var(--blue);font-size:30px;text-align:center}
+.install{display:grid;grid-template-columns:1.1fr .9fr;gap:20px;align-items:center;height:330px}
+.market{height:265px;padding:17px}.search{padding:10px;border:1px solid var(--line);border-radius:8px;color:var(--muted);margin-bottom:12px}
+.extension{padding:14px;border:1px solid #4e9a7b;border-radius:10px;background:#162e33}.extension strong{display:block;font-size:17px;margin-bottom:6px}
+.verified{color:var(--green);font-size:12px}.checklist{display:grid;gap:8px}.check{padding:10px 12px;border:1px solid var(--line);border-radius:9px;color:var(--muted);background:#101a2c}.check.on{border-color:#518d78;color:#d4f2e1;background:#132b2e}
+.diff{display:grid;grid-template-columns:1fr 1fr;gap:13px;height:330px}.code{padding:17px;font:13px/1.85 ui-monospace,monospace}.code-title{color:var(--muted);font:12px sans-serif;margin-bottom:11px}.del{color:#ffb4bc;background:#4a2632}.add{color:#bdf1d6;background:#163d36}.edit{color:#fff;background:#33496f}.actions{display:flex;gap:8px;margin-top:14px}.accept{background:#20533f;border-color:#64c99d}.reject{background:#4d2635;border-color:#bc6577}
+.context{display:grid;grid-template-columns:1fr 1fr;gap:22px;align-items:center;height:330px}.context .editor{border:1px solid var(--line);border-radius:11px;background:#101b2d}.prompt{padding:20px;border:1px solid var(--line);border-radius:11px;background:#111d31}.prompt-input{padding:13px;border-radius:8px;background:#1a2c49;font:14px ui-monospace,monospace;color:#dae5ff}.mention{display:inline-block;padding:4px 7px;border-radius:6px;background:#344d82;margin-right:4px}.selected{margin-top:15px;color:var(--green);font-size:13px}
+.plan{display:grid;grid-template-columns:.8fr 1.2fr;gap:22px;align-items:center;height:335px}.modes{display:grid;gap:9px}.mode{padding:12px;border:1px solid var(--line);border-radius:9px;color:var(--muted)}.mode.active{border-color:var(--blue);color:#fff;background:#1c3156}.doc{height:275px;padding:18px;font:13px/1.8 ui-monospace,monospace;border:1px solid var(--line);border-radius:10px;background:#101a2c}.comment{display:inline-block;color:#ffe4a4;border:1px solid #9c7c3d;background:#332b1b;border-radius:6px;padding:2px 7px;margin-left:8px}.wait{margin-top:15px;color:var(--yellow)}
+.timeline{display:grid;grid-template-columns:repeat(5,1fr);gap:7px;align-items:center;height:330px}.step{position:relative;padding:15px 10px;border:1px solid var(--line);border-radius:11px;background:#111d31;min-height:120px}.step::after{content:"→";position:absolute;right:-17px;top:43px;color:var(--blue);font-size:22px}.step:last-child::after{display:none}.step.active{border-color:var(--blue);box-shadow:0 0 20px #8da9ff22}.step-num{font:11px ui-monospace,monospace;color:var(--blue)}.step h3{font-size:14px;margin:8px 0}.step p{font-size:12px;color:var(--muted);line-height:1.5;margin:0}
+.shortcuts{display:grid;grid-template-columns:.8fr 1.2fr;gap:24px;align-items:center;height:330px}.keys{display:grid;gap:10px}.key{padding:11px 13px;border:1px solid var(--line);border-radius:9px;background:#14233a;font:13px ui-monospace,monospace}.routes{display:grid;grid-template-columns:1fr 1fr;gap:13px}.route{padding:18px;border:1px solid var(--line);border-radius:12px;background:#111d31;min-height:160px}.route h3{margin:0 0 12px;color:var(--blue);font-size:16px}.route div{padding:7px 9px;background:#1a2b47;border-radius:7px;margin-top:7px;font-size:13px}
+.summary{display:flex;align-items:center;justify-content:center;gap:24px;height:330px}.summary .route{min-width:240px;text-align:center}.switch{font-size:30px;color:var(--blue);text-align:center}.teaser{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(135deg,#101d35,#182847);opacity:0;pointer-events:none;transition:.4s}.teaser.show{opacity:1;pointer-events:auto}.teaser h3{font-size:33px;margin:0 0 12px}.teaser p{color:var(--muted);font-size:16px}
+.progress{display:flex;justify-content:center;gap:6px;margin-top:14px}.pill{width:29px;height:5px;border-radius:99px;background:#2b3b5a}.pill.on{background:var(--blue)}
+@media(max-width:800px){.scene{padding:28px 25px}h2{font-size:22px}.ide{grid-template-columns:110px 1fr;height:300px}.panel{display:none}.terminal{grid-column:1/3}.compare,.install,.context,.plan,.shortcuts{height:290px}.timeline{gap:4px}.step{min-height:105px}.step p{font-size:10px}.summary .route{min-width:170px}.caption{font-size:13px}}
+</style>
+</head>
+<body>
+<div class="shell">
+  <div class="topbar">
+    <h1>VS Code 集成 · 横屏 Visual Prototype</h1>
+    <div class="controls">
+      <button onclick="prevScene()">上一幕</button>
+      <button onclick="nextScene()">下一幕</button>
+      <button onclick="toggleAuto()" id="autoBtn">自动播放</button>
+    </div>
+  </div>
+  <div class="stage">
+    <section class="scene active">
+      <div class="eyebrow">Scene 01 · IDE Simulation</div>
+      <h2>Spark 图标去哪了？</h2>
+      <div class="window" style="position:relative">
+        <div class="winbar"><i class="dot"></i><i class="dot"></i><i class="dot"></i></div>
+        <div class="ide">
+          <div class="tree">工作区<br>└─ 空文件夹<br><br><span class="dim">打开具体文件</span></div>
+          <div class="editor"><span class="dim">// 先打开一个文件</span><br><br><span class="missing">Spark 未出现</span></div>
+          <div class="panel"><div class="panel-title">Claude Code</div><div class="panel-line">等待打开文件</div></div>
+          <div class="terminal"><span class="dim">状态栏</span>　✱ Claude Code　　<span class="dim">右上角</span>　Spark</div>
+        </div>
+        <div class="spark">✦ Spark · demo.py</div>
+      </div>
+      <div class="caption">光开文件夹不够 · 打开具体文件</div>
+    </section>
+
+    <section class="scene">
+      <div class="eyebrow">Scene 02 · Comparison Diagram</div>
+      <h2>扩展和 CLI：同一个后厨，两个窗口</h2>
+      <div class="compare">
+        <div class="card"><strong>CLI</strong><div class="list"><div class="tag">命令和 skills：全部</div><div class="tag">MCP 配置：完整</div><div class="tag">! bash · Tab 补全</div></div></div>
+        <div><div class="core">共享配置<br><small>可恢复历史</small></div><div class="arrow">↕</div></div>
+        <div class="card"><strong>VS Code 扩展</strong><div class="list"><div class="tag">并排 diff：原生</div><div class="tag">选中代码上下文</div><div class="tag">命令和 skills：子集</div></div></div>
+      </div>
+      <div class="caption">扩展 ≠ 替代 CLI</div>
+    </section>
+
+    <section class="scene">
+      <div class="eyebrow">Scene 03 · Step List + IDE</div>
+      <h2>安装官方扩展，找不到入口就这样查</h2>
+      <div class="install">
+        <div class="window market"><div class="winbar"><i class="dot"></i><i class="dot"></i></div><div class="search">Cmd+Shift+X　Claude Code</div><div class="extension"><strong>Claude Code for VS Code</strong><span class="verified">✓ Anthropic · VS Code ≥ 1.98.0</span></div><p style="color:var(--muted);font-size:12px">vscode:extension/anthropic.claude-code</p></div>
+        <div class="checklist"><div class="check on">✓ 打开具体文件</div><div class="check on">✓ 确认版本</div><div class="check">Developer: Reload Window</div><div class="check">暂时禁用其他 AI 扩展</div><div class="check">信任工作区</div><div style="color:var(--muted);font-size:12px">活动栏 Spark · ✱ Claude Code · 命令面板</div></div>
+      </div>
+      <div class="caption">认准 Anthropic · 入口找不到按顺序排查</div>
+    </section>
+
+    <section class="scene">
+      <div class="eyebrow">Scene 04 · Diff Review</div>
+      <h2>并排 diff：看清了再点头</h2>
+      <div class="diff">
+        <div class="window code"><div class="code-title">原稿 · demo.py</div>def greet(name):<br>　　<span class="del">return "Hello " + name</span><br><br>print(greet("world"))</div>
+        <div class="window code"><div class="code-title">建议改动 · Claude Code</div><span class="add">def greet(name: str) -&gt; str:</span><br>　　<span class="add">return f"Hello {name}"</span><br><br>print(greet("world"))<div class="actions"><button class="accept">接受</button><button class="reject">拒绝</button></div></div>
+      </div>
+      <div class="caption">原稿 → 建议改动 → 手动修正 → 接受</div>
+    </section>
+
+    <section class="scene">
+      <div class="eyebrow">Scene 05 · Context Injection</div>
+      <h2>@ 提及和选中代码：把上下文喂准</h2>
+      <div class="context">
+        <div class="editor"><span class="dim">demo.py</span><br><br><span class="selected">def greet(name):</span><br><span class="selected">　　return "Hello " + name</span><br><br><span class="dim">已选中 2 行</span></div>
+        <div class="prompt"><div class="panel-title">Claude Code · 提示框</div><div class="prompt-input"><span class="mention">@auth</span><span class="mention">@src/components/</span><br><br>这段为什么报错？</div><div class="selected">✓ 已选中 2 行　　Option+K／Alt+K</div></div>
+      </div>
+      <div class="caption">文件提及 + 选中代码 = 上下文更准确</div>
+    </section>
+
+    <section class="scene">
+      <div class="eyebrow">Scene 06 · Plan Review</div>
+      <h2>Plan Mode：先交方案，再动手</h2>
+      <div class="plan">
+        <div class="modes"><div class="mode">正常模式 · 每步询问</div><div class="mode active">Plan Mode · 先看方案</div><div class="mode">自动接受模式 · 直接执行</div><div class="panel-line">给 demo.py 增加命令行参数支持</div></div>
+        <div class="doc"># 执行计划<br>1. 读取当前 greet 函数<br>2. 引入 argparse <span class="comment">这里先确认参数入口</span><br>3. 运行示例命令<br><div class="wait">等待批准</div></div>
+      </div>
+      <div class="caption">先看方案 · 批注 · 批准</div>
+    </section>
+
+    <section class="scene">
+      <div class="eyebrow">Scene 07 · Workflow Timeline</div>
+      <h2>10 分钟跑通最小练习</h2>
+      <div class="timeline">
+        <div class="step active"><div class="step-num">01</div><h3>工作区</h3><p>mkdir vscode-claude-demo<br>demo.py · code .</p></div>
+        <div class="step active"><div class="step-num">02</div><h3>面板</h3><p>打开文件<br>已登录</p></div>
+        <div class="step active"><div class="step-num">03</div><h3>选中</h3><p>greet<br>已选中 2 行</p></div>
+        <div class="step active"><div class="step-num">04</div><h3>diff</h3><p>f-string<br>+ 类型注解 · 接受</p></div>
+        <div class="step active"><div class="step-num">05</div><h3>计划</h3><p>Plan Mode<br>命令行参数支持</p></div>
+      </div>
+      <div class="caption">入口 → 上下文 → diff → 计划审阅</div>
+    </section>
+
+    <section class="scene">
+      <div class="eyebrow">Scene 08 · Shortcut Map</div>
+      <h2>记住快捷键，按任务切回 CLI</h2>
+      <div class="shortcuts">
+        <div class="keys"><div class="key">Cmd+Esc／Ctrl+Esc　切换焦点</div><div class="key">Option+K／Alt+K　插入提及</div><div class="key">Cmd+Shift+T／Ctrl+Shift+T　恢复会话</div></div>
+        <div class="routes"><div class="route"><h3>VS Code 扩展</h3><div>文件与 diff</div><div>上下文与计划</div></div><div class="route"><h3>集成终端 CLI</h3><div>命令、skills、MCP</div><div>claude · /ide</div></div></div>
+      </div>
+      <div class="caption">文件和改动留在扩展 · 终端能力切回 CLI</div>
+    </section>
+
+    <section class="scene">
+      <div class="eyebrow">Scene 09 · Summary Scene</div>
+      <h2>同一套能力，按任务切换</h2>
+      <div class="summary"><div class="route"><h3>VS Code 扩展</h3><div>文件</div><div>上下文</div><div>diff</div></div><div class="switch">⇄<br><small>按任务切换</small></div><div class="route"><h3>CLI</h3><div>命令</div><div>skills</div><div>MCP</div></div></div>
+      <div class="caption">扩展 ≠ 替代 CLI</div>
+      <div class="teaser" id="teaser"><h3>下一篇：09 JetBrains 集成</h3><p>IntelliJ IDEA · PyCharm · Claude Code</p></div>
+    </section>
+  </div>
+  <div class="progress" id="progress"></div>
+</div>
+<script>
+const scenes=[...document.querySelectorAll('.scene')];
+let index=0,timer=null;
+const progress=document.getElementById('progress');
+scenes.forEach((_,i)=>{const p=document.createElement('span');p.className='pill'+(i===0?' on':'');progress.appendChild(p)});
+function showScene(next){
+  index=(next+scenes.length)%scenes.length;
+  scenes.forEach((s,i)=>s.classList.toggle('active',i===index));
+  [...progress.children].forEach((p,i)=>p.classList.toggle('on',i===index));
+  document.getElementById('teaser')?.classList.remove('show');
+}
+function nextScene(){if(index===scenes.length-1){document.getElementById('teaser').classList.add('show');return}showScene(index+1)}
+function prevScene(){showScene(index-1)}
+function toggleAuto(){
+  const btn=document.getElementById('autoBtn');
+  if(timer){clearInterval(timer);timer=null;btn.textContent='自动播放';return}
+  btn.textContent='暂停播放';
+  timer=setInterval(()=>{if(index===scenes.length-1){clearInterval(timer);timer=null;btn.textContent='自动播放';document.getElementById('teaser').classList.add('show');return}showScene(index+1)},4200);
+}
+</script>
+</body>
+</html>

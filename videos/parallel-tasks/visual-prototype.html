@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>并行任务 · Visual Prototype</title>
+  <style>
+    :root {
+      --bg: #080b12;
+      --panel: #111722;
+      --panel-2: #151d2b;
+      --line: #273246;
+      --text: #edf2f8;
+      --muted: #93a1b5;
+      --accent: #7f9cff;
+      --accent-2: #69d6c5;
+      --green: #72d8a1;
+      --yellow: #e7c77b;
+      --red: #ef8f9b;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      background: radial-gradient(circle at 50% 0%, #162238 0%, var(--bg) 58%);
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+    }
+    .shell { width: min(94vw, 1280px); }
+    .stage {
+      position: relative;
+      aspect-ratio: 16 / 9;
+      overflow: hidden;
+      border: 1px solid #26334a;
+      border-radius: 18px;
+      background: linear-gradient(145deg, #0e1420, #080b12 72%);
+      box-shadow: 0 24px 80px rgba(0,0,0,.42);
+    }
+    .scene { display: none; height: 100%; padding: 7.5% 8%; }
+    .scene.active { display: block; animation: enter .35s ease-out; }
+    @keyframes enter { from { opacity: .2; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .eyebrow { color: var(--accent-2); font-size: 13px; letter-spacing: .15em; text-transform: uppercase; font-weight: 700; }
+    h1, h2 { margin: 18px 0 28px; letter-spacing: -.035em; }
+    h1 { font-size: clamp(34px, 4vw, 68px); line-height: 1.08; max-width: 900px; }
+    h2 { font-size: clamp(28px, 3vw, 52px); line-height: 1.12; max-width: 1000px; }
+    .caption { position: absolute; left: 8%; right: 8%; bottom: 8%; color: var(--muted); text-align: center; font-size: 16px; }
+    .sub { color: var(--muted); font-size: 14px; }
+    .muted { color: var(--muted); }
+    .accent { color: var(--accent); }
+    .good { color: var(--green); }
+    .warn { color: var(--yellow); }
+    .bad { color: var(--red); }
+    .terminal, .card, .lane, .step, .route { border: 1px solid var(--line); border-radius: 12px; background: rgba(17,23,34,.9); }
+    .terminal { overflow: hidden; box-shadow: 0 16px 35px rgba(0,0,0,.22); }
+    .termbar { height: 30px; padding: 8px 12px; background: #171f2d; border-bottom: 1px solid var(--line); }
+    .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; background: #68768c; }
+    .dot:first-child { background: #ef8f9b; }
+    .dot:nth-child(2) { background: #e7c77b; }
+    .dot:nth-child(3) { background: #72d8a1; }
+    .termtext { padding: 18px 20px; min-height: 165px; color: #bac8dc; font: 14px/1.8 ui-monospace, SFMono-Regular, Menlo, monospace; }
+    .termtext .prompt { color: var(--accent-2); }
+    .termtext .command { color: var(--text); }
+    .termtext .alert { color: var(--red); }
+    .termtext .ok { color: var(--green); }
+    .split { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; align-items: stretch; }
+    .split-wide { display: grid; grid-template-columns: 1.15fr .85fr; gap: 26px; align-items: center; }
+    .card { padding: 20px; }
+    .card-title { font-size: 20px; font-weight: 750; margin-bottom: 12px; }
+    .card-line { padding: 10px 12px; margin-top: 8px; border: 1px solid #2a3850; border-radius: 8px; color: #c9d3e2; background: #121a28; }
+    .card-line.green { border-color: rgba(114,216,161,.5); }
+    .card-line.yellow { border-color: rgba(231,199,123,.5); }
+    .card-line.red { border-color: rgba(239,143,155,.5); }
+    .diagram { display: grid; grid-template-columns: 1fr 80px 1fr; gap: 18px; align-items: center; margin-top: 28px; }
+    .lanes { display: grid; gap: 12px; }
+    .lane { min-height: 72px; padding: 14px 18px; display: flex; align-items: center; justify-content: space-between; }
+    .lane .arrow { color: var(--accent); font-size: 25px; }
+    .big-arrow { text-align: center; color: var(--accent); font-size: 38px; }
+    .pill-row { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 22px; }
+    .pill { border: 1px solid #33425c; border-radius: 999px; padding: 8px 12px; color: #c6d1e0; background: #111927; font-size: 13px; }
+    .four { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 26px; }
+    .four .card { min-height: 190px; padding: 16px; }
+    .four .card-title { font-size: 17px; }
+    .state { display: inline-block; margin-top: 12px; padding: 4px 8px; border-radius: 999px; font-size: 11px; color: var(--yellow); background: rgba(231,199,123,.1); }
+    .worktree { position: relative; height: 250px; margin-top: 12px; }
+    .repo { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 180px; text-align: center; padding: 18px; border: 1px solid var(--accent); border-radius: 12px; background: #162036; box-shadow: 0 0 30px rgba(127,156,255,.12); }
+    .branch { position: absolute; width: 190px; padding: 15px; border: 1px solid #3a4b68; border-radius: 10px; background: #111927; }
+    .branch.left { left: 0; top: 17%; }
+    .branch.right { right: 0; bottom: 17%; }
+    .branch:after { content: ""; position: absolute; width: 115px; height: 1px; background: #566a91; }
+    .branch.left:after { right: -115px; top: 54%; transform: rotate(23deg); transform-origin: left; }
+    .branch.right:after { left: -115px; top: 35%; transform: rotate(23deg); transform-origin: right; }
+    .dashboard { display: grid; grid-template-columns: .8fr 1.2fr; gap: 20px; align-items: stretch; margin-top: 18px; }
+    .status-list { display: grid; gap: 8px; }
+    .status { display: flex; justify-content: space-between; gap: 12px; padding: 12px; border-radius: 8px; background: #121a28; border: 1px solid #2b3952; font-size: 13px; }
+    .status span:last-child { color: var(--muted); }
+    .status.active { border-color: rgba(127,156,255,.65); }
+    .status.done { border-color: rgba(114,216,161,.55); }
+    .status.wait { border-color: rgba(231,199,123,.55); }
+    .status.fail { border-color: rgba(239,143,155,.55); }
+    .flow { display: grid; grid-template-columns: 1fr 50px 1fr 50px 1fr; align-items: center; gap: 10px; margin-top: 24px; }
+    .flow .card { min-height: 140px; }
+    .flow-arrow { text-align: center; color: var(--accent); font-size: 24px; }
+    .json { color: var(--green); font: 12px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre-line; }
+    .decision { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 26px; }
+    .decision .card { min-height: 190px; }
+    .decision .card-title { font-size: 18px; }
+    .stepper { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; align-items: start; margin-top: 36px; }
+    .step { min-height: 140px; padding: 14px 12px; position: relative; }
+    .step:after { content: "→"; position: absolute; right: -18px; top: 45px; color: var(--accent); font-size: 22px; }
+    .step:last-child:after { display: none; }
+    .step-number { color: var(--accent-2); font-size: 12px; font-weight: 800; }
+    .step-code { margin-top: 14px; color: var(--text); font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; word-break: break-word; }
+    .step-desc { margin-top: 12px; color: var(--muted); font-size: 12px; }
+    .summary { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-top: 22px; }
+    .summary .card { text-align: center; padding: 18px 12px; }
+    .summary .card-title { color: var(--accent); font-size: 18px; }
+    .preview { margin: 28px auto 0; max-width: 470px; padding: 15px 20px; border: 1px solid rgba(105,214,197,.55); border-radius: 12px; background: linear-gradient(100deg, rgba(105,214,197,.12), rgba(127,156,255,.1)); text-align: center; }
+    .controls { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 16px; }
+    button { border: 1px solid #33425c; border-radius: 8px; padding: 8px 14px; color: #d9e3f2; background: #111927; cursor: pointer; }
+    button:hover { border-color: var(--accent); }
+    .progress { display: flex; justify-content: center; gap: 6px; margin-top: 12px; }
+    .progress .dot { width: 22px; height: 4px; border-radius: 99px; background: #293650; }
+    .progress .dot.on { background: var(--accent); }
+    .note { margin-top: 10px; color: #77869d; text-align: center; font-size: 12px; }
+    @media (max-width: 860px) {
+      .scene { padding: 6% 6%; overflow-y: auto; }
+      .four, .decision, .summary { grid-template-columns: 1fr 1fr; }
+      .stepper { grid-template-columns: repeat(3, 1fr); }
+      .step:after { display: none; }
+      .caption { left: 6%; right: 6%; bottom: 4%; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <div class="stage" aria-label="并行任务横屏视觉原型">
+      <section class="scene active">
+        <div class="eyebrow">Scene 01 · Shared Directory Conflict</div>
+        <h1>两个终端，撞在同一块地上</h1>
+        <div class="split">
+          <div class="terminal"><div class="termbar"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div><div class="termtext"><div class="prompt">$ cd /project</div><div class="command">task: frontend login page</div><div>editing package.json</div><div class="alert">package.json · Modified</div></div></div>
+          <div class="terminal"><div class="termbar"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div><div class="termtext"><div class="prompt">$ cd /project</div><div class="command">task: backend bug fix</div><div>editing package.json</div><div class="alert">git status · conflict?</div></div></div>
+        </div>
+        <div class="caption">同一目录，不等于并行</div>
+      </section>
+
+      <section class="scene">
+        <div class="eyebrow">Scene 02 · The Parallel Gate</div>
+        <h2>并行成立，要先通过两个前提</h2>
+        <div class="diagram">
+          <div class="lanes"><div class="lane"><span>任务互相独立</span><span class="arrow">✓</span></div><div class="lane"><span>不抢同一份文件</span><span class="arrow">✓</span></div></div>
+          <div class="big-arrow">→</div>
+          <div class="card" style="text-align:center"><div class="card-title good">并行成立</div><div class="sub">必要时先用 worktree 隔离</div></div>
+        </div>
+        <div class="caption">独立 + 不抢文件，才值得同时开工</div>
+      </section>
+
+      <section class="scene">
+        <div class="eyebrow">Scene 03 · Coordination Map</div>
+        <h2>四种方式，先看谁协调</h2>
+        <div class="four">
+          <div class="card"><div class="card-title">子代理</div><div class="sub">Claude 在当前会话中派活收活</div></div>
+          <div class="card"><div class="card-title">代理视图</div><div class="sub">人甩任务、回头查看状态</div><span class="state">研究预览</span></div>
+          <div class="card"><div class="card-title">代理团队</div><div class="sub">Claude 统筹多个会话</div><span class="state">实验性</span></div>
+          <div class="card"><div class="card-title">动态工作流</div><div class="sub">脚本批量运行并交叉验证</div><span class="state">研究预览</span></div>
+        </div>
+        <div class="pill-row"><span class="pill">Worktree · 配合工具</span><span class="pill">/batch · 配合工具</span></div>
+      </section>
+
+      <section class="scene">
+        <div class="eyebrow">Scene 04 · Worktree Isolation</div>
+        <h2>给每个会话一份自己的副本</h2>
+        <div class="worktree">
+          <div class="branch left"><div class="accent">feature-auth</div><div class="sub">独立分支 · 独立文件</div></div>
+          <div class="repo"><div class="card-title">main project</div><div class="sub">shared history</div></div>
+          <div class="branch right"><div class="accent">bugfix-123</div><div class="sub">独立分支 · 独立文件</div></div>
+        </div>
+        <div class="terminal"><div class="termtext" style="min-height:94px;padding:12px 18px"><div class="prompt">$ claude --worktree feature-auth</div><div class="command">$ git worktree list</div><div class="ok">$ git worktree remove .claude/worktrees/test-parallel</div></div></div>
+        <div class="caption">隔离编辑，最后清理</div>
+      </section>
+
+      <section class="scene">
+        <div class="eyebrow">Scene 05 · Background Sessions</div>
+        <h2>任务甩到后台，一块屏幕盯进度</h2>
+        <div class="dashboard">
+          <div class="terminal"><div class="termtext"><div class="prompt">$ claude --bg "run task"</div><div class="ok">backgrounded · 7c5dcf5d</div><div>claude agents</div><div>claude attach 7c5dcf5d</div><div>claude stop 7c5dcf5d</div></div></div>
+          <div class="card"><div class="card-title">claude agents</div><div class="status-list"><div class="status active"><span>● 工作中</span><span>task-01</span></div><div class="status wait"><span>● 需要输入</span><span>task-02</span></div><div class="status done"><span>● 已完成</span><span>task-03</span></div><div class="status fail"><span>● 失败</span><span>task-04</span></div></div><div class="pill-row"><span class="pill">Space · 窥视</span><span class="pill">Enter · 附加</span></div></div>
+        </div>
+        <div class="caption">状态集中，人在需要时介入</div>
+      </section>
+
+      <section class="scene">
+        <div class="eyebrow">Scene 06 · Headless Batch</div>
+        <h2>把任务写进脚本，让机器重复执行</h2>
+        <div class="flow">
+          <div class="card"><div class="card-title">任务输入</div><div class="sub">总结这个文件</div><div class="pill-row"><span class="pill">claude -p</span></div></div>
+          <div class="flow-arrow">→</div>
+          <div class="card"><div class="card-title">参数链</div><div class="sub">--allowedTools<br>--bare<br>--output-format json</div></div>
+          <div class="flow-arrow">→</div>
+          <div class="card"><div class="card-title">批量结果</div><div class="json">for f in src/*.py
+→ file-a
+→ file-b
+→ file-c
+{"result":"..."}</div></div>
+        </div>
+        <div class="caption">定义一次规则，重复处理一批文件</div>
+      </section>
+
+      <section class="scene">
+        <div class="eyebrow">Scene 07 · Decision Line</div>
+        <h2>最重要的判断：什么时候别并行</h2>
+        <div class="card" style="text-align:center;padding:12px"><span class="accent">独立 + 不抢文件</span></div>
+        <div class="decision">
+          <div class="card"><div class="card-title good">适合并行</div><div class="card-line green">三个独立模块</div><div class="card-line green">批量跑多个文件</div></div>
+          <div class="card"><div class="card-title bad">应该串行</div><div class="card-line red">先 A，再基于新 A 改 B</div><div class="card-line red">共同修改 package.json</div></div>
+          <div class="card"><div class="card-title warn">先评估</div><div class="card-line yellow">五分钟小改动</div><div class="card-line yellow">频繁互通结果</div></div>
+        </div>
+        <div class="caption">并行越多，额度与管理成本也越高 · 手动控制在三五个以内</div>
+      </section>
+
+      <section class="scene">
+        <div class="eyebrow">Scene 08 · Six-Step Practice</div>
+        <h2>六步走通并行主链</h2>
+        <div class="stepper">
+          <div class="step"><div class="step-number">01</div><div class="step-code">claude</div><div class="step-desc">接受信任</div></div>
+          <div class="step"><div class="step-number">02</div><div class="step-code">--worktree</div><div class="step-desc">建副本</div></div>
+          <div class="step"><div class="step-number">03</div><div class="step-code">git worktree list</div><div class="step-desc">确认</div></div>
+          <div class="step"><div class="step-number">04</div><div class="step-code">--bg</div><div class="step-desc">甩后台</div></div>
+          <div class="step"><div class="step-number">05</div><div class="step-code">claude agents</div><div class="step-desc">盯进度</div></div>
+          <div class="step"><div class="step-number">06</div><div class="step-code">stop + remove</div><div class="step-desc">清理</div></div>
+        </div>
+        <div class="caption">隔离 → 调度 → 观察 → 清理</div>
+      </section>
+
+      <section class="scene">
+        <div class="eyebrow">Scene 09 · Summary + Next Episode</div>
+        <h2 style="text-align:center;margin-left:auto;margin-right:auto">并行的正确姿势</h2>
+        <div class="card" style="max-width:620px;margin:0 auto;text-align:center"><div class="card-title" style="font-size:28px">先判断，再并行</div><div class="sub">独立 + 不抢文件</div></div>
+        <div class="summary"><div class="card"><div class="card-title">worktree</div><div class="sub">隔离</div></div><div class="card"><div class="card-title">后台</div><div class="sub">调度</div></div><div class="card"><div class="card-title">headless</div><div class="sub">批量</div></div></div>
+        <div class="preview"><div class="sub">下一篇</div><div style="font-size:22px;font-weight:750;margin-top:5px">42 · 环境变量</div></div>
+        <div class="caption">工具服务于判断，不是替代判断</div>
+      </section>
+    </div>
+    <div class="controls"><button id="prevBtn">上一幕</button><button id="autoBtn">自动播放</button><button id="nextBtn">下一幕</button></div>
+    <div class="progress" id="progress"></div>
+    <div class="note">9 个 Scene · 1920 × 1080 横屏构图 · 用于确认视觉事件、信息密度和画面文字归属</div>
+  </main>
+  <script>
+    const scenes = [...document.querySelectorAll('.scene')];
+    let index = 0;
+    let timer = null;
+    const progress = document.getElementById('progress');
+    const autoBtn = document.getElementById('autoBtn');
+    function renderProgress() {
+      progress.innerHTML = scenes.map((_, i) => `<span class="dot ${i === index ? 'on' : ''}" title="Scene ${i + 1}"></span>`).join('');
+    }
+    function show(next) {
+      scenes[index].classList.remove('active');
+      index = (next + scenes.length) % scenes.length;
+      scenes[index].classList.add('active');
+      renderProgress();
+    }
+    function nextScene() { show(index + 1); }
+    function prevScene() { show(index - 1); }
+    function toggleAuto() {
+      if (timer) {
+        clearInterval(timer);
+        timer = null;
+        autoBtn.textContent = '自动播放';
+      } else {
+        timer = setInterval(nextScene, 4600);
+        autoBtn.textContent = '停止播放';
+      }
+    }
+    document.getElementById('nextBtn').addEventListener('click', nextScene);
+    document.getElementById('prevBtn').addEventListener('click', prevScene);
+    autoBtn.addEventListener('click', toggleAuto);
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'ArrowRight') nextScene();
+      if (event.key === 'ArrowLeft') prevScene();
+      if (event.key === ' ') { event.preventDefault(); toggleAuto(); }
+    });
+    renderProgress();
+  </script>
+</body>
+</html>

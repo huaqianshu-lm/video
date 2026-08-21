@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Agent teams · Visual Prototype</title>
+  <style>
+    :root{--bg:#080e1b;--panel:#101a2d;--panel2:#14233b;--line:#293b5b;--text:#edf4ff;--muted:#9eafc9;--blue:#74c7ff;--purple:#c49bff;--yellow:#f4cf72;--green:#79e2ad;--red:#fa8989}
+    *{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 50% -10%,#1b3153 0,#080e1b 54%);color:var(--text);font-family:Inter,"PingFang SC","Microsoft YaHei",sans-serif}
+    .shell{width:min(1500px,calc(100vw - 48px));margin:0 auto;padding:34px 0 28px}.top{display:flex;justify-content:space-between;align-items:end;margin-bottom:20px}.eyebrow,.badge{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--blue);font-weight:800}.top h1{font-size:clamp(28px,3vw,50px);margin:8px 0 0;line-height:1.08}.meta{text-align:right;color:var(--muted);font-size:13px;line-height:1.7}.stage{position:relative;aspect-ratio:16/9;min-height:650px;border:1px solid var(--line);border-radius:18px;background:#0b1425;overflow:hidden;box-shadow:0 26px 80px #0008}.scene{display:none;position:absolute;inset:0;padding:46px 58px 102px}.scene.active{display:block}.scene h2{font-size:clamp(25px,2.7vw,44px);line-height:1.15;margin:12px 0 0;max-width:980px}.mono,.cmd,.tree,.status,.shortcut{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}.muted{color:var(--muted)}.blue{color:var(--blue)}.purple{color:var(--purple)}.yellow{color:var(--yellow)}.green{color:var(--green)}.red{color:var(--red)}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:32px}.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:32px}.card,.window,.terminal,.task,.agent-row,.gate{border:1px solid var(--line);border-radius:14px;background:linear-gradient(145deg,#13213a,#0e182b);box-shadow:0 10px 30px #0002}.card{padding:19px}.window{overflow:hidden}.bar{height:30px;display:flex;align-items:center;gap:7px;padding:0 13px;border-bottom:1px solid var(--line);background:#0d1728}.dot{width:8px;height:8px;border-radius:50%;background:#526985}.content{padding:18px;font-size:15px;line-height:2}.tree{color:#c9d7eb;line-height:1.9}.folder{color:var(--blue)}.file{color:var(--purple)}.terminal{padding:18px;font-size:14px;line-height:1.85;background:#09111e}.cmd{color:var(--blue)}.dim{color:#72859f}.big{font-size:24px;font-weight:800;margin-top:18px}.wall{display:grid;grid-template-columns:1fr 1fr;gap:13px;margin-top:17px}.wall div{padding:17px;border:1px solid var(--red);border-radius:11px;background:#2b1823;color:var(--red);font-weight:800;text-align:center}.path{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:20px}.node{padding:10px 14px;border:1px solid var(--line);border-radius:9px;background:#14233b;color:var(--muted);font-size:13px}.node.active{border-color:var(--green);color:var(--green);box-shadow:0 0 17px #79e2ad22}.arrow{color:var(--muted);font-size:24px}.compare{min-height:260px}.compare h3{margin:13px 0;font-size:22px}.compare .line,.row{padding:10px 12px;margin-top:9px;border-left:3px solid var(--blue);background:#0e192c;color:#d8e5f8;border-radius:6px}.network{position:relative;min-height:350px;margin-top:27px}.person{position:absolute;padding:14px 16px;border:1px solid var(--purple);border-radius:11px;background:#211a3a;color:var(--purple);font-weight:800}.person.leader{left:43%;top:2px;border-color:var(--blue);background:#142e45;color:var(--blue)}.person.a{left:12%;top:128px}.person.b{left:43%;top:180px}.person.c{right:12%;top:128px}.wire{position:absolute;height:1px;background:linear-gradient(90deg,var(--blue),var(--purple));transform-origin:left center;opacity:.8}.wire.w1{left:49%;top:61px;width:260px;transform:rotate(124deg)}.wire.w2{left:49%;top:61px;width:150px;transform:rotate(90deg)}.wire.w3{left:49%;top:61px;width:260px;transform:rotate(56deg)}.mail{position:absolute;left:19%;right:19%;bottom:0;padding:13px;text-align:center;border:1px solid var(--green);border-radius:10px;background:#123127;color:var(--green)}.task-board{display:grid;grid-template-columns:repeat(3,1fr);gap:13px;margin-top:28px}.task{padding:14px;min-height:150px}.task h3{font-size:15px;margin:0 0 12px}.task.locked{border-color:var(--yellow);opacity:.82}.task.done{border-color:var(--green)}.task .status{font-size:12px;color:var(--muted)}.message{margin-top:18px;padding:14px;border:1px solid var(--green);border-radius:10px;background:#113025;color:#bff4d6}.agents{margin-top:25px;display:grid;gap:9px}.agent-row{display:grid;grid-template-columns:180px 1fr 130px;align-items:center;padding:13px 16px}.agent-row .state{justify-self:end}.state{padding:5px 9px;border-radius:99px;font-size:12px}.working{color:var(--blue);background:#15304a}.waiting{color:var(--yellow);background:#332914}.done{color:var(--green);background:#123328}.failed{color:var(--red);background:#351b25}.peek{margin:18px 0 0 14%;padding:15px;border:1px solid var(--yellow);border-radius:11px;background:#2d2616;color:#f7dda0}.controls{display:flex;justify-content:center;gap:10px;margin:16px 0 9px}.controls button{cursor:pointer;border:1px solid #456088;border-radius:8px;background:#111d32;color:#d9e5f7;padding:9px 14px;font-size:14px}.controls button:hover{border-color:var(--blue);color:#fff}.progress{display:flex;justify-content:center;gap:7px;margin:12px 0 17px;flex-wrap:wrap}.pill{width:38px;height:5px;border-radius:99px;background:#263753}.pill.on{background:var(--blue);box-shadow:0 0 10px #74c7ff88}.caption{position:absolute;left:58px;right:58px;bottom:38px;padding:10px 14px;border-left:3px solid var(--blue);background:#0c1729e8;color:#c9d8ed;font-size:14px}.rail{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-top:31px}.barline{height:13px;border-radius:99px;background:#253753;overflow:hidden;margin-top:15px}.barline span{display:block;width:64%;height:100%;background:linear-gradient(90deg,var(--purple),var(--blue))}.split{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:26px}.split .card{min-height:225px}.oklist,.badlist{display:grid;gap:9px;margin-top:15px}.oklist div,.badlist div{padding:11px;border-radius:8px;background:#112e2c;border-left:3px solid var(--green)}.badlist div{background:#2e1d23;border-left-color:var(--red)}.scale{height:16px;background:#263753;border-radius:99px;margin:17px 0;position:relative}.scale:after{content:"";display:block;position:absolute;left:32%;width:34%;height:100%;background:var(--green);border-radius:99px;box-shadow:0 0 18px #79e2ad66}.terminal-flow{display:grid;gap:8px;margin-top:23px}.terminal-flow div{padding:11px 13px;border-left:3px solid var(--blue);background:#0e192c;border-radius:6px}.summary{display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;margin-top:70px}.preview{margin:42px auto 0;max-width:780px;padding:21px 26px;border:1px solid var(--purple);border-radius:14px;text-align:center;background:linear-gradient(135deg,#292242,#17233e);box-shadow:0 0 30px #c49bff18}.preview .next{font-size:23px;font-weight:800;margin-top:8px;line-height:1.35}.note{color:var(--muted);font-size:13px;line-height:1.7;text-align:center;margin:0 auto;max-width:980px}
+    @media(max-width:900px){.shell{width:calc(100vw - 24px);padding-top:18px}.top{display:block}.meta{text-align:left;margin-top:7px}.stage{min-height:650px}.scene{padding:28px 28px 95px}.caption{left:28px;right:28px}.grid2,.grid3,.split,.wall,.task-board{grid-template-columns:1fr}.network{min-height:390px}.agent-row{grid-template-columns:1fr;gap:7px}.agent-row .state{justify-self:start}.summary{margin-top:35px}.preview{margin-top:25px}.wire{display:none}}
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="top">
+      <div><div class="eyebrow">agent-teams · 10 Scenes</div><h1>把多个 Claude 会话变成一个团队</h1></div>
+      <div class="meta">16:9 横屏 · 1920 × 1080<br>Visual Prototype</div>
+    </header>
+
+    <div class="stage">
+      <section class="scene active">
+        <div class="eyebrow">Scene 01 · Parallel Ceiling</div><h2>三个 Claude 同时跑，为什么还不乱？</h2>
+        <div class="grid2"><div class="window"><div class="bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div><div class="content"><div class="row"><span class="blue">前端</span><br><span class="muted">editing UI</span></div><div class="row" style="border-left-color:var(--purple)"><span class="purple">后端</span><br><span class="muted">checking API</span></div><div class="row" style="border-left-color:var(--green)"><span class="green">测试</span><br><span class="muted">writing tests</span></div></div></div><div class="card"><div class="badge">单会话</div><div class="path"><div class="node">前端</div><div class="arrow">→</div><div class="node">后端</div><div class="arrow">→</div><div class="node">测试</div></div><div class="wall"><div>上下文有限</div><div>只能串行</div></div><div class="big yellow">从工人变成工头</div></div></div>
+        <div class="caption">Agent teams 要突破的，是单会话“记忆装不下、活儿只能排队”</div>
+      </section>
+
+      <section class="scene">
+        <div class="eyebrow">Scene 02 · Team vs Subagent</div><h2>Team 不是放大版 <span class="purple mono">subagent</span></h2>
+        <div class="grid2"><div class="card compare"><div class="badge">Subagent</div><h3 class="yellow">跑腿助手</h3><div class="line">独立上下文</div><div class="line">只回传结果</div><div class="line">队友之间不通信</div></div><div class="card compare" style="border-color:#6b5695"><div class="badge purple">Agent teams</div><h3 class="purple">协作班组</h3><div class="line" style="border-left-color:var(--purple)">多个独立会话</div><div class="line" style="border-left-color:var(--green)">队友直接通信</div><div class="line" style="border-left-color:var(--blue)">用户可直接管理</div></div></div>
+        <div class="path"><div class="node">只要结果</div><div class="arrow">→</div><div class="node active">subagent</div><div class="arrow">｜</div><div class="node">要讨论／质疑</div><div class="arrow">→</div><div class="node active">Agent teams</div></div><div class="caption">要不要互相通气，是选 subagent 还是 Agent teams 的分水岭</div>
+      </section>
+
+      <section class="scene">
+        <div class="eyebrow">Scene 03 · Team Structure</div><h2>四个零件，组成一个团队</h2>
+        <div class="network"><div class="person leader">Team lead · leader</div><div class="person a">teammate A</div><div class="person b">teammate B</div><div class="person c">teammate C</div><div class="wire w1"></div><div class="wire w2"></div><div class="wire w3"></div><div class="mail">Mailbox · 代理之间互发消息</div></div><div class="path"><div class="node yellow">Task list · 共享任务</div><div class="node purple">独立上下文</div><div class="node blue">leader 不可更换</div></div>
+        <div class="caption">leader 分工，teammates 执行，task list 协调，mailbox 沟通</div>
+      </section>
+
+      <section class="scene">
+        <div class="eyebrow">Scene 04 · Task + Mailbox</div><h2>任务板和信箱，让并行不撞车</h2>
+        <div class="task-board"><div class="task"><h3 class="yellow">待处理</h3><div class="status">写测试</div><div class="row" style="border-left-color:var(--yellow)">依赖：功能实现</div></div><div class="task locked"><h3 class="yellow">依赖未完成 · 锁定</h3><div class="status">等待解锁</div><div class="row" style="border-left-color:var(--red)">文件锁</div></div><div class="task done"><h3 class="green">已完成</h3><div class="status">功能实现</div><div class="row" style="border-left-color:var(--green)">→ 自动解锁</div></div></div><div class="message"><span class="green mono">teammate A → teammate B</span>　接口变了，我把发现发到 mailbox</div>
+        <div class="caption">任务板管状态和依赖，mailbox 管沟通，文件锁避免重复认领</div>
+      </section>
+
+      <section class="scene">
+        <div class="eyebrow">Scene 05 · Agent View</div><h2>用 <span class="blue mono">claude agents</span> 看全场</h2>
+        <div class="agents"><div class="agent-row"><strong>frontend-agent</strong><span class="muted">running tools…</span><span class="state working">工作中</span></div><div class="agent-row"><strong>backend-agent</strong><span class="muted">需要你的选择</span><span class="state waiting">需要输入</span></div><div class="agent-row"><strong>test-agent</strong><span class="muted">review complete</span><span class="state done">已完成</span></div><div class="agent-row"><strong>research-agent</strong><span class="muted">process exited</span><span class="state failed">失败</span></div></div><div class="peek"><span class="shortcut">Space</span> · Peek 最近输出　　<span class="shortcut">Enter</span> · Attach 完整会话</div>
+        <div class="caption">一行一个会话，先看状态，再决定是否介入；后台 supervisor 让它们继续运行</div>
+      </section>
+
+      <section class="scene">
+        <div class="eyebrow">Scene 06 · Leader Control</div><h2>leader 怎么分活、切人和收摊</h2>
+        <div class="grid2"><div class="card"><div class="badge">in-process team</div><div class="path"><div class="node active">leader</div><div class="arrow">→</div><div class="node">teammate A</div><div class="arrow">→</div><div class="node">teammate B</div></div><div class="big purple mono">Shift+Down</div><div class="muted">循环切换队友 · Ctrl+T 切任务列表</div></div><div class="card"><div class="badge yellow">批准与清理</div><div class="row" style="border-left-color:var(--yellow)">计划请求 → leader 批准</div><div class="row" style="border-left-color:var(--blue)">模型 → 需要明确指定</div><div class="row" style="border-left-color:var(--green)">先停止队友 → leader 清理</div><div class="big green">Ready to close</div></div></div>
+        <div class="caption">介入和收摊都有负责人：切队友、批计划、停活跃会话，最后由 leader 清理</div>
+      </section>
+
+      <section class="scene">
+        <div class="eyebrow">Scene 07 · Decision Matrix</div><h2>并不是任务越多越该组队</h2>
+        <div class="split"><div class="card" style="border-color:#3b745f"><div class="badge green">值得拆</div><div class="oklist"><div>研究／审查</div><div>竞争假设调试</div><div>前端／后端／测试并行</div></div></div><div class="card" style="border-color:#7c4949"><div class="badge red">不要拆</div><div class="badlist"><div>有先后依赖</div><div>改同一个文件</div><div>随手小任务</div></div></div></div><div class="path"><div class="node">token</div><div class="barline" style="flex:1"><span style="width:72%;background:linear-gradient(90deg,var(--yellow),var(--red))"></span></div><div class="node red">协调／冲突成本</div></div>
+        <div class="caption">只有并行收益覆盖 token、协调和冲突成本，才值得拆成团队</div>
+      </section>
+
+      <section class="scene">
+        <div class="eyebrow">Scene 08 · Start Small</div><h2>从 3—5 个队友起步</h2>
+        <div class="grid2"><div class="card"><div class="badge">低冲突研究／审查</div><div class="row"><span class="blue">安全</span><br><span class="muted">独立审查结果</span></div><div class="row" style="border-left-color:var(--purple)"><span class="purple">性能</span><br><span class="muted">独立审查结果</span></div><div class="row" style="border-left-color:var(--green)"><span class="green">测试覆盖</span><br><span class="muted">独立审查结果</span></div></div><div class="card"><div class="badge">规模标尺</div><div class="big blue">3—5 个队友</div><div class="scale"></div><div class="muted">先体验并行收益，再决定是否扩容</div><div class="barline"><span style="width:86%;background:var(--red)"></span></div><div class="muted">队友越多，协调线越密</div></div></div>
+        <div class="caption">先从不写代码的研究和审查开始，规模小而边界清晰</div>
+      </section>
+
+      <section class="scene">
+        <div class="eyebrow">Scene 09 · Terminal Demo</div><h2>启用、组队、切人、清理</h2>
+        <div class="grid2"><div class="terminal-flow"><div class="cmd">$ claude --version</div><div class="dim">✓ version checked</div><div class="cmd">$ settings.json · env</div><div class="green">CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1</div><div class="cmd">$ cd team-demo && claude</div><div class="dim">session started</div><div class="cmd">&gt; 创建一个三人 agent team</div></div><div class="card"><div class="badge">团队状态</div><div class="row">leader · 创建团队</div><div class="row" style="border-left-color:var(--purple)">teammate A · 静态站</div><div class="row" style="border-left-color:var(--purple)">teammate B · 动态站</div><div class="row" style="border-left-color:var(--purple)">teammate C · 唱反调</div><div class="big purple mono">Shift+Down → 直接补充</div><div class="big green">✓ 清理完成</div></div></div>
+        <div class="caption">从启用到收摊，每一步都有明确顺序和负责人；这里仅展示文章中的示例流程</div>
+      </section>
+
+      <section class="scene">
+        <div class="eyebrow">Scene 10 · Summary + Preview</div><h2>把自己变成工头</h2>
+        <div class="summary"><div class="node">分工</div><div class="arrow">→</div><div class="node active">协作</div><div class="arrow">→</div><div class="node active">观察</div><div class="arrow">→</div><div class="node active">验收</div><div class="arrow">→</div><div class="node active">收摊</div></div><div class="preview"><div class="muted">下一篇</div><div class="next">30「功能怎么选：CLAUDE.md vs Skill vs Hook vs MCP vs Subagent」</div></div>
+        <div class="caption">Agent teams 是复杂并行工作的工具，不是所有小任务的默认模式</div>
+      </section>
+    </div>
+
+    <div class="controls"><button onclick="prevScene()">上一幕</button><button onclick="nextScene()">下一幕</button><button onclick="toggleAuto()" id="autoBtn">自动播放</button></div>
+    <div class="progress" id="progress"></div>
+    <p class="note">10 个 Scene · 16:9 横屏原型。仅用于检查画面语言、信息密度、状态变化、预告停留和预览交互；不包含 TTS、tts-script.json、音频、字幕、Timeline 或 Remotion 逻辑。</p>
+  </main>
+  <script>
+    const scenes=[...document.querySelectorAll('.scene')];let index=0,timer=null;const progress=document.getElementById('progress');
+    function renderProgress(){progress.innerHTML=scenes.map((_,i)=>'<div class="pill '+(i===index?'on':'')+'" title="Scene '+(i+1)+'"></div>').join('')}
+    function show(i){scenes[index].classList.remove('active');index=(i+scenes.length)%scenes.length;scenes[index].classList.add('active');renderProgress()}
+    function nextScene(){show(index+1)}function prevScene(){show(index-1)}
+    function toggleAuto(){const btn=document.getElementById('autoBtn');if(timer){clearInterval(timer);timer=null;btn.textContent='自动播放'}else{timer=setInterval(nextScene,4600);btn.textContent='停止播放'}}
+    renderProgress();document.addEventListener('keydown',event=>{if(event.key==='ArrowRight')nextScene();if(event.key==='ArrowLeft')prevScene()});
+  </script>
+</body>
+</html>

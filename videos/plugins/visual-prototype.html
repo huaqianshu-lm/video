@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>插件（Plugins）· 横屏 Visual Prototype</title>
+  <style>
+    :root{--bg:#070b14;--panel:#10192b;--panel2:#15233b;--line:#2b3d61;--text:#ecf2ff;--muted:#9aa9c6;--accent:#92a9ff;--green:#79dfb3;--yellow:#f0c775;--red:#ff8c9e}
+    *{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 20% 0%,#182746 0,#0a101e 42%,#05070d 100%);color:var(--text);font-family:Inter,"PingFang SC","Microsoft YaHei",sans-serif;padding:28px}
+    .shell{max-width:1440px;margin:auto}.topbar{display:flex;justify-content:space-between;align-items:center;gap:20px;margin-bottom:18px}.title{font-size:18px;font-weight:750;letter-spacing:.02em}.controls{display:flex;gap:8px;flex-wrap:wrap}button{border:1px solid var(--line);border-radius:9px;background:#111b31;color:var(--text);padding:9px 13px;cursor:pointer}button:hover{border-color:var(--accent)}
+    .stage{position:relative;aspect-ratio:16/9;min-height:600px;border:1px solid #263653;border-radius:22px;background:linear-gradient(135deg,rgba(19,29,52,.97),rgba(8,13,25,.99));box-shadow:0 28px 70px rgba(0,0,0,.3);overflow:hidden}.scene{position:absolute;inset:0;padding:58px 82px;opacity:0;pointer-events:none;transform:translateY(10px);transition:opacity .35s ease,transform .35s ease}.scene.active{opacity:1;pointer-events:auto;transform:none}.eyebrow{color:var(--accent);font:600 13px/1.2 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.08em;text-transform:uppercase}.scene h2{margin:16px 0 25px;font-size:clamp(29px,3.1vw,50px);line-height:1.15;letter-spacing:-.035em}.caption{position:absolute;left:82px;bottom:48px;color:var(--muted);font-size:17px}.muted{color:var(--muted)}.accent{color:var(--accent)}.green{color:var(--green)}.yellow{color:var(--yellow)}.red{color:var(--red)}
+    .window,.card,.box,.gate,.shelf{border:1px solid var(--line);border-radius:17px;background:rgba(14,23,42,.9);box-shadow:0 18px 34px rgba(0,0,0,.16)}.winbar{height:34px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:7px;padding:0 14px}.dot{width:9px;height:9px;border-radius:50%;background:#435170}.content{padding:21px}.badge{display:inline-flex;padding:7px 10px;border-radius:999px;background:#202f50;border:1px solid #3b4d77;color:#dbe4ff;font-size:13px}.badge.ok{color:var(--green);border-color:#276c58;background:#102d2a}.badge.warn{color:var(--yellow);border-color:#765b32;background:#302719}.mini{font-size:13px;color:var(--muted)}
+    .handoff{display:grid;grid-template-columns:1.1fr .9fr;gap:20px;height:390px}.file-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:20px}.file{padding:16px;border-radius:11px;background:#182744;border:1px solid #33496f;font:15px ui-monospace,monospace}.file.missing{border-color:#8a4d5b;color:var(--red);transform:translate(19px,25px);opacity:.65}.result{height:100%;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center}.result .big{font-size:30px;font-weight:800;line-height:1.25;margin-top:20px}
+    .plugin-layout{display:grid;grid-template-columns:.7fr 1.3fr;gap:30px;align-items:center;height:390px}.loose{display:grid;gap:10px}.loose .file{font-size:14px}.plugin-box{padding:24px;border:1px solid #5a70b6;border-radius:20px;background:linear-gradient(140deg,#182952,#101a30);box-shadow:0 0 0 5px rgba(146,169,255,.07)}.plugin-box h3{margin:0 0 18px;font-size:28px}.components{display:grid;grid-template-columns:1fr 1fr;gap:10px}.component{padding:12px;border-radius:10px;background:#101b32;border:1px solid #384d79;font-size:14px}.actions{margin-top:18px;color:var(--green);font-size:14px}
+    .decision{display:grid;grid-template-columns:1fr 110px 1fr;gap:20px;align-items:center;height:385px}.decision-col{padding:22px;border-radius:18px;border:1px solid var(--line);background:#111c32}.decision-col h3{margin:0 0 15px;font-size:23px}.decision-list{display:grid;gap:9px}.decision-item{padding:10px 12px;border-radius:9px;background:#1a2947;font-size:14px}.decision-arrow{text-align:center;font-size:30px;color:var(--accent)}.namespace{margin-top:18px;font:15px ui-monospace,monospace;color:var(--accent)}
+    .market-flow{display:grid;grid-template-columns:1fr 75px 1fr;gap:16px;align-items:center;height:385px}.market{padding:22px;min-height:255px}.market h3{margin:0 0 18px;font-size:22px}.market-list{display:grid;gap:11px}.market-row{padding:12px;border-radius:10px;background:#182744;border:1px solid #30476f;font:14px ui-monospace,monospace}.market-row.off{opacity:.45;border-style:dashed}.flow-arrow{font-size:30px;text-align:center;color:var(--accent)}.installed{border-color:#3e806e}.installed .market-row{border-color:#2d6b5b}.code{font:14px/1.7 ui-monospace,SFMono-Regular,Menlo,monospace;color:#d9e3ff}.code .key{color:#9db0ff}.code .value{color:#8de0bd}.code .comment{color:#7181a0}
+    .layers{display:grid;grid-template-columns:1fr 1fr 1fr;gap:15px;height:370px;align-items:center}.layer{padding:20px;border:1px solid var(--line);border-radius:16px;background:#111c32;min-height:260px}.layer:first-child{border-color:#5d75b5}.layer:nth-child(2){border-color:#6b7455}.layer:last-child{border-color:#765d77}.layer h3{margin:0 0 13px;font-size:18px}.layer-line{padding:10px;border-radius:9px;background:#192746;margin-top:9px;font-size:13px}.layer small{display:block;color:var(--muted);margin-top:5px}
+    .install{display:grid;grid-template-columns:1fr .9fr;gap:20px;height:385px}.manifest{padding:20px}.manifest h3,.cost h3{margin:0 0 15px;font-size:19px}.manifest-row{display:flex;justify-content:space-between;gap:10px;padding:10px 12px;border-radius:9px;background:#182744;margin-top:8px;font-size:13px}.cost{padding:20px;display:flex;flex-direction:column;justify-content:center}.meter{height:12px;border-radius:99px;background:#253552;overflow:hidden;margin:15px 0 10px}.meter span{display:block;width:68%;height:100%;background:linear-gradient(90deg,var(--accent),var(--yellow))}.scope{display:flex;gap:8px;flex-wrap:wrap;margin-top:19px}.scope span{padding:8px 10px;border-radius:8px;background:#182744;border:1px solid var(--line);font-size:12px}.scope span.on{border-color:var(--accent);color:white}.reload{margin-top:17px;padding:11px;border-radius:10px;border:1px solid #3c7b68;background:#102d2a;color:var(--green);font:14px ui-monospace,monospace}
+    .tree-layout{display:grid;grid-template-columns:1fr 1fr;gap:20px;height:390px}.tree{padding:22px;font:15px/1.9 ui-monospace,monospace}.tree .folder{color:var(--accent)}.tree .good{color:var(--green)}.tree .bad{color:var(--red);text-decoration:line-through;opacity:.75}.json{padding:22px}.json h3{margin:0 0 12px}.wrong{margin-top:17px;padding:12px;border-radius:10px;border:1px solid #8a4d5b;background:#2b1722;color:var(--red);font-size:13px}.right{margin-top:17px;padding:12px;border-radius:10px;border:1px solid #2d6b5b;background:#102d2a;color:var(--green);font-size:13px}
+    .local-test{display:grid;grid-template-columns:1.15fr .85fr;gap:20px;height:385px}.terminal{padding:23px;background:#090f1c;border-radius:16px;border:1px solid #273858;font:14px/1.9 ui-monospace,SFMono-Regular,Menlo,monospace;color:#d8e2ff;white-space:pre-line}.prompt{color:#8ea4ff}.terminal .ok{color:var(--green)}.load-card{padding:22px;display:flex;flex-direction:column;justify-content:center}.directory{padding:14px;border-radius:10px;background:#182744;font:14px/1.8 ui-monospace,monospace}.loaded{margin-top:16px;padding:12px;border-radius:10px;background:#102d2a;border:1px solid #2d6b5b;color:var(--green)}
+    .trust{display:grid;grid-template-columns:1fr .85fr 1fr;gap:18px;align-items:center;height:385px}.trust h3{margin:0 0 14px;font-size:19px}.trust-list{display:grid;gap:9px}.trust-item{padding:11px;border-radius:10px;background:#182744;font-size:13px}.trust-item.warn{border:1px solid #765b32;color:var(--yellow);background:#302719}.trust-item.danger{border:1px solid #8a4d5b;color:var(--red);background:#2b1722}.trust-item.ok{border:1px solid #2d6b5b;color:var(--green);background:#102d2a}.gate{padding:25px;text-align:center}.gate .lock{font-size:36px;margin:14px 0;color:var(--yellow)}.gate .arrow{font-size:27px;color:var(--accent);margin:12px 0}.range{padding:13px;border-radius:10px;background:#2b1722;border:1px solid #8a4d5b;color:var(--red)}.range.safe{background:#102d2a;border-color:#2d6b5b;color:var(--green)}
+    .summary{display:grid;grid-template-columns:1fr 1fr;gap:16px;height:380px;align-items:center}.summary-col{padding:18px;border:1px solid var(--line);border-radius:16px;background:#111c32}.summary-col h3{margin:0 0 13px;font-size:18px}.summary-row{padding:11px;border-radius:9px;background:#192746;margin-top:8px;font-size:13px}.summary-center{text-align:center;grid-column:1 / -1;margin-top:-350px;pointer-events:none}.summary-center .big{font-size:31px;font-weight:800}.summary-center .small{margin-top:10px;color:var(--green);font-size:17px}
+    .teaser{display:flex;flex-direction:column;align-items:center;justify-content:center;height:400px;text-align:center}.teaser h2{margin:18px 0 13px;font-size:51px}.teaser .line{color:var(--green);font-size:19px}.progress{display:flex;gap:7px;justify-content:center;margin-top:17px;flex-wrap:wrap}.pill{width:34px;height:5px;border-radius:99px;background:#283654}.pill.on{background:var(--accent)}.note{margin-top:14px;text-align:center;color:var(--muted);font-size:13px}
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <div class="topbar">
+      <div class="title">插件（Plugins）· 横屏 Visual Prototype · 11 Scenes</div>
+      <div class="controls"><button onclick="prevScene()">上一幕</button><button onclick="nextScene()">下一幕</button><button onclick="toggleAuto()" id="autoBtn">自动播放</button></div>
+    </div>
+    <main class="stage">
+      <section class="scene active">
+        <div class="eyebrow">Scene 01 · Process</div><h2>散件交接，最容易漏一处</h2>
+        <div class="handoff"><div class="window"><div class="winbar"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div><div class="content"><div class="badge">团队配置交接</div><div class="file-grid"><div class="file">agents/</div><div class="file">settings.json</div><div class="file">.mcp.json</div><div class="file missing">hook.json？</div></div><div class="mini" style="margin-top:20px">一个文件不在交接路径上</div></div></div><div class="window result"><div class="badge warn">结果不一致</div><div class="big">配置越分散<br><span class="red">越容易漏</span></div><div class="mini" style="margin-top:18px">散件管理：又累又容易出错</div></div></div><div class="caption">先看见问题，再看插件</div>
+      </section>
+      <section class="scene">
+        <div class="eyebrow">Scene 02 · Concept Diagram</div><h2>插件是一个整体盒子</h2>
+        <div class="plugin-layout"><div class="loose"><div class="file">commands</div><div class="file">subagents</div><div class="file">skills</div><div class="file">hooks</div><div class="file">MCP / LSP</div></div><div class="plugin-box"><h3>Plugin</h3><div class="mini">self-contained folder</div><div class="components" style="margin-top:18px"><div class="component">Skill / Command</div><div class="component">Subagent</div><div class="component">Hook</div><div class="component">MCP server</div><div class="component">LSP server</div></div><div class="actions">整体装 · 整体停 · 整体分发</div></div></div><div class="caption">把散件收进一个可以整体搬走的盒子</div>
+      </section>
+      <section class="scene">
+        <div class="eyebrow">Scene 03 · Decision Diagram</div><h2>散装还是插件，看你要不要规模化</h2>
+        <div class="decision"><div class="decision-col"><h3>散装配置</h3><div class="decision-list"><div class="decision-item">单项目自用</div><div class="decision-item">个人工作流</div><div class="decision-item">快速试验</div></div><div class="namespace">.claude/</div></div><div class="decision-arrow">任务<br>→</div><div class="decision-col" style="border-color:#426d67"><h3>插件</h3><div class="decision-list"><div class="decision-item">团队共享</div><div class="decision-item">跨项目复用</div><div class="decision-item">版本化发布</div></div><div class="namespace">/hello → /my-plugin:hello</div></div></div><div class="caption">规模化，才是插件的价值</div>
+      </section>
+      <section class="scene">
+        <div class="eyebrow">Scene 04 · Process</div><h2>市场是两步：先加货架，再装插件</h2>
+        <div class="market-flow"><div class="market card"><h3>1 · 加市场</h3><div class="market-row">/plugin marketplace add owner/repo</div><div class="market-row" style="margin-top:15px;color:var(--green)">✓ 货架已出现</div><div class="market-row off">插件尚未安装</div></div><div class="flow-arrow">→</div><div class="market card installed"><h3>2 · 装插件</h3><div class="market-row">/plugin install plugin-name@marketplace-name</div><div class="market-row" style="margin-top:15px;color:var(--green)">✓ plugin-name</div><div class="market-row">已安装</div></div></div><div class="caption">看见货架，不等于拥有插件</div>
+      </section>
+      <section class="scene">
+        <div class="eyebrow">Scene 05 · Comparison</div><h2>三个市场，三种取用判断</h2>
+        <div class="layers"><div class="layer"><h3>官方市场</h3><div class="layer-line">claude-plugins-official</div><div class="layer-line">Anthropic 精选</div><div class="layer-line"><span class="green">自带 · 日常优先</span></div></div><div class="layer"><h3>社区市场</h3><div class="layer-line">claude-community</div><div class="layer-line">自动验证 · 固定提交</div><div class="layer-line"><span class="yellow">手动添加 · 先看作者</span></div></div><div class="layer"><h3>演示市场</h3><div class="layer-line">claude-code-plugins</div><div class="layer-line">官方样板插件</div><div class="layer-line"><span class="muted">学习 · 试水</span></div></div></div><div class="caption">官方 → 社区 → 演示</div>
+      </section>
+      <section class="scene">
+        <div class="eyebrow">Scene 06 · UI Simulation</div><h2>安装前看清内容，安装后刷新生效</h2>
+        <div class="install"><div class="manifest card"><h3>将安装</h3><div class="manifest-row"><span>Skills / Commands</span><span class="accent">主动</span></div><div class="manifest-row"><span>Subagents</span><span class="accent">主动</span></div><div class="manifest-row"><span>Hooks</span><span class="yellow">自动</span></div><div class="manifest-row"><span>MCP / LSP server</span><span class="yellow">工具箱</span></div><div class="scope"><span>用户范围</span><span>项目范围</span><span class="on">本地范围</span></div></div><div class="cost card"><h3>上下文成本</h3><div class="meter"><span></span></div><div class="mini">装前先看清，别让用不上的组件占空间</div><div class="reload">/reload-plugins　✓ 已刷新</div><div class="namespace">/commit-commands:commit</div></div></div><div class="caption">看清清单 → 安装 → reload → 使用</div>
+      </section>
+      <section class="scene">
+        <div class="eyebrow">Scene 07 · Code Exploration</div><h2>plugin.json 在里面，组件目录在外面</h2>
+        <div class="tree-layout"><div class="tree card"><div class="folder">my-first-plugin/</div><div>├── <span class="folder">.claude-plugin/</span></div><div>│　└── <span class="good">plugin.json</span></div><div>├── <span class="good">skills/</span></div><div>├── <span class="good">agents/</span></div><div>└── <span class="good">hooks/</span></div><div style="margin-top:13px;color:var(--muted)">其他组件与 .claude-plugin 平级</div></div><div class="json card"><h3>.claude-plugin/plugin.json</h3><div class="code"><span class="key">name:</span> <span class="value">my-first-plugin</span><br><span class="key">description:</span> <span class="value">...</span><br><span class="key">version:</span> <span class="value">1.0.0</span></div><div class="wrong">✕ 不要把 skills/ 放进 .claude-plugin/</div><div class="right">✓ .claude-plugin/ 只放 plugin.json</div></div></div><div class="caption">身份证在里面，组件目录在根目录</div>
+      </section>
+      <section class="scene">
+        <div class="eyebrow">Scene 08 · Terminal Demo</div><h2>不用发市场，也能本地测试插件</h2>
+        <div class="local-test"><div class="terminal"><span class="prompt">$</span> claude --plugin-dir ./my-first-plugin
+<span class="prompt">&gt;</span> 本地插件目录已加载
+<span class="prompt">&gt;</span> 修改 skills/hello/SKILL.md
+<span class="prompt">&gt;</span> /reload-plugins
+<span class="ok">✓ 本地插件已加载</span>
+<span class="ok">✓ /my-first-plugin:hello 可用</span></div><div class="load-card card"><div class="directory">my-first-plugin/<br>├── .claude-plugin/<br>├── skills/<br>└── hooks/</div><div class="loaded">✓ 直接从本地目录测试</div><div class="mini" style="margin-top:15px">不用先发市场</div></div></div><div class="caption">目录 → 加载 → reload → 检查效果</div>
+      </section>
+      <section class="scene">
+        <div class="eyebrow">Scene 09 · Trust Gate</div><h2>第三方插件，先过信任三查</h2>
+        <div class="trust"><div class="card" style="padding:20px"><h3>来源与内容</h3><div class="trust-list"><div class="trust-item warn">来源可信吗？</div><div class="trust-item danger">陌生来源</div><div class="trust-item warn">它带了什么？</div><div class="trust-item">hook · MCP · bin/</div></div></div><div class="gate"><h3>安装前检查</h3><div class="lock">⌁</div><div class="arrow">↓</div><div class="range">用户范围</div><div class="arrow">↓</div><div class="range safe">本地范围 · 先试</div></div><div class="card" style="padding:20px"><h3>范围给到哪？</h3><div class="trust-list"><div class="trust-item danger">所有项目</div><div class="trust-item">当前项目</div><div class="trust-item ok">本地范围</div><div class="mini">只从信任的来源安装</div></div></div></div><div class="caption">方便可以一键获得，信任不能一键跳过</div>
+      </section>
+      <section class="scene">
+        <div class="eyebrow">Scene 10 · Summary</div><h2>插件强在规模，安装前还要判断</h2>
+        <div class="summary"><div class="summary-col"><h3>先判断是否值得打包</h3><div class="summary-row">规模化复用 → 插件</div><div class="summary-row">单项目试验 → 散装</div></div><div class="summary-col"><h3>再判断是否值得安装</h3><div class="summary-row">加市场 ≠ 装插件</div><div class="summary-row">来源 · 内容 · 范围</div></div><div class="summary-col"><h3>结构要摆正确</h3><div class="summary-row">.claude-plugin/ 只放 plugin.json</div><div class="summary-row">其他组件在根目录</div></div><div class="summary-col"><h3>最后刷新生效</h3><div class="summary-row">/reload-plugins</div><div class="summary-row">命名空间命令</div></div><div class="summary-center"><div class="big">先看清，再安装</div><div class="small">便利与安全，一起判断</div></div></div><div class="caption">插件不是默认答案，判断才是</div>
+      </section>
+      <section class="scene">
+        <div class="eyebrow">Scene 11 · Next Episode</div><div class="teaser"><div class="badge">下一篇 25</div><h2>记忆系统（memory）</h2><div class="line">让 Claude 跨会话“记住”你</div></div><div class="caption">工具装齐了，下一步是记住</div>
+      </section>
+    </main>
+    <div class="progress" id="progress"></div>
+    <div class="note">横屏 16:9 原型：用于检查视觉方向、信息密度、Scene 结构和画面文字归属，不代表最终 Remotion 实现。</div>
+  </div>
+  <script>
+    const scenes=[...document.querySelectorAll('.scene')];
+    let index=0,timer=null;
+    const progress=document.getElementById('progress');
+    function renderProgress(){progress.innerHTML=scenes.map((_,i)=>`<div class="pill ${i===index?'on':''}" title="Scene ${i+1}"></div>`).join('')}
+    function show(i){scenes[index].classList.remove('active');index=(i+scenes.length)%scenes.length;scenes[index].classList.add('active');renderProgress()}
+    function nextScene(){show(index+1)}
+    function prevScene(){show(index-1)}
+    function toggleAuto(){const button=document.getElementById('autoBtn');if(timer){clearInterval(timer);timer=null;button.textContent='自动播放'}else{timer=setInterval(nextScene,4300);button.textContent='停止播放'}}
+    renderProgress();
+    document.addEventListener('keydown',event=>{if(event.key==='ArrowRight')nextScene();if(event.key==='ArrowLeft')prevScene()});
+  </script>
+</body>
+</html>

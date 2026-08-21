@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>子代理（Subagents）· Visual Prototype</title>
+  <style>
+    :root{--bg:#080c16;--panel:#10182a;--panel2:#151f35;--line:#2a3857;--text:#eef3ff;--muted:#9aa9c8;--accent:#8ea4ff;--green:#71dfb1;--red:#ff718a;--yellow:#ffd27d}
+    *{box-sizing:border-box}html,body{margin:0;min-height:100%;background:radial-gradient(circle at 50% 0,#162341 0,#080c16 52%);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif}
+    body{padding:30px}.shell{width:min(1440px,100%);margin:0 auto}.topbar{display:flex;justify-content:space-between;align-items:center;gap:20px;margin-bottom:20px}.title{font-size:18px;font-weight:750;letter-spacing:.02em}.controls{display:flex;gap:8px;flex-wrap:wrap}button{border:1px solid var(--line);border-radius:9px;background:#111b31;color:var(--text);padding:9px 13px;cursor:pointer}button:hover{border-color:var(--accent)}
+    .stage{position:relative;aspect-ratio:16/9;min-height:600px;border:1px solid #263653;border-radius:22px;background:linear-gradient(135deg,rgba(19,29,52,.96),rgba(8,13,25,.98));box-shadow:0 28px 70px rgba(0,0,0,.3);overflow:hidden}.scene{position:absolute;inset:0;padding:62px 86px;opacity:0;pointer-events:none;transform:translateY(10px);transition:opacity .35s ease,transform .35s ease}.scene.active{opacity:1;pointer-events:auto;transform:none}.eyebrow{color:var(--accent);font:600 14px/1.2 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.08em;text-transform:uppercase}.scene h2{margin:18px 0 28px;font-size:clamp(28px,3.2vw,52px);line-height:1.15;letter-spacing:-.03em}.caption{position:absolute;left:86px;bottom:54px;color:var(--muted);font-size:18px}.muted{color:var(--muted)}.accent{color:var(--accent)}.green{color:var(--green)}.red{color:var(--red)}
+    .workspace{display:grid;grid-template-columns:1fr 1fr;gap:20px;height:410px}.window,.card,.room{border:1px solid var(--line);border-radius:18px;background:rgba(13,21,39,.9);box-shadow:0 18px 34px rgba(0,0,0,.16)}.window{overflow:hidden}.winbar{height:36px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:7px;padding:0 15px}.dot{width:9px;height:9px;border-radius:50%;background:#435170}.content{padding:24px}.desk{display:grid;grid-template-columns:1fr 1fr;gap:14px;height:100%;align-items:center}.task-stack{display:grid;gap:9px}.task{padding:12px 14px;border-radius:10px;background:#172441;border:1px solid #2b3c61;color:#dbe4ff}.task.dim{opacity:.48}.overflow{position:relative}.overflow:after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 55%,rgba(255,113,138,.2));pointer-events:none}.badge{display:inline-flex;padding:7px 10px;border-radius:999px;background:#202f50;border:1px solid #3b4d77;color:#dbe4ff;font-size:13px}.badge.warn{color:var(--yellow);border-color:#765b32;background:#302719}.badge.ok{color:var(--green);border-color:#276c58;background:#102d2a}
+    .rooms{display:grid;grid-template-columns:1fr 90px 1fr;gap:20px;align-items:center;height:400px}.room{padding:24px;min-height:280px}.room h3{margin:0 0 16px;font-size:23px}.room-lines{display:grid;gap:10px}.lineitem{padding:10px 12px;border-radius:9px;background:#182643;color:#cbd7f2}.arrow{font-size:34px;text-align:center;color:var(--accent)}.return{margin-top:20px;text-align:center;color:var(--green);font-weight:700}.mini{font-size:13px;color:var(--muted)}
+    .hub{display:grid;grid-template-columns:1fr 1.1fr 1fr;gap:22px;align-items:center;height:380px}.hub-center{padding:26px;border:1px solid #536aa5;border-radius:18px;background:#15223d;text-align:center}.hub-center h3{font-size:26px;margin:0 0 18px}.spokes{display:grid;gap:12px}.spoke{padding:14px;border-radius:12px;border:1px solid var(--line);background:#121d34;text-align:center}.spoke small{display:block;color:var(--muted);margin-top:5px}
+    .decision{display:grid;grid-template-columns:1fr 120px 1fr;gap:22px;align-items:center;height:390px}.decision-col{padding:22px;border-radius:18px;border:1px solid var(--line);background:#111b31}.decision-col h3{margin:0 0 14px;font-size:22px}.decision-col.left{border-color:#4c658f}.decision-col.right{border-color:#426c69}.decision-list{display:grid;gap:9px}.decision-item{padding:10px 12px;border-radius:9px;background:#1a2947;font-size:14px}.decision-arrow{text-align:center;font-size:32px;color:var(--accent)}
+    .flow{display:flex;align-items:center;justify-content:center;gap:9px;flex-wrap:wrap;min-height:270px}.step{padding:14px 16px;border-radius:12px;border:1px solid var(--line);background:#15223c;color:#dbe4ff}.step.active{border-color:var(--accent);box-shadow:0 0 0 4px rgba(142,164,255,.1);color:white}.flow-arrow{color:var(--accent);font-size:24px}.toolbox{margin:20px auto 0;max-width:790px;padding:18px;border:1px solid var(--line);border-radius:16px;background:#101a30}.toolrow{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.tool{padding:9px 12px;border-radius:9px;background:#172743;border:1px solid #3c5886;font:14px ui-monospace,monospace}.tool.off{opacity:.3;text-decoration:line-through;border-color:#7d4550}.saved{margin-top:14px;color:var(--green);font-size:14px}
+    .code-layout{display:grid;grid-template-columns:1.25fr .75fr;gap:22px;height:390px}.code{font:15px/1.75 ui-monospace,SFMono-Regular,Menlo,monospace;color:#d9e3ff}.code .key{color:#9db0ff}.code .value{color:#8de0bd}.code .comment{color:#7181a0}.path-list{display:grid;gap:12px;margin-top:20px}.path{padding:14px;border:1px solid var(--line);border-radius:11px;background:#121e36;font:14px ui-monospace,monospace}.path span{display:block;color:var(--muted);margin-top:6px;font-family:inherit}.restart{margin-top:18px;color:var(--yellow);font-size:14px}
+    .route{display:grid;grid-template-columns:1fr 1fr;gap:22px;align-items:center;height:390px}.route-box{padding:25px;border:1px solid var(--line);border-radius:18px;background:#111c32}.route-box h3{margin:0 0 14px;font-size:21px}.route-box .route-line{padding:12px;border-radius:10px;background:#182744;margin-top:9px}.route-middle{text-align:center}.route-middle .node{padding:20px;border-radius:16px;background:#162643;border:1px solid #536aa5;font-weight:750}.route-middle .return{font-size:15px}
+    .terminal-layout{display:grid;grid-template-columns:1.15fr .85fr;gap:22px;height:400px}.terminal{padding:23px;background:#090f1c;border-radius:16px;border:1px solid #273858;font:15px/1.9 ui-monospace,SFMono-Regular,Menlo,monospace;color:#d8e2ff;white-space:pre-line}.prompt{color:#8ea4ff}.logline{opacity:0;animation:logIn .45s forwards}.logline:nth-child(2){animation-delay:.25s}.logline:nth-child(3){animation-delay:.5s}.logline:nth-child(4){animation-delay:.75s}.logline:nth-child(5){animation-delay:1s}.logline:nth-child(6){animation-delay:1.25s}@keyframes logIn{to{opacity:1;transform:none}}
+    .verify{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;height:350px;align-items:center}.verify-col{padding:20px;border:1px solid var(--line);border-radius:16px;background:#111c32;min-height:220px}.verify-col h3{margin:0 0 16px;font-size:18px}.check{padding:10px;border-radius:9px;background:#192746;margin-top:9px;font:13px ui-monospace,monospace}.blocked{color:var(--red);text-decoration:line-through;opacity:.7}.same{color:var(--green);font-weight:700}
+    .summary{display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:center;height:370px}.summary-center{text-align:center;font-size:30px;font-weight:800}.summary-center .question{font-size:42px;margin-bottom:26px}.summary-col{padding:20px;border:1px solid var(--line);border-radius:16px;background:#111c32}.summary-col h3{margin:0 0 14px}.summary-col.left{border-color:#4d668e}.summary-col.right{border-color:#426d67}.preview{display:flex;flex-direction:column;align-items:center;justify-content:center;height:390px;text-align:center}.preview h2{margin:18px 0;font-size:48px}.parts{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin:20px 0}.part{padding:12px 16px;border:1px solid var(--line);border-radius:12px;background:#15233e}.share{color:var(--green);font-size:19px}.progress{display:flex;gap:7px;justify-content:center;margin-top:18px;flex-wrap:wrap}.pill{width:34px;height:5px;border-radius:99px;background:#283654}.pill.on{background:var(--accent)}.note{margin-top:16px;text-align:center;color:var(--muted);font-size:13px}
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <div class="topbar">
+      <div class="title">子代理（Subagents）· 横屏 Visual Prototype · 11 Scenes</div>
+      <div class="controls"><button onclick="prevScene()">上一幕</button><button onclick="nextScene()">下一幕</button><button onclick="toggleAuto()" id="autoBtn">自动播放</button></div>
+    </div>
+
+    <main class="stage">
+      <section class="scene active">
+        <div class="eyebrow">Scene 01 · Decision Diagram</div>
+        <h2>拆得多，不等于更专业</h2>
+        <div class="workspace">
+          <div class="window overflow"><div class="winbar"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div><div class="content"><div class="badge warn">主对话 · 工作台变拥挤</div><div class="task-stack" style="margin-top:18px"><div class="task">任务：把问题拆成五六份</div><div class="task dim">收集上下文</div><div class="task dim">等待回灌</div><div class="task dim">额外 token</div><div class="task dim">返工</div></div></div></div>
+          <div class="window"><div class="winbar"></div><div class="content"><div class="badge">判断问题</div><div style="font-size:30px;font-weight:800;line-height:1.3;margin-top:30px">该外包，<br><span class="accent">还是自己干？</span></div><div class="mini" style="margin-top:25px">子代理：用对省心，用错又慢又贵</div></div></div>
+        </div><div class="caption">先别急着拆</div>
+      </section>
+
+      <section class="scene">
+        <div class="eyebrow">Scene 02 · Concept Diagram</div>
+        <h2>子代理在自己的房间干活</h2>
+        <div class="rooms">
+          <div class="room"><h3>主对话</h3><div class="room-lines"><div class="lineitem">任务交代</div><div class="lineitem muted">当前工作台</div><div class="lineitem muted">保留主线</div></div></div>
+          <div class="arrow">→</div>
+          <div class="room"><h3>子代理</h3><div class="room-lines"><div class="lineitem">独立上下文</div><div class="lineitem">独立人设</div><div class="lineitem">独立工具</div></div><div class="return">只交结论</div></div>
+        </div><div class="caption">详细过程留在它的房间</div>
+      </section>
+
+      <section class="scene">
+        <div class="eyebrow">Scene 03 · Connection Diagram</div>
+        <h2>它真正解决三个问题</h2>
+        <div class="hub">
+          <div class="spokes"><div class="spoke">日志与测试<small>隔离上下文</small></div><div class="spoke">代码审查<small>专精任务</small></div></div>
+          <div class="hub-center"><h3>子代理</h3><div class="badge ok">只回结论</div></div>
+          <div class="spokes"><div class="spoke">认证</div><div class="spoke">数据库</div><div class="spoke">API<small>可并行</small></div></div>
+        </div><div class="caption">隔离上下文 · 专精任务 · 可并行</div>
+      </section>
+
+      <section class="scene">
+        <div class="eyebrow">Scene 04 · Decision Diagram</div>
+        <h2>简单活儿别硬拆</h2>
+        <div class="decision">
+          <div class="decision-col left"><h3>主对话</h3><div class="decision-list"><div class="decision-item">频繁来回</div><div class="decision-item">共享上下文</div><div class="decision-item">快速小改</div><div class="decision-item">在意速度</div></div></div>
+          <div class="decision-arrow">任务<br>→</div>
+          <div class="decision-col right"><h3>子代理</h3><div class="decision-list"><div class="decision-item">脏活</div><div class="decision-item">可自包含</div><div class="decision-item">锁定权限</div><div class="decision-item">只回结论</div></div></div>
+        </div><div class="caption">拆得多 ≠ 专业</div>
+      </section>
+
+      <section class="scene">
+        <div class="eyebrow">Scene 05 · UI Simulation</div>
+        <h2>用 /agents 交互式创建</h2>
+        <div class="flow"><div class="step active">/agents</div><div class="flow-arrow">→</div><div class="step">Library</div><div class="flow-arrow">→</div><div class="step">Create new agent</div><div class="flow-arrow">→</div><div class="step">Personal</div><div class="flow-arrow">→</div><div class="step active">Generate with Claude</div><div class="flow-arrow">→</div><div class="step active">Read-only tools</div><div class="flow-arrow">→</div><div class="step">Sonnet</div><div class="flow-arrow">→</div><div class="step active">Save</div></div>
+        <div class="toolbox"><div class="mini" style="margin-bottom:12px">工具权限</div><div class="toolrow"><div class="tool">Read</div><div class="tool">Grep</div><div class="tool">Glob</div><div class="tool off">Write</div><div class="tool off">Edit</div></div><div class="saved">✓ 已保存：主动砍掉不需要的工具</div></div>
+        <div class="caption">创建不是重点，边界才是</div>
+      </section>
+
+      <section class="scene">
+        <div class="eyebrow">Scene 06 · Code Exploration</div>
+        <h2>一个 Markdown 文件就是岗位说明</h2>
+        <div class="code-layout">
+          <div class="window"><div class="winbar"></div><div class="content code"><span class="comment">---</span><br><span class="key">name:</span> <span class="value">code-reviewer</span><br><span class="key">description:</span> <span class="value">只读代码点评员</span><br><span class="key">tools:</span> <span class="value">Read, Grep, Glob</span><br><span class="key">model:</span> <span class="value">sonnet</span><br><span class="comment">---</span><br><br><span class="value">你是一个资深代码审查员，只挑刺、不改代码。</span></div></div>
+          <div><div class="path-list"><div class="path">~/.claude/agents/<span>你的所有项目</span></div><div class="path">.claude/agents/<span>当前项目</span></div></div><div class="restart">手写后重启会话</div></div>
+        </div><div class="caption">frontmatter 是工牌，正文是岗位说明书</div>
+      </section>
+
+      <section class="scene">
+        <div class="eyebrow">Scene 07 · Task Routing</div>
+        <h2>description 自动派单，@ 直接点名</h2>
+        <div class="route">
+          <div class="route-box"><h3>自动委派</h3><div class="route-line">任务描述</div><div class="route-line accent">description 匹配</div><div class="route-line">进入子代理</div></div>
+          <div class="route-box"><h3>直接点名</h3><div class="route-line accent">@agent-code-reviewer</div><div class="route-line">确保运行</div><div class="route-line">进入子代理</div></div>
+        </div><div class="route-middle"><div class="node">独立工作</div><div class="return">↓ 结论返回</div></div>
+        <div class="caption">两条路径，一个结果</div>
+      </section>
+
+      <section class="scene">
+        <div class="eyebrow">Scene 08 · Terminal Demo</div>
+        <h2>五分钟跑通一个只读点评员</h2>
+        <div class="terminal-layout">
+          <div class="terminal"><span class="prompt">$</span> mkdir sub-demo
+<span class="prompt">$</span> mkdir -p .claude/agents
+<span class="prompt">$</span> code-reviewer.md
+<span class="prompt">$</span> calc.py
+<span class="prompt">$</span> claude
+<span class="prompt">&gt;</span> @agent-code-reviewer 点评一下 calc.py
+<span class="green">✓ 点评结论已返回</span></div>
+          <div class="card" style="padding:23px"><div class="mini">code-reviewer</div><div class="badge" style="margin-top:15px">只读</div><div class="task-stack" style="margin-top:22px"><div class="task">命名不够清楚</div><div class="task">缺少除零处理</div><div class="task">建议增加边界判断</div></div></div>
+        </div><div class="caption">配置 → 触发 → 点评结论</div>
+      </section>
+
+      <section class="scene">
+        <div class="eyebrow">Scene 09 · State Change</div>
+        <h2>只读权限真的能挡住修改</h2>
+        <div class="verify">
+          <div class="verify-col"><h3>允许的工具</h3><div class="check">Read</div><div class="check">Grep</div><div class="check">Glob</div><div class="check blocked">Write / Edit</div></div>
+          <div class="verify-col"><h3>返回状态</h3><div class="badge ok">建议已返回</div><div class="check">只回结论</div><div class="check blocked">没有修改动作</div></div>
+          <div class="verify-col"><h3>cat calc.py</h3><div class="check">def f(a, b):</div><div class="check">return a / b</div><div class="same" style="margin-top:16px">✓ 原封不动</div></div>
+        </div><div class="caption">只回结论，不越权</div>
+      </section>
+
+      <section class="scene">
+        <div class="eyebrow">Scene 10 · Decision Diagram</div>
+        <h2>真正的门槛是判断线</h2>
+        <div class="summary"><div class="summary-col left"><h3>自己干</h3><div class="decision-list"><div class="decision-item">简单</div><div class="decision-item">快速</div><div class="decision-item">频繁来回</div></div></div><div class="summary-center"><div class="question">该不该拆？</div><div class="accent">用对场景，不在拆得多</div></div><div class="summary-col right"><h3>外包</h3><div class="decision-list"><div class="decision-item">脏活</div><div class="decision-item">可自包含</div><div class="decision-item">锁权限</div></div></div></div>
+        <div class="caption">子代理强，但强在用对场景</div>
+      </section>
+
+      <section class="scene">
+        <div class="eyebrow">Scene 11 · Next Episode</div>
+        <div class="preview"><div class="badge">下一篇</div><h2>插件（Plugins）</h2><div class="parts"><div class="part">CLAUDE.md</div><div class="part">斜杠命令</div><div class="part">Skill</div><div class="part">Subagent</div></div><div class="share">一键安装 · 一键分享</div></div>
+        <div class="caption">把配件打包成插件</div>
+      </section>
+    </main>
+    <div class="progress" id="progress"></div>
+    <div class="note">横屏 16:9 原型：用于检查视觉方向、信息密度、Scene 结构和画面文字归属，不代表最终 Remotion 实现。</div>
+  </div>
+  <script>
+    const scenes=[...document.querySelectorAll('.scene')];
+    let index=0,timer=null;
+    const progress=document.getElementById('progress');
+    function renderProgress(){progress.innerHTML=scenes.map((_,i)=>`<div class="pill ${i===index?'on':''}" title="Scene ${i+1}"></div>`).join('')}
+    function show(i){scenes[index].classList.remove('active');index=(i+scenes.length)%scenes.length;scenes[index].classList.add('active');renderProgress()}
+    function nextScene(){show(index+1)}
+    function prevScene(){show(index-1)}
+    function toggleAuto(){const button=document.getElementById('autoBtn');if(timer){clearInterval(timer);timer=null;button.textContent='自动播放'}else{timer=setInterval(nextScene,4300);button.textContent='停止播放'}}
+    renderProgress();
+    document.addEventListener('keydown',event=>{if(event.key==='ArrowRight')nextScene();if(event.key==='ArrowLeft')prevScene()});
+  </script>
+</body>
+</html>

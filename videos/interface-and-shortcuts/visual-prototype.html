@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Interface and Shortcuts · Visual Prototype</title>
+<style>
+:root{--bg:#080f1e;--panel:#111c32;--panel2:#172642;--text:#eef3ff;--muted:#9caaca;--line:#2c3b5d;--accent:#91a8ff;--green:#65d6a0;--yellow:#f2c56c;--red:#ff7d89;--cyan:#72d8e8}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(circle at 15% 10%,rgba(145,168,255,.14),transparent 34%),radial-gradient(circle at 85% 85%,rgba(101,214,160,.08),transparent 32%),var(--bg);color:var(--text);font-family:Inter,"PingFang SC","Microsoft YaHei",sans-serif}
+.shell{width:min(1220px,96vw);margin:28px auto 56px}.topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:16px}.topbar h1{font-size:20px;margin:0;font-weight:750}.controls{display:flex;gap:8px;flex-wrap:wrap}
+button{border:1px solid var(--line);border-radius:9px;background:#121d34;color:var(--text);padding:9px 13px;cursor:pointer}button:hover{background:#1a2948}
+.stage{position:relative;aspect-ratio:16/9;overflow:hidden;border:1px solid #263657;border-radius:18px;background:#0d1628;box-shadow:0 28px 80px rgba(0,0,0,.34)}
+.scene{position:absolute;inset:0;padding:46px 56px;opacity:0;pointer-events:none;transform:translateY(8px);transition:opacity .45s ease,transform .45s ease}.scene.active{opacity:1;pointer-events:auto;transform:none}
+.eyebrow{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:9px}h2{font-size:31px;line-height:1.2;margin:0 0 24px}.caption{position:absolute;left:50%;bottom:20px;transform:translateX(-50%);padding:9px 15px;border:1px solid rgba(255,255,255,.1);border-radius:11px;background:rgba(5,10,20,.88);font-size:16px;white-space:nowrap}
+.panel{border:1px solid var(--line);border-radius:14px;background:linear-gradient(180deg,var(--panel2),var(--panel));box-shadow:0 16px 40px rgba(0,0,0,.22)}.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}.muted{color:var(--muted)}.green{color:var(--green)}.yellow{color:var(--yellow)}.red{color:var(--red)}.cyan{color:var(--cyan)}
+.terminal{padding:20px;border:1px solid var(--line);border-radius:14px;background:#0a1222;box-shadow:inset 0 0 0 1px rgba(255,255,255,.02);font-size:14px;line-height:1.85}.terminal-head{display:flex;gap:7px;margin-bottom:16px}.dot{width:9px;height:9px;border-radius:50%;background:#ff7d89}.dot:nth-child(2){background:#f2c56c}.dot:nth-child(3){background:#65d6a0}.terminal-output{color:#73829c}.terminal-row{padding:7px 12px;border-radius:8px}.terminal-row.focus{border:1px solid #536aa5;background:#152643;color:#fff}.terminal-row.mode{border:1px solid #806f40;background:#292719;color:var(--yellow)}
+.interface-map{display:grid;grid-template-columns:1.45fr .55fr;gap:20px;align-items:stretch}.map-side{display:grid;gap:12px}.zone{padding:15px;border-radius:11px;border:1px solid var(--line);background:#121f38}.zone.focus{border-color:#6078bc;box-shadow:0 0 18px rgba(145,168,255,.13)}.zone h3{margin:0 0 6px;font-size:16px}.zone p{margin:0;color:var(--muted);font-size:13px}
+.key-map{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:stretch}.key-center{display:flex;flex-direction:column;justify-content:center;align-items:center;padding:20px}.key{display:inline-flex;align-items:center;justify-content:center;min-width:68px;height:38px;padding:0 11px;border:1px solid #5d72b2;border-radius:8px;background:#1a2a4a;box-shadow:0 5px 0 #0b1220;color:#fff;font-family:ui-monospace,monospace;font-size:13px}.key-row{display:flex;gap:8px;justify-content:center;margin:7px 0}.route-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.route-card{padding:13px;border:1px solid var(--line);border-radius:10px;background:#121f38}.route-card h3{margin:0 0 7px;font-size:15px}.route-card p{margin:0;color:var(--muted);font-size:13px}
+.compare{display:grid;grid-template-columns:repeat(3,1fr);gap:13px;align-items:stretch}.compare-card{padding:16px;border:1px solid var(--line);border-radius:13px;background:#121f38;min-height:250px}.compare-card.stop{border-color:#536aa5}.compare-card.clear{border-color:#806f40}.compare-card.exit{border-color:#744253}.compare-card h3{margin:0 0 14px;font-size:18px}.compare-card .result{padding:11px 12px;margin:10px 0;border-radius:8px;background:#1a2b49;font-size:13px}.state-line{height:6px;border-radius:5px;background:#536aa5;margin:14px 0}.state-line.danger{background:#744253}.state-line.safe{background:#4f806e}
+.mode-layout{display:grid;grid-template-columns:1.1fr .9fr;gap:20px;align-items:center}.mode-switch{padding:20px;border:1px solid var(--line);border-radius:14px;background:#121f38}.mode-option{display:flex;justify-content:space-between;padding:13px 14px;margin:8px 0;border-radius:9px;background:#1a2b49}.mode-option.active{border:1px solid #806f40;color:var(--yellow);background:#292719}.task-card{padding:20px;min-height:230px}.task-card h3{margin:0 0 12px;font-size:19px}.task-card .status{padding:16px;border-radius:10px;background:#1a2b49;border-left:3px solid var(--yellow);line-height:1.7}
+.prefix-layout{display:grid;grid-template-columns:.78fr 1.22fr;gap:18px;align-items:center}.input-box{padding:20px;border:1px solid #6078bc;border-radius:13px;background:#121f38}.prompt{padding:13px 15px;border-radius:8px;background:#0a1222;color:#fff}.prefixes{display:grid;grid-template-columns:1fr 1fr;gap:11px}.prefix-card{padding:16px;border:1px solid var(--line);border-radius:11px;background:#121f38;min-height:108px}.prefix-card.hot{border-color:#6078bc;box-shadow:0 0 18px rgba(145,168,255,.1)}.prefix-card h3{margin:0 0 8px;font-size:17px}.prefix-card p{margin:0;color:var(--muted);font-size:13px;line-height:1.55}
+.multiline{display:grid;grid-template-columns:1fr 1fr;gap:16px}.input-demo{padding:18px;border:1px solid var(--line);border-radius:13px;background:#121f38}.input-demo.bad{border-color:#744253}.input-demo.good{border-color:#4f806e}.input-demo h3{margin:0 0 12px;font-size:17px}.input-lines{padding:15px;border-radius:9px;background:#0a1222;line-height:2;font-family:ui-monospace,monospace;font-size:14px}.sent{color:var(--red)}.cursor{color:var(--green)}.options{display:flex;flex-wrap:wrap;gap:8px;margin-top:13px}.option{padding:7px 9px;border:1px solid var(--line);border-radius:7px;color:var(--muted);font-size:12px}.option.primary{border-color:#6078bc;color:var(--accent)}
+.practice{display:grid;grid-template-columns:1.35fr .65fr;gap:18px;align-items:stretch}.timeline{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;align-items:stretch}.step{padding:13px 9px;border:1px solid var(--line);border-radius:10px;background:#121f38;text-align:center;font-size:12px}.step strong{display:block;color:var(--accent);font-size:13px;margin-bottom:14px}.step.done{border-color:#4f806e;background:#152b2d}.step .check{color:var(--green);font-size:18px}.practice-terminal{padding:18px;min-height:220px}.practice-terminal .cmd{color:#fff}.practice-terminal .out{color:var(--green)}.practice-terminal .hint{color:var(--yellow)}
+.custom-layout{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;align-items:stretch}.custom-card{padding:18px;border:1px solid var(--line);border-radius:13px;background:#121f38}.custom-card h3{margin:0 0 15px;font-size:17px}.custom-card p{padding:10px 11px;margin:8px 0;border-radius:8px;background:#1a2b49;font-size:13px}.custom-card.editable{border-color:#4f806e}.custom-card.locked{border-color:#744253}.notice{grid-column:1/-1;padding:11px 15px;border:1px solid #806f40;border-radius:9px;background:#292719;color:#f4d994;text-align:center;font-size:13px}
+.summary{height:276px;display:flex;flex-direction:column;align-items:center;justify-content:center}.route{display:flex;align-items:center;justify-content:center;gap:9px;flex-wrap:wrap;max-width:900px}.route-node{padding:12px 14px;border:1px solid var(--line);border-radius:9px;background:#14213a;font-size:14px}.route-node.active{border-color:#6e86cf;box-shadow:0 0 20px rgba(145,168,255,.16)}.arrow{font-size:23px;color:var(--accent)}.preview{margin-top:28px;padding:13px 18px;border:1px solid #806f40;border-radius:11px;background:#292719;color:#f4d994}.progress{display:flex;justify-content:center;gap:6px;margin:13px 0 0}.pill{width:30px;height:4px;border-radius:9px;background:#2c3a59}.pill.on{background:var(--accent)}.hint{margin-top:12px;text-align:center;color:var(--muted);font-size:12px}
+@media(max-width:760px){.scene{padding:25px}.scene h2{font-size:22px}.caption{font-size:12px}.interface-map,.key-map,.mode-layout,.prefix-layout,.multiline,.practice{grid-template-columns:1fr}.compare{grid-template-columns:1fr}.custom-layout{grid-template-columns:1fr 1fr}.timeline{grid-template-columns:repeat(3,1fr)}}
+</style>
+</head>
+<body>
+<div class="shell">
+  <div class="topbar">
+    <h1>Interface and Shortcuts · 横屏 Visual Prototype · 9 Scenes</h1>
+    <div class="controls">
+      <button type="button" onclick="prevScene()">上一幕</button>
+      <button type="button" onclick="nextScene()">下一幕</button>
+      <button type="button" onclick="toggleAuto()" id="autoBtn">自动播放</button>
+    </div>
+  </div>
+  <div class="stage">
+    <section class="scene active">
+      <div class="eyebrow">Scene 01 · Interface Map</div>
+      <h2>这个终端窗口，先看哪一块</h2>
+      <div class="interface-map">
+        <div class="terminal mono">
+          <div class="terminal-head"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+          <div class="terminal-output">Claude Code 正在输出……</div><div class="terminal-row">正在读取项目上下文</div><div class="terminal-row">等待下一步操作</div>
+          <div class="terminal-row focus">&gt; 输入框：在这里输入文字、@文件或!命令</div>
+          <div class="terminal-row">当前目录：~/Desktop</div><div class="terminal-row mode">模式／权限：default</div>
+        </div>
+        <div class="map-side">
+          <div class="zone focus"><h3>输入框</h3><p>唯一的输入入口</p></div>
+          <div class="zone"><h3>状态行／页脚</h3><p>目录、后台任务、PR 状态</p></div>
+          <div class="zone"><h3>模式／权限提示</h3><p>动手前问不问你</p></div>
+          <div class="zone"><h3 class="cyan">Ctrl+L</h3><p>屏幕花了，重绘但保留历史</p></div>
+        </div>
+      </div>
+      <div class="caption">先认住输入框、状态行、模式／权限提示</div>
+    </section>
+
+    <section class="scene">
+      <div class="eyebrow">Scene 02 · Key Map</div>
+      <h2>把常用动作放进手边</h2>
+      <div class="key-map">
+        <div class="panel key-center"><div class="key-row"><span class="key">Esc</span><span class="key">Ctrl+C</span><span class="key">Ctrl+D</span></div><div class="key-row"><span class="key">Shift+Tab</span><span class="key">↑</span><span class="key">Ctrl+R</span></div><div class="key-row"><span class="key">Ctrl+L</span><span class="key">Ctrl+O</span></div><p class="muted">按键不是清单，是动作入口</p></div>
+        <div class="route-grid"><div class="route-card"><h3 class="red">会话控制</h3><p>`Esc` 停止 · `Ctrl+C` 清场 · `Ctrl+D` 退出</p></div><div class="route-card"><h3 class="yellow">权限模式</h3><p>`Shift+Tab` 循环切换</p></div><div class="route-card"><h3 class="cyan">历史检索</h3><p>`↑`／`↓` 翻历史 · `Ctrl+R` 搜索</p></div><div class="route-card"><h3 class="green">屏幕／转录</h3><p>`Ctrl+L` 重绘 · `Ctrl+O` 详细视图</p></div></div>
+      </div>
+      <div class="caption">把快捷键按动作记，不按字母硬背</div>
+    </section>
+
+    <section class="scene">
+      <div class="eyebrow">Scene 03 · State Comparison</div>
+      <h2>刹车、清场、退场，是三件事</h2>
+      <div class="compare">
+        <div class="compare-card stop"><h3 class="cyan">Esc</h3><div class="key">一下</div><div class="result">停止当前回答／工具调用<br><span class="green">已完成部分保留</span></div><div class="key">空输入框：两下</div><div class="result">打开回退菜单</div></div>
+        <div class="compare-card clear"><h3 class="yellow">Ctrl+C</h3><div class="state-line"></div><div class="result">有任务：中断</div><div class="result">无任务：第一次清输入<br>第二次退出</div></div>
+        <div class="compare-card exit"><h3 class="red">Ctrl+D</h3><div class="state-line danger"></div><div class="result">直接退出 Claude Code 会话</div><div class="result">回到普通终端</div></div>
+      </div>
+      <div class="caption">输入框状态，决定双击 Esc 的结果</div>
+    </section>
+
+    <section class="scene">
+      <div class="eyebrow">Scene 04 · Permission Mode</div>
+      <h2>“问不问你”的开关在状态行</h2>
+      <div class="mode-layout">
+        <div class="mode-switch"><div class="mode-option active"><span>`default`</span><span>等待确认</span></div><div class="mode-option"><span>`acceptEdits`</span><span>自动接受编辑</span></div><div class="mode-option"><span>`plan`</span><span>只出方案</span></div><div class="muted" style="font-size:12px;margin-top:15px">按 `Shift+Tab` 循环切换</div></div>
+        <div class="panel task-card"><h3>待处理的编辑任务</h3><div class="terminal-row mode mono">mode: default</div><div class="status">当前结果：动手前询问<br><span class="muted">状态行会实时显示当前模式</span></div></div>
+      </div>
+      <div class="caption">Shift+Tab 改的是权限模式，不是换行</div>
+    </section>
+
+    <section class="scene">
+      <div class="eyebrow">Scene 05 · Input Routing</div>
+      <h2>输入框开头的符号，会把请求送到不同地方</h2>
+      <div class="prefix-layout">
+        <div class="input-box"><div class="prompt mono">&gt; @src/auth.ts</div><div class="prompt mono" style="margin-top:10px">&gt; ! git status</div><div class="muted" style="font-size:12px;margin-top:13px">同一个输入框，四条入口</div></div>
+        <div class="prefixes"><div class="prefix-card hot"><h3 class="cyan">@ 文件</h3><p>路径自动补全，精准点名一个文件或目录</p></div><div class="prefix-card hot"><h3 class="green">! Shell</h3><p>直接运行命令，输出回到对话上下文</p></div><div class="prefix-card"><h3 class="accent">/ 命令／Skill</h3><p>打开命令入口，本篇不展开</p></div><div class="prefix-card"><h3 class="yellow"># 记忆相关</h3><p>行为随版本变化，本篇不展开</p></div></div>
+      </div>
+      <div class="caption">@ 点名文件，! 顺手跑命令</div>
+    </section>
+
+    <section class="scene">
+      <div class="eyebrow">Scene 06 · Multiline Input</div>
+      <h2>想换行，别让 Enter 抢先发送</h2>
+      <div class="multiline">
+        <div class="input-demo bad"><h3 class="red">普通 Enter</h3><div class="input-lines">第一行<span class="sent"> ↵ 已发送</span><br><span class="muted">第二行已经来不及输入</span></div><div class="options"><span class="option">默认：发送</span></div></div>
+        <div class="input-demo good"><h3 class="green">反斜杠 + Enter</h3><div class="input-lines">第一行 \\ <span class="cursor">↵</span><br>第二行<span class="cursor">▌</span></div><div class="options"><span class="option primary">跨终端稳定</span><span class="option">Ctrl+J</span><span class="option">Shift+Enter</span><span class="option">Option+Enter</span><span class="option primary">Ctrl+G 编辑器</span></div></div>
+      </div>
+      <div class="caption">Enter 默认发送；想换行，记住反斜杠 + Enter</div>
+    </section>
+
+    <section class="scene">
+      <div class="eyebrow">Scene 07 · Practice Run</div>
+      <h2>从看懂到亲手验证</h2>
+      <div class="practice">
+        <div class="panel" style="padding:17px"><div class="timeline"><div class="step done"><strong>01</strong><span class="check">✓</span><br>启动</div><div class="step done"><strong>02</strong><span class="check">✓</span><br>Shell</div><div class="step done"><strong>03</strong><span class="check">✓</span><br>历史</div><div class="step done"><strong>04</strong><span class="check">✓</span><br>模式</div><div class="step done"><strong>05</strong><span class="check">✓</span><br>多行</div><div class="step done"><strong>06</strong><span class="check">✓</span><br>退出</div></div><div class="practice-terminal terminal mono"><div class="cmd">$ claude</div><div class="cmd">&gt; ! echo hello-shortcuts</div><div class="out">hello-shortcuts</div><div class="cmd">&gt; ↑  回填上一条命令</div><div class="hint">mode: default → acceptEdits → plan</div><div class="out">第一行 \\ ↵ 第二行</div><div class="cmd">&gt; Ctrl+D</div><div class="out">回到普通终端</div></div></div>
+        <div class="panel" style="padding:20px"><h3 style="margin:0 0 15px">每一步都要看结果</h3><div class="zone focus"><h3>命令执行</h3><p>输出进入对话上下文</p></div><div class="zone"><h3>历史回填</h3><p>上一条命令回到输入框</p></div><div class="zone"><h3>模式变化</h3><p>状态行的文字发生变化</p></div><div class="zone"><h3>会话退出</h3><p>回到普通终端</p></div></div>
+      </div>
+      <div class="caption">动作 → 状态变化 → 预期结果</div>
+    </section>
+
+    <section class="scene">
+      <div class="eyebrow">Scene 08 · Keybindings Boundary</div>
+      <h2>快捷键能改，但不是现在就该改</h2>
+      <div class="custom-layout">
+        <div class="custom-card"><h3 class="cyan">版本检查</h3><p class="mono">$ claude --version</p><p class="green">v2.1.18+ · 可继续</p></div>
+        <div class="custom-card"><h3 class="yellow">打开配置</h3><p class="mono">/keybindings</p><p class="mono">~/.claude/keybindings.json</p></div>
+        <div class="custom-card editable"><h3 class="green">可重绑</h3><p>普通快捷键</p><p>按自己的习惯调整</p></div>
+        <div class="custom-card locked"><h3 class="red">保留键：不可重绑</h3><p class="mono">Ctrl+C</p><p class="mono">Ctrl+D · Ctrl+M</p></div>
+        <div class="notice">先把默认配置用熟，明确感觉别扭了，再考虑自定义</div>
+      </div>
+      <div class="caption">自定义是进阶入口，保留键仍然有边界</div>
+    </section>
+
+    <section class="scene">
+      <div class="eyebrow">Scene 09 · Summary + Next Episode Preview</div>
+      <h2>从“靠鼠标硬刚”到“知道怎么控制”</h2>
+      <div class="summary"><div class="route"><div class="route-node active">看界面</div><span class="arrow">→</span><div class="route-node active">选动作</div><span class="arrow">→</span><div class="route-node active">选入口</div><span class="arrow">→</span><div class="route-node active">验证结果</div></div><div class="preview">下一篇：怎么提问和给指令</div></div>
+      <div class="caption">让手放到能减少误操作的位置</div>
+    </section>
+  </div>
+  <div class="progress" id="progress"></div>
+  <div class="hint">原型预览控件、进度提示和幕内字幕仅用于检查，不进入最终视频。</div>
+</div>
+<script>
+const scenes = Array.from(document.querySelectorAll(".scene"));
+const progress = document.getElementById("progress");
+const autoBtn = document.getElementById("autoBtn");
+let current = 0;
+let timer = null;
+function renderProgress(){
+  progress.innerHTML = scenes.map((_, index) => '<span class="pill ' + (index === current ? 'on' : '') + '"></span>').join("");
+}
+function showScene(index){
+  current = (index + scenes.length) % scenes.length;
+  scenes.forEach((scene, sceneIndex) => scene.classList.toggle("active", sceneIndex === current));
+  renderProgress();
+}
+function nextScene(){showScene(current + 1)}
+function prevScene(){showScene(current - 1)}
+function toggleAuto(){
+  if(timer){clearInterval(timer);timer = null;autoBtn.textContent = "自动播放";return;}
+  timer = setInterval(nextScene, 4200);autoBtn.textContent = "暂停播放";
+}
+renderProgress();
+</script>
+</body>
+</html>

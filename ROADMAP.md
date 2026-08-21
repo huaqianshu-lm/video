@@ -1,48 +1,57 @@
 # ROADMAP.md
 
+## 长期产品目标
+
+- 将已验证的 AI 视频生产流程逐步产品化为专门的视频生产 Harness，最终支持其他人安装、配置和使用。
+- Harness 只覆盖视频生产，不扩展为通用任务平台；后续工作优先沉淀流程编排、状态记录、校验、人工 Gate、重试、断点续做和工具适配能力。
+
 ## 当前阶段
 
-- `claude-code-api-config` 已通过 Gate 3；修正后的冒烟 Run `31790807181` 执行成功，Artifact 和媒体参数均通过校验，当前等待人工确认代表帧后进入完整渲染。
-- `claude-code-install` 已接入真实音频、逐句字幕和 Manifest 时间轴，12 个 Scene 的 41 个主要视觉锚点也已绑定到 Segment 局部时间；GitHub 冒烟和完整 MP4 渲染均已通过并核验。
-- 新视频 `claude-code-third-party-models` 已完成 Gate 1、Gate 2、TTS 资源接入和 Remotion 实现；Studio 已在 `http://localhost:3001` 构建，当前等待 Gate 3 视觉检查。
-- `claude-code-third-party-models` 已修正通用对比组件误带参考视频文案的问题；`npm run check` 通过，Studio 已完成重建，等待 Gate 3 视觉检查。
-- 字幕已改为顶层 overlay，Linux 渲染前强制校验 CJK 字体，音频已预挂载并按 Segment 驱动画面。
-- 本机 Chromium 因旧版 macOS 返回 `SIGTRAP`，最终画面验证改由 GitHub Actions 完成。
+- Harness 0.4 已完成本地实现、测试和推送，PR #3 已合并到 `main`（`5fcefb89`）；本阶段只补齐单视频生产资料校验、Remotion 技术校验和 Gate 边界，不改现有视频内容。
+- 新视频 `remotion-video` 已完成七层生产资料、Gate 1、Gate 2 和 12 Scene 横屏 Visual Prototype；源文档与指定文章字节一致，按任务边界停止在原型阶段，未生成 TTS 或 Remotion 资料。
+- 新视频 `glossary` 已完成七层生产资料、Gate 1、Gate 2 和 12 Scene 横屏 Visual Prototype；源文档与指定文章字节一致，按任务边界停止，未生成 TTS 或 Remotion 资料。
+- 新视频 `troubleshooting` 已完成七层生产资料、Gate 1、Gate 2 和 12 Scene 横屏 Visual Prototype；源文档与指定文章字节一致，按任务边界停止在原型阶段，未生成 TTS 或 Remotion 资料。
+- 新视频 `voice` 已完成七层生产资料、Gate 1、Gate 2 和 12 Scene 横屏 Visual Prototype；源文档字节一致，按任务边界停止在原型阶段，未生成 TTS 或 Remotion 资料。
+- 新视频 `claude-code-how-it-works` 已通过 GitHub Smoke Render 和完整 Render；Run `32360625092` 成功，最终 MP4 已完成 Gate 4 人工确认。
+- `claude-code-first-run`、`claude-code-coding-plan`、`claude-code-third-party-models` 已进入 Gate 3 视觉检查，分别关注音画同步、字幕安全区、场景节奏、文字溢出和清洁输出。
 
 ## 已完成（最近 10 条）
 
-- 2026-08-14：补充字幕生成规则；字幕去掉句末标点、保留句内标点，且不修改 TTS 朗读文本、音频或时间轴，已同步到项目规范与流程说明。
-- 2026-08-14：完成 `claude-code-third-party-models` 的 Remotion Composition 接入；48 个音频轨道、156 条顶层字幕 Cue、9 个 Scene 和 396.192 秒时间轴均已接入，并移除不属于本片内容的通用顶部进度线。
-- 2026-08-14：发现并定位 `ComparisonScene` 中残留的 `copy-paste loop`／“来回搬运上下文”固定文案；已改为由每个对比列显式提供本片相关的工作流标题和状态。
-- 2026-08-14：将画面文字语义归属和最终输出清洁检查写入项目规范；Gate 2、Gate 3、Smoke Render 和 Gate 4 均须检查无参考视频残留文案及预览辅助内容。
-- 2026-08-14：完成 `claude-code-third-party-models` 的纯口播稿、Visual Script 和 9 Scene 横屏 Visual Prototype；口播正文、原型脚本、导航和幕内字幕结构均通过确定性检查。
-- 2026-08-14：完成 `claude-code-third-party-models` 的 `tts-script.json`；9 个 Scene、48 个 Segment 与纯口播稿逐段一致，未包含视觉或制作说明。
-- 2026-08-14：完成 `claude-code-third-party-models` 的 Source、Content Analysis、Video Narrative 和 Scene Script；9 个 Scene 已通过字段完整性、内容覆盖和基线结构检查。
-- 2026-08-14：完成 `claude-code-api-config` 的第二次 GitHub 冒烟渲染；Run `31790807181` 的 17 个步骤全部成功，完整 Artifact 已通过摘要、图片规格和短片媒体参数校验。
-- 2026-08-14：用户完成 `claude-code-api-config` 的 Studio 音画、字幕、节奏和溢出检查，Gate 3 通过，当前预览版本已冻结进入远程渲染。
-- 2026-08-14：完成 GitHub Actions 渲染参数化和 `claude-code-api-config` 资源打包；两条工作流接收受控 slug／Composition 输入，音频数量由 Manifest 校验，冒烟代表帧由 Timeline 自动选择。
-- 2026-08-14：完成 `claude-code-api-config` 的正确 TTS 资源接入；60 段音频和三份 Manifest 已同步到 Remotion 消费目录，12 个 Scene 的视觉项已按 Segment／Word Boundary 重新绑定，Studio 在 3001 端口构建通过。
+- 2026-08-20：Harness 0.1 完成独立目录契约、阶段状态模型、产物清单、`init`／`status` CLI、真实 GitHub Actions 适配器和 Smoke Render 验收；临时目录语法、自动化测试和远程样本验证通过，未修改现有视频内容。
+- 2026-08-20：逐一核对 `claude-code-how-it-works` 全部 12 个 Scene 的字幕区间与视觉事件；将固定帧／百分比动画改为对应字幕 Cue 驱动，确认视觉事件顺序与 Scene 边界一致，未修改其他视频。
+- 2026-08-20：根据 `claude-code-how-it-works` 截图反馈，修复 Scene 05 在字幕结束边界因帧取整误差产生的透明白屏；仅调整目标视频的 Scene 帧区间连续性。
+- 2026-08-20：根据 `claude-code-how-it-works` 的原型与 Remotion 画面不一致反馈，新增目标视频专用动态场景实现；补齐终端逐行打印、工具选择、循环回路、进度冻结、排队指令和安全结构等原型效果，未修改共享场景组件与其他视频。
+- 2026-08-20：根据 `claude-code-how-it-works` Gate 3 截图反馈，修复 Scene 12 的顶部标题安全区、四列总结卡片、独立定位的下一篇预告和目标视频字幕下边距；未改变其他视频的默认场景布局。
+- 2026-08-20：完成新视频 `claude-code-how-it-works` 的 TTS 与 Remotion 接入；27 个 Segment 以 `+25%` 生成音频和 Timing，产生 107 条字幕 Cue、228.168 秒 Timeline，并完成独立 Composition 注册与类型检查。
+- 2026-08-20：完成新视频 `remotion-video` 的完整 Source 副本、Content Analysis、Video Narrative、Scene Script、Narration Script、Visual Script 和 12 Scene 横屏 Visual Prototype；源文档字节一致，Gate 1／Gate 2、Scene 对齐、纯口播边界、画面文字归属、原型 HTML／JavaScript 和范围保护检查通过，未生成 TTS 或 Remotion 资料。
+- 2026-08-20：完成新视频 `glossary` 的完整 Source 副本、Content Analysis、Video Narrative、Scene Script、Narration Script、Visual Script 和 12 Scene 横屏 Visual Prototype；源文档字节一致，Gate 1／Gate 2、Scene 对齐、纯口播边界、画面文字归属、原型 HTML／JavaScript 和范围保护检查通过，未生成 TTS 或 Remotion 资料。
+- 2026-08-20：完成新视频 `troubleshooting` 的完整 Source 副本、Content Analysis、Video Narrative、Scene Script、Narration Script、Visual Script 和 12 Scene 横屏 Visual Prototype；源文档字节一致，Gate 1／Gate 2、Scene 对齐、纯口播边界、画面文字归属、原型 HTML／JavaScript 和范围保护检查通过，未生成 TTS 或 Remotion 资料。
+- 2026-08-20：完成新视频 `anti-patterns` 的完整 Source 副本、Content Analysis、Video Narrative、Scene Script、Narration Script、Visual Script 和 11 Scene 横屏 Visual Prototype；源文档字节一致，Gate 1／Gate 2、Scene 对齐、纯口播边界、画面文字归属、原型 HTML／JavaScript 和范围保护检查通过，未生成 TTS 或 Remotion 资料。
+- 2026-08-20：完成新视频 `best-practices` 的完整 Source 副本、Content Analysis、Video Narrative、Scene Script、Narration Script、Visual Script 和 11 Scene 横屏 Visual Prototype；源文档字节一致，Gate 1／Gate 2、Scene 对齐、纯口播边界、画面文字归属、原型 HTML／JavaScript 和范围保护检查通过，未生成 TTS 或 Remotion 资料。
+- 2026-08-20：完成新视频 `capstone-project` 的完整 Source 副本、Content Analysis、Video Narrative、Scene Script、Narration Script、Visual Script 和 12 Scene 横屏 Visual Prototype；源文档字节一致，Gate 1／Gate 2、Scene 对齐、纯口播边界、画面文字归属、原型 HTML／JavaScript 和范围保护检查通过，未生成 TTS 或 Remotion 资料。
+- 2026-08-20：完成 `voice` 的完整 Source 副本、Content Analysis、Video Narrative、Scene Script、Narration Script、Visual Script 和 12 Scene 横屏 Visual Prototype；源文档字节一致，Gate 1／Gate 2、Scene 对齐、纯口播边界、画面文字归属、原型 HTML／JavaScript 和范围保护检查通过，未生成 TTS 或 Remotion 资料。
 
 ## 进行中
 
+- Harness 0.2 已完成 `claude-code-how-it-works` 及 3 个 Gate 3 样本的只读结构与产物回归；回归过程未修改视频资料或重新生成下游产物。
+- Harness 0.4 已完成结构校验、Remotion 配置校验、Gate 自动前置校验和人工检查清单；19 个自动化测试、四条真实视频扩展只读回归和 Harness 范围差异检查通过，提交 `b6f0d0f` 已推送。
+- `claude-code-how-it-works` 已完成 Smoke Render、完整 Render 和 Gate 4；继续作为 Harness 流程验证样本，不再重复渲染。
+- `claude-code-first-run` 已完成 TTS 和 Remotion 接入；等待 Gate 3 检查音画同步、字幕安全区、场景节奏、文字溢出和清洁输出。
+- `claude-code-coding-plan` 已完成 Gate 2 和 Remotion 接入；Scene 03 的三张付费卡片已提前到对应口播前约 1.2 秒，等待 Gate 3 视觉检查。
 - `claude-code-third-party-models` 的 Remotion Studio 已构建完成；等待检查字幕安全区、主文案密度、9 个 Scene 的状态变化和是否存在无关画面文字。
 - `claude-code-api-config` 的第二次冒烟 Artifact 已下载并检查，等待用户确认代表帧；Scene 12 的下一条预告卡片与底部字幕区域有视觉叠放，需要用户决定是否接受。
-- 根目录 `video-production-process-part-1.md` 正根据用户反馈逐段修订；本轮已完成从文章开头到「总结」的正文。
-- `video-production-process-part-2.md` 至 `part-5.md` 已完成重写，等待用户整体审阅和反馈。
-- 端到端视频生产流程已完成第一条试点的 TTS、Remotion 接入和 GitHub 工作流参数化；20 分钟轮询仍依赖当前会话或后续监控任务。
 
 ## 下一步
 
-1. 用户确认 Run `31790807181` 的三张代表帧，并决定是否接受 Scene 12 预告卡片与字幕区域的视觉叠放。
-2. 冒烟通过后触发完整 MP4 渲染，并围绕完整 Run ID 持续检查。
-3. 下载最终 Artifact，使用 `ffprobe` 核验后进入 Gate 4。
-4. 用户在 Studio 中完成 `claude-code-third-party-models` 的 Gate 3 视觉检查后，根据反馈调整生产资料、配置或场景组件。
+1. 以 `main` 的 Harness 0.4 合并提交为基线，等待下一项 Harness 计划；不扩展批量编排、Web UI 或新视频。
+2. 不扩展批量编排、Web UI 或新视频。
 
 ## 阻塞
 
-- 完整渲染正在等待 Smoke Render 人工确认；Scene 12 代表帧中，下一条预告卡片的下部区域与字幕胶囊发生视觉叠放。
+- 当前 macOS 上 Remotion Chromium 启动即因旧系统返回 `SIGTRAP`，无法在本机生成 still／MP4；需要本机画面复核的视频必须使用可访问 Studio／Chromium 的环境。
 - `claude-code-third-party-models` 的本机浏览器画面检查仍受旧版 macOS Chromium `SIGTRAP` 影响；Studio 服务已构建并运行，需在可访问 Studio 的环境完成人工画面检查。
 - 当前 macOS 上 Remotion Chromium 启动即因旧系统返回 `SIGTRAP`，无法在本机生成 still／MP4；当前视频必须由 GitHub Actions 完成冒烟和最终画面验证。
+- `claude-code-coding-plan` 的本机浏览器画面检查可能受旧版 macOS Chromium `SIGTRAP` 影响；Studio 构建已通过，需在可访问 Studio 的环境完成人工 Gate 3。
 
 ## 关键避坑
 
@@ -54,18 +63,23 @@
 - Linux 渲染必须安装并校验 CJK 字体；字幕必须放在明确的顶层 overlay；字幕 Cue 应按帧边界判断，不直接依赖浮点秒数。
 - 字幕、音频、场景节奏和 Remotion 配置的完整经验统一查阅 `docs/video-production-notes.md`，不在 Roadmap 重复记录。
 - 画面文字必须能追溯到当前视频生产资料；预览导航、调试标记和辅助说明不得进入最终 MP4，具体检查要求见 `CLAUDE.md` 和 `docs/video-production-notes.md`。
+- 新视频口播必须在生成阶段按独立视频表达，禁止把原始材料作为口播叙事对象；来源指代检查必须在派生 `tts-script.json` 前完成，已完成视频不回溯修改。
 
 ## 最近验证（最近 10 条）
 
-- 2026-08-14：新视频 `claude-code-third-party-models` 的 `tts-script.json` 与临时确定性生成结果一致；9 个 Scene、48 个 Segment、ID 唯一且无空文本，未包含内部制作文字。
-- 2026-08-14：新视频 `claude-code-third-party-models` 的音频、词边界、字幕和时间轴通过一致性校验；48 个 MP3、48 个 Timing、156 条 Cue、396.192 秒总时长和所有公共资源路径均有效。
-- 2026-08-14：新视频 `claude-code-third-party-models` 通过 `npm run check`；Remotion bundle 构建完成，Studio 服务在 3001 端口报告 `Built`。
-- 2026-08-14：移除 `claude-code-third-party-models` 的通用顶部进度线后再次通过 `npm run check`，Studio 监听到修改并重新构建成功。
-- 2026-08-14：移除 `ComparisonScene` 中的参考视频固定文案，第三方模型各对比列改用本片相关工作流标题和状态；`npm run check` 通过，Studio 重建成功。
-- 2026-08-14：新视频 `claude-code-third-party-models` 的原文副本与指定源文件字节一致；Narrative 9 段与 Scene 09 个一一对应，每个 Scene 的 9 个必需字段均完整，未提前生成 Gate 2 文件。
-- 2026-08-14：GitHub 冒烟 Run `31790807181` 的 17 个步骤全部成功；Artifact `9215404477` 的 SHA-256 与 GitHub 元数据一致，三张代表帧为 1920×1080，短片为 H.264＋AAC、30fps、48kHz 双声道、10.048 秒；首、中、末 Scene 的主要视觉元素均已展开，Scene 12 发现预告卡片与字幕区域视觉叠放，等待人工判断。
-- 2026-08-14：GitHub 冒烟 Run `31790003590` 的 17 个步骤全部成功；Artifact SHA-256 一致，三张图片为 1920×1080，短片为 H.264＋AAC、30fps、48kHz 双声道、10.048 秒；人工检查确认字体和字幕正常，但中间与最后代表帧取样过早，需修正后重跑。
-- 2026-08-14：用户人工确认 `claude-code-api-config` 的 Studio 预览没有问题，Gate 3 通过；本次确认覆盖音画同步、字幕、动画节奏、信息密度和文字溢出。
-- 2026-08-14：参数化渲染工作流通过 YAML 语法检查；资源包包含 60 个 MP3 和 14 个字幕文件且压缩完整，Timeline 自动选出的冒烟帧为 30、3374、6534；Node.js `v22.21.0` 和 `npm run check` 通过。
-- 2026-08-14：`claude-code-api-config` 使用 Node.js `v22.21.0` 通过 `npm run check`；12 个 Scene、60 个音频资源、111 条字幕 Cue、256.248 秒 Timeline 和 `+25%` 语速通过资源校验，Remotion Studio 在 3001 端口完成构建。
-- 2026-08-14：验证 `claude-code-api-config` 的 12 个 Scene、60 个 MP3、60 个 Timing、111 条字幕 Cue、SRT／VTT 和 Timeline；所有 ID、文件、文本、时间、`+25%` 语速和 256.248 秒总时长一致，MP3 实际时长与 Manifest 差值为 0，TTS 与 Video 回传目录文件完全一致。
+- 2026-08-20：Harness 对 `claude-code-first-run`、`claude-code-coding-plan` 和 `claude-code-third-party-models` 的只读结构与产物回归全部通过；必要产物齐全、Scene／Segment／字幕／Timeline 对齐，三条目标视频目录前后哈希一致。
+- 2026-08-20：Harness 对 `claude-code-how-it-works` 的只读结构与产物回归通过；Source 至 Remotion 所需产物全部存在，12 个 Scene、27 个 TTS／音频 Segment、107 条字幕 Cue、12 个时间轴 Scene 和 228.168 秒 Timeline 对齐，目标视频目录前后哈希一致。
+- 2026-08-20：`claude-code-how-it-works` 完整 Render Run `32360625092` 成功；Artifact MP4 为 1920×1080、30fps、H.264＋AAC、228.224 秒，完整性检查和开头／中段／结尾代表帧核验通过，用户确认最终视频无问题。
+- 2026-08-20：Harness 真实 GitHub Actions 适配器已成功触发 `smoke-test-video.yml` 和 `render-video.yml`，受控输入为 `claude-code-how-it-works`，Run 与 Artifact 均可被识别并返回。
+- 2026-08-20：GitHub Smoke Render Run `32358631515` 成功；三张代表帧为 1920×1080，首 10 秒短片为 H.264＋AAC、30fps、48kHz 双声道、10.048 秒，画面文字、场景结构和清洁输出核验通过。
+- 2026-08-20：`claude-code-how-it-works` 12 个 Scene 的字幕 Cue 驱动视觉节奏回归通过；视觉事件映射无越界、顺序无回退，Scene 边界为连续 `0-481-930-1517-2105-2519-3047-3644-4235-4819-5535-6047-6845` 帧；`npm run check` 与 `git diff --check` 通过。
+- 2026-08-20：`claude-code-how-it-works` 专用动态场景接入后的 `npm run check`、差异检查和连续帧边界回归检查通过；12 个 Scene、总计 6845 帧、区间无空档；本机 Chromium 仍因 `SIGTRAP` 无法完成实际画面复核。
+- 2026-08-20：`claude-code-how-it-works` 遮挡修复后的 TypeScript 检查、差异检查和字幕 Manifest 校验通过；目标场景启用紧凑安全布局，12 个 Scene、107 条 Cue、空字幕 0、句末标点 0；本机 Chromium 仍因 `SIGTRAP` 无法完成实际画面复核。
+- 2026-08-20：`claude-code-how-it-works` 通过 TTS／Manifest／Remotion 确定性校验；12 个 Scene、27 个 Segment、27 个 MP3、27 个 Timing、107 条 Cue、ID 全对齐，字幕末尾标点为 0，Timeline 为 228.168 秒，`npm run check` 通过；本机 Chromium 因 `SIGTRAP` 未完成画面检查。
+- 2026-08-20：`videos/remotion-video/` 七层文件齐全；`source.md` 与指定 `53-remotion-video.md` 通过字节一致性检查，12 个 Scene 在 Scene Script／Narration／Visual Script／Prototype 中对齐，必需字段、纯口播边界、画面文字归属、原型 HTML／JavaScript、控件／进度结构和范围保护检查通过，未发现 TTS、音频、字幕或 Timeline 文件。
+- 2026-08-20：`videos/glossary/` 七层文件齐全；`source.md` 与指定 `52-glossary.md` 通过字节一致性检查，12 个 Scene 在 Scene Script／Narration／Visual Script／Prototype 中对齐，必需字段、纯口播边界、画面文字归属、原型 HTML／JavaScript、控件／进度结构和范围保护检查通过，未发现 TTS、音频、字幕或 Timeline 文件。
+- 2026-08-20：`videos/troubleshooting/` 七层文件齐全；`source.md` 与指定 `51-troubleshooting.md` 通过字节一致性检查，12 个 Scene 在 Scene Script／Narration／Visual Script／Prototype 中对齐，必需字段、纯口播边界、画面文字归属、原型 HTML／JavaScript、控件／进度结构和范围保护检查通过，未发现 TTS、音频、字幕或 Timeline 文件。
+- 2026-08-20：`videos/anti-patterns/` 七层文件齐全；`source.md` 与指定 `50-anti-patterns.md` 通过字节一致性检查，11 个 Scene 在 Scene Script／Narration／Visual Script／Prototype 中对齐，必需字段、纯口播边界、画面文字归属、原型 HTML／JavaScript 和范围保护检查通过，未发现 TTS、音频、字幕或 Timeline 文件。
+- 2026-08-20：`videos/best-practices/` 七层文件齐全；`source.md` 与指定 `49-best-practices.md` 通过字节一致性检查，11 个 Scene 在 Scene Script／Narration／Visual Script／Prototype 中对齐，必需字段、纯口播边界、画面文字归属、原型 HTML／JavaScript 和范围保护检查通过，未发现 TTS、音频、字幕或 Timeline 文件。
+- 2026-08-20：`videos/capstone-project/` 七层文件齐全；`source.md` 与指定 `48-capstone-project.md` 通过字节一致性检查，12 个 Scene 在 Scene Script／Narration／Visual Script／Prototype 中对齐，必需字段、纯口播边界、画面文字归属、原型 HTML／JavaScript 和范围保护检查通过，未发现 TTS、音频、字幕或 Timeline 文件。
+- 2026-08-20：`videos/voice/` 七层文件齐全；`source.md` 与指定 `47-voice.md` 通过字节一致性检查，12 个 Scene 在 Scene Script／Narration／Visual Script／Prototype 中对齐，必需字段、纯口播边界、画面文字归属、原型 HTML／JavaScript、控件／进度结构和范围保护检查通过，未发现 TTS、音频、字幕或 Timeline 文件。

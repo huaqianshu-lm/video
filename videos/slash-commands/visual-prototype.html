@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>斜杠命令 · Visual Prototype</title>
+  <style>
+    :root{--bg:#07101d;--panel:#0f2034;--panel2:#142a45;--line:#2a4565;--text:#edf5ff;--muted:#91a8c4;--blue:#73c8ff;--purple:#b49aff;--green:#55e0a0;--yellow:#f4d77a;--red:#ff8790}
+    *{box-sizing:border-box}
+    body{margin:0;min-height:100vh;padding:28px 0;background:radial-gradient(circle at 50% 0,#152b49 0,#07101d 52%);color:var(--text);font-family:system-ui,-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif}
+    .shell{width:min(1440px,calc(100vw - 48px));margin:auto}
+    .top{display:flex;justify-content:space-between;align-items:flex-end;gap:20px;margin-bottom:16px}
+    .top h1{margin:0;font-size:22px}
+    .meta{color:var(--muted);font:12px ui-monospace,SFMono-Regular,Menlo,monospace;text-align:right}
+    .stage{position:relative;aspect-ratio:16/9;min-height:620px;overflow:hidden;border:1px solid var(--line);border-radius:18px;background:linear-gradient(135deg,#0c1c30,#091522);box-shadow:0 24px 70px #0006}
+    .scene{display:none;position:absolute;inset:0;padding:58px 66px 116px;overflow:auto}.scene.active{display:block}
+    .eyebrow{color:var(--blue);font:700 13px ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.04em}
+    .scene h2{margin:12px 0 0;font-size:clamp(28px,3.4vw,52px);line-height:1.16;letter-spacing:-.03em}
+    .caption{position:absolute;left:66px;right:66px;bottom:35px;padding:12px 16px;border-left:3px solid var(--blue);background:#071321ee;color:#cbdaf0;font-size:15px;line-height:1.45}
+    .muted{color:var(--muted)}.blue{color:var(--blue)}.purple{color:var(--purple)}.green{color:var(--green)}.yellow{color:var(--yellow)}.red{color:var(--red)}
+    .card,.terminal,.route-card,.compare-box,.file-card,.choice,.step,.menu,.namespace{border:1px solid var(--line);border-radius:14px;background:#0e1d31}
+    .card{padding:24px}.hero{display:grid;grid-template-columns:1fr 70px 1.2fr;align-items:center;gap:18px;margin-top:50px}
+    .arrow{color:var(--muted);font-size:40px;text-align:center}.big{font:800 50px ui-monospace,monospace;margin:30px 0 8px}
+    .badge{display:inline-block;padding:6px 10px;border:1px solid var(--line);border-radius:99px;color:var(--muted);font:700 12px ui-monospace,monospace}
+    .flow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:22px}.node{padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:#172d49;font-weight:800}.node.on{border-color:var(--green);color:var(--green);background:#12382f}
+    .split,.compare,.grid2,.grid3{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:40px}.grid3{grid-template-columns:repeat(3,1fr)}
+    .message{padding:18px 20px;border:1px solid var(--line);border-radius:12px;background:#091525;font:16px/1.6 ui-monospace,monospace}.message.hot{border-color:var(--green);box-shadow:0 0 0 1px #55e0a044}.message.dim{opacity:.68}
+    .route{display:grid;gap:12px}.route-card{padding:18px 20px}.route-card.active{border-color:var(--green)}.route-title{font-size:19px;font-weight:800}.route-detail{margin-top:8px;color:var(--muted);font:13px ui-monospace,monospace}
+    .menu{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding:18px;margin-top:32px}.menu-col{padding:14px;border-radius:10px;background:#132943}.menu-col strong{display:block;margin-bottom:10px;color:var(--blue);font-size:14px}.menu-col span{display:block;color:#cfe0f3;font:12px/1.8 ui-monospace,monospace}
+    .filter{margin:14px 0 0;padding:12px 14px;border:1px solid var(--purple);border-radius:10px;background:#272046;color:var(--purple);font:700 13px ui-monospace,monospace}
+    .mapping{display:grid;grid-template-columns:1.1fr 90px 1fr;align-items:center;gap:18px;margin-top:48px}
+    .file-card{padding:24px;font:18px ui-monospace,monospace}.file-card small{display:block;margin-top:14px;color:var(--muted);font:13px system-ui,sans-serif}.map-arrow{color:var(--purple);font-size:38px;text-align:center}.scope{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:18px}.scope div{padding:14px;border:1px solid var(--line);border-radius:10px;background:#132943;font:13px ui-monospace,monospace}.scope div:last-child{border-color:var(--purple)}.token-grid{display:grid;grid-template-columns:1.15fr 1fr;gap:18px;margin-top:38px}.code-card{padding:20px;border:1px solid var(--line);border-radius:13px;background:#091525;font:15px/1.9 ui-monospace,monospace}.replace{color:var(--green);background:#12382f;border-radius:7px;padding:3px 7px}.rails{display:grid;gap:10px}.rail{padding:13px 16px;border-left:4px solid var(--blue);border-radius:9px;background:#122640}.rail:nth-child(2){border-left-color:var(--purple)}.rail:nth-child(3){border-left-color:var(--yellow)}.rail code{font:13px ui-monospace,monospace}.pipe{display:grid;grid-template-columns:1fr 160px 1fr;align-items:center;gap:16px;margin-top:43px}.pipe-box{padding:18px;border:1px solid var(--line);border-radius:11px;background:#091525;font:13px/1.8 ui-monospace,monospace}.pipe-core{padding:28px 10px;text-align:center;border:1px solid var(--purple);border-radius:12px;background:#272046;color:var(--purple);font-weight:800}.namespace{display:grid;gap:12px;margin-top:38px;padding:22px}.namespace-row{display:grid;grid-template-columns:190px 1fr;gap:14px;align-items:center;padding:13px 15px;border-radius:9px;background:#132943;font:13px ui-monospace,monospace}.namespace-row strong{color:var(--blue)}.choice{padding:23px;min-height:225px}.choice h3{margin:12px 0;font-size:22px}.choice p{color:var(--muted);line-height:1.7}.choice.skill{border-color:var(--purple)}.steps{display:grid;gap:10px;margin-top:34px}.step{display:grid;grid-template-columns:42px 1fr 150px;gap:12px;align-items:center;padding:13px 16px;font:13px ui-monospace,monospace}.step-no{width:29px;height:29px;display:grid;place-items:center;border-radius:50%;background:#1d4260;color:var(--blue);font-weight:800}.step.done{border-color:var(--green)}.step.done .step-no{background:#18533f;color:var(--green)}.step-state{text-align:right;color:var(--green)}.summary{display:flex;justify-content:center;align-items:center;gap:10px;flex-wrap:wrap;margin-top:48px;padding:24px}.preview{max-width:760px;margin:22px auto 0;padding:20px 24px;border:1px solid var(--purple);border-radius:14px;background:linear-gradient(135deg,#2b2347,#172742);text-align:center}.preview strong{display:block;margin-top:8px;color:var(--purple);font-size:25px}.controls{display:flex;justify-content:center;gap:10px;margin:16px 0 9px}.controls button{cursor:pointer;border:1px solid #456088;border-radius:8px;background:#111d32;color:#d9e5f7;padding:9px 14px;font-size:14px}.controls button:hover{border-color:var(--blue);color:#fff}.progress{display:flex;justify-content:center;gap:7px;margin:12px 0 17px}.pill{width:31px;height:5px;border-radius:99px;background:#263753}.pill.on{background:var(--blue);box-shadow:0 0 10px #73c8ff88}.note{margin:0 auto;color:var(--muted);font-size:13px;line-height:1.7;text-align:center}
+    @media(max-width:900px){body{padding:12px 0}.shell{width:calc(100vw - 24px)}.top{display:block}.meta{text-align:left;margin-top:7px}.stage{aspect-ratio:auto;min-height:700px}.scene{padding:28px 28px 105px;overflow:auto}.scene h2{font-size:31px}.caption{left:28px;right:28px;bottom:30px}.hero,.split,.compare,.grid2,.grid3,.token-grid,.mapping,.pipe{grid-template-columns:1fr;display:grid}.hero{height:auto;margin-top:35px}.arrow,.map-arrow{transform:rotate(90deg)}.menu{grid-template-columns:1fr 1fr}.scope{grid-template-columns:1fr}.namespace-row{grid-template-columns:1fr}.step{grid-template-columns:35px 1fr}.step-state{grid-column:2;text-align:left}}
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="top">
+      <h1>Claude Code · 斜杠命令</h1>
+      <div class="meta">Visual Prototype · 1920 × 1080 · 16:9<br>slash-commands · 11 Scenes</div>
+    </header>
+    <section class="stage">
+      <section class="scene active">
+        <div class="eyebrow">Scene 01 · Opening</div><h2>三字符替代重启</h2>
+        <div class="hero"><div class="card"><div class="badge">旧路径</div><div class="big red">Ctrl+C</div><div class="muted">重新启动 · 重新加载项目</div></div><div class="arrow">→</div><div class="card"><div class="badge green">会话内控制</div><div class="big green">/clear</div><div class="muted">空上下文 · 旧对话可 /resume</div></div></div>
+        <div class="caption">想清空上下文，不必退出 claude；斜杠命令把重启链路缩成三个字符</div>
+      </section>
+      <section class="scene">
+        <div class="eyebrow">Scene 02 · Control Panel</div><h2>/ 不是普通提示，是控制面板</h2>
+        <div class="split"><div class="card"><div class="badge">普通任务</div><div class="message" style="margin-top:18px">帮我重构这个函数</div><div class="muted" style="margin-top:15px">→ 说给模型听</div></div><div class="card"><div class="badge green">程序控制</div><div class="flow"><span class="node on">/clear</span><span class="node">/model</span><span class="node">/init</span></div><div class="muted" style="margin-top:15px">→ 调整 Claude Code 本身</div></div></div>
+        <div class="caption">普通任务是派活；斜杠命令是直接控制 Claude Code 的按钮</div>
+      </section>
+      <section class="scene">
+        <div class="eyebrow">Scene 03 · Recognition Boundary</div><h2>/clear 放哪儿，结果完全不同</h2>
+        <div class="compare"><div class="card"><div class="badge green">消息开头 · 执行</div><div class="message hot" style="margin-top:18px">/clear</div><div class="line green" style="margin-top:18px">空上下文已打开</div></div><div class="card"><div class="badge">句中 · 普通文字</div><div class="message dim" style="margin-top:18px">帮我解释 /clear 是什么</div><div class="line muted" style="margin-top:18px">不会触发命令</div></div></div>
+        <div class="caption">命令只在消息第一个字符开始时识别，后面的文本才作为参数</div>
+      </section>
+      <section class="scene">
+        <div class="eyebrow">Scene 04 · Built-in Commands</div><h2>按你正在做什么查命令</h2>
+        <div class="menu"><div class="menu-col"><strong>进入项目</strong><span>/init</span><span>/memory</span><span>/mcp</span><span>/agents</span><span>/permissions</span></div><div class="menu-col"><strong>干活中</strong><span>/model</span><span>/clear</span><span>/compact</span><span>/context</span><span>/plan</span></div><div class="menu-col"><strong>交付前</strong><span>/diff</span><span>/review</span><span>/security-review</span><span>/code-review</span></div><div class="menu-col"><strong>杂项与恢复</strong><span>/help</span><span>/config</span><span>/doctor</span><span>/resume</span><span>/rewind</span></div></div>
+        <div class="filter">输入 /re → 当前环境里的可用命令实时筛选</div><div class="caption">不用背完整清单；你打出的 / 菜单才是这台机器此刻的真实全集</div>
+      </section>
+      <section class="scene">
+        <div class="eyebrow">Scene 05 · Custom Command</div><h2>一个 markdown，变成一个 /review</h2>
+        <div class="mapping"><div><div class="file-card"><span class="blue">.claude/commands/review.md</span><small>重复提示 · 审查规则</small></div><div class="scope"><div><span class="green">项目级</span><br>团队共享 · 进入版本库</div><div><span class="purple">个人级</span><br>~/.claude/commands/ · 跨项目</div></div></div><div class="map-arrow">→</div><div class="file-card" style="border-color:var(--green)"><span class="green">/review</span><small>文件名去掉 .md，就是命令名</small></div></div>
+        <div class="caption">把反复手打的提示录成一个快捷动作，项目流程和个人习惯各有自己的位置</div>
+      </section>
+      <section class="scene">
+        <div class="eyebrow">Scene 06 · Arguments + Frontmatter</div><h2>参数与 frontmatter 给命令加边界</h2>
+        <div class="token-grid"><div class="code-card"><span class="muted">/fix-issue 123</span><br><span class="blue">$ARGUMENTS</span> <span class="muted">→</span> <span class="replace">123</span><br><br><span class="muted">/migrate-component SearchBar React Vue</span><br><span class="blue">$0</span> <span class="replace">SearchBar</span><br><span class="blue">$1</span> <span class="replace">React</span><br><span class="blue">$2</span> <span class="replace">Vue</span></div><div class="rails"><div class="rail"><code>description</code><br><span class="muted">说明命令做什么</span></div><div class="rail"><code>disable-model-invocation: true</code><br><span class="muted">只许手动喊</span></div><div class="rail"><code>allowed-tools</code><br><span class="muted">限制活动时的工具范围</span></div></div></div>
+        <div class="caption">同一个模板可以接不同输入；frontmatter 让自动触发和工具范围保持可控</div>
+      </section>
+      <section class="scene">
+        <div class="eyebrow">Scene 07 · Dynamic Context</div><h2>让 /review 自带当前 git diff</h2>
+        <div class="pipe"><div class="pipe-box"><span class="blue">review.md</span><br><span class="yellow">! + git diff HEAD</span><br><span class="muted">发送前占位行</span></div><div class="pipe-core">预处理<br><small>输出替换</small></div><div class="pipe-box"><span class="green">Claude 收到</span><br><span class="green">真实 diff</span><br><span class="muted">完整审查提示</span></div></div>
+        <div class="filter" style="border-color:var(--yellow);color:var(--yellow);background:#332a18">团队边界 · disableSkillShellExecution 可禁用 shell 执行</div><div class="caption">不是让 Claude 再去找现场，而是在提示发送前先把现场数据填进去</div>
+      </section>
+      <section class="scene">
+        <div class="eyebrow">Scene 08 · Namespaces</div><h2>同名不一定冲突：看命令来自哪里</h2>
+        <div class="namespace"><div class="namespace-row"><strong>同名选择</strong><span>Skill &gt; command</span></div><div class="namespace-row"><strong>插件命令</strong><span class="purple">plugin-name:skill-name</span></div><div class="namespace-row"><strong>MCP server</strong><span class="yellow">/mcp__server__prompt</span></div></div>
+        <div class="caption">Skill 有优先级，插件和 MCP 用前缀标记来源；认出名字就不容易混</div>
+      </section>
+      <section class="scene">
+        <div class="eyebrow">Scene 09 · Command vs Skill</div><h2>一段提示用 command，需要配套能力就用 Skill</h2>
+        <div class="grid2"><div class="choice"><div class="badge">轻量入口</div><h3>.claude/commands/xx.md</h3><p>一段提示<br>纯手动调用<br>最省事</p></div><div class="choice skill"><div class="badge" style="border-color:var(--purple);color:var(--purple)">完整能力</div><h3>.claude/skills/xx/</h3><p>模板、脚本、长文档<br>自动触发<br>渐进式披露</p></div></div>
+        <div class="caption">斜杠命令是调用方式；需要更多配套能力时，把它升级成 Skill</div>
+      </section>
+      <section class="scene">
+        <div class="eyebrow">Scene 10 · Practice · /explain</div><h2>五分钟刻出 /explain</h2>
+        <div class="steps"><div class="step done"><span class="step-no">1</span><span>mkdir -p .claude/commands</span><span class="step-state">目录完成</span></div><div class="step done"><span class="step-no">2</span><span>写入 explain.md · $ARGUMENTS</span><span class="step-state">模板完成</span></div><div class="step done"><span class="step-no">3</span><span>启动 Claude · 打开 / 菜单</span><span class="step-state">看到 /explain</span></div><div class="step done"><span class="step-no">4</span><span>/explain print(sum([1,2,3]) / len([1,2,3]))</span><span class="step-state">解释平均值</span></div><div class="step"><span class="step-no">5</span><span>/explain ZeroDivisionError: division by zero</span><span class="step-state">解释原因</span></div></div>
+        <div class="caption">同一个文件、同一个命令，换参数就能换任务；五步完成可验证闭环</div>
+      </section>
+      <section class="scene">
+        <div class="eyebrow">Scene 11 · Summary + Preview</div><h2>把重复提示变成工作流入口</h2>
+        <div class="summary"><span class="node">/ 菜单</span><span class="arrow" style="font-size:25px">→</span><span class="node">markdown</span><span class="arrow" style="font-size:25px">→</span><span class="node">参数</span><span class="arrow" style="font-size:25px">→</span><span class="node on">现场数据</span><span class="arrow" style="font-size:25px">→</span><span class="node">工作流</span></div>
+        <div class="preview"><div class="muted">下一篇 · 37</div><strong>检查点</strong><div class="purple" style="margin-top:9px;font:14px ui-monospace,monospace">/rewind · 代码和对话一起倒带</div></div>
+        <div class="caption">把 / 当成控制面板，把重复提示刻成自己的工作流入口</div>
+      </section>
+    </section>
+    <div class="controls"><button onclick="prevScene()">上一幕</button><button onclick="nextScene()">下一幕</button><button onclick="toggleAuto()" id="autoBtn">自动播放</button></div>
+    <div class="progress" id="progress"></div>
+    <p class="note">本原型只用于检查横屏构图、信息密度、视觉事件和状态变化；上一幕／下一幕／自动播放／进度提示不属于正式视频画面。</p>
+  </main>
+  <script>
+    const scenes=[...document.querySelectorAll('.scene')];
+    let index=0;
+    let timer=null;
+    const progress=document.getElementById('progress');
+    scenes.forEach((_,i)=>{const pill=document.createElement('span');pill.className='pill';pill.onclick=()=>show(i);progress.appendChild(pill)});
+    function renderProgress(){[...progress.children].forEach((pill,i)=>pill.classList.toggle('on',i===index));}
+    function show(next){index=(next+scenes.length)%scenes.length;scenes.forEach((scene,i)=>scene.classList.toggle('active',i===index));renderProgress();}
+    function nextScene(){show(index+1)}
+    function prevScene(){show(index-1)}
+    function toggleAuto(){const btn=document.getElementById('autoBtn');if(timer){clearInterval(timer);timer=null;btn.textContent='自动播放'}else{timer=setInterval(nextScene,5000);btn.textContent='停止播放'}}
+    renderProgress();
+    document.addEventListener('keydown',event=>{if(event.key==='ArrowRight')nextScene();if(event.key==='ArrowLeft')prevScene()});
+  </script>
+</body>
+</html>

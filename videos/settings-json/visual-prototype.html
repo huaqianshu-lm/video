@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>settings.json：用户级 / 项目级配置 · Visual Prototype</title>
+  <style>
+    :root{--bg:#080d18;--panel:#101a2b;--panel2:#14233b;--line:#2b3d5c;--text:#eef4ff;--muted:#9cadc6;--blue:#73c8ff;--purple:#c39aff;--green:#72e1aa;--yellow:#f4cf72;--red:#fb8989}
+    *{box-sizing:border-box}
+    body{margin:0;background:radial-gradient(circle at 50% -20%,#1b3150 0,#080d18 58%);color:var(--text);font-family:Inter,"PingFang SC","Microsoft YaHei",sans-serif}
+    .shell{width:min(1500px,calc(100vw - 48px));margin:0 auto;padding:32px 0 28px}
+    .top{display:flex;justify-content:space-between;align-items:end;margin-bottom:20px}.eyebrow,.badge{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--blue);font-weight:800}
+    h1{font-size:clamp(28px,3vw,50px);line-height:1.08;margin:8px 0 0}.meta{text-align:right;color:var(--muted);font-size:13px;line-height:1.7}
+    .stage{position:relative;aspect-ratio:16/9;min-height:650px;overflow:hidden;border:1px solid var(--line);border-radius:18px;background:#0b1424;box-shadow:0 28px 80px #0009}
+    .scene{display:none;position:absolute;inset:0;padding:44px 58px 104px}.scene.active{display:block}
+    h2{font-size:clamp(25px,2.7vw,44px);line-height:1.15;margin:12px 0 0;max-width:1000px}.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+    .muted{color:var(--muted)}.blue{color:var(--blue)}.purple{color:var(--purple)}.green{color:var(--green)}.yellow{color:var(--yellow)}.red{color:var(--red)}
+    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:30px}.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:26px}
+    .card,.window,.stack,.table,.timeline,.drawer,.diagnostic,.verify,.hero-card{border:1px solid var(--line);border-radius:14px;background:linear-gradient(145deg,#14233a,#0e182a);box-shadow:0 12px 32px #0003}
+    .card{padding:18px}.window{overflow:hidden}.bar{height:30px;display:flex;gap:7px;align-items:center;padding:0 13px;border-bottom:1px solid var(--line);background:#0d1728}.dot{width:8px;height:8px;border-radius:50%;background:#526984}.content{padding:18px;line-height:1.8}
+    .hero{display:flex;align-items:center;justify-content:center;gap:22px;height:360px}.hero-card{padding:28px 34px;text-align:center;min-width:300px}.hero-card code{display:block;font-size:23px;color:var(--yellow);margin:14px 0}.status{display:inline-block;padding:8px 14px;border-radius:99px;border:1px solid var(--red);color:var(--red);background:#321d2b}.status.ok{border-color:var(--green);color:var(--green);background:#123126}.arrow{color:var(--muted);font-size:28px}.big{font-size:34px;font-weight:800}
+    .switch{display:flex;gap:10px;align-items:center;padding:12px;margin-top:10px;border-radius:9px;background:#102035;border-left:3px solid var(--blue)}.switch::before{content:"◉";color:var(--green)}
+    .floors{display:grid;gap:12px;margin-top:28px}.floor{display:grid;grid-template-columns:150px 1fr 180px;gap:14px;align-items:center;padding:15px 18px;border:1px solid var(--line);border-radius:12px;background:#102035}.floor.user{border-left:4px solid var(--blue)}.floor.project{border-left:4px solid var(--purple)}.floor.local{border-left:4px solid var(--yellow)}
+    .scope{font-size:20px;font-weight:800}.tag{justify-self:end;padding:7px 10px;border-radius:8px;background:#1a2a44;color:var(--muted);font-size:13px}.tag.green{background:#123126}
+    .priority{display:flex;flex-direction:column;gap:8px;margin-top:24px}.level{display:flex;justify-content:space-between;align-items:center;padding:12px 18px;border:1px solid var(--line);background:#102035;border-radius:10px}.level:nth-child(1){border-color:var(--red)}.level:nth-child(2){border-color:var(--yellow)}.level:nth-child(3){border-color:var(--blue)}.level:nth-child(4){border-color:var(--purple)}
+    .merge{display:grid;grid-template-columns:1fr 100px 1fr;gap:18px;align-items:center;margin-top:34px}.merge .stack{padding:18px}.rule{padding:11px 13px;margin-top:10px;border-radius:8px;background:#102035;font-family:ui-monospace,monospace;font-size:14px}.rule.allow{border-left:3px solid var(--green)}.merge-result{padding:22px;border:1px solid var(--green);border-radius:14px;background:#123126}.merge-result .rule{border-left:3px solid var(--green)}
+    .field-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:28px}.field{padding:14px 11px;min-height:150px;border:1px solid var(--line);border-radius:12px;background:#102035}.field strong{display:block;font-family:ui-monospace,monospace;color:var(--blue);font-size:17px;margin-bottom:10px}.field small{display:block;color:var(--muted);line-height:1.5}.schema{margin-top:20px;padding:12px 16px;border:1px solid var(--green);border-radius:10px;background:#123126;text-align:center;color:var(--green)}
+    .drawers{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:28px}.drawer{padding:20px;min-height:250px}.drawer h3{margin:0 0 12px}.drawer .item{padding:10px 12px;margin-top:8px;border-radius:8px;background:#102035;font-family:ui-monospace,monospace;font-size:13px}.config-panel{margin-top:18px;padding:14px;border:1px dashed var(--yellow);border-radius:10px;color:var(--yellow);text-align:center}
+    .timeline{position:relative;padding:24px;margin-top:28px}.timeline::before{content:"";position:absolute;left:44px;right:44px;top:78px;height:3px;background:linear-gradient(90deg,var(--blue),var(--purple),var(--green))}.events{position:relative;display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.event{text-align:center}.event .dotx{width:16px;height:16px;margin:30px auto 16px;border-radius:50%;background:var(--blue);box-shadow:0 0 16px #73c8ff99}.event:nth-child(2) .dotx{background:var(--green)}.event:nth-child(3) .dotx{background:var(--yellow)}.event:nth-child(4) .dotx{background:var(--purple)}.event b{display:block}.event small{display:block;margin-top:6px;color:var(--muted);line-height:1.45}
+    .diagnostic{overflow:hidden;margin-top:26px}.diag-head,.diag-row{display:grid;grid-template-columns:1.25fr 1fr 1.35fr;gap:12px;align-items:center;padding:12px 16px}.diag-head{background:#172a43;color:var(--muted);font-size:13px}.diag-row{border-top:1px solid #22344e;font-size:13px}.diag-row.active{background:#17352e;border-left:3px solid var(--green)}.diag-row code{color:var(--yellow)}
+    .practice{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-top:26px}.practice .card{min-height:260px}.file{padding:9px 11px;margin-top:8px;border-radius:8px;background:#102035;font-size:13px}.check{margin-top:12px;padding:11px;border-left:3px solid var(--green);background:#123126;border-radius:8px;font-family:ui-monospace,monospace;font-size:13px}
+    .summary{display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;margin-top:48px}.node{padding:13px 15px;border:1px solid var(--line);border-radius:10px;background:#14233b;color:#dce8f9;font-size:14px}.node.on{border-color:var(--green);color:var(--green)}.preview{max-width:760px;margin:38px auto 0;padding:22px 26px;border:1px solid var(--purple);border-radius:14px;background:linear-gradient(135deg,#2a2142,#17243d);text-align:center}.preview strong{display:block;font-size:24px;line-height:1.35;color:var(--purple);margin-top:8px}
+    .caption{position:absolute;left:58px;right:58px;bottom:40px;padding:10px 14px;border-left:3px solid var(--blue);background:#0c1729ed;color:#cbdaf0;font-size:14px}.controls{display:flex;justify-content:center;gap:10px;margin:16px 0 9px}.controls button{cursor:pointer;border:1px solid #456088;border-radius:8px;background:#111d32;color:#d9e5f7;padding:9px 14px;font-size:14px}.controls button:hover{border-color:var(--blue);color:#fff}.progress{display:flex;justify-content:center;gap:7px;margin:12px 0 17px;flex-wrap:wrap}.pill{width:38px;height:5px;border-radius:99px;background:#263753}.pill.on{background:var(--blue);box-shadow:0 0 10px #73c8ff88}.note{color:var(--muted);font-size:13px;line-height:1.7;text-align:center;margin:0 auto;max-width:980px}
+    @media(max-width:900px){.shell{width:calc(100vw - 24px);padding-top:18px}.top{display:block}.meta{text-align:left;margin-top:7px}.stage{min-height:650px}.scene{padding:28px 28px 96px}.caption{left:28px;right:28px}.grid2,.grid3,.merge,.drawers,.practice{grid-template-columns:1fr}.field-grid{grid-template-columns:repeat(2,1fr)}.floor{grid-template-columns:1fr}.tag{justify-self:start}.diag-head,.diag-row{grid-template-columns:1fr}.events{grid-template-columns:repeat(2,1fr)}.timeline::before{display:none}}
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="top">
+      <div><div class="eyebrow">settings-json · 11 Scenes</div><h1>settings.json：用户级 / 项目级配置</h1></div>
+      <div class="meta">16:9 横屏 · 1920 × 1080<br>Visual Prototype</div>
+    </header>
+
+    <div class="stage">
+      <section class="scene active">
+        <div class="eyebrow">Scene 01 · Scope Bug</div><h2>写对了，为什么还是没生效</h2>
+        <div class="hero"><div class="hero-card"><div class="badge">Project settings</div><code>defaultMode: "auto"</code><span class="status">ignored</span></div><div class="arrow">→</div><div class="hero-card"><div class="badge blue">User settings</div><code>defaultMode: "auto"</code><span class="status ok">active</span></div></div>
+        <div class="caption">问题可能不在语法，而在配置写错了楼层</div>
+      </section>
+
+      <section class="scene"><div class="eyebrow">Scene 02 · File Roles</div><h2>CLAUDE.md 和 settings.json，各管一套</h2>
+        <div class="grid2"><div class="window"><div class="bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div><div class="content"><div class="badge blue">CLAUDE.md</div><h3>自然语言规矩</h3><div class="switch">项目约定</div><div class="switch">工作方式</div><div class="switch">给 Claude 的背景</div></div></div><div class="window"><div class="bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div><div class="content"><div class="badge purple">settings.json</div><h3>机器行为开关</h3><div class="switch">permissions</div><div class="switch">model</div><div class="switch">hooks · statusLine</div></div></div></div>
+        <div class="caption">一个管“记住什么”，一个管“怎么干活”</div>
+      </section>
+
+      <section class="scene"><div class="eyebrow">Scene 03 · Three Scopes</div><h2>三个楼层，跟着谁走</h2>
+        <div class="floors"><div class="floor user"><div class="scope blue">User</div><code>~/.claude/settings.json</code><span class="tag">所有项目</span></div><div class="floor project"><div class="scope purple">Project</div><code>.claude/settings.json</code><span class="tag">团队共享 · 进 git</span></div><div class="floor local"><div class="scope yellow">Local</div><code>.claude/settings.local.json</code><span class="tag green">自动 gitignored</span></div></div>
+        <div class="caption">判断口诀：这条配置应该跟着我走，还是跟着项目走？</div>
+      </section>
+
+      <section class="scene"><div class="eyebrow">Scene 04 · Priority Stack</div><h2>谁压谁：单值的优先级堆栈</h2>
+        <div class="priority"><div class="level"><b class="red">Managed</b><span>企业 IT 强制策略</span></div><div class="level"><b class="yellow">CLI</b><span>当前会话临时参数</span></div><div class="level"><b class="blue">Local</b><span>当前仓库的私人覆盖</span></div><div class="level"><b class="purple">Project</b><span>团队共享设置</span></div><div class="level"><b class="muted">User</b><span>全局默认 · 兜底</span></div></div>
+        <div class="caption">单值规则：Managed → CLI → Local → Project → User，从高到低覆盖</div>
+      </section>
+
+      <section class="scene"><div class="eyebrow">Scene 05 · Array Merge</div><h2>数组不是覆盖，而是合并</h2>
+        <div class="merge"><div class="stack"><div class="badge blue">User allow</div><div class="rule allow">Bash(npm run *)</div></div><div class="arrow">＋</div><div class="stack"><div class="badge purple">Project allow</div><div class="rule allow">Bash(git diff *)</div></div></div>
+        <div class="merge-result" style="margin-top:22px"><div class="badge green">连接 + 去重</div><div class="rule">Bash(npm run *)</div><div class="rule">Bash(git diff *)</div></div>
+        <div class="caption">单值看覆盖；permissions.allow / deny 看跨层合并</div>
+      </section>
+
+      <section class="scene"><div class="eyebrow">Scene 06 · Common Fields</div><h2>五个高频字段，放回正确楼层</h2>
+        <div class="field-grid"><div class="field"><strong>model</strong><small>默认模型<br><span class="blue">个人 → User</span></small></div><div class="field"><strong>permissions</strong><small>工具和命令准入<br><span class="purple">团队底线 → Project</span></small></div><div class="field"><strong>env</strong><small>会话与子进程变量<br>全局／项目专属</small></div><div class="field"><strong>hooks</strong><small>固定时机自动动作<br>团队卡点 → Project</small></div><div class="field"><strong>statusLine</strong><small>底部状态栏<br><span class="blue">个人偏好 → User</span></small></div></div>
+        <div class="schema">✓ $schema · 编辑器自动补全与内联校验</div><div class="caption">字段用途先分清，再判断它该跟着谁走</div>
+      </section>
+
+      <section class="scene"><div class="eyebrow">Scene 07 · File Boundary</div><h2>settings.json 不是唯一的配置文件</h2>
+        <div class="drawers"><div class="drawer"><div class="badge purple">settings.json</div><h3>行为开关</h3><div class="item">permissions · model</div><div class="item">env · hooks · statusLine</div></div><div class="drawer"><div class="badge yellow">~/.claude.json</div><h3>幕后数据</h3><div class="item">autoConnectIde</div><div class="item">teammateDefaultModel</div><div class="item">会话 · MCP · 信任 · 缓存</div></div></div>
+        <div class="config-panel">/config · 少数固定开关，不是完整 settings.json 视图</div><div class="caption">字段死活写不进来时，先检查它是不是属于另一个文件</div>
+      </section>
+
+      <section class="scene"><div class="eyebrow">Scene 08 · Verify Loading</div><h2>改完什么时候生效，用什么确认</h2>
+        <div class="timeline"><div class="events"><div class="event"><b>保存文件</b><div class="dotx"></div><small>设置发生变化</small></div><div class="event"><b class="green">热加载</b><div class="dotx"></div><small>permissions · hooks</small></div><div class="event"><b class="yellow">重启／/model</b><div class="dotx"></div><small>model</small></div><div class="event"><b class="purple">/status</b><div class="dotx"></div><small>Setting sources</small></div></div></div>
+        <div class="card" style="margin-top:18px;text-align:center"><span class="yellow">outputStyle</span><span class="muted">　重启或 /clear 后重建</span></div><div class="caption">保存只是起点，最后要在 Setting sources 里确认会话真的读到了</div>
+      </section>
+
+      <section class="scene"><div class="eyebrow">Scene 09 · Diagnosis</div><h2>不生效时，先查哪一格</h2>
+        <div class="diagnostic"><div class="diag-head"><span>现象</span><span>不要先怀疑</span><span>先查什么</span></div><div class="diag-row active"><span>改完完全没反应</span><span>字段名</span><code>/status · Setting sources</code></div><div class="diag-row"><span>model 改了不变</span><span>JSON 坏了</span><code>重启或 /model</code></div><div class="diag-row"><span>defaultMode: "auto"</span><span>拼写错误</span><code>User 层</code></div><div class="diag-row"><span>写了 deny 仍能跑</span><span>deny 失效</span><code>跨层 allow 合并</code></div><div class="diag-row"><span>字段写不进 settings.json</span><span>语法错误</span><code>~/.claude.json</code></div></div>
+        <div class="caption">配置不生效，先查层级、合并、生效时机和文件边界</div>
+      </section>
+
+      <section class="scene"><div class="eyebrow">Scene 10 · Practice Loop</div><h2>两层配置，跑通一次验证闭环</h2>
+        <div class="practice"><div class="card"><div class="badge blue">1 · Project</div><h3>settings-demo</h3><div class="file">.claude/settings.json</div><div class="check">allow · npm run test *</div><div class="check" style="border-color:var(--red);background:#321d2b">deny · curl *</div></div><div class="card"><div class="badge yellow">2 · Local</div><h3>私人覆盖</h3><div class="file">.claude/settings.local.json</div><div class="check">allow · git status *</div><div class="file muted">git status --short<br>本地级文件被忽略</div></div><div class="card"><div class="badge green">3 · Verify</div><h3>会话内确认</h3><div class="check">/status<br><span class="muted">Setting sources</span></div><div class="check">/permissions<br><span class="muted">三条规则同时存在</span></div></div></div>
+        <div class="caption">展示写入、忽略、加载和合并的链路；源文命令仅作为教程文字，不在原型中执行</div>
+      </section>
+
+      <section class="scene"><div class="eyebrow">Scene 11 · Summary + Preview</div><h2>分层配置，下一篇见</h2>
+        <div class="summary"><span class="node">CLAUDE.md<br><small>vs settings.json</small></span><span class="arrow">→</span><span class="node">用户 / 项目 / 本地</span><span class="arrow">→</span><span class="node">单值覆盖</span><span class="arrow">→</span><span class="node">数组合并</span><span class="arrow">→</span><span class="node on">/status</span></div>
+        <div class="preview"><div class="muted">下一篇</div><strong>32「输出样式（Output Styles）」</strong></div>
+        <div class="caption">写对楼层，看懂合并，最后用 /status 确认；下一篇进入 Output Styles</div>
+      </section>
+    </div>
+
+    <div class="controls"><button onclick="prevScene()">上一幕</button><button onclick="nextScene()">下一幕</button><button onclick="toggleAuto()" id="autoBtn">自动播放</button></div>
+    <div class="progress" id="progress"></div>
+    <p class="note">11 个 Scene · 16:9 横屏原型。用于检查作用域、优先级、数组合并、文件边界、验证流程和预告停留；不包含 TTS、音频、字幕时间轴、Remotion 或渲染逻辑。</p>
+  </main>
+  <script>
+    const scenes=[...document.querySelectorAll('.scene')];let index=0,timer=null;const progress=document.getElementById('progress');
+    function renderProgress(){progress.innerHTML=scenes.map((_,i)=>'<div class="pill '+(i===index?'on':'')+'" title="Scene '+(i+1)+'"></div>').join('')}
+    function show(i){scenes[index].classList.remove('active');index=(i+scenes.length)%scenes.length;scenes[index].classList.add('active');renderProgress()}
+    function nextScene(){show(index+1)}function prevScene(){show(index-1)}
+    function toggleAuto(){const btn=document.getElementById('autoBtn');if(timer){clearInterval(timer);timer=null;btn.textContent='自动播放'}else{timer=setInterval(nextScene,4600);btn.textContent='停止播放'}}
+    renderProgress();document.addEventListener('keydown',event=>{if(event.key==='ArrowRight')nextScene();if(event.key==='ArrowLeft')prevScene()});
+  </script>
+</body>
+</html>

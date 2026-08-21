@@ -16,6 +16,7 @@ const getRoleCards = (scene: SummarySceneConfig): VisualBeat[] => {
 export const SummaryScene = ({scene}: SummarySceneProps) => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
+  const compactLayout = scene.compactLayout === true;
   const summaryStartFrame = Math.round(scene.durationSeconds * fps * 0.12);
   const summaryEndFrame = summaryStartFrame + Math.round(fps * 0.7);
   const roleCards = getRoleCards(scene);
@@ -54,7 +55,8 @@ export const SummaryScene = ({scene}: SummarySceneProps) => {
             display: 'flex',
             flexDirection: 'column',
             height: '100%',
-            justifyContent: 'center',
+            justifyContent: compactLayout ? 'flex-start' : 'center',
+            position: 'relative',
             textAlign: 'center',
           }}
         >
@@ -64,7 +66,7 @@ export const SummaryScene = ({scene}: SummarySceneProps) => {
               fontSize: 34,
               fontWeight: 800,
               letterSpacing: 7,
-              marginBottom: 28,
+              marginBottom: compactLayout ? 18 : 28,
               transform: 'translateY(28px)',
               opacity: interpolate(frame, [0, 18], [0, 1], {
                 extrapolateLeft: 'clamp',
@@ -95,8 +97,8 @@ export const SummaryScene = ({scene}: SummarySceneProps) => {
             style={{
               display: 'grid',
               gap: 18,
-              gridTemplateColumns: '1fr 1fr 1fr',
-              margin: '58px auto 0',
+              gridTemplateColumns: compactLayout ? 'repeat(4, minmax(0, 1fr))' : '1fr 1fr 1fr',
+              margin: compactLayout ? '36px auto 0' : '58px auto 0',
               opacity: summaryCardsOpacity,
               width: '100%',
             }}
@@ -114,9 +116,9 @@ export const SummaryScene = ({scene}: SummarySceneProps) => {
                   key={card.title}
                   active={isHighlighted}
                   style={{
-                    minHeight: 310,
+                    minHeight: compactLayout ? 230 : 310,
                     opacity,
-                    padding: '26px 22px',
+                    padding: compactLayout ? '22px 18px' : '26px 22px',
                     textAlign: 'left',
                     transform: `translateY(${(1 - opacity) * 20}px)`,
                   }}
@@ -125,10 +127,10 @@ export const SummaryScene = ({scene}: SummarySceneProps) => {
                   <div
                     style={{
                       color: isHighlighted ? colors.accent : colors.text,
-                      fontSize: 28,
+                      fontSize: compactLayout ? 25 : 28,
                       fontWeight: 850,
                       lineHeight: 1.25,
-                      marginTop: 20,
+                      marginTop: compactLayout ? 14 : 20,
                     }}
                   >
                     {card.title}
@@ -137,17 +139,17 @@ export const SummaryScene = ({scene}: SummarySceneProps) => {
                     <div
                       style={{
                         color: colors.muted,
-                        fontSize: 21,
+                        fontSize: compactLayout ? 19 : 21,
                         fontWeight: 620,
                         lineHeight: 1.38,
-                        marginTop: 14,
+                        marginTop: compactLayout ? 10 : 14,
                       }}
                     >
                       {card.description}
                     </div>
                   ) : null}
                   {card.items ? (
-                    <div style={{display: 'flex', flexDirection: 'column', gap: 10, marginTop: 22}}>
+                    <div style={{display: 'flex', flexDirection: 'column', gap: 10, marginTop: compactLayout ? 16 : 22}}>
                       {card.items.map((item) => (
                         <div
                           key={item}
@@ -155,7 +157,7 @@ export const SummaryScene = ({scene}: SummarySceneProps) => {
                             alignItems: 'center',
                             color: isHighlighted ? colors.text : colors.muted,
                             display: 'flex',
-                            fontSize: 20,
+                            fontSize: compactLayout ? 18 : 20,
                             fontWeight: 700,
                             gap: 9,
                           }}
@@ -175,7 +177,9 @@ export const SummaryScene = ({scene}: SummarySceneProps) => {
               active
               style={{
                 alignSelf: 'center',
-                marginTop: 28,
+                ...(compactLayout
+                  ? {left: 0, position: 'absolute', right: 0, top: 250}
+                  : {marginTop: 28}),
                 maxWidth: 1080,
                 opacity: teaserOpacity,
                 padding: '30px 42px',

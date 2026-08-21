@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Project Init · Visual Prototype</title>
+<style>
+:root{--bg:#09101f;--panel:#111b31;--panel2:#16233d;--text:#eef3ff;--muted:#9caaca;--line:#2b3b60;--accent:#91a8ff;--green:#65d6a0;--yellow:#f2c56c;--red:#ff7d89}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(circle at 15% 10%,rgba(145,168,255,.14),transparent 34%),radial-gradient(circle at 85% 85%,rgba(101,214,160,.08),transparent 32%),var(--bg);color:var(--text);font-family:Inter,"PingFang SC","Microsoft YaHei",sans-serif}
+.shell{width:min(1220px,96vw);margin:28px auto 56px}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:16px}
+.topbar h1{font-size:20px;margin:0;font-weight:750}
+.controls{display:flex;gap:8px;flex-wrap:wrap}
+button{border:1px solid var(--line);border-radius:9px;background:#121d34;color:var(--text);padding:9px 13px;cursor:pointer}
+button:hover{background:#1a2948}
+.stage{position:relative;aspect-ratio:16/9;overflow:hidden;border:1px solid #263657;border-radius:18px;background:#0d1628;box-shadow:0 28px 80px rgba(0,0,0,.34)}
+.scene{position:absolute;inset:0;padding:46px 56px;opacity:0;pointer-events:none;transform:translateY(8px);transition:opacity .45s ease,transform .45s ease}
+.scene.active{opacity:1;pointer-events:auto;transform:none}
+.eyebrow{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:9px}
+h2{font-size:31px;line-height:1.2;margin:0 0 24px}
+.caption{position:absolute;left:50%;bottom:20px;transform:translateX(-50%);padding:9px 15px;border:1px solid rgba(255,255,255,.1);border-radius:11px;background:rgba(5,10,20,.88);font-size:16px;white-space:nowrap}
+.panel{border:1px solid var(--line);border-radius:14px;background:linear-gradient(180deg,var(--panel2),var(--panel));box-shadow:0 16px 40px rgba(0,0,0,.22)}
+.bar{height:32px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:6px;padding:0 12px}
+.dot{width:8px;height:8px;border-radius:50%;background:#536487}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.muted{color:var(--muted)}
+.green{color:var(--green)}
+.yellow{color:var(--yellow)}
+.red{color:var(--red)}
+.repeat{display:grid;grid-template-columns:1fr 1.4fr;gap:22px;align-items:center}
+.tree{padding:18px;line-height:1.85;font-size:14px;color:#cdd8f2}
+.sessions{display:grid;gap:10px}
+.session{padding:14px 16px;border:1px solid var(--line);border-radius:12px;background:#121e36;animation:rise .6s both}
+.session:nth-child(2){animation-delay:.3s}.session:nth-child(3){animation-delay:.6s}
+.session strong{display:block;color:var(--accent);font-size:12px;margin-bottom:8px}
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.split{display:grid;grid-template-columns:1fr 1fr;gap:22px;align-items:center}
+.empty{height:286px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:20px;border-style:dashed}
+.doc{padding:18px;min-height:286px}
+.doc-title{font-size:22px;font-weight:700;margin-bottom:18px}
+.doc-lines{display:grid;gap:11px}
+.doc-line{height:18px;border-radius:5px;background:#24375c;animation:load .8s both}
+.doc-line:nth-child(2){animation-delay:.15s;width:83%}.doc-line:nth-child(3){animation-delay:.3s;width:68%}.doc-line:nth-child(4){animation-delay:.45s;width:91%}
+@keyframes load{from{opacity:0;transform:scaleX(.3);transform-origin:left}to{opacity:1;transform:none}}
+.command{max-width:870px;margin:0 auto;padding:26px 30px}
+.prompt{font-size:18px;color:#fff;margin-bottom:19px}
+.command .line{line-height:2.1;font-size:16px}
+.cursor{display:inline-block;width:9px;height:18px;background:var(--accent);vertical-align:-3px;animation:blink 1s infinite}
+@keyframes blink{50%{opacity:0}}
+.flow{display:flex;align-items:center;justify-content:center;gap:17px;height:300px}
+.node{min-width:150px;padding:17px 19px;text-align:center;border:1px solid var(--line);border-radius:13px;background:#14213a;box-shadow:0 14px 28px rgba(0,0,0,.16)}
+.node.accent{border-color:#6078bc;background:#1a2b4c}
+.arrow{font-size:25px;color:var(--accent)}
+.source-grid{display:grid;grid-template-columns:1fr 1.15fr;gap:24px;align-items:center}
+.files{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.file{padding:15px;border:1px solid var(--line);border-radius:11px;background:#13203a;animation:glow 2.4s infinite}
+.file:nth-child(2){animation-delay:.3s}.file:nth-child(3){animation-delay:.6s}.file:nth-child(4){animation-delay:.9s}
+@keyframes glow{0%,100%{border-color:var(--line)}50%{border-color:#7188cc;box-shadow:0 0 18px rgba(145,168,255,.18)}}
+.map{padding:22px;text-align:center}
+.map .node{margin:0 auto 17px}
+.map-items{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.map-item{padding:10px;border-radius:8px;background:#1b2c4c;font-size:13px;color:#d8e1f6}
+.safe{display:grid;grid-template-columns:1fr 1fr;gap:28px;align-items:center}
+.safe-file{padding:26px;text-align:center;border:1px solid #5572b3;border-radius:15px;background:#172949}
+.badge{display:inline-block;margin-top:16px;padding:7px 11px;border-radius:8px;background:rgba(101,214,160,.12);color:var(--green);font-size:13px}
+.suggestions{display:grid;gap:11px}
+.suggestion{padding:14px 16px;border:1px solid var(--line);border-radius:10px;background:#15233f;color:#d8e2f8}
+.suggestion::before{content:"＋ ";color:var(--yellow)}
+.document{display:grid;grid-template-columns:1.2fr .8fr;gap:23px;align-items:center}
+.sections{display:grid;gap:8px}
+.section{padding:12px 14px;border-left:3px solid var(--accent);border-radius:7px;background:#172642;animation:load .7s both}
+.section:nth-child(2){animation-delay:.12s}.section:nth-child(3){animation-delay:.24s}.section:nth-child(4){animation-delay:.36s}.section:nth-child(5){animation-delay:.48s}
+.questions{display:grid;gap:10px}
+.question{padding:12px;border:1px solid var(--line);border-radius:9px;background:#121e36;color:#dce5fa}
+.demo{display:grid;grid-template-columns:1fr 1fr;gap:21px;align-items:stretch}
+.terminal{padding:20px;min-height:286px;font-size:14px;line-height:1.95}
+.result{padding:20px;min-height:286px}
+.result-title{font-size:20px;margin-bottom:15px}
+.result-line{padding:10px 12px;border-radius:8px;background:#172743;margin:8px 0;color:#dce5fa}
+.result-line.ok{border-left:3px solid var(--green)}
+.responsibility{display:grid;grid-template-columns:1fr 70px 1fr;align-items:center;gap:14px;height:280px}
+.column{padding:18px;border:1px solid var(--line);border-radius:14px;background:#121f38}
+.column h3{font-size:18px;margin:0 0 13px}.check{padding:9px 11px;border-radius:8px;background:#1b2b49;margin:8px 0;font-size:14px}
+.column.wait{border-color:#806f40}.column.wait .check{background:#302c1d;color:#f3d58a}
+.merge{text-align:center;color:var(--accent);font-size:28px}
+.summary{height:310px;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.route{display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;max-width:880px}
+.route-node{padding:12px 14px;border:1px solid var(--line);border-radius:9px;background:#14213a;font-size:14px}
+.route-node.active{border-color:#6e86cf;box-shadow:0 0 20px rgba(145,168,255,.16)}
+.preview{margin-top:26px;padding:13px 18px;border:1px solid #806f40;border-radius:11px;background:#292719;color:#f4d994}
+.progress{display:flex;justify-content:center;gap:6px;margin:13px 0 0}.pill{width:30px;height:4px;border-radius:9px;background:#2c3a59}.pill.on{background:var(--accent)}
+.hint{margin-top:12px;text-align:center;color:var(--muted);font-size:12px}
+@media(max-width:760px){.scene{padding:25px}.scene h2{font-size:22px}.caption{font-size:12px}.repeat,.split,.source-grid,.safe,.document,.demo,.responsibility{grid-template-columns:1fr}.responsibility{height:auto}.merge{transform:rotate(90deg)}.flow{gap:7px}.node{min-width:105px;padding:12px 8px;font-size:13px}}
+</style>
+</head>
+<body>
+<div class="shell">
+  <div class="topbar">
+    <h1>Project Init · 横屏 Visual Prototype · 10 Scenes</h1>
+    <div class="controls">
+      <button type="button" onclick="prevScene()">上一幕</button>
+      <button type="button" onclick="nextScene()">下一幕</button>
+      <button type="button" onclick="toggleAuto()" id="autoBtn">自动播放</button>
+    </div>
+  </div>
+  <div class="stage">
+    <section class="scene active">
+      <div class="eyebrow">Scene 01 · Workflow Simulation</div>
+      <h2>同一个项目问题，反复从头问</h2>
+      <div class="repeat">
+        <div class="panel tree mono">project/<br>├─ package.json<br>├─ src/<br>├─ tests/<br>└─ README.md</div>
+        <div class="sessions">
+          <div class="session"><strong>新会话 01</strong>测试怎么跑？</div>
+          <div class="session"><strong>新会话 02</strong>测试怎么跑？</div>
+          <div class="session"><strong>新会话 03</strong>npm 还是 pnpm？</div>
+        </div>
+      </div>
+      <div class="caption">每次都从零摸索</div>
+    </section>
+
+    <section class="scene">
+      <div class="eyebrow">Scene 02 · Concept Visualization</div>
+      <h2>根因不是 Claude 笨</h2>
+      <div class="split">
+        <div class="panel empty">没有固定上下文</div>
+        <div class="panel doc"><div class="doc-title">CLAUDE.md</div><div class="doc-lines"><div class="doc-line"></div><div class="doc-line"></div><div class="doc-line"></div><div class="doc-line"></div></div><div class="muted" style="margin-top:18px">项目说明书</div></div>
+      </div>
+      <div class="caption">缺少的是项目说明书</div>
+    </section>
+
+    <section class="scene">
+      <div class="eyebrow">Scene 03 · Terminal Simulation</div>
+      <h2>/init：先把项目读一遍</h2>
+      <div class="panel command mono">
+        <div class="prompt">&gt; <span>/init</span><span class="cursor"></span></div>
+        <div class="line muted">Scanning project structure...</div>
+        <div class="line muted">Reading visible project facts...</div>
+        <div class="line green">Created: CLAUDE.md · draft</div>
+      </div>
+      <div class="flow" style="height:150px"><div class="node">项目文件树</div><div class="arrow">→</div><div class="node accent">CLAUDE.md<br><span class="muted" style="font-size:12px">草稿</span></div></div>
+      <div class="caption">扫描 → 生成草稿</div>
+    </section>
+
+    <section class="scene">
+      <div class="eyebrow">Scene 04 · Terminal Demo</div>
+      <h2>进入根目录，输入一个命令</h2>
+      <div class="panel command mono">
+        <div class="line"><span class="muted">$</span> cd /path/to/your-project</div>
+        <div class="line"><span class="muted">$</span> claude</div>
+        <div class="line"><span class="muted">&gt;</span> /init</div>
+        <div class="line yellow">Analyzing project...</div>
+      </div>
+      <div class="flow" style="height:145px"><div class="node">项目根目录</div><div class="arrow">→</div><div class="node">claude</div><div class="arrow">→</div><div class="node accent">/init</div></div>
+      <div class="caption">三步：进根目录 → 启动 → 输入</div>
+    </section>
+
+    <section class="scene">
+      <div class="eyebrow">Scene 05 · Codebase Scan</div>
+      <h2>从依赖、文档和结构开始扫描</h2>
+      <div class="source-grid">
+        <div class="files mono">
+          <div class="file">package.json<br><span class="muted">Dependencies</span></div>
+          <div class="file">README.md<br><span class="muted">Project purpose</span></div>
+          <div class="file">config/<br><span class="muted">Configuration</span></div>
+          <div class="file">src/<br><span class="muted">Code structure</span></div>
+        </div>
+        <div class="panel map"><div class="node accent">CLAUDE.md · draft</div><div class="map-items"><div class="map-item">技术栈</div><div class="map-item">项目用途</div><div class="map-item">目录</div><div class="map-item">入口</div></div></div>
+      </div>
+      <div class="caption">把看得见的事实整理成草稿</div>
+    </section>
+
+    <section class="scene">
+      <div class="eyebrow">Scene 06 · File State Comparison</div>
+      <h2>已有 CLAUDE.md：建议改进，不直接覆盖</h2>
+      <div class="safe">
+        <div class="safe-file mono">CLAUDE.md<div class="badge">unchanged</div></div>
+        <div class="suggestions"><div class="suggestion">补充命令</div><div class="suggestion">补充约定</div><div class="muted" style="font-size:13px">原文件保留，建议另行出现</div></div>
+      </div>
+      <div class="caption">检查与改进，不是粗暴覆盖</div>
+    </section>
+
+    <section class="scene">
+      <div class="eyebrow">Scene 07 · Document Reveal</div>
+      <h2>一份项目说明书的五个区块</h2>
+      <div class="document">
+        <div class="panel doc"><div class="doc-title">CLAUDE.md</div><div class="sections"><div class="section">项目概述</div><div class="section">技术栈</div><div class="section">目录结构</div><div class="section">常用命令</div><div class="section">开发规范</div></div></div>
+        <div class="questions"><div class="question">项目是做什么的？</div><div class="question">测试怎么跑？</div><div class="question">文件在哪里？</div></div>
+      </div>
+      <div class="caption">每个区块，对掉一类重复问题</div>
+    </section>
+
+    <section class="scene">
+      <div class="eyebrow">Scene 08 · Minimal Project Demo</div>
+      <h2>用两个文件验证 /init</h2>
+      <div class="demo">
+        <div class="panel terminal mono">$ mkdir init-demo<br>$ cd init-demo<br>$ package.json<br>$ index.js<br><br><span class="yellow">&gt; /init</span><br><span class="green">✓ CLAUDE.md generated</span></div>
+        <div class="panel result"><div class="result-title">CLAUDE.md</div><div class="result-line ok">init-demo</div><div class="result-line">Node.js / JavaScript</div><div class="result-line ok">echo test ok</div><div class="muted" style="font-size:13px;margin-top:14px">这个项目的测试命令是什么？</div></div>
+      </div>
+      <div class="caption">输入文件 → 生成文件 → 再次提问</div>
+    </section>
+
+    <section class="scene">
+      <div class="eyebrow">Scene 09 · Comparison + Checklist</div>
+      <h2>自动扫描是起点，不是终稿</h2>
+      <div class="responsibility">
+        <div class="column"><h3>客观事实</h3><div class="check">技术栈</div><div class="check">目录结构</div><div class="check">常用命令</div></div>
+        <div class="merge">→</div>
+        <div class="column wait"><h3>团队约定</h3><div class="check">分支命名</div><div class="check">部署流程</div><div class="check">Review 与业务背景</div></div>
+      </div>
+      <div class="caption">自动打底 + 人工补充 = 持续迭代</div>
+    </section>
+
+    <section class="scene">
+      <div class="eyebrow">Scene 10 · Summary + Next Episode Preview</div>
+      <h2>先 /init，再审阅和迭代</h2>
+      <div class="summary">
+        <div class="route">
+          <div class="route-node active">根目录</div><span class="arrow">→</span><div class="route-node active">claude</div><span class="arrow">→</span><div class="route-node active">/init</div><span class="arrow">→</span><div class="route-node active">扫描</div><span class="arrow">→</span><div class="route-node active">草稿</div><span class="arrow">→</span><div class="route-node active">审阅</div><span class="arrow">→</span><div class="route-node active">迭代</div>
+        </div>
+        <div class="preview">下一篇：项目结构</div>
+      </div>
+      <div class="caption">把“重新认识”变成“有一份起点”</div>
+    </section>
+  </div>
+  <div class="progress" id="progress"></div>
+  <div class="hint">原型预览控件、进度提示和幕内字幕仅用于检查，不进入最终视频。</div>
+</div>
+<script>
+const scenes = Array.from(document.querySelectorAll(".scene"));
+const progress = document.getElementById("progress");
+const autoBtn = document.getElementById("autoBtn");
+let current = 0;
+let timer = null;
+function renderProgress(){
+  progress.innerHTML = scenes.map((_, index) => '<span class="pill ' + (index === current ? 'on' : '') + '"></span>').join("");
+}
+function showScene(index){
+  current = (index + scenes.length) % scenes.length;
+  scenes.forEach((scene, sceneIndex) => scene.classList.toggle("active", sceneIndex === current));
+  renderProgress();
+}
+function nextScene(){showScene(current + 1)}
+function prevScene(){showScene(current - 1)}
+function toggleAuto(){
+  if(timer){
+    clearInterval(timer);
+    timer = null;
+    autoBtn.textContent = "自动播放";
+    return;
+  }
+  timer = setInterval(nextScene, 4200);
+  autoBtn.textContent = "暂停播放";
+}
+renderProgress();
+</script>
+</body>
+</html>

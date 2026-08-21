@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Project Structure · Visual Prototype</title>
+<style>
+:root{--bg:#080f1e;--panel:#111c32;--panel2:#172642;--text:#eef3ff;--muted:#9caaca;--line:#2c3b5d;--accent:#91a8ff;--green:#65d6a0;--yellow:#f2c56c;--red:#ff7d89}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(circle at 15% 10%,rgba(145,168,255,.14),transparent 34%),radial-gradient(circle at 85% 85%,rgba(101,214,160,.08),transparent 32%),var(--bg);color:var(--text);font-family:Inter,"PingFang SC","Microsoft YaHei",sans-serif}
+.shell{width:min(1220px,96vw);margin:28px auto 56px}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:16px}
+.topbar h1{font-size:20px;margin:0;font-weight:750}
+.controls{display:flex;gap:8px;flex-wrap:wrap}
+button{border:1px solid var(--line);border-radius:9px;background:#121d34;color:var(--text);padding:9px 13px;cursor:pointer}
+button:hover{background:#1a2948}
+.stage{position:relative;aspect-ratio:16/9;overflow:hidden;border:1px solid #263657;border-radius:18px;background:#0d1628;box-shadow:0 28px 80px rgba(0,0,0,.34)}
+.scene{position:absolute;inset:0;padding:46px 56px;opacity:0;pointer-events:none;transform:translateY(8px);transition:opacity .45s ease,transform .45s ease}
+.scene.active{opacity:1;pointer-events:auto;transform:none}
+.eyebrow{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:9px}
+h2{font-size:31px;line-height:1.2;margin:0 0 24px}
+.caption{position:absolute;left:50%;bottom:20px;transform:translateX(-50%);padding:9px 15px;border:1px solid rgba(255,255,255,.1);border-radius:11px;background:rgba(5,10,20,.88);font-size:16px;white-space:nowrap}
+.panel{border:1px solid var(--line);border-radius:14px;background:linear-gradient(180deg,var(--panel2),var(--panel));box-shadow:0 16px 40px rgba(0,0,0,.22)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.muted{color:var(--muted)}
+.green{color:var(--green)}
+.yellow{color:var(--yellow)}
+.red{color:var(--red)}
+.question-grid{display:grid;grid-template-columns:1fr 1.25fr;gap:24px;align-items:center}
+.folder{padding:28px;text-align:center;border:1px solid #6078bc;border-radius:16px;background:#17294b;box-shadow:0 0 28px rgba(145,168,255,.14);font-size:27px}
+.folder small{display:block;margin-top:13px;color:var(--muted);font-size:13px}
+.questions{display:grid;gap:12px}
+.question{padding:18px 20px;border:1px solid var(--line);border-radius:11px;background:#121e36;animation:rise .6s both}
+.question:nth-child(2){animation-delay:.22s}.question:nth-child(3){animation-delay:.44s}
+.question.risk{border-color:#744253;color:#ffb3bb}
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.two-homes{display:grid;grid-template-columns:1fr 1fr;gap:22px;align-items:stretch}
+.home{padding:22px;border:1px solid var(--line);border-radius:15px;background:#121f38;min-height:285px}
+.home.project{border-color:#6078bc}.home.user{border-color:#806f40}
+.home h3{font-size:21px;margin:0 0 8px}.home .path{font-size:18px;color:var(--accent);margin-bottom:22px}
+.home ul{margin:0;padding-left:20px;line-height:2;color:#d6e0f5}
+.scope{display:flex;justify-content:space-between;gap:12px;margin-top:20px;color:var(--muted);font-size:13px}
+.tree-layout{display:grid;grid-template-columns:1fr 1.3fr;gap:24px;align-items:center}
+.tree{padding:20px;font-size:15px;line-height:1.85;background:#101b31;border:1px solid var(--line);border-radius:14px}
+.tree .branch{color:var(--accent)}.tree .personal{color:var(--yellow)}.tree .shared{color:var(--green)}
+.tree-note{padding:20px;border:1px solid var(--line);border-radius:14px;background:#121f38}
+.tree-note h3{margin:0 0 16px;font-size:20px}.tree-note p{margin:10px 0;padding:10px 12px;border-radius:8px;background:#1a2b49}
+.user-map{position:relative;height:300px;display:grid;grid-template-columns:1fr 1.1fr 1fr;gap:20px;align-items:center}
+.user-card,.projects{padding:20px;border:1px solid var(--line);border-radius:14px;background:#121f38}
+.user-card{border-color:#806f40;text-align:center}.user-card h3{margin:0 0 16px}
+.user-card .path{color:var(--yellow);font-size:18px}.user-card p{color:var(--muted);font-size:13px}
+.projects{display:grid;gap:12px}.project{padding:14px;border:1px solid #536aa5;border-radius:10px;background:#162643}
+.user-map:before,.user-map:after{content:"";position:absolute;top:50%;height:1px;background:#536aa5;width:12%;z-index:0}.user-map:before{left:27%}.user-map:after{right:27%}
+.user-map>*{position:relative;z-index:1}
+.user-files{padding:20px;border:1px solid var(--line);border-radius:14px;background:#111d34}
+.user-files div{padding:10px 12px;margin:8px 0;border-radius:8px;background:#1a2b49}.user-files .memory{color:var(--yellow)}
+.groups{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;align-items:stretch}
+.group{padding:16px;border:1px solid var(--line);border-radius:12px;background:#121f38;min-height:190px}
+.group h3{margin:0 0 16px;font-size:17px;color:var(--accent)}.group p{margin:9px 0;padding:8px 9px;border-radius:7px;background:#1a2b49;font-size:13px}
+.group.config{border-color:#536aa5}.group.personal{border-color:#806f40}.group.connect{border-color:#4f806e}
+.git-flow{display:grid;grid-template-columns:1fr 90px 1fr;gap:16px;align-items:center}
+.lane{padding:18px;border:1px solid var(--line);border-radius:14px;background:#121f38;min-height:245px}
+.lane h3{margin:0 0 14px}.lane.good{border-color:#4f806e}.lane.warn{border-color:#806f40}.lane .item{padding:10px 11px;margin:8px 0;background:#1a2b49;border-radius:8px;font-size:13px}
+.arrow-stack{text-align:center;color:var(--accent);font-size:25px;line-height:2}
+.risk-chain{margin-top:18px;display:flex;align-items:center;justify-content:center;gap:12px;font-size:13px;color:#ffb3bb}
+.risk-chain span{padding:8px 10px;border:1px solid #744253;border-radius:8px;background:#2a1a29}
+.priority{display:grid;grid-template-columns:1fr 1fr;gap:22px;align-items:center}
+.ladder,.tracks{padding:18px;border:1px solid var(--line);border-radius:14px;background:#121f38}
+.level{padding:9px 12px;margin:7px 0;border-radius:8px;background:#1a2b49;display:flex;justify-content:space-between}.level:first-child{border-left:3px solid var(--red)}.level:last-child{border-left:3px solid var(--muted)}
+.track{padding:15px;margin:10px 0;border-radius:10px;background:#172642}.track strong{display:block;margin-bottom:8px;color:var(--accent)}.track .flow{color:var(--green);font-size:14px}
+.terminal-layout{display:grid;grid-template-columns:1.25fr .75fr;gap:20px;align-items:stretch}
+.terminal{padding:20px;min-height:280px;font-size:14px;line-height:1.95;border:1px solid var(--line);border-radius:14px;background:#0d172a}
+.terminal .cmd{color:#fff}.terminal .out{color:var(--green)}.terminal .warn{color:var(--yellow)}
+.checks{padding:20px;border:1px solid var(--line);border-radius:14px;background:#121f38}.check{padding:12px;margin:9px 0;border-radius:8px;background:#1a2b49}.check.ok{border-left:3px solid var(--green)}
+.summary{height:290px;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.route{display:flex;align-items:center;justify-content:center;gap:9px;flex-wrap:wrap;max-width:900px}.route-node{padding:12px 14px;border:1px solid var(--line);border-radius:9px;background:#14213a;font-size:14px}.route-node.active{border-color:#6e86cf;box-shadow:0 0 20px rgba(145,168,255,.16)}.arrow{font-size:23px;color:var(--accent)}
+.preview{margin-top:28px;padding:13px 18px;border:1px solid #806f40;border-radius:11px;background:#292719;color:#f4d994}
+.progress{display:flex;justify-content:center;gap:6px;margin:13px 0 0}.pill{width:30px;height:4px;border-radius:9px;background:#2c3a59}.pill.on{background:var(--accent)}
+.hint{margin-top:12px;text-align:center;color:var(--muted);font-size:12px}
+@media(max-width:760px){.scene{padding:25px}.scene h2{font-size:22px}.caption{font-size:12px}.question-grid,.two-homes,.tree-layout,.priority,.terminal-layout,.git-flow{grid-template-columns:1fr}.groups{grid-template-columns:1fr 1fr}.user-map{height:auto;grid-template-columns:1fr}.user-map:before,.user-map:after{display:none}.arrow-stack{transform:rotate(90deg)}}
+</style>
+</head>
+<body>
+<div class="shell">
+  <div class="topbar">
+    <h1>Project Structure · 横屏 Visual Prototype · 9 Scenes</h1>
+    <div class="controls">
+      <button type="button" onclick="prevScene()">上一幕</button>
+      <button type="button" onclick="nextScene()">下一幕</button>
+      <button type="button" onclick="toggleAuto()" id="autoBtn">自动播放</button>
+    </div>
+  </div>
+  <div class="stage">
+    <section class="scene active">
+      <div class="eyebrow">Scene 01 · Opening Risk Workflow</div>
+      <h2>这个文件夹，为什么不能只说“别管它”</h2>
+      <div class="question-grid">
+        <div class="folder mono">.claude/<small>权限 · 命令 · 技能 · 秘密</small></div>
+        <div class="questions">
+          <div class="question">权限不生效？</div>
+          <div class="question">队友没有命令？</div>
+          <div class="question risk">秘密进了仓库？</div>
+        </div>
+      </div>
+      <div class="caption">先看懂结构，才能安全使用</div>
+    </section>
+
+    <section class="scene">
+      <div class="eyebrow">Scene 02 · Scope Comparison</div>
+      <h2>项目档案柜，和个人工位抽屉</h2>
+      <div class="two-homes">
+        <div class="home project"><h3>项目级 · Project</h3><div class="path mono">./.claude/</div><ul><li>跟着项目走</li><li>团队共享</li><li>通常进 git</li></ul><div class="scope"><span>影响：协作者</span><span>项目档案柜</span></div></div>
+        <div class="home user"><h3>用户级 · User</h3><div class="path mono">~/.claude/</div><ul><li>跟着你走</li><li>跨项目生效</li><li>不进仓库</li></ul><div class="scope"><span>影响：当前用户</span><span>工位抽屉</span></div></div>
+      </div>
+      <div class="caption">跟着项目走，还是跟着你走</div>
+    </section>
+
+    <section class="scene">
+      <div class="eyebrow">Scene 03 · Project File Tree</div>
+      <h2>项目级目录：团队共享的档案柜</h2>
+      <div class="tree-layout">
+        <div class="tree mono">your-project/<br>├─ CLAUDE.md<br>├─ .mcp.json<br>└─ <span class="branch">.claude/</span><br>&nbsp;&nbsp;&nbsp;├─ <span class="shared">settings.json</span><br>&nbsp;&nbsp;&nbsp;├─ <span class="personal">settings.local.json</span><br>&nbsp;&nbsp;&nbsp;├─ commands/<br>&nbsp;&nbsp;&nbsp;├─ rules/<br>&nbsp;&nbsp;&nbsp;├─ skills/<br>&nbsp;&nbsp;&nbsp;└─ agents/</div>
+        <div class="tree-note"><h3>项目级 · 团队共享</h3><p>settings.json · 权限 / hooks / 模型默认值</p><p>commands/ · rules/ · skills/ · agents/</p><p class="muted">.mcp.json · 团队共享的 MCP 服务器配置</p></div>
+      </div>
+      <div class="caption">先把项目级这棵树看全</div>
+    </section>
+
+    <section class="scene">
+      <div class="eyebrow">Scene 04 · User Scope Diagram</div>
+      <h2>用户级目录：换项目也跟着你</h2>
+      <div class="user-map">
+        <div class="user-card"><h3>User</h3><div class="path mono">~/.claude/</div><p>个人范围</p><div class="user-files"><div>~/.claude.json</div><div>projects/</div><div class="memory">自动记忆</div></div></div>
+        <div class="projects"><div class="project mono">Project A<br><span class="muted">commands · rules · skills</span></div><div class="project mono">Project B<br><span class="muted">settings.json · agents</span></div></div>
+        <div class="tree-note"><h3>同名双胞胎</h3><p>commands/ · rules/ · skills/ · agents/</p><p class="muted">对所有项目生效</p></div>
+      </div>
+      <div class="caption">用户级不是第二个项目，而是你的上层空间</div>
+    </section>
+
+    <section class="scene">
+      <div class="eyebrow">Scene 05 · Responsibility Map</div>
+      <h2>这些文件，各自管什么</h2>
+      <div class="groups">
+        <div class="group"><h3>指导</h3><p>CLAUDE.md</p><p>rules/</p></div>
+        <div class="group config"><h3>配置</h3><p>settings.json</p><p class="yellow">settings.local.json · 个人覆盖</p></div>
+        <div class="group"><h3>扩展</h3><p>commands/</p><p>skills/</p><p>agents/</p></div>
+        <div class="group connect"><h3>连接</h3><p>.mcp.json</p><p class="muted">团队共享 MCP</p></div>
+      </div>
+      <div class="caption">看到文件名，就能判断它大致管什么</div>
+    </section>
+
+    <section class="scene">
+      <div class="eyebrow">Scene 06 · Git Boundary</div>
+      <h2>共享的提交，个人的忽略，秘密的红线</h2>
+      <div class="git-flow">
+        <div class="lane good"><h3 class="green">共享内容 · 提交 Git</h3><div class="item">CLAUDE.md</div><div class="item">settings.json</div><div class="item">commands · rules · skills · agents</div></div>
+        <div class="arrow-stack">→<br>←</div>
+        <div class="lane warn"><h3 class="yellow">个人 / 秘密 · 不提交</h3><div class="item">settings.local.json</div><div class="item">CLAUDE.local.md</div><div class="item red">密钥 · token · 密码</div></div>
+      </div>
+      <div class="risk-chain"><span>database password</span><b>→</b><span>git push</span><b>→</b><span>rewrite history</span></div>
+      <div class="caption">带 local 的、含秘密的，绝不提交</div>
+    </section>
+
+    <section class="scene">
+      <div class="eyebrow">Scene 07 · Priority Diagram</div>
+      <h2>优先级之外，还要分清覆盖和合并</h2>
+      <div class="priority">
+        <div class="ladder"><div class="level"><span>Managed</span><span>最高</span></div><div class="level">命令行参数</div><div class="level">Local</div><div class="level">Project</div><div class="level"><span>User</span><span>最低</span></div></div>
+        <div class="tracks"><div class="track"><strong>标量：覆盖</strong><div class="flow mono">model A → model B</div></div><div class="track"><strong>数组：合并</strong><div class="flow mono">allow A + allow B</div></div></div>
+      </div>
+      <div class="caption">优先级相同，不代表行为相同</div>
+    </section>
+
+    <section class="scene">
+      <div class="eyebrow">Scene 08 · Read-only Terminal Check</div>
+      <h2>不用改配置，先把两层目录看清</h2>
+      <div class="terminal-layout">
+        <div class="terminal mono"><div class="cmd">$ ls -a ~/.claude</div><div class="out">settings.json  projects  commands</div><div class="cmd">$ ls -a .claude</div><div class="out">settings.local.json  skills  agents</div><div class="cmd">$ git check-ignore .claude/settings.local.json</div><div class="out">.claude/settings.local.json</div><div class="cmd">$ cat CLAUDE.md</div><div class="warn">project instructions...</div></div>
+        <div class="checks"><div class="check ok">用户级目录</div><div class="check ok">项目级目录</div><div class="check ok">被 Git 忽略</div><div class="check">只读检查</div><div class="muted" style="font-size:13px;margin-top:14px">非 Git 仓库会报错</div></div>
+      </div>
+      <div class="caption">先观察，再决定怎么处理</div>
+    </section>
+
+    <section class="scene">
+      <div class="eyebrow">Scene 09 · Summary + Next Episode Preview</div>
+      <h2>先看归属，再决定怎么放、要不要提交</h2>
+      <div class="summary">
+        <div class="route"><div class="route-node active">路径</div><span class="arrow">→</span><div class="route-node active">归属</div><span class="arrow">→</span><div class="route-node active">共享</div><span class="arrow">→</span><div class="route-node active">Git</div><span class="arrow">→</span><div class="route-node active">优先级</div></div>
+        <div class="preview">下一篇：交互界面与快捷键</div>
+      </div>
+      <div class="caption">从“别管它”变成“知道怎么管”</div>
+    </section>
+  </div>
+  <div class="progress" id="progress"></div>
+  <div class="hint">原型预览控件、进度提示和幕内字幕仅用于检查，不进入最终视频。</div>
+</div>
+<script>
+const scenes = Array.from(document.querySelectorAll(".scene"));
+const progress = document.getElementById("progress");
+const autoBtn = document.getElementById("autoBtn");
+let current = 0;
+let timer = null;
+function renderProgress(){
+  progress.innerHTML = scenes.map((_, index) => '<span class="pill ' + (index === current ? 'on' : '') + '"></span>').join("");
+}
+function showScene(index){
+  current = (index + scenes.length) % scenes.length;
+  scenes.forEach((scene, sceneIndex) => scene.classList.toggle("active", sceneIndex === current));
+  renderProgress();
+}
+function nextScene(){showScene(current + 1)}
+function prevScene(){showScene(current - 1)}
+function toggleAuto(){
+  if(timer){
+    clearInterval(timer);
+    timer = null;
+    autoBtn.textContent = "自动播放";
+    return;
+  }
+  timer = setInterval(nextScene, 4200);
+  autoBtn.textContent = "暂停播放";
+}
+renderProgress();
+</script>
+</body>
+</html>

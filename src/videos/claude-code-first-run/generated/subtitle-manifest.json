@@ -1,0 +1,960 @@
+{
+  "schemaVersion": "1.0",
+  "videoId": "claude-code-first-run",
+  "scenes": [
+    {
+      "sceneId": "01",
+      "file": "subtitles/scene-01.json",
+      "segments": [
+        {
+          "segmentId": "01-01",
+          "audioFile": "audio/scene-01/01-01.mp3",
+          "cues": [
+            {
+              "id": "01-01-a",
+              "text": "前面几篇，你已经把 Claude Code 装好、",
+              "start": 0.09,
+              "end": 2.48
+            },
+            {
+              "id": "01-01-b",
+              "text": "登录好，套餐也选好了。",
+              "start": 2.48,
+              "end": 4.536
+            }
+          ]
+        },
+        {
+          "segmentId": "01-02",
+          "audioFile": "audio/scene-01/01-02.mp3",
+          "cues": [
+            {
+              "id": "01-02-a",
+              "text": "但终端真正打开的那一刻，",
+              "start": 0.09,
+              "end": 1.96
+            },
+            {
+              "id": "01-02-b",
+              "text": "很多人还是会盯着光标发愣：",
+              "start": 1.96,
+              "end": 4.04
+            },
+            {
+              "id": "01-02-c",
+              "text": "我现在到底该敲什么？",
+              "start": 4.04,
+              "end": 5.89
+            },
+            {
+              "id": "01-02-d",
+              "text": "万一一句话说错，",
+              "start": 5.89,
+              "end": 7.13
+            },
+            {
+              "id": "01-02-e",
+              "text": "把代码搞坏了怎么办？",
+              "start": 7.13,
+              "end": 8.76
+            }
+          ]
+        },
+        {
+          "segmentId": "01-03",
+          "audioFile": "audio/scene-01/01-03.mp3",
+          "cues": [
+            {
+              "id": "01-03-a",
+              "text": "别紧张。这一篇我们只走一遍最简单的流程：",
+              "start": 0.09,
+              "end": 3.67
+            },
+            {
+              "id": "01-03-b",
+              "text": "建一个只有几行代码的小项目，",
+              "start": 3.67,
+              "end": 5.68
+            },
+            {
+              "id": "01-03-c",
+              "text": "让 Claude 先读懂它，",
+              "start": 5.68,
+              "end": 7.09
+            },
+            {
+              "id": "01-03-d",
+              "text": "再帮你改一处。",
+              "start": 7.09,
+              "end": 8.47
+            },
+            {
+              "id": "01-03-e",
+              "text": "全程不超过五分钟，",
+              "start": 8.47,
+              "end": 9.92
+            },
+            {
+              "id": "01-03-f",
+              "text": "先拿到第一次成功体验。",
+              "start": 9.92,
+              "end": 11.928
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sceneId": "02",
+      "file": "subtitles/scene-02.json",
+      "segments": [
+        {
+          "segmentId": "02-01",
+          "audioFile": "audio/scene-02/02-01.mp3",
+          "cues": [
+            {
+              "id": "02-01-a",
+              "text": "第一次用，别拿正式项目练手。",
+              "start": 0.09,
+              "end": 2.568
+            }
+          ]
+        },
+        {
+          "segmentId": "02-02",
+          "audioFile": "audio/scene-02/02-02.mp3",
+          "cues": [
+            {
+              "id": "02-02-a",
+              "text": "正式项目文件多、",
+              "start": 0.09,
+              "end": 1.34
+            },
+            {
+              "id": "02-02-b",
+              "text": "依赖杂，Claude 一上来读半天，",
+              "start": 1.34,
+              "end": 3.85
+            },
+            {
+              "id": "02-02-c",
+              "text": "你也不容易看清它到底做了什么。",
+              "start": 3.85,
+              "end": 6.15
+            },
+            {
+              "id": "02-02-d",
+              "text": "先建一个叫 hello-claude 的玩具项目，",
+              "start": 6.15,
+              "end": 8.54
+            },
+            {
+              "id": "02-02-e",
+              "text": "里面只放一个很短的 main.py。",
+              "start": 8.54,
+              "end": 10.848
+            }
+          ]
+        },
+        {
+          "segmentId": "02-03",
+          "audioFile": "audio/scene-02/02-03.mp3",
+          "cues": [
+            {
+              "id": "02-03-a",
+              "text": "打开终端，输入 mkdir hello-claude，",
+              "start": 0.09,
+              "end": 2.43
+            },
+            {
+              "id": "02-03-b",
+              "text": "再输入 cd hello-claude。",
+              "start": 2.43,
+              "end": 4.3
+            },
+            {
+              "id": "02-03-c",
+              "text": "然后创建这个 Python 文件，",
+              "start": 4.3,
+              "end": 6.12
+            },
+            {
+              "id": "02-03-d",
+              "text": "让它只有一个 add 函数，",
+              "start": 6.12,
+              "end": 7.7
+            },
+            {
+              "id": "02-03-e",
+              "text": "接收两个数，再把它们加起来。",
+              "start": 7.7,
+              "end": 10.08
+            }
+          ]
+        },
+        {
+          "segmentId": "02-04",
+          "audioFile": "audio/scene-02/02-04.mp3",
+          "cues": [
+            {
+              "id": "02-04-a",
+              "text": "这就是你的练车场。",
+              "start": 0.09,
+              "end": 1.76
+            },
+            {
+              "id": "02-04-b",
+              "text": "改砸了也没关系，",
+              "start": 1.76,
+              "end": 2.98
+            },
+            {
+              "id": "02-04-c",
+              "text": "重建一个就行。",
+              "start": 2.98,
+              "end": 4.344
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sceneId": "03",
+      "file": "subtitles/scene-03.json",
+      "segments": [
+        {
+          "segmentId": "03-01",
+          "audioFile": "audio/scene-03/03-01.mp3",
+          "cues": [
+            {
+              "id": "03-01-a",
+              "text": "项目建好以后，要在同一个文件夹里启动 Claude ",
+              "start": 0.09,
+              "end": 3.09
+            },
+            {
+              "id": "03-01-b",
+              "text": "Code，输入 claude。",
+              "start": 3.09,
+              "end": 4.752
+            }
+          ]
+        },
+        {
+          "segmentId": "03-02",
+          "audioFile": "audio/scene-03/03-02.mp3",
+          "cues": [
+            {
+              "id": "03-02-a",
+              "text": "这里有一个新手最容易踩的坑：",
+              "start": 0.09,
+              "end": 2.08
+            },
+            {
+              "id": "03-02-b",
+              "text": "不要在桌面或者主目录里直接启动。",
+              "start": 2.08,
+              "end": 5.08
+            },
+            {
+              "id": "03-02-c",
+              "text": "Claude Code 会把你当前所在的目录当成工作区。",
+              "start": 5.08,
+              "end": 8.64
+            },
+            {
+              "id": "03-02-d",
+              "text": "你在哪儿启动，它就从哪儿开始读文件。",
+              "start": 8.64,
+              "end": 11.304
+            }
+          ]
+        },
+        {
+          "segmentId": "03-03",
+          "audioFile": "audio/scene-03/03-03.mp3",
+          "cues": [
+            {
+              "id": "03-03-a",
+              "text": "所以先进入 hello-claude，",
+              "start": 0.09,
+              "end": 1.87
+            },
+            {
+              "id": "03-03-b",
+              "text": "再启动 Claude。",
+              "start": 1.87,
+              "end": 3.11
+            },
+            {
+              "id": "03-03-c",
+              "text": "就像请装修师傅上门，",
+              "start": 3.11,
+              "end": 4.75
+            },
+            {
+              "id": "03-03-d",
+              "text": "得先把他领进要装修的那套房子。",
+              "start": 4.75,
+              "end": 7.44
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sceneId": "04",
+      "file": "subtitles/scene-04.json",
+      "segments": [
+        {
+          "segmentId": "04-01",
+          "audioFile": "audio/scene-04/04-01.mp3",
+          "cues": [
+            {
+              "id": "04-01-a",
+              "text": "启动以后，你会看到欢迎屏幕。",
+              "start": 0.09,
+              "end": 2.55
+            },
+            {
+              "id": "04-01-b",
+              "text": "第一次不用研究所有信息，",
+              "start": 2.55,
+              "end": 4.4
+            },
+            {
+              "id": "04-01-c",
+              "text": "只要先认住三样东西。",
+              "start": 4.4,
+              "end": 6.24
+            }
+          ]
+        },
+        {
+          "segmentId": "04-02",
+          "audioFile": "audio/scene-04/04-02.mp3",
+          "cues": [
+            {
+              "id": "04-02-a",
+              "text": "最底下的输入框，是你和 Claude 说话的地方。/help ",
+              "start": 0.09,
+              "end": 3.54
+            },
+            {
+              "id": "04-02-b",
+              "text": "可以查看可用命令。/resume 可以继续之前的会话，",
+              "start": 3.54,
+              "end": 7.27
+            },
+            {
+              "id": "04-02-c",
+              "text": "第一次使用时先不用管它。",
+              "start": 7.27,
+              "end": 9.48
+            }
+          ]
+        },
+        {
+          "segmentId": "04-03",
+          "audioFile": "audio/scene-04/04-03.mp3",
+          "cues": [
+            {
+              "id": "04-03-a",
+              "text": "输入框就是主战场。",
+              "start": 0.09,
+              "end": 1.95
+            },
+            {
+              "id": "04-03-b",
+              "text": "你不需要先学一套特殊语法，",
+              "start": 1.95,
+              "end": 3.93
+            },
+            {
+              "id": "04-03-c",
+              "text": "直接用大白话提需求就可以。",
+              "start": 3.93,
+              "end": 6.192
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sceneId": "05",
+      "file": "subtitles/scene-05.json",
+      "segments": [
+        {
+          "segmentId": "05-01",
+          "audioFile": "audio/scene-05/05-01.mp3",
+          "cues": [
+            {
+              "id": "05-01-a",
+              "text": "第一个真正的任务，",
+              "start": 0.09,
+              "end": 1.35
+            },
+            {
+              "id": "05-01-b",
+              "text": "不要直接让 Claude 改代码，",
+              "start": 1.35,
+              "end": 3.23
+            },
+            {
+              "id": "05-01-c",
+              "text": "先让它解释代码。",
+              "start": 3.23,
+              "end": 4.728
+            }
+          ]
+        },
+        {
+          "segmentId": "05-02",
+          "audioFile": "audio/scene-05/05-02.mp3",
+          "cues": [
+            {
+              "id": "05-02-a",
+              "text": "在输入框里输入：“解释 main.py 这个文件在做什么，",
+              "start": 0.09,
+              "end": 3.87
+            },
+            {
+              "id": "05-02-b",
+              "text": "用新手能理解的方式说明。”",
+              "start": 3.87,
+              "end": 6.144
+            }
+          ]
+        },
+        {
+          "segmentId": "05-03",
+          "audioFile": "audio/scene-05/05-03.mp3",
+          "cues": [
+            {
+              "id": "05-03-a",
+              "text": "Claude 会读取当前目录里的 main.py，",
+              "start": 0.09,
+              "end": 2.97
+            },
+            {
+              "id": "05-03-b",
+              "text": "告诉你这里定义了一个 add 函数，",
+              "start": 2.97,
+              "end": 5.13
+            },
+            {
+              "id": "05-03-c",
+              "text": "接收两个参数，返回它们相加的结果。",
+              "start": 5.13,
+              "end": 8.112
+            }
+          ]
+        },
+        {
+          "segmentId": "05-04",
+          "audioFile": "audio/scene-05/05-04.mp3",
+          "cues": [
+            {
+              "id": "05-04-a",
+              "text": "这一步有两个作用：",
+              "start": 0.09,
+              "end": 1.4
+            },
+            {
+              "id": "05-04-b",
+              "text": "确认它确实读到了你的真实文件，",
+              "start": 1.4,
+              "end": 3.68
+            },
+            {
+              "id": "05-04-c",
+              "text": "也确认安装和登录都正常。",
+              "start": 3.68,
+              "end": 5.87
+            },
+            {
+              "id": "05-04-d",
+              "text": "解释型任务只读不改，",
+              "start": 5.87,
+              "end": 7.5
+            },
+            {
+              "id": "05-04-e",
+              "text": "是第一次试水最稳的方式。",
+              "start": 7.5,
+              "end": 9.648
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sceneId": "06",
+      "file": "subtitles/scene-06.json",
+      "segments": [
+        {
+          "segmentId": "06-01",
+          "audioFile": "audio/scene-06/06-01.mp3",
+          "cues": [
+            {
+              "id": "06-01-a",
+              "text": "现在让 Claude 真正改一次代码。",
+              "start": 0.09,
+              "end": 2.51
+            },
+            {
+              "id": "06-01-b",
+              "text": "输入：“给这个函数增加类型注解，",
+              "start": 2.51,
+              "end": 5.17
+            },
+            {
+              "id": "06-01-c",
+              "text": "并补充基本的错误处理。”",
+              "start": 5.17,
+              "end": 7.104
+            }
+          ]
+        },
+        {
+          "segmentId": "06-02",
+          "audioFile": "audio/scene-06/06-02.mp3",
+          "cues": [
+            {
+              "id": "06-02-a",
+              "text": "这时 Claude 不会直接把文件改掉。",
+              "start": 0.09,
+              "end": 2.66
+            },
+            {
+              "id": "06-02-b",
+              "text": "它会先找到 main.py，",
+              "start": 2.66,
+              "end": 4.51
+            },
+            {
+              "id": "06-02-c",
+              "text": "把准备删除和新增的内容用 diff 展示出来，",
+              "start": 4.51,
+              "end": 7.54
+            },
+            {
+              "id": "06-02-d",
+              "text": "然后停下来等你批准。",
+              "start": 7.54,
+              "end": 9.504
+            }
+          ]
+        },
+        {
+          "segmentId": "06-03",
+          "audioFile": "audio/scene-06/06-03.mp3",
+          "cues": [
+            {
+              "id": "06-03-a",
+              "text": "红色或者减号开头的行，",
+              "start": 0.09,
+              "end": 1.9
+            },
+            {
+              "id": "06-03-b",
+              "text": "是旧内容；绿色或者加号开头的行，",
+              "start": 1.9,
+              "end": 4.58
+            },
+            {
+              "id": "06-03-c",
+              "text": "是新内容。第一次只要看懂这一次改动，",
+              "start": 4.58,
+              "end": 7.75
+            },
+            {
+              "id": "06-03-d",
+              "text": "选择“同意”就好，",
+              "start": 7.75,
+              "end": 8.96
+            },
+            {
+              "id": "06-03-e",
+              "text": "不要急着开启全部接受。",
+              "start": 8.96,
+              "end": 10.872
+            }
+          ]
+        },
+        {
+          "segmentId": "06-04",
+          "audioFile": "audio/scene-06/06-04.mp3",
+          "cues": [
+            {
+              "id": "06-04-a",
+              "text": "这一刻你完成的不是“让 AI 替你写代码”，",
+              "start": 0.09,
+              "end": 2.94
+            },
+            {
+              "id": "06-04-b",
+              "text": "而是一次真正的人机协作：",
+              "start": 2.94,
+              "end": 4.67
+            },
+            {
+              "id": "06-04-c",
+              "text": "Claude 提出改法，你看懂并决定是否落盘。",
+              "start": 4.67,
+              "end": 8.016
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sceneId": "07",
+      "file": "subtitles/scene-07.json",
+      "segments": [
+        {
+          "segmentId": "07-01",
+          "audioFile": "audio/scene-07/07-01.mp3",
+          "cues": [
+            {
+              "id": "07-01-a",
+              "text": "如果你发现刚才的改动不满意，",
+              "start": 0.09,
+              "end": 2.15
+            },
+            {
+              "id": "07-01-b",
+              "text": "可以直接告诉 Claude：“刚才的改动我不满意，",
+              "start": 2.15,
+              "end": 5.04
+            },
+            {
+              "id": "07-01-c",
+              "text": "帮我改回原来的样子。”",
+              "start": 5.04,
+              "end": 6.816
+            }
+          ]
+        },
+        {
+          "segmentId": "07-02",
+          "audioFile": "audio/scene-07/07-02.mp3",
+          "cues": [
+            {
+              "id": "07-02-a",
+              "text": "也可以使用检查点。",
+              "start": 0.09,
+              "end": 1.78
+            },
+            {
+              "id": "07-02-b",
+              "text": "输入 /rewind，",
+              "start": 1.78,
+              "end": 3.01
+            },
+            {
+              "id": "07-02-c",
+              "text": "或者在输入框为空时连按两次 Esc，",
+              "start": 3.01,
+              "end": 5.93
+            },
+            {
+              "id": "07-02-d",
+              "text": "就会打开回溯菜单。",
+              "start": 5.93,
+              "end": 7.59
+            },
+            {
+              "id": "07-02-e",
+              "text": "如果输入框里还有文字，",
+              "start": 7.59,
+              "end": 9.26
+            },
+            {
+              "id": "07-02-f",
+              "text": "双击 Esc 只会清空文字，",
+              "start": 9.26,
+              "end": 11.6
+            },
+            {
+              "id": "07-02-g",
+              "text": "所以回溯前要先清空输入框。",
+              "start": 11.6,
+              "end": 14.328
+            }
+          ]
+        },
+        {
+          "segmentId": "07-03",
+          "audioFile": "audio/scene-07/07-03.mp3",
+          "cues": [
+            {
+              "id": "07-03-a",
+              "text": "不过要分清楚：Checkpoint 是本地撤销，",
+              "start": 0.09,
+              "end": 2.79
+            },
+            {
+              "id": "07-03-b",
+              "text": "Git 才是永久历史。",
+              "start": 2.79,
+              "end": 4.57
+            },
+            {
+              "id": "07-03-c",
+              "text": "检查点适合刚改错时回到上一个状态，",
+              "start": 4.57,
+              "end": 7.55
+            },
+            {
+              "id": "07-03-d",
+              "text": "重要进度还是要交给 Git 保存。",
+              "start": 7.55,
+              "end": 10.128
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sceneId": "08",
+      "file": "subtitles/scene-08.json",
+      "segments": [
+        {
+          "segmentId": "08-01",
+          "audioFile": "audio/scene-08/08-01.mp3",
+          "cues": [
+            {
+              "id": "08-01-a",
+              "text": "现在把整条流程串起来。",
+              "start": 0.09,
+              "end": 2.208
+            }
+          ]
+        },
+        {
+          "segmentId": "08-02",
+          "audioFile": "audio/scene-08/08-02.mp3",
+          "cues": [
+            {
+              "id": "08-02-a",
+              "text": "第一步，创建 hello-claude，",
+              "start": 0.09,
+              "end": 1.86
+            },
+            {
+              "id": "08-02-b",
+              "text": "进入目录，写好 main.py。",
+              "start": 1.86,
+              "end": 4.12
+            },
+            {
+              "id": "08-02-c",
+              "text": "第二步，在这个目录里输入 claude。",
+              "start": 4.12,
+              "end": 6.88
+            },
+            {
+              "id": "08-02-d",
+              "text": "第三步，让它解释 main.py。",
+              "start": 6.88,
+              "end": 9.38
+            },
+            {
+              "id": "08-02-e",
+              "text": "第四步，让它增加类型注解和错误处理，",
+              "start": 9.38,
+              "end": 12.44
+            },
+            {
+              "id": "08-02-f",
+              "text": "看懂 diff 以后批准。",
+              "start": 12.44,
+              "end": 14.208
+            }
+          ]
+        },
+        {
+          "segmentId": "08-03",
+          "audioFile": "audio/scene-08/08-03.mp3",
+          "cues": [
+            {
+              "id": "08-03-a",
+              "text": "第五步，退出 Claude，",
+              "start": 0.09,
+              "end": 1.68
+            },
+            {
+              "id": "08-03-b",
+              "text": "回到终端查看 main.py。",
+              "start": 1.68,
+              "end": 3.92
+            },
+            {
+              "id": "08-03-c",
+              "text": "如果文件里出现了和刚才 diff 对得上的类型注解和错误",
+              "start": 3.92,
+              "end": 7.55
+            },
+            {
+              "id": "08-03-d",
+              "text": "处理，就说明你的第一个任务跑通了。",
+              "start": 7.55,
+              "end": 10.488
+            }
+          ]
+        },
+        {
+          "segmentId": "08-04",
+          "audioFile": "audio/scene-08/08-04.mp3",
+          "cues": [
+            {
+              "id": "08-04-a",
+              "text": "跑通比一开始就弄懂所有功能更重要。",
+              "start": 0.09,
+              "end": 3.18
+            },
+            {
+              "id": "08-04-b",
+              "text": "你已经完成了一次可复现的闭环。",
+              "start": 3.18,
+              "end": 5.568
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sceneId": "09",
+      "file": "subtitles/scene-09.json",
+      "segments": [
+        {
+          "segmentId": "09-01",
+          "audioFile": "audio/scene-09/09-01.mp3",
+          "cues": [
+            {
+              "id": "09-01-a",
+              "text": "这一篇你完成了从建项目、",
+              "start": 0.09,
+              "end": 2.03
+            },
+            {
+              "id": "09-01-b",
+              "text": "启动 Claude、解释代码，",
+              "start": 2.03,
+              "end": 3.84
+            },
+            {
+              "id": "09-01-c",
+              "text": "到修改代码并批准的完整任务。",
+              "start": 3.84,
+              "end": 6.24
+            }
+          ]
+        },
+        {
+          "segmentId": "09-02",
+          "audioFile": "audio/scene-09/09-02.mp3",
+          "cues": [
+            {
+              "id": "09-02-a",
+              "text": "以后再复杂的功能，",
+              "start": 0.09,
+              "end": 1.51
+            },
+            {
+              "id": "09-02-b",
+              "text": "本质上都建立在这个最小内核上：",
+              "start": 1.51,
+              "end": 3.9
+            },
+            {
+              "id": "09-02-c",
+              "text": "用自然语言提需求，",
+              "start": 3.9,
+              "end": 5.39
+            },
+            {
+              "id": "09-02-d",
+              "text": "看懂 diff，然后批准，",
+              "start": 5.39,
+              "end": 7.17
+            },
+            {
+              "id": "09-02-e",
+              "text": "或者在不满意时反悔。",
+              "start": 7.17,
+              "end": 9.12
+            }
+          ]
+        },
+        {
+          "segmentId": "09-03",
+          "audioFile": "audio/scene-09/09-03.mp3",
+          "cues": [
+            {
+              "id": "09-03-a",
+              "text": "人负责确认目标、",
+              "start": 0.09,
+              "end": 1.4
+            },
+            {
+              "id": "09-03-b",
+              "text": "看懂改动和做判断，",
+              "start": 1.4,
+              "end": 2.99
+            },
+            {
+              "id": "09-03-c",
+              "text": "Claude 负责读取、",
+              "start": 2.99,
+              "end": 4.35
+            },
+            {
+              "id": "09-03-d",
+              "text": "分析和执行具体步骤。",
+              "start": 4.35,
+              "end": 6.384
+            }
+          ]
+        },
+        {
+          "segmentId": "09-04",
+          "audioFile": "audio/scene-09/09-04.mp3",
+          "cues": [
+            {
+              "id": "09-04-a",
+              "text": "下一篇是“08：",
+              "start": 0.09,
+              "end": 1.32
+            },
+            {
+              "id": "09-04-b",
+              "text": "VS Code 集成”。",
+              "start": 1.32,
+              "end": 2.82
+            },
+            {
+              "id": "09-04-c",
+              "text": "命令行跑通以后，",
+              "start": 2.82,
+              "end": 4.11
+            },
+            {
+              "id": "09-04-d",
+              "text": "我们把 Claude Code 放到编辑器旁边，",
+              "start": 4.11,
+              "end": 6.54
+            },
+            {
+              "id": "09-04-e",
+              "text": "让代码和 diff 看起来更直观。",
+              "start": 6.54,
+              "end": 8.952
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
