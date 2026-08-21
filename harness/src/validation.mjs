@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { STAGE_DEFINITIONS, stageIndex } from "./stages.mjs";
+import { matchesArtifactPath } from "./artifact-paths.mjs";
 
 const SOURCE_REFERENCE_PATTERNS = [
   { label: "原文档", test: (text) => text.includes("原文档") },
@@ -20,29 +21,11 @@ const INTERNAL_NARRATION_PATTERNS = [
   "Gate 检查清单",
 ];
 
-function matchesWildcard(root, relativePath) {
-  const parts = relativePath.split("/");
-  const wildcardIndex = parts.findIndex((part) => part.includes("*"));
-  if (wildcardIndex === -1) {
-    return fs.existsSync(path.join(root, relativePath));
-  }
-
-  const directory = path.join(root, ...parts.slice(0, wildcardIndex));
-  if (!fs.existsSync(directory) || !fs.statSync(directory).isDirectory()) {
-    return false;
-  }
-
-  const pattern = new RegExp(
-    `^${parts[wildcardIndex].split("*").map((part) => part.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join(".*")}$`,
-  );
-  return fs.readdirSync(directory).some((entry) => pattern.test(entry));
-}
-
 export function validateStageArtifacts(project, stage) {
   const entries = project.artifacts.stages[stage] ?? [];
   const workspaceRoot = project.config.workspaceRoot;
   return entries
-    .filter((entry) => !matchesWildcard(workspaceRoot, entry.path))
+    .filter((entry) => !matchesArtifactPath(workspaceRoot, entry.path))
     .map((entry) => ({
       code: "missing-artifact",
       stage,
