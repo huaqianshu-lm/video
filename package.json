@@ -5,7 +5,8 @@
   "scripts": {
     "preview": "remotion studio",
     "check": "tsc --noEmit",
-    "render": "remotion render claude-code-install out/claude-code-install.mp4"
+    "render": "remotion render claude-code-install out/claude-code-install.mp4",
+    "harness:web": "npm run web --prefix harness"
   },
   "dependencies": {
     "@remotion/cli": "latest",

@@ -147,6 +147,32 @@ npm test --prefix harness
 
 测试使用 Node 原生测试运行器和系统临时目录，不调用真实 TTS、GitHub Actions 或本机 MP4 渲染。
 
+## Web UI 第一版
+
+从仓库根目录启动本地管理界面：
+
+```bash
+npm run harness:web
+```
+
+然后打开：
+
+```text
+http://127.0.0.1:4173
+```
+
+当前 Web UI 支持：
+
+- 查看视频项目列表、15 个生产阶段和下一步动作；
+- 查看生产资料、TTS／字幕／Timeline Manifest 和 Remotion 文件；
+- 预览 Visual Prototype；
+- 初始化 Harness 项目状态；
+- 执行校验、阶段推进、Gate 通过／驳回、重试和断点续做；
+- 发起远程 Smoke Render／Render 后查看任务状态和 Artifact 元数据；
+- 对未初始化的旧视频执行 Legacy 只读检查。
+
+Web UI 只监听 `127.0.0.1`，运行状态写入被 Git 忽略的 `harness/projects/`，不会修改视频生产资料。第一版不自动生成口播、视觉脚本或 Remotion 代码。
+
 ## CLI 使用
 
 初始化和查看项目状态：

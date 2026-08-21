@@ -6,11 +6,25 @@
 
 当前目录是 Remotion AI Video MVP 工程目录，用于验证「原始内容 → Content Analysis → Video Narrative → Scene Script → Narration Script → Visual Script → Visual Prototype → 人工确认 → Remotion 场景实现 → Studio 预览 → 人工确认 → MP4 渲染」的可复用视频生产流程。
 
-当前目标不是完整视频平台、剪辑软件、素材管理系统或自动化视频工厂。
+当前目标不是完整视频平台、剪辑软件、素材管理系统或自动化视频工厂。Harness Web UI 第一版只作为本地视频生产流程的查看和控制界面，不改变这个范围。
 
 历史说明：`HelloIntro` 只是早期 Remotion 技术 spike，用于确认环境可运行；它不再作为后续架构、组件或视觉设计基础。
 
 「源文档 → 分阶段生产资料 → TTS → 音频／字幕回传 → Remotion 音画同步 → 人工确认 → GitHub Actions 渲染与轮询」端到端方案记录在 `docs/END-TO-END-VIDEO-PRODUCTION-PLAN.md`。当前第一条真实验证视频已完成 TTS、Remotion 接入和 Gate 3，GitHub Actions 已支持通过受控输入渲染不同视频；自动 TTS、后台常驻轮询和批量任务编排仍未实现，具体真实进度以 `ROADMAP.md` 为准。
+
+## Harness Web UI 第一版范围
+
+Harness Web UI 第一版建立在 Harness 0.4 之上，只提供本地管理界面，不重新实现视频生产逻辑：
+
+- 通过本地 Web Server 展示视频项目列表、15 个生产阶段、当前状态、校验问题和下一步动作。
+- 查看七层生产资料、TTS／字幕／Timeline Manifest、Remotion 配置、Visual Prototype 和远程渲染结果。
+- 调用现有 Harness 核心完成校验、`next`、`report`、`context`、`plan`、Gate 通过／驳回、重试和断点续做。
+- 通过后台任务触发并查看 GitHub Actions Smoke Render、完整 Render 和 Artifact；浏览器不得接触 GitHub Token。
+- Web UI 只绑定 `127.0.0.1`，第一版不引入数据库、登录、多用户、批量编排或公网部署。
+- Agent 阶段仍由既定生产流程和 Agent 完成；Web UI 第一版不自动生成内容分析、口播、Visual Script 或 Remotion 代码。
+- Web UI 代码放在 `harness/` 内，Remotion 的 `src/Root.tsx` 和现有视频目录不承担管理后台职责。
+
+Web UI 必须复用 Harness 的阶段契约和状态文件，不能在前端复制一套阶段判断、Gate 规则或渲染状态模型。真实视频内容、画面质量和 Gate 人工判断仍以现有生产资料和项目规范为准。
 
 ## 端到端试点的人工 Gate 与内部审查
 

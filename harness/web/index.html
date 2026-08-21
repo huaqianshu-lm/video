@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Video Harness</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">VIDEO PRODUCTION HARNESS</p>
+          <h1>视频项目管理</h1>
+        </div>
+        <span id="service-status" class="status status-pending">正在检查服务</span>
+      </header>
+
+      <section id="dashboard-view">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">PROJECTS</p>
+            <h2>视频项目</h2>
+          </div>
+          <button id="refresh-projects" class="button button-secondary" type="button">刷新</button>
+        </div>
+        <div id="project-list-state" class="loading-state">正在读取视频项目……</div>
+        <div id="project-grid" class="project-grid"></div>
+      </section>
+
+      <section id="detail-view" hidden>
+        <div class="detail-toolbar">
+          <button id="back-to-projects" class="button button-secondary" type="button">← 返回项目列表</button>
+        </div>
+        <div id="project-detail"></div>
+      </section>
+    </main>
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>
