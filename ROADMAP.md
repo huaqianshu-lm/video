@@ -8,6 +8,7 @@
 ## 当前阶段
 
 - Harness 0.4 已完成本地实现、测试和推送，PR #3 已合并到 `main`（`5fcefb89`）；本阶段只补齐单视频生产资料校验、Remotion 技术校验和 Gate 边界，不改现有视频内容。
+- Harness Web UI 第一版已合入待处理视频集成分支；53 个视频项目的 Web UI 只读发现、Harness 测试和项目级检查均已通过。
 - 新视频 `remotion-video` 已完成七层生产资料、Gate 1、Gate 2 和 12 Scene 横屏 Visual Prototype；源文档与指定文章字节一致，按任务边界停止在原型阶段，未生成 TTS 或 Remotion 资料。
 - 新视频 `glossary` 已完成七层生产资料、Gate 1、Gate 2 和 12 Scene 横屏 Visual Prototype；源文档与指定文章字节一致，按任务边界停止，未生成 TTS 或 Remotion 资料。
 - 新视频 `troubleshooting` 已完成七层生产资料、Gate 1、Gate 2 和 12 Scene 横屏 Visual Prototype；源文档与指定文章字节一致，按任务边界停止在原型阶段，未生成 TTS 或 Remotion 资料。
@@ -17,6 +18,7 @@
 
 ## 已完成（最近 10 条）
 
+- 2026-08-21：完成 Harness Web UI 与待处理视频生产基线的集成；动态只读回归覆盖 53 个视频项目，23 个 Harness 测试、TypeScript、脚本语法和差异检查通过，未修改 `videos/` 或 `src/videos/`。
 - 2026-08-20：Harness 0.1 完成独立目录契约、阶段状态模型、产物清单、`init`／`status` CLI、真实 GitHub Actions 适配器和 Smoke Render 验收；临时目录语法、自动化测试和远程样本验证通过，未修改现有视频内容。
 - 2026-08-20：逐一核对 `claude-code-how-it-works` 全部 12 个 Scene 的字幕区间与视觉事件；将固定帧／百分比动画改为对应字幕 Cue 驱动，确认视觉事件顺序与 Scene 边界一致，未修改其他视频。
 - 2026-08-20：根据 `claude-code-how-it-works` 截图反馈，修复 Scene 05 在字幕结束边界因帧取整误差产生的透明白屏；仅调整目标视频的 Scene 帧区间连续性。
@@ -26,16 +28,12 @@
 - 2026-08-20：完成新视频 `remotion-video` 的完整 Source 副本、Content Analysis、Video Narrative、Scene Script、Narration Script、Visual Script 和 12 Scene 横屏 Visual Prototype；源文档字节一致，Gate 1／Gate 2、Scene 对齐、纯口播边界、画面文字归属、原型 HTML／JavaScript 和范围保护检查通过，未生成 TTS 或 Remotion 资料。
 - 2026-08-20：完成新视频 `glossary` 的完整 Source 副本、Content Analysis、Video Narrative、Scene Script、Narration Script、Visual Script 和 12 Scene 横屏 Visual Prototype；源文档字节一致，Gate 1／Gate 2、Scene 对齐、纯口播边界、画面文字归属、原型 HTML／JavaScript 和范围保护检查通过，未生成 TTS 或 Remotion 资料。
 - 2026-08-20：完成新视频 `troubleshooting` 的完整 Source 副本、Content Analysis、Video Narrative、Scene Script、Narration Script、Visual Script 和 12 Scene 横屏 Visual Prototype；源文档字节一致，Gate 1／Gate 2、Scene 对齐、纯口播边界、画面文字归属、原型 HTML／JavaScript 和范围保护检查通过，未生成 TTS 或 Remotion 资料。
-- 2026-08-20：完成新视频 `anti-patterns` 的完整 Source 副本、Content Analysis、Video Narrative、Scene Script、Narration Script、Visual Script 和 11 Scene 横屏 Visual Prototype；源文档字节一致，Gate 1／Gate 2、Scene 对齐、纯口播边界、画面文字归属、原型 HTML／JavaScript 和范围保护检查通过，未生成 TTS 或 Remotion 资料。
 - 2026-08-20：完成新视频 `best-practices` 的完整 Source 副本、Content Analysis、Video Narrative、Scene Script、Narration Script、Visual Script 和 11 Scene 横屏 Visual Prototype；源文档字节一致，Gate 1／Gate 2、Scene 对齐、纯口播边界、画面文字归属、原型 HTML／JavaScript 和范围保护检查通过，未生成 TTS 或 Remotion 资料。
 - 2026-08-20：完成新视频 `capstone-project` 的完整 Source 副本、Content Analysis、Video Narrative、Scene Script、Narration Script、Visual Script 和 12 Scene 横屏 Visual Prototype；源文档字节一致，Gate 1／Gate 2、Scene 对齐、纯口播边界、画面文字归属、原型 HTML／JavaScript 和范围保护检查通过，未生成 TTS 或 Remotion 资料。
 - 2026-08-20：完成 `voice` 的完整 Source 副本、Content Analysis、Video Narrative、Scene Script、Narration Script、Visual Script 和 12 Scene 横屏 Visual Prototype；源文档字节一致，Gate 1／Gate 2、Scene 对齐、纯口播边界、画面文字归属、原型 HTML／JavaScript 和范围保护检查通过，未生成 TTS 或 Remotion 资料。
 
 ## 进行中
 
-- Harness 0.2 已完成 `claude-code-how-it-works` 及 3 个 Gate 3 样本的只读结构与产物回归；回归过程未修改视频资料或重新生成下游产物。
-- Harness 0.4 已完成结构校验、Remotion 配置校验、Gate 自动前置校验和人工检查清单；19 个自动化测试、四条真实视频扩展只读回归和 Harness 范围差异检查通过，提交 `b6f0d0f` 已推送。
-- `claude-code-how-it-works` 已完成 Smoke Render、完整 Render 和 Gate 4；继续作为 Harness 流程验证样本，不再重复渲染。
 - `claude-code-first-run` 已完成 TTS 和 Remotion 接入；等待 Gate 3 检查音画同步、字幕安全区、场景节奏、文字溢出和清洁输出。
 - `claude-code-coding-plan` 已完成 Gate 2 和 Remotion 接入；Scene 03 的三张付费卡片已提前到对应口播前约 1.2 秒，等待 Gate 3 视觉检查。
 - `claude-code-third-party-models` 的 Remotion Studio 已构建完成；等待检查字幕安全区、主文案密度、9 个 Scene 的状态变化和是否存在无关画面文字。
@@ -43,8 +41,9 @@
 
 ## 下一步
 
-1. 以 `main` 的 Harness 0.4 合并提交为基线，等待下一项 Harness 计划；不扩展批量编排、Web UI 或新视频。
-2. 不扩展批量编排、Web UI 或新视频。
+1. 用户打开本地 Web UI，确认 53 个项目列表、项目详情、资料查看和 Visual Prototype 预览。
+2. 选择一个待处理视频初始化 Harness，验证从 `source` 开始的状态记录；已有旧视频先使用 Legacy 只读检查。
+3. 继续处理 pending 分支中的待制作视频；批量脚本仍独立运行，不并入 Web UI 第一版。
 
 ## 阻塞
 
@@ -67,6 +66,7 @@
 
 ## 最近验证（最近 10 条）
 
+- 2026-08-21：集成后的 Web UI 健康接口返回正常，项目列表发现 53 条视频项目；`claude-code-how-it-works` 详情包含 15 个阶段，只有 `claude-code-api-config` 存在 Harness 状态记录。
 - 2026-08-20：Harness 对 `claude-code-first-run`、`claude-code-coding-plan` 和 `claude-code-third-party-models` 的只读结构与产物回归全部通过；必要产物齐全、Scene／Segment／字幕／Timeline 对齐，三条目标视频目录前后哈希一致。
 - 2026-08-20：Harness 对 `claude-code-how-it-works` 的只读结构与产物回归通过；Source 至 Remotion 所需产物全部存在，12 个 Scene、27 个 TTS／音频 Segment、107 条字幕 Cue、12 个时间轴 Scene 和 228.168 秒 Timeline 对齐，目标视频目录前后哈希一致。
 - 2026-08-20：`claude-code-how-it-works` 完整 Render Run `32360625092` 成功；Artifact MP4 为 1920×1080、30fps、H.264＋AAC、228.224 秒，完整性检查和开头／中段／结尾代表帧核验通过，用户确认最终视频无问题。
