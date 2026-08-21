@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -19,6 +20,8 @@ import {
   WORKFLOW_DEFINITIONS,
 } from "../src/stages.mjs";
 import { validateProjectStage } from "../src/validation.mjs";
+
+const repositoryRoot = path.resolve(new URL("../..", import.meta.url).pathname);
 
 function createFixture() {
   const workspaceRoot = fs.mkdtempSync(path.join(os.tmpdir(), "video-harness-workspace-"));
@@ -151,6 +154,58 @@ test("builds a single-stage context task packet with bounded read and write path
   assert.equal(packet.task.fallbackStage, "source");
   assert.match(packet.task.commands.execute, new RegExp(`run ${slug} content-analysis`));
   assert.equal(packet.context.constraints.length, 3);
+});
+
+test("keeps read-only context and plan commands from refreshing persisted state", () => {
+  const { slug } = createFixture();
+  const project = loadFixture(slug);
+  runStage(project, "source");
+  const sourcePath = path.join(project.config.workspaceRoot, `videos/${slug}/source.md`);
+  const statePath = path.join(project.files.directory, "state.json");
+  fs.appendFileSync(sourcePath, "changed\n", "utf8");
+
+  const before = fs.readFileSync(statePath, "utf8");
+  const cliPath = path.join(repositoryRoot, "harness/src/cli.mjs");
+  const env = { ...process.env };
+  execFileSync(process.execPath, [cliPath, "context", slug], { cwd: repositoryRoot, env, encoding: "utf8" });
+  execFileSync(process.execPath, [cliPath, "plan", slug, "--until", "visual-prototype"], { cwd: repositoryRoot, env, encoding: "utf8" });
+
+  assert.equal(fs.readFileSync(statePath, "utf8"), before);
+  assert.equal(loadProject(slug, { refresh: false }).state.currentStage, "content-analysis");
+});
+
+test("reports wildcard artifacts only when a matching file exists", () => {
+  const workspaceRoot = fs.mkdtempSync(path.join(os.tmpdir(), "video-harness-wildcard-workspace-"));
+  const slug = "wildcard-video";
+  const remotionDirectory = path.join(workspaceRoot, `src/videos/${slug}`);
+  fs.mkdirSync(remotionDirectory, { recursive: true });
+  const project = {
+    config: {
+      workspaceRoot,
+      workflow: "default",
+      workflowVersion: 1,
+      style: "current",
+      target: "gate-4",
+      harnessVersion: "0.3.0",
+      sourceDirectory: `videos/${slug}`,
+      remotionDirectory: `src/videos/${slug}`,
+    },
+    state: {
+      slug,
+      currentStage: "remotion",
+      stages: { remotion: { status: "ready" } },
+    },
+    artifacts: { stages: artifactManifestFor(slug) },
+  };
+
+  const missingPacket = buildTaskPacket(project);
+  const wildcardOutput = missingPacket.task.outputArtifacts.find((item) => item.path.endsWith("*Video.tsx"));
+  assert.equal(wildcardOutput.exists, false);
+
+  fs.writeFileSync(path.join(remotionDirectory, "WildcardVideo.tsx"), "fixture\n", "utf8");
+  const presentPacket = buildTaskPacket(project);
+  const presentOutput = presentPacket.task.outputArtifacts.find((item) => item.path.endsWith("*Video.tsx"));
+  assert.equal(presentOutput.exists, true);
 });
 
 test("builds a read-only plan through an explicit target stage", () => {

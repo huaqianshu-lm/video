@@ -1,11 +1,10 @@
-import fs from "node:fs";
-import path from "node:path";
 import {
   STAGE_DEFINITIONS,
   getWorkflowDefinition,
   isGateStage,
 } from "./stages.mjs";
 import { DEFAULT_STYLE_ID, getStyleDefinition } from "./styles.mjs";
+import { matchesArtifactPath } from "./artifact-paths.mjs";
 
 function commandFor(command, slug, stage = null) {
   const suffix = stage ? ` ${stage}` : "";
@@ -19,9 +18,7 @@ function artifactEntries(project, stages) {
       stage,
       path: artifact.path,
       status: artifact.status,
-      exists: artifact.path.includes("*")
-        ? fs.existsSync(path.dirname(path.resolve(workspaceRoot, artifact.path)))
-        : fs.existsSync(path.resolve(workspaceRoot, artifact.path)),
+      exists: matchesArtifactPath(workspaceRoot, artifact.path),
     })),
   );
 }

@@ -79,7 +79,7 @@ export function initializeProject(slug) {
   return files;
 }
 
-export function loadProject(slug) {
+export function loadProject(slug, { refresh = true } = {}) {
   const files = projectFiles(slug);
   if (!fs.existsSync(files.config) || !fs.existsSync(files.state) || !fs.existsSync(files.artifacts)) {
     throw new Error(`Harness project is not initialized: ${slug}`);
@@ -90,7 +90,7 @@ export function loadProject(slug) {
     state: readJson(files.state),
     artifacts: readJson(files.artifacts),
   };
-  refreshProject(project);
+  if (refresh) refreshProject(project);
   return project;
 }
 
