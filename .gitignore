@@ -3,6 +3,7 @@ node_modules/
 .playwright-mcp/
 local/
 public/local-assets/
+harness/projects/
 *.local
 *.local.*
 doc/

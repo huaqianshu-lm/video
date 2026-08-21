@@ -2,15 +2,15 @@
 
 ## 当前阶段
 
+- Harness Web UI 第一版已启动，当前分支为 `feat/video-harness-web-ui-v1`，基线为 Harness 0.4 合并提交 `5fcefb8`。
+- Web UI 第一版只做本地视频项目查看和流程控制，复用 `harness/` 的阶段契约、状态文件、校验和适配器，不自动生成视频内容。
+- Web UI 第一版代码已完成，包含本地服务、项目列表、15 阶段详情、生产资料查看、Visual Prototype 预览、Harness 基础流程控制、远程后台任务和 Legacy 只读检查；真实项目只读回归和本地启动冒烟已通过，当前等待用户人工查看页面。
 - `claude-code-api-config` 已通过 Gate 3；修正后的冒烟 Run `31790807181` 执行成功，Artifact 和媒体参数均通过校验，当前等待人工确认代表帧后进入完整渲染。
 - `claude-code-install` 已接入真实音频、逐句字幕和 Manifest 时间轴，12 个 Scene 的 41 个主要视觉锚点也已绑定到 Segment 局部时间；GitHub 冒烟和完整 MP4 渲染均已通过并核验。
-- 新视频 `claude-code-third-party-models` 已完成 Gate 1、Gate 2、TTS 资源接入和 Remotion 实现；Studio 已在 `http://localhost:3001` 构建，当前等待 Gate 3 视觉检查。
-- `claude-code-third-party-models` 已修正通用对比组件误带参考视频文案的问题；`npm run check` 通过，Studio 已完成重建，等待 Gate 3 视觉检查。
-- 字幕已改为顶层 overlay，Linux 渲染前强制校验 CJK 字体，音频已预挂载并按 Segment 驱动画面。
-- 本机 Chromium 因旧版 macOS 返回 `SIGTRAP`，最终画面验证改由 GitHub Actions 完成。
 
 ## 已完成（最近 10 条）
 
+- 2026-08-21：Harness Web UI 完成本地 Node Web Server、健康检查、真实视频项目列表、15 阶段只读详情、生产资料白名单查看、Visual Prototype 预览、Harness 基础流程控制、远程后台任务和 Legacy 只读检查；23 个 Harness 测试、TypeScript 检查、脚本语法检查和本地启动冒烟通过。
 - 2026-08-14：补充字幕生成规则；字幕去掉句末标点、保留句内标点，且不修改 TTS 朗读文本、音频或时间轴，已同步到项目规范与流程说明。
 - 2026-08-14：完成 `claude-code-third-party-models` 的 Remotion Composition 接入；48 个音频轨道、156 条顶层字幕 Cue、9 个 Scene 和 396.192 秒时间轴均已接入，并移除不属于本片内容的通用顶部进度线。
 - 2026-08-14：发现并定位 `ComparisonScene` 中残留的 `copy-paste loop`／“来回搬运上下文”固定文案；已改为由每个对比列显式提供本片相关的工作流标题和状态。
@@ -20,11 +20,10 @@
 - 2026-08-14：完成 `claude-code-third-party-models` 的 Source、Content Analysis、Video Narrative 和 Scene Script；9 个 Scene 已通过字段完整性、内容覆盖和基线结构检查。
 - 2026-08-14：完成 `claude-code-api-config` 的第二次 GitHub 冒烟渲染；Run `31790807181` 的 17 个步骤全部成功，完整 Artifact 已通过摘要、图片规格和短片媒体参数校验。
 - 2026-08-14：用户完成 `claude-code-api-config` 的 Studio 音画、字幕、节奏和溢出检查，Gate 3 通过，当前预览版本已冻结进入远程渲染。
-- 2026-08-14：完成 GitHub Actions 渲染参数化和 `claude-code-api-config` 资源打包；两条工作流接收受控 slug／Composition 输入，音频数量由 Manifest 校验，冒烟代表帧由 Timeline 自动选择。
-- 2026-08-14：完成 `claude-code-api-config` 的正确 TTS 资源接入；60 段音频和三份 Manifest 已同步到 Remotion 消费目录，12 个 Scene 的视觉项已按 Segment／Word Boundary 重新绑定，Studio 在 3001 端口构建通过。
 
 ## 进行中
 
+- Web UI 第一版代码和验证已完成，等待用户人工查看页面布局、项目详情、资料查看和 Prototype 预览。
 - `claude-code-third-party-models` 的 Remotion Studio 已构建完成；等待检查字幕安全区、主文案密度、9 个 Scene 的状态变化和是否存在无关画面文字。
 - `claude-code-api-config` 的第二次冒烟 Artifact 已下载并检查，等待用户确认代表帧；Scene 12 的下一条预告卡片与底部字幕区域有视觉叠放，需要用户决定是否接受。
 - 根目录 `video-production-process-part-1.md` 正根据用户反馈逐段修订；本轮已完成从文章开头到「总结」的正文。
@@ -33,10 +32,8 @@
 
 ## 下一步
 
-1. 用户确认 Run `31790807181` 的三张代表帧，并决定是否接受 Scene 12 预告卡片与字幕区域的视觉叠放。
-2. 冒烟通过后触发完整 MP4 渲染，并围绕完整 Run ID 持续检查。
-3. 下载最终 Artifact，使用 `ffprobe` 核验后进入 Gate 4。
-4. 用户在 Studio 中完成 `claude-code-third-party-models` 的 Gate 3 视觉检查后，根据反馈调整生产资料、配置或场景组件。
+1. 用户打开本地 Web UI，确认首页、项目详情、资料查看和 Prototype 预览。
+2. 根据人工反馈修正第一版界面问题；真实 Smoke Render／Render 另按用户明确要求执行。
 
 ## 阻塞
 
