@@ -8,16 +8,23 @@
 ## 当前阶段
 
 - Harness 0.4 已完成本地实现、测试和推送，PR #3 已合并到 `main`（`5fcefb89`）；本阶段只补齐单视频生产资料校验、Remotion 技术校验和 Gate 边界，不改现有视频内容。
-- Harness Web UI 第一版已合入待处理视频集成分支；53 个视频项目的 Web UI 只读发现、Harness 测试和项目级检查均已通过。
+- Harness Web UI 第一版已合入待处理视频集成分支；53 个视频项目按原文件序号 01–53 展示和排序，目录索引已补齐，项目卡片以完整项目名称为主信息，Harness 测试和项目级检查均已通过。
 - 新视频 `remotion-video` 已完成七层生产资料、Gate 1、Gate 2 和 12 Scene 横屏 Visual Prototype；源文档与指定文章字节一致，按任务边界停止在原型阶段，未生成 TTS 或 Remotion 资料。
 - 新视频 `glossary` 已完成七层生产资料、Gate 1、Gate 2 和 12 Scene 横屏 Visual Prototype；源文档与指定文章字节一致，按任务边界停止，未生成 TTS 或 Remotion 资料。
 - 新视频 `troubleshooting` 已完成七层生产资料、Gate 1、Gate 2 和 12 Scene 横屏 Visual Prototype；源文档与指定文章字节一致，按任务边界停止在原型阶段，未生成 TTS 或 Remotion 资料。
 - 新视频 `voice` 已完成七层生产资料、Gate 1、Gate 2 和 12 Scene 横屏 Visual Prototype；源文档字节一致，按任务边界停止在原型阶段，未生成 TTS 或 Remotion 资料。
 - 新视频 `claude-code-how-it-works` 已通过 GitHub Smoke Render 和完整 Render；Run `32360625092` 成功，最终 MP4 已完成 Gate 4 人工确认。
 - `claude-code-first-run`、`claude-code-coding-plan`、`claude-code-third-party-models` 已进入 Gate 3 视觉检查，分别关注音画同步、字幕安全区、场景节奏、文字溢出和清洁输出。
+- 新视频 `vscode` 已完成 TTS、字幕／Timeline 和 Remotion 接入，当前停在 Gate 3；确定性校验和 Studio 构建通过，实际画面检查受本机 Chromium 环境阻塞。
 
 ## 已完成（最近 10 条）
 
+- 2026-08-21：`vscode` Scene 01 将“右上角”口播绑定到编辑器顶部实际入口位置，并增加缺失态红色定位框与出现态蓝绿色高亮。
+- 2026-08-21：将 `vscode` Scene 01、02、04、05、06、07、08、09 统一改为 VSCode 模拟工作区，突出各幕当前操作重点；Scene 03 保留为独立扩展市场素材场景。
+- 2026-08-21：完成 `vscode` 的 `tts-script.json`、`+25%` TTS、117 条字幕 Cue、262.464 秒 Timeline 和独立 Remotion Composition；9 个 Scene、音频／字幕／时间轴 ID 对齐，未执行渲染。
+- 2026-08-21：重排 Harness Web UI 项目卡片；序号／类型／状态置于顶部，项目名称独占完整宽度并取消截断，按钮保持紧凑，未修改视频内容。
+- 2026-08-21：增大 Harness Web UI 的视觉原型预览区域至 820px，并让 iframe 填满容器，便于查看完整原型页面，未修改视频内容。
+- 2026-08-21：为 Harness Web UI 增加原文件序号索引；项目 API、卡片、详情页和 `videos/VIDEO-INDEX.md` 均按 01–53 对齐，未修改视频目录名称和内容。
 - 2026-08-21：完成 Harness Web UI 与待处理视频生产基线的集成；动态只读回归覆盖 53 个视频项目，23 个 Harness 测试、TypeScript、脚本语法和差异检查通过，未修改 `videos/` 或 `src/videos/`。
 - 2026-08-20：Harness 0.1 完成独立目录契约、阶段状态模型、产物清单、`init`／`status` CLI、真实 GitHub Actions 适配器和 Smoke Render 验收；临时目录语法、自动化测试和远程样本验证通过，未修改现有视频内容。
 - 2026-08-20：逐一核对 `claude-code-how-it-works` 全部 12 个 Scene 的字幕区间与视觉事件；将固定帧／百分比动画改为对应字幕 Cue 驱动，确认视觉事件顺序与 Scene 边界一致，未修改其他视频。
@@ -34,6 +41,7 @@
 
 ## 进行中
 
+- `vscode` 已完成 TTS、字幕／Timeline 和 Remotion；等待在可访问 Chromium 环境完成 Gate 3 的逐幕画面检查。
 - `claude-code-first-run` 已完成 TTS 和 Remotion 接入；等待 Gate 3 检查音画同步、字幕安全区、场景节奏、文字溢出和清洁输出。
 - `claude-code-coding-plan` 已完成 Gate 2 和 Remotion 接入；Scene 03 的三张付费卡片已提前到对应口播前约 1.2 秒，等待 Gate 3 视觉检查。
 - `claude-code-third-party-models` 的 Remotion Studio 已构建完成；等待检查字幕安全区、主文案密度、9 个 Scene 的状态变化和是否存在无关画面文字。
@@ -41,9 +49,10 @@
 
 ## 下一步
 
-1. 用户打开本地 Web UI，确认 53 个项目列表、项目详情、资料查看和 Visual Prototype 预览。
-2. 选择一个待处理视频初始化 Harness，验证从 `source` 开始的状态记录；已有旧视频先使用 Legacy 只读检查。
-3. 继续处理 pending 分支中的待制作视频；批量脚本仍独立运行，不并入 Web UI 第一版。
+1. 在可访问 Chromium 的环境检查 `vscode` Gate 3：音画同步、字幕安全区、9 个 Scene 的状态节奏、文字溢出和清洁输出。
+2. Gate 3 通过后，才为 `vscode` 触发远程 Smoke Render；代表帧和短片通过检查后再考虑完整渲染。
+3. 用户打开本地 Web UI，确认 53 个项目列表、项目详情、资料查看和 Visual Prototype 预览。
+4. 选择一个待处理视频初始化 Harness，验证从 `source` 开始的状态记录；已有旧视频先使用 Legacy 只读检查。
 
 ## 阻塞
 
@@ -51,6 +60,7 @@
 - `claude-code-third-party-models` 的本机浏览器画面检查仍受旧版 macOS Chromium `SIGTRAP` 影响；Studio 服务已构建并运行，需在可访问 Studio 的环境完成人工画面检查。
 - 当前 macOS 上 Remotion Chromium 启动即因旧系统返回 `SIGTRAP`，无法在本机生成 still／MP4；当前视频必须由 GitHub Actions 完成冒烟和最终画面验证。
 - `claude-code-coding-plan` 的本机浏览器画面检查可能受旧版 macOS Chromium `SIGTRAP` 影响；Studio 构建已通过，需在可访问 Studio 的环境完成人工 Gate 3。
+- `vscode` 的本机 Composition 画面检查同样受旧版 macOS Chromium 启动失败影响；当前只能确认 Studio 服务、构建、Manifest 和帧边界，不能把 Gate 3 标记为通过。
 
 ## 关键避坑
 
@@ -66,6 +76,11 @@
 
 ## 最近验证（最近 10 条）
 
+- 2026-08-21：`vscode` Scene 01 右上角定位标识改动通过 `npm run check` 和 `git diff --check`；本机 Chromium 仍无法完成实际画面复核，Gate 3 保持未通过。
+- 2026-08-21：`vscode` 8 个模拟工作区场景改动通过 `npm run check` 和 `git diff --check`；本机 Chromium 仍因 `SIGTRAP` 无法完成实际画面复核，Gate 3 保持未通过。
+- 2026-08-21：`vscode` 的 TTS／字幕／Timeline／Remotion 确定性回归通过；9 个 Scene、9 个 Segment、117 条字幕 Cue、262.464 秒 Timeline、资源路径和连续 30fps Scene 边界均有效，Composition 已注册。
+- 2026-08-21：视觉原型预览区域已由固定 620px iframe 调整为 820px 容器并填满显示；`npm run check`、`git diff --check` 和 Harness 23/23 回归测试通过，运行中的 Web UI 已返回新 CSS。
+- 2026-08-21：当前 Web UI 服务已提供项目卡片新布局；序号回归仍通过，live API 返回 53 条项目，序号连续且唯一为 01–53，视频目录前后哈希一致。
 - 2026-08-21：集成后的 Web UI 健康接口返回正常，项目列表发现 53 条视频项目；`claude-code-how-it-works` 详情包含 15 个阶段，只有 `claude-code-api-config` 存在 Harness 状态记录。
 - 2026-08-20：Harness 对 `claude-code-first-run`、`claude-code-coding-plan` 和 `claude-code-third-party-models` 的只读结构与产物回归全部通过；必要产物齐全、Scene／Segment／字幕／Timeline 对齐，三条目标视频目录前后哈希一致。
 - 2026-08-20：Harness 对 `claude-code-how-it-works` 的只读结构与产物回归通过；Source 至 Remotion 所需产物全部存在，12 个 Scene、27 个 TTS／音频 Segment、107 条字幕 Cue、12 个时间轴 Scene 和 228.168 秒 Timeline 对齐，目标视频目录前后哈希一致。

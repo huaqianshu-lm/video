@@ -1,0 +1,170 @@
+{
+  "schemaVersion": "1.0",
+  "videoId": "vscode",
+  "sceneBuffer": 0.0,
+  "duration": 262.464,
+  "scenes": [
+    {
+      "sceneId": "01",
+      "offset": 0.0,
+      "narrationDuration": 22.368,
+      "buffer": 0.0,
+      "duration": 22.368,
+      "end": 22.368,
+      "segments": [
+        {
+          "segmentId": "01-01",
+          "offset": 0.0,
+          "duration": 22.368,
+          "end": 22.368,
+          "audioFile": "audio/scene-01/01-01.mp3",
+          "subtitleFile": "subtitles/scene-01.json"
+        }
+      ]
+    },
+    {
+      "sceneId": "02",
+      "offset": 22.368,
+      "narrationDuration": 27.768,
+      "buffer": 0.0,
+      "duration": 27.768,
+      "end": 50.136,
+      "segments": [
+        {
+          "segmentId": "02-01",
+          "offset": 0.0,
+          "duration": 27.768,
+          "end": 27.768,
+          "audioFile": "audio/scene-02/02-01.mp3",
+          "subtitleFile": "subtitles/scene-02.json"
+        }
+      ]
+    },
+    {
+      "sceneId": "03",
+      "offset": 50.136,
+      "narrationDuration": 38.664,
+      "buffer": 0.0,
+      "duration": 38.664,
+      "end": 88.8,
+      "segments": [
+        {
+          "segmentId": "03-01",
+          "offset": 0.0,
+          "duration": 38.664,
+          "end": 38.664,
+          "audioFile": "audio/scene-03/03-01.mp3",
+          "subtitleFile": "subtitles/scene-03.json"
+        }
+      ]
+    },
+    {
+      "sceneId": "04",
+      "offset": 88.8,
+      "narrationDuration": 27.432,
+      "buffer": 0.0,
+      "duration": 27.432,
+      "end": 116.232,
+      "segments": [
+        {
+          "segmentId": "04-01",
+          "offset": 0.0,
+          "duration": 27.432,
+          "end": 27.432,
+          "audioFile": "audio/scene-04/04-01.mp3",
+          "subtitleFile": "subtitles/scene-04.json"
+        }
+      ]
+    },
+    {
+      "sceneId": "05",
+      "offset": 116.232,
+      "narrationDuration": 29.088,
+      "buffer": 0.0,
+      "duration": 29.088,
+      "end": 145.32,
+      "segments": [
+        {
+          "segmentId": "05-01",
+          "offset": 0.0,
+          "duration": 29.088,
+          "end": 29.088,
+          "audioFile": "audio/scene-05/05-01.mp3",
+          "subtitleFile": "subtitles/scene-05.json"
+        }
+      ]
+    },
+    {
+      "sceneId": "06",
+      "offset": 145.32,
+      "narrationDuration": 28.896,
+      "buffer": 0.0,
+      "duration": 28.896,
+      "end": 174.216,
+      "segments": [
+        {
+          "segmentId": "06-01",
+          "offset": 0.0,
+          "duration": 28.896,
+          "end": 28.896,
+          "audioFile": "audio/scene-06/06-01.mp3",
+          "subtitleFile": "subtitles/scene-06.json"
+        }
+      ]
+    },
+    {
+      "sceneId": "07",
+      "offset": 174.216,
+      "narrationDuration": 28.968,
+      "buffer": 0.0,
+      "duration": 28.968,
+      "end": 203.184,
+      "segments": [
+        {
+          "segmentId": "07-01",
+          "offset": 0.0,
+          "duration": 28.968,
+          "end": 28.968,
+          "audioFile": "audio/scene-07/07-01.mp3",
+          "subtitleFile": "subtitles/scene-07.json"
+        }
+      ]
+    },
+    {
+      "sceneId": "08",
+      "offset": 203.184,
+      "narrationDuration": 33.576,
+      "buffer": 0.0,
+      "duration": 33.576,
+      "end": 236.76,
+      "segments": [
+        {
+          "segmentId": "08-01",
+          "offset": 0.0,
+          "duration": 33.576,
+          "end": 33.576,
+          "audioFile": "audio/scene-08/08-01.mp3",
+          "subtitleFile": "subtitles/scene-08.json"
+        }
+      ]
+    },
+    {
+      "sceneId": "09",
+      "offset": 236.76,
+      "narrationDuration": 25.704,
+      "buffer": 0.0,
+      "duration": 25.704,
+      "end": 262.464,
+      "segments": [
+        {
+          "segmentId": "09-01",
+          "offset": 0.0,
+          "duration": 25.704,
+          "end": 25.704,
+          "audioFile": "audio/scene-09/09-01.mp3",
+          "subtitleFile": "subtitles/scene-09.json"
+        }
+      ]
+    }
+  ]
+}

@@ -16,6 +16,8 @@ import {ClaudeCodeFirstRunVideo} from './videos/claude-code-first-run/ClaudeCode
 import {videoConfig as claudeCodeFirstRunConfig} from './videos/claude-code-first-run/video.config';
 import {ClaudeCodeHowItWorksVideo} from './videos/claude-code-how-it-works/ClaudeCodeHowItWorksVideo';
 import {videoConfig as claudeCodeHowItWorksConfig} from './videos/claude-code-how-it-works/video.config';
+import {VscodeVideo} from './videos/vscode/VscodeVideo';
+import {videoConfig as vscodeConfig} from './videos/vscode/video.config';
 
 export const Root = () => {
   return (
@@ -83,6 +85,14 @@ export const Root = () => {
         fps={claudeCodeHowItWorksConfig.fps}
         width={claudeCodeHowItWorksConfig.width}
         height={claudeCodeHowItWorksConfig.height}
+      />
+      <Composition
+        id={vscodeConfig.slug}
+        component={VscodeVideo}
+        durationInFrames={getTotalDurationFrames(vscodeConfig)}
+        fps={vscodeConfig.fps}
+        width={vscodeConfig.width}
+        height={vscodeConfig.height}
       />
     </>
   );
