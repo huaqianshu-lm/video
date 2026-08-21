@@ -114,7 +114,7 @@ async function main(args) {
 
   if (["validate", "run", "resume", "retry", "approve", "reject", "next", "report", "context", "plan"].includes(command)) {
     validateSlug(slug);
-    const project = loadProject(slug);
+    const project = loadProject(slug, { refresh: !["context", "plan"].includes(command) });
 
     if (command === "context") {
       console.log(JSON.stringify(buildTaskPacket(project), null, 2));
