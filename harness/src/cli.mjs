@@ -5,6 +5,8 @@ import { STAGES } from "./stages.mjs";
 import { approveGate, rejectGate, resumeProject, retryStage, runStage, validateStage } from "./runner.mjs";
 import { createGitHubActionsAdapterFromEnv } from "./adapters.mjs";
 import { buildNextAction, buildProjectReport } from "./reports.mjs";
+import { buildTaskPacket } from "./context.mjs";
+import { buildProjectPlan } from "./plans.mjs";
 
 function usage() {
   console.log(`Usage:
@@ -18,6 +20,8 @@ function usage() {
   node harness/src/cli.mjs resume <slug>
   node harness/src/cli.mjs next <slug> [--json]
   node harness/src/cli.mjs report <slug> [--json]
+  node harness/src/cli.mjs context <slug>
+  node harness/src/cli.mjs plan <slug> --until <stage> [--json]
 
 GitHub Actions adapter environment:
   GITHUB_TOKEN or GH_TOKEN, GITHUB_REPOSITORY, and GITHUB_REF_NAME (or HARNESS_GITHUB_REF)`);
@@ -69,6 +73,16 @@ function printReport(report) {
   }
 }
 
+function printPlan(plan) {
+  console.log(`Project: ${plan.project.slug}`);
+  console.log(`Current stage: ${plan.project.currentStage}`);
+  console.log(`Target stage: ${plan.target.stage}`);
+  console.log("Stages:");
+  for (const item of plan.stages) {
+    console.log(`  ${item.stage}: ${item.status} — ${item.objective}`);
+  }
+}
+
 function configuredAdapters() {
   if (!(process.env.GITHUB_TOKEN ?? process.env.GH_TOKEN)) {
     return {};
@@ -98,9 +112,24 @@ async function main(args) {
     return 0;
   }
 
-  if (["validate", "run", "resume", "retry", "approve", "reject", "next", "report"].includes(command)) {
+  if (["validate", "run", "resume", "retry", "approve", "reject", "next", "report", "context", "plan"].includes(command)) {
     validateSlug(slug);
-    const project = loadProject(slug);
+    const project = loadProject(slug, { refresh: !["context", "plan"].includes(command) });
+
+    if (command === "context") {
+      console.log(JSON.stringify(buildTaskPacket(project), null, 2));
+      return 0;
+    }
+
+    if (command === "plan") {
+      const untilIndex = options.indexOf("--until");
+      const until = untilIndex >= 0 ? options[untilIndex + 1] : undefined;
+      if (!until) throw new Error("plan requires --until <stage>");
+      const plan = buildProjectPlan(project, until);
+      if (options.includes("--json")) console.log(JSON.stringify(plan, null, 2));
+      else printPlan(plan);
+      return 0;
+    }
 
     if (command === "next") {
       const next = buildNextAction(project);
