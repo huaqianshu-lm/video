@@ -1,8 +1,18 @@
-# Video Production Harness 0.3
+# Video Production Harness 0.4
 
 ## 目标
 
-把当前已经验证的视频生产流程包装成一个可检查、可暂停、可恢复的单视频编排层。0.3 在 0.2 的状态和 Gate 基础上，补充阶段契约、单视频项目配置、Agent 任务包、目标阶段规划和样式边界；不追求自动替代内容判断，也不建设 Web 平台。
+把当前已经验证的视频生产流程包装成一个可检查、可暂停、可恢复的单视频编排层。0.4 在 0.3 的阶段契约、任务包和样式边界基础上，补齐生产资料结构校验、Remotion 技术校验、Gate 自动前置校验和人工检查清单；不追求自动替代内容判断，也不建设 Web 平台。
+
+## 0.4 新增能力
+
+- Content Analysis、Video Narrative、Scene Script、Visual Script 和 Visual Prototype 的结构校验。
+- Remotion Composition 配置、横屏规格、30fps、Scene 定义和字幕／时间轴 Manifest 接入校验。
+- Gate 进入等待前先执行自动校验；校验失败时停留在 `failed`，不伪装成待人工确认。
+- `context`、`next` 和 `report` 输出 Gate 对应的人工检查清单。
+- 有效、无效、Legacy 和真实视频只读回归测试。
+
+完整校验项和当前实现状态见 [`VALIDATION-MATRIX.md`](./VALIDATION-MATRIX.md)。
 
 ## 仓库边界
 

@@ -62,6 +62,10 @@ function printNext(next) {
     console.log(`Issues: ${next.issues.length}`);
     for (const issue of next.issues) console.log(`  [${issue.code}] ${issue.path ?? ""} ${issue.message}`.trim());
   }
+  if (next.manualChecks?.length > 0) {
+    console.log("Manual checks:");
+    for (const check of next.manualChecks) console.log(`  - ${check}`);
+  }
 }
 
 function printReport(report) {
