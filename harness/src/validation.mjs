@@ -396,5 +396,7 @@ export function validateStageContent(project, stage, options = {}) {
 }
 
 export function validateProjectStage(project, stage, options = {}) {
-  return [...validateStageArtifacts(project, stage), ...validateStageContent(project, stage, options)];
+  const issues = [...validateStageArtifacts(project, stage), ...validateStageContent(project, stage, options)];
+  if (project.config.validationPolicy !== "legacy") return issues;
+  return issues.map((item) => ({ ...item, severity: "warning" }));
 }

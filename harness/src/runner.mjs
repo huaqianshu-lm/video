@@ -43,6 +43,7 @@ function completeStage(project, stage, outputs = []) {
   item.error = null;
   item.invalidatedBy = null;
   item.outputs = outputs;
+  item.remote = null;
   item.outputFingerprint = fingerprintStageArtifacts(project, stage);
   item.updatedAt = new Date().toISOString();
   const following = nextStage(stage);
@@ -55,7 +56,7 @@ function completeStage(project, stage, outputs = []) {
   saveState(project);
 }
 
-function failAdapterStage(project, stage, error) {
+export function markAdapterStageFailed(project, stage, error) {
   const failure = {
     code: "adapter-failed",
     stage,
@@ -65,12 +66,18 @@ function failAdapterStage(project, stage, error) {
   item.status = "failed";
   item.error = failure;
   item.invalidatedBy = null;
+  item.remote = null;
   item.updatedAt = new Date().toISOString();
   saveState(project);
+  return failure;
+}
+
+function failAdapterStage(project, stage, error) {
+  const failure = markAdapterStageFailed(project, stage, error);
   throw new Error(failure.message);
 }
 
-function completeAdapterStage(project, stage, result) {
+export function completeAdapterStage(project, stage, result) {
   completeStage(project, stage, result?.outputs ?? []);
   return { stage, status: "succeeded", nextStage: project.state.currentStage };
 }
@@ -81,7 +88,7 @@ export function validateStage(project, requestedStage) {
   return validateProjectStage(project, stage);
 }
 
-export function runStage(project, requestedStage, { adapters = {} } = {}) {
+export function runStage(project, requestedStage, { adapters = {}, deferAdapters = false } = {}) {
   const stage = requireCurrentStage(project, requestedStage);
   requireReady(project, stage);
   requirePreviousSucceeded(project, stage);
@@ -125,12 +132,26 @@ export function runStage(project, requestedStage, { adapters = {} } = {}) {
     }
 
     try {
-      const result = adapter.run({ stage, project });
+      const result = adapter.run({ stage, project, defer: deferAdapters });
       if (result && typeof result.then === "function") {
         return result.then(
-          (resolved) => completeAdapterStage(project, stage, resolved),
+          (resolved) => {
+            if (resolved?.deferred) {
+              item.remote = resolved.remote ?? null;
+              item.updatedAt = new Date().toISOString();
+              saveState(project);
+              return { stage, status: "running", remote: resolved.remote ?? null };
+            }
+            return completeAdapterStage(project, stage, resolved);
+          },
           (error) => failAdapterStage(project, stage, error),
         );
+      }
+      if (result?.deferred) {
+        item.remote = result.remote ?? null;
+        item.updatedAt = new Date().toISOString();
+        saveState(project);
+        return { stage, status: "running", remote: result.remote ?? null };
       }
       return completeAdapterStage(project, stage, result);
     } catch (error) {

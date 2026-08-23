@@ -4,14 +4,17 @@ import { initializeProject, loadProject } from "./storage.mjs";
 import { STAGES } from "./stages.mjs";
 import { approveGate, rejectGate, resumeProject, retryStage, runStage, validateStage } from "./runner.mjs";
 import { createGitHubActionsAdapterFromEnv } from "./adapters.mjs";
+import { requireGitHubActionsConfig } from "./github-config.mjs";
 import { buildNextAction, buildProjectReport } from "./reports.mjs";
 import { buildTaskPacket } from "./context.mjs";
 import { buildProjectPlan } from "./plans.mjs";
+import { listJobs } from "./jobs.mjs";
 
 function usage() {
   console.log(`Usage:
   node harness/src/cli.mjs init <slug>
   node harness/src/cli.mjs status <slug> [--json]
+  node harness/src/cli.mjs jobs <slug> [--json]
   node harness/src/cli.mjs validate <slug> [stage]
   node harness/src/cli.mjs run <slug> [stage]
   node harness/src/cli.mjs approve <slug> <gate>
@@ -46,6 +49,25 @@ function printStatus(project, asJson) {
   for (const stage of STAGES) {
     const item = state.stages[stage];
     console.log(`  ${stage}: ${item.status}`);
+  }
+}
+
+function printJobs(slug, asJson) {
+  const jobs = listJobs(slug);
+  if (asJson) {
+    console.log(JSON.stringify(jobs, null, 2));
+    return;
+  }
+  console.log(`Remote jobs: ${slug}`);
+  if (jobs.length === 0) {
+    console.log("  No remote jobs");
+    return;
+  }
+  for (const job of jobs) {
+    const run = job.remote?.runId ? `Run #${job.remote.runId}` : "Run pending";
+    const artifact = job.result?.outputs?.[0]?.artifactName ?? "Artifact pending";
+    console.log(`  ${job.stage}: ${job.status} · ${run} · ${artifact}`);
+    if (job.error?.message) console.log(`    Error: ${job.error.message}`);
   }
 }
 
@@ -88,9 +110,7 @@ function printPlan(plan) {
 }
 
 function configuredAdapters() {
-  if (!(process.env.GITHUB_TOKEN ?? process.env.GH_TOKEN)) {
-    return {};
-  }
+  requireGitHubActionsConfig();
   const adapter = createGitHubActionsAdapterFromEnv();
   return { "smoke-render": adapter, render: adapter };
 }
@@ -113,6 +133,12 @@ async function main(args) {
   if (command === "status") {
     validateSlug(slug);
     printStatus(loadProject(slug), options.includes("--json"));
+    return 0;
+  }
+
+  if (command === "jobs") {
+    validateSlug(slug);
+    printJobs(slug, options.includes("--json"));
     return 0;
   }
 
@@ -156,7 +182,9 @@ async function main(args) {
     }
 
     if (command === "run") {
-      console.log(JSON.stringify(await runStage(project, options[0], { adapters: configuredAdapters() }), null, 2));
+      const stage = options[0] ?? project.state.currentStage;
+      const adapters = stage === "smoke-render" || stage === "render" ? configuredAdapters() : {};
+      console.log(JSON.stringify(await runStage(project, stage, { adapters }), null, 2));
       return 0;
     }
 

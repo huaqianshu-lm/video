@@ -6,8 +6,9 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { getProjectFile, getProjectPrototype, listProjectFiles } from "./project-files.mjs";
 import { getVideoProject, listVideoProjects } from "./project-view.mjs";
-import { createJob, findActiveJob, listJobs } from "./jobs.mjs";
-import { createGitHubActionsAdapterFromEnv } from "./adapters.mjs";
+import { findActiveJob, listJobs } from "./jobs.mjs";
+import { requireGitHubActionsConfig } from "./github-config.mjs";
+import { createRemoteJobMonitor } from "./remote-jobs.mjs";
 import { artifactManifestFor } from "./artifacts.mjs";
 import { approveGate, rejectGate, resumeProject, retryStage, runStage, validateStage } from "./runner.mjs";
 import { validateProjectStage } from "./validation.mjs";
@@ -210,20 +211,22 @@ async function serveAction(response, request, pathname) {
       sendJson(response, 400, { error: "remote-run only supports smoke-render and render" });
       return true;
     }
+    try {
+      requireGitHubActionsConfig();
+    } catch (error) {
+      sendJson(response, 400, {
+        error: error instanceof Error ? error.message : String(error),
+        code: error.code ?? "github-config-invalid",
+        issues: error.issues ?? [],
+      });
+      return true;
+    }
     const activeJob = findActiveJob(slug, stage);
     if (activeJob) {
       sendJson(response, 409, { error: "A remote job for this stage is already running", job: activeJob });
       return true;
     }
-    const { job } = createJob({
-      slug,
-      stage,
-      run: async () => {
-        const project = loadProject(slug, { refresh: true });
-        const adapter = createGitHubActionsAdapterFromEnv();
-        return runStage(project, stage, { adapters: { [stage]: adapter } });
-      },
-    });
+    const job = request.remoteJobMonitor.submit({ slug, stage });
     sendJson(response, 202, { result: { action, status: "queued" }, job });
     return true;
   }
@@ -271,7 +274,7 @@ async function serveAction(response, request, pathname) {
   return true;
 }
 
-async function handleRequest(request, response, host) {
+async function handleRequest(request, response, host, remoteJobMonitor) {
   const requestUrl = new URL(request.url ?? "/", `http://${host}`);
   const isAction = request.method === "POST" && requestUrl.pathname.endsWith("/action");
   if (request.method !== "GET" && request.method !== "HEAD" && !isAction) {
@@ -279,6 +282,7 @@ async function handleRequest(request, response, host) {
     return;
   }
 
+  request.remoteJobMonitor = remoteJobMonitor;
   if (isAction && await serveAction(response, request, requestUrl.pathname)) {
     return;
   }
@@ -315,9 +319,9 @@ function servePrototype(response, pathname) {
   return true;
 }
 
-export function createWebServer({ host = defaultHost, port = defaultPort } = {}) {
+export function createWebServer({ host = defaultHost, port = defaultPort, remoteJobMonitor = createRemoteJobMonitor() } = {}) {
   const server = http.createServer((request, response) => {
-    handleRequest(request, response, host).catch((error) => {
+    handleRequest(request, response, host, remoteJobMonitor).catch((error) => {
       if (response.headersSent) {
         response.destroy(error);
         return;
@@ -340,10 +344,12 @@ export function createWebServer({ host = defaultHost, port = defaultPort } = {})
         };
         server.once("error", onError);
         server.once("listening", onListening);
+        server.once("listening", () => remoteJobMonitor.start());
         server.listen(port, host);
       });
     },
     close() {
+      remoteJobMonitor.stop();
       return new Promise((resolve, reject) => {
         if (!server.listening) {
           resolve();

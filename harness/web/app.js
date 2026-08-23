@@ -29,6 +29,16 @@ const stageStatusLabels = {
   waiting: "等待确认",
 };
 
+const jobStatusLabels = {
+  dispatching: "提交中",
+  failed: "失败",
+  queued: "排队中",
+  running: "执行中",
+  succeeded: "成功",
+  "waiting-config": "等待配置",
+  "waiting-run": "等待 Run",
+};
+
 function escapeHtml(value) {
   return String(value ?? "")
     .replaceAll("&", "&amp;")
@@ -175,8 +185,17 @@ function renderJobs(jobs) {
   return `<div class="jobs-list">${jobs.map((job) => `
     <article class="job-card">
       <div><strong>${escapeHtml(job.stage)}</strong><span class="job-id">${escapeHtml(job.id)}</span></div>
-      <span class="stage-status">${escapeHtml(labelFor(job.status, { queued: "排队中", running: "执行中", succeeded: "成功", failed: "失败" }))}</span>
-      <p>${escapeHtml(job.error?.message ?? (job.result?.outputs?.[0]?.runUrl ?? "任务状态已记录"))}</p>
+      <span class="stage-status">${escapeHtml(labelFor(job.status, jobStatusLabels))}</span>
+      <p>${job.error?.message
+        ? escapeHtml(job.error.message)
+        : job.remote?.runUrl
+          ? `<a href="${escapeHtml(job.remote.runUrl)}" target="_blank" rel="noreferrer">查看 GitHub Actions Run</a>`
+          : "任务状态已记录"}</p>
+      <div class="job-meta">
+        <span>${escapeHtml(job.remote?.runId ? `Run #${job.remote.runId}` : "尚未发现 Run")}</span>
+        <span>${escapeHtml(job.result?.outputs?.[0]?.artifactName ? `Artifact：${job.result.outputs[0].artifactName}` : "Artifact：待检查")}</span>
+        <span>${escapeHtml(job.lastCheckedAt ? `最近检查：${job.lastCheckedAt}` : "尚未检查")}</span>
+      </div>
     </article>
   `).join("")}</div>`;
 }

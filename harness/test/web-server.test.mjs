@@ -27,7 +27,7 @@ test("serves the Web UI shell and health endpoint on localhost", async () => {
     assert.match(health.contentType, /application\/json/);
     assert.deepEqual(JSON.parse(health.body), {
       service: "video-production-harness-web",
-      harnessVersion: "0.4.0",
+      harnessVersion: "0.5.0",
       status: "ok",
     });
 

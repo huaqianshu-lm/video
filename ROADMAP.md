@@ -7,7 +7,7 @@
 
 ## 当前阶段
 
-- Harness 0.4 已完成本地实现、测试和推送，PR #3 已合并到 `main`（`5fcefb89`）；本阶段只补齐单视频生产资料校验、Remotion 技术校验和 Gate 边界，不改现有视频内容。
+- Harness 0.4 已完成本地实现、测试和推送，PR #3 已合并到 `main`（`5fcefb89`）；Harness 0.5 已在 `feat/video-harness-v0.5` 完成本地实现、全量测试和文档收尾，待提交推送，不改现有视频内容。
 - Harness Web UI 第一版已合入待处理视频集成分支；53 个视频项目按原文件序号 01–53 展示和排序，目录索引已补齐，项目卡片以完整项目名称为主信息，项目列表、详情、资料和 Visual Prototype 预览人工回归通过。
 - 新视频 `remotion-video` 已完成七层生产资料、Gate 1、Gate 2 和 12 Scene 横屏 Visual Prototype；源文档与指定文章字节一致，按任务边界停止在原型阶段，未生成 TTS 或 Remotion 资料。
 - 新视频 `glossary` 已完成七层生产资料、Gate 1、Gate 2 和 12 Scene 横屏 Visual Prototype；源文档与指定文章字节一致，按任务边界停止，未生成 TTS 或 Remotion 资料。
@@ -16,6 +16,7 @@
 - 新视频 `claude-code-how-it-works` 已通过 GitHub Smoke Render 和完整 Render；Run `32360625092` 成功，最终 MP4 已完成 Gate 4 人工确认。
 - `claude-code-coding-plan`、`claude-code-third-party-models` 已进入 Gate 3 视觉检查，分别关注场景节奏、字幕安全区、文字溢出和清洁输出。
 - 新视频 `vscode` 和 `claude-code-first-run` 已完成 TTS、字幕／Timeline、Remotion 接入及完整 GitHub Actions Render，最终 MP4 均通过用户 Gate 4 人工验收。
+- Harness 0.5 已完成远程配置预检、GitHub Actions 分阶段监控、持久化任务、重启恢复、重复 dispatch 防护、CLI／Web UI 状态展示及 30 项全量测试。
 
 ## 已完成（最近 10 条）
 
@@ -47,8 +48,8 @@
 
 ## 下一步
 
-1. 选择一个待处理视频初始化 Harness，验证从 `source` 开始的状态记录；已有旧视频先使用 Legacy 只读检查。
-2. Harness 0.5 修复远程任务配置缺失问题：提交前检查 `GITHUB_TOKEN`、仓库和分支配置，并把 GitHub Actions Run 监控改为可恢复的后台任务。
+1. 提交并推送 Harness 0.5 分支；合并前不触发现实视频渲染。
+2. 由用户决定是否进行一次受控真实 GitHub Actions 任务监控验收；不自动触发远程渲染。
 
 ## 阻塞
 
@@ -75,6 +76,7 @@
 
 - 2026-08-23：Web UI 人工回归通过；53 个项目的模块内容、项目状态、详情、资料和 Visual Prototype 预览均能正常显示。
 - 2026-08-23：`vscode` 和 `claude-code-first-run` 最终 MP4 通过用户人工验收，内容、声音、字幕和清洁输出无问题，Gate 4 完成。
+- 2026-08-23：Harness 0.5 全量回归通过 30 项测试；53 个视频项目只读检查、Web 服务/API、配置预检、远程任务恢复和 Artifact 验证均通过，视频目录无改动。
 
 - 2026-08-21：`vscode` 完整 Render Run `32496527485` 和 `claude-code-first-run` 完整 Render Run `32496531865` 均为 `success`；Artifact 分别为 12,153,238 和 14,683,118 bytes，均未过期。
 - 2026-08-21：`vscode` Scene 01 右上角定位标识改动通过 `npm run check` 和 `git diff --check`；本机 Chromium 仍无法完成实际画面复核，Gate 3 保持未通过。

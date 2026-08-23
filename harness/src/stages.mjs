@@ -1,4 +1,4 @@
-export const HARNESS_VERSION = "0.4.0";
+export const HARNESS_VERSION = "0.5.0";
 
 const rawStageDefinitions = [
   {
