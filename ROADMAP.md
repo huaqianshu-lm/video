@@ -7,7 +7,7 @@
 
 ## 当前阶段
 
-- Harness 0.4 已完成本地实现、测试和推送，PR #3 已合并到 `main`（`5fcefb89`）；Harness 0.5 已在 `feat/video-harness-v0.5` 完成本地实现、全量测试和文档收尾，待提交推送，不改现有视频内容。
+- Harness 0.4 已完成本地实现、测试和推送，PR #3 已合并到 `main`（`5fcefb89`）；Harness 0.5 已在 `feat/video-harness-v0.5` 完成实现、全量测试、文档收尾并推送（`c5645c5`），等待一次受控真实 GitHub Actions 任务监控验收后合并，不改现有视频内容。
 - Harness Web UI 第一版已合入待处理视频集成分支；53 个视频项目按原文件序号 01–53 展示和排序，目录索引已补齐，项目卡片以完整项目名称为主信息，项目列表、详情、资料和 Visual Prototype 预览人工回归通过。
 - 新视频 `remotion-video` 已完成七层生产资料、Gate 1、Gate 2 和 12 Scene 横屏 Visual Prototype；源文档与指定文章字节一致，按任务边界停止在原型阶段，未生成 TTS 或 Remotion 资料。
 - 新视频 `glossary` 已完成七层生产资料、Gate 1、Gate 2 和 12 Scene 横屏 Visual Prototype；源文档与指定文章字节一致，按任务边界停止，未生成 TTS 或 Remotion 资料。
@@ -48,8 +48,9 @@
 
 ## 下一步
 
-1. 提交并推送 Harness 0.5 分支；合并前不触发现实视频渲染。
-2. 由用户决定是否进行一次受控真实 GitHub Actions 任务监控验收；不自动触发远程渲染。
+1. 执行一次受控真实 GitHub Actions Smoke Render 任务监控验收；不触发完整渲染。
+2. 验收通过后创建并合并 Harness 0.5 PR 到 `main`。
+3. 合并后根据真实验收结果制定 Harness 0.6 实施计划。
 
 ## 阻塞
 
