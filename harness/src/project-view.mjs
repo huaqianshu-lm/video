@@ -17,11 +17,37 @@ function directorySlugs(directory) {
     .map((entry) => entry.name);
 }
 
+function sequenceForSlug(slug) {
+  const sourcePath = path.join(videosRoot, slug, "source.md");
+  if (!fs.existsSync(sourcePath)) return null;
+  const firstLine = fs.readFileSync(sourcePath, "utf8").split(/\r?\n/, 1)[0];
+  const match = firstLine.match(/^#\s+(\d+)\s+·/);
+  return match ? Number(match[1]) : null;
+}
+
+function compareVideoSlugs(left, right) {
+  const leftSequence = sequenceForSlug(left);
+  const rightSequence = sequenceForSlug(right);
+  if (leftSequence !== null && rightSequence !== null && leftSequence !== rightSequence) {
+    return leftSequence - rightSequence;
+  }
+  if (leftSequence !== null) return -1;
+  if (rightSequence !== null) return 1;
+  return left.localeCompare(right);
+}
+
 function allVideoSlugs() {
   return [...new Set([
     ...directorySlugs(videosRoot),
     ...directorySlugs(remotionRoot),
-  ])].sort();
+  ])].sort(compareVideoSlugs);
+}
+
+function projectIdentity(slug) {
+  return {
+    slug,
+    sequence: sequenceForSlug(slug),
+  };
 }
 
 function artifactPaths(slug, stage) {
@@ -68,7 +94,7 @@ function buildUninitializedView(slug) {
   const availableStages = artifactStages.filter((stage) => stage.status === "available");
 
   return {
-    slug,
+    ...projectIdentity(slug),
     initialized: false,
     status: "uninitialized",
     statusLabel: "未初始化 Harness",
@@ -100,7 +126,7 @@ function buildInitializedView(slug) {
   const succeededCount = stages.filter((stage) => stage.status === "succeeded").length;
 
   return {
-    slug,
+    ...projectIdentity(slug),
     initialized: true,
     status: project.state.currentStage === "completed" ? "completed" : project.state.stages[project.state.currentStage].status,
     statusLabel: project.state.currentStage === "completed" ? "已完成" : project.state.currentStage,

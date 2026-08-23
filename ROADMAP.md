@@ -15,7 +15,7 @@
 - 新视频 `voice` 已完成七层生产资料、Gate 1、Gate 2 和 12 Scene 横屏 Visual Prototype；源文档字节一致，按任务边界停止在原型阶段，未生成 TTS 或 Remotion 资料。
 - 新视频 `claude-code-how-it-works` 已通过 GitHub Smoke Render 和完整 Render；Run `32360625092` 成功，最终 MP4 已完成 Gate 4 人工确认。
 - `claude-code-first-run`、`claude-code-coding-plan`、`claude-code-third-party-models` 已进入 Gate 3 视觉检查，分别关注音画同步、字幕安全区、场景节奏、文字溢出和清洁输出。
-- 新视频 `vscode` 已完成 TTS、字幕／Timeline 和 Remotion 接入，当前停在 Gate 3；确定性校验和 Studio 构建通过，实际画面检查受本机 Chromium 环境阻塞。
+- 新视频 `vscode` 已完成 TTS、字幕／Timeline 和 Remotion 接入；Smoke Render 和完整 GitHub Actions Render 均已成功，最终 MP4 的本地规格核对待完成。
 
 ## 已完成（最近 10 条）
 
@@ -41,7 +41,7 @@
 
 ## 进行中
 
-- `vscode` 已完成 TTS、字幕／Timeline 和 Remotion；等待在可访问 Chromium 环境完成 Gate 3 的逐幕画面检查。
+- `vscode` 与 `claude-code-first-run` 的完整 GitHub Actions Render 已成功，Artifact 已确认存在且未过期；最终 MP4 规格核对待完成。
 - `claude-code-first-run` 已完成 TTS 和 Remotion 接入；等待 Gate 3 检查音画同步、字幕安全区、场景节奏、文字溢出和清洁输出。
 - `claude-code-coding-plan` 已完成 Gate 2 和 Remotion 接入；Scene 03 的三张付费卡片已提前到对应口播前约 1.2 秒，等待 Gate 3 视觉检查。
 - `claude-code-third-party-models` 的 Remotion Studio 已构建完成；等待检查字幕安全区、主文案密度、9 个 Scene 的状态变化和是否存在无关画面文字。
@@ -49,10 +49,11 @@
 
 ## 下一步
 
-1. 在可访问 Chromium 的环境检查 `vscode` Gate 3：音画同步、字幕安全区、9 个 Scene 的状态节奏、文字溢出和清洁输出。
-2. Gate 3 通过后，才为 `vscode` 触发远程 Smoke Render；代表帧和短片通过检查后再考虑完整渲染。
+1. 用户下载并核对 `vscode` 与 `claude-code-first-run` 最终 MP4 的分辨率、帧率、视频／音频编码、采样率、声道和时长。
+2. 用户打开并确认两个最终 MP4 的内容、声音、字幕和清洁输出，完成 Gate 4。
 3. 用户打开本地 Web UI，确认 53 个项目列表、项目详情、资料查看和 Visual Prototype 预览。
 4. 选择一个待处理视频初始化 Harness，验证从 `source` 开始的状态记录；已有旧视频先使用 Legacy 只读检查。
+5. Harness 0.5 修复远程任务配置缺失问题：提交前检查 `GITHUB_TOKEN`、仓库和分支配置，并把 GitHub Actions Run 监控改为可恢复的后台任务。
 
 ## 阻塞
 
@@ -73,9 +74,12 @@
 - 字幕、音频、场景节奏和 Remotion 配置的完整经验统一查阅 `docs/video-production-notes.md`，不在 Roadmap 重复记录。
 - 画面文字必须能追溯到当前视频生产资料；预览导航、调试标记和辅助说明不得进入最终 MP4，具体检查要求见 `CLAUDE.md` 和 `docs/video-production-notes.md`。
 - 新视频口播必须在生成阶段按独立视频表达，禁止把原始材料作为口播叙事对象；来源指代检查必须在派生 `tts-script.json` 前完成，已完成视频不回溯修改。
+- Web UI 提交远程任务前必须确认 GitHub Actions 适配器所需环境变量已配置；缺少 Token 时应在提交前给出明确配置提示，不应创建一个立即失败的远程任务。
+- 远程渲染完成后，Agent 只检查 GitHub Actions Run 结论和 Artifact 是否存在、非空、未过期；Artifact 下载、视频播放和最终 Gate 4 内容检查由用户完成。
 
 ## 最近验证（最近 10 条）
 
+- 2026-08-21：`vscode` 完整 Render Run `32496527485` 和 `claude-code-first-run` 完整 Render Run `32496531865` 均为 `success`；Artifact 分别为 12,153,238 和 14,683,118 bytes，均未过期；最终 MP4 本地规格核对因 Artifact 下载限制暂未完成。
 - 2026-08-21：`vscode` Scene 01 右上角定位标识改动通过 `npm run check` 和 `git diff --check`；本机 Chromium 仍无法完成实际画面复核，Gate 3 保持未通过。
 - 2026-08-21：`vscode` 8 个模拟工作区场景改动通过 `npm run check` 和 `git diff --check`；本机 Chromium 仍因 `SIGTRAP` 无法完成实际画面复核，Gate 3 保持未通过。
 - 2026-08-21：`vscode` 的 TTS／字幕／Timeline／Remotion 确定性回归通过；9 个 Scene、9 个 Segment、117 条字幕 Cue、262.464 秒 Timeline、资源路径和连续 30fps Scene 边界均有效，Composition 已注册。

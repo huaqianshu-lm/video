@@ -35,11 +35,13 @@ test("serves the Web UI shell and health endpoint on localhost", async () => {
     assert.equal(projects.status, 200);
     const projectPayload = JSON.parse(projects.body);
     assert.ok(projectPayload.projects.some((project) => project.slug === "claude-code-what-is"));
+    assert.equal(projectPayload.projects[0].sequence, 1);
 
     const detail = await request(webServer, "/api/projects/claude-code-what-is");
     assert.equal(detail.status, 200);
     const detailPayload = JSON.parse(detail.body);
     assert.equal(detailPayload.project.slug, "claude-code-what-is");
+    assert.equal(detailPayload.project.sequence, 1);
     assert.equal(detailPayload.project.stages.length, 15);
 
     const files = await request(webServer, "/api/projects/claude-code-what-is/files");
