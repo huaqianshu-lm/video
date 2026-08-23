@@ -48,7 +48,7 @@
 
 ## 下一步
 
-1. 执行一次受控真实 GitHub Actions Smoke Render 任务监控验收；不触发完整渲染。
+1. 更新有效的 GitHub API Token 后，重新执行一次受控真实 GitHub Actions Smoke Render 任务监控验收；不触发完整渲染。
 2. 验收通过后创建并合并 Harness 0.5 PR 到 `main`。
 3. 合并后根据真实验收结果制定 Harness 0.6 实施计划。
 
@@ -58,6 +58,7 @@
 - `claude-code-third-party-models` 的本机浏览器画面检查仍受旧版 macOS Chromium `SIGTRAP` 影响；Studio 服务已构建并运行，需在可访问 Studio 的环境完成人工画面检查。
 - 当前 macOS 上 Remotion Chromium 启动即因旧系统返回 `SIGTRAP`，无法在本机生成 still／MP4；当前视频必须由 GitHub Actions 完成冒烟和最终画面验证。
 - `claude-code-coding-plan` 的本机浏览器画面检查可能受旧版 macOS Chromium `SIGTRAP` 影响；Studio 构建已通过，需在可访问 Studio 的环境完成人工 Gate 3。
+- Harness 0.5 受控 Smoke Render 首次验收因 GitHub API 返回 `401 Bad credentials` 停止；未发现 Run、未触发远程任务，需更新 Keychain 中的有效 Token 后重试。
 
 ## 关键避坑
 
