@@ -7,7 +7,7 @@
 
 ## 当前阶段
 
-- Harness 0.4 已完成本地实现、测试和推送，PR #3 已合并到 `main`（`5fcefb89`）；Harness 0.5 已在 `feat/video-harness-v0.5` 完成实现、全量测试、文档收尾并推送（`c5645c5`），等待一次受控真实 GitHub Actions 任务监控验收后合并，不改现有视频内容。
+- Harness 0.4 已完成本地实现、测试和推送，PR #3 已合并到 `main`（`5fcefb89`）；Harness 0.5 已在 `feat/video-harness-v0.5` 完成实现、全量测试、文档收尾和受控真实 Smoke Render 监控验收（Run `32632006287`、Artifact `vscode-smoke-test`），等待合并，不改现有视频内容。
 - Harness Web UI 第一版已合入待处理视频集成分支；53 个视频项目按原文件序号 01–53 展示和排序，目录索引已补齐，项目卡片以完整项目名称为主信息，项目列表、详情、资料和 Visual Prototype 预览人工回归通过。
 - 新视频 `remotion-video` 已完成七层生产资料、Gate 1、Gate 2 和 12 Scene 横屏 Visual Prototype；源文档与指定文章字节一致，按任务边界停止在原型阶段，未生成 TTS 或 Remotion 资料。
 - 新视频 `glossary` 已完成七层生产资料、Gate 1、Gate 2 和 12 Scene 横屏 Visual Prototype；源文档与指定文章字节一致，按任务边界停止，未生成 TTS 或 Remotion 资料。
@@ -48,9 +48,8 @@
 
 ## 下一步
 
-1. 更新有效的 GitHub API Token 后，重新执行一次受控真实 GitHub Actions Smoke Render 任务监控验收；不触发完整渲染。
-2. 验收通过后创建并合并 Harness 0.5 PR 到 `main`。
-3. 合并后根据真实验收结果制定 Harness 0.6 实施计划。
+1. 创建并合并 Harness 0.5 PR 到 `main`。
+2. 合并后根据真实验收结果制定 Harness 0.6 实施计划。
 
 ## 阻塞
 
@@ -58,7 +57,6 @@
 - `claude-code-third-party-models` 的本机浏览器画面检查仍受旧版 macOS Chromium `SIGTRAP` 影响；Studio 服务已构建并运行，需在可访问 Studio 的环境完成人工画面检查。
 - 当前 macOS 上 Remotion Chromium 启动即因旧系统返回 `SIGTRAP`，无法在本机生成 still／MP4；当前视频必须由 GitHub Actions 完成冒烟和最终画面验证。
 - `claude-code-coding-plan` 的本机浏览器画面检查可能受旧版 macOS Chromium `SIGTRAP` 影响；Studio 构建已通过，需在可访问 Studio 的环境完成人工 Gate 3。
-- Harness 0.5 受控 Smoke Render 首次验收因 GitHub API 返回 `401 Bad credentials` 停止；未发现 Run、未触发远程任务，需更新 Keychain 中的有效 Token 后重试。
 
 ## 关键避坑
 
@@ -76,6 +74,7 @@
 
 ## 最近验证（最近 10 条）
 
+- 2026-08-23：Harness 0.5 通过真实 GitHub Actions 后台监控完成 `vscode` Smoke Render；Run `32632006287` 为 `success`，Artifact `vscode-smoke-test` 存在、大小 1,425,085 bytes 且未过期；Harness 任务推进到 `render`，未下载 Artifact，未修改视频目录。
 - 2026-08-23：Web UI 人工回归通过；53 个项目的模块内容、项目状态、详情、资料和 Visual Prototype 预览均能正常显示。
 - 2026-08-23：`vscode` 和 `claude-code-first-run` 最终 MP4 通过用户人工验收，内容、声音、字幕和清洁输出无问题，Gate 4 完成。
 - 2026-08-23：Harness 0.5 全量回归通过 30 项测试；53 个视频项目只读检查、Web 服务/API、配置预检、远程任务恢复和 Artifact 验证均通过，视频目录无改动。
