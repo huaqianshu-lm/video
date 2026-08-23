@@ -214,6 +214,9 @@ function projectActions(project) {
     buttons.pop();
     buttons.push(`<button class="button button-primary" type="button" data-action="remote-run">提交远程任务</button>`);
   }
+  if (["smoke-render", "render"].includes(project.currentStage)) {
+    buttons.push(`<button class="button button-secondary" type="button" data-action="find-historical">查找历史 Artifact</button>`);
+  }
   if (project.next.action === "retry-stage") buttons.push(`<button class="button button-primary" type="button" data-action="retry">重试当前阶段</button>`);
   if (project.next.action === "resume-from-invalidated-stage") buttons.push(`<button class="button button-primary" type="button" data-action="resume">恢复项目</button>`);
   if (project.next.action === "approve-or-reject-gate") {
@@ -223,10 +226,11 @@ function projectActions(project) {
   return buttons.join("");
 }
 
-async function performAction(project, action) {
+async function performAction(project, action, runId = null) {
   if (action === "initialize" && !window.confirm(`初始化 ${project.slug} 的 Harness 状态吗？`)) return;
   const body = { action };
-  if (action === "validate" || action === "run" || action === "retry" || action === "remote-run") body.stage = project.currentStage;
+  if (["validate", "run", "retry", "remote-run", "find-historical", "adopt-historical"].includes(action)) body.stage = project.currentStage;
+  if (action === "adopt-historical") body.runId = runId;
   if (action === "approve") body.gate = project.currentStage;
   if (action === "reject") {
     body.gate = project.currentStage;
@@ -243,6 +247,23 @@ async function performAction(project, action) {
     });
     const payload = await response.json();
     if (!response.ok) throw new Error(payload.error ?? `HTTP ${response.status}`);
+    if (action === "find-historical") {
+      const candidates = payload.result.candidates ?? [];
+      if (candidates.length === 0) {
+        window.alert("没有找到带有匹配 Artifact 的成功历史 Run。");
+        return;
+      }
+      const options = candidates.map((candidate, index) =>
+        `${index + 1}. Run #${candidate.runId} · ${candidate.ref} · ${candidate.createdAt} · ${candidate.artifactName} · ${candidate.artifactSizeInBytes} bytes`
+      ).join("\n");
+      const answer = window.prompt(`找到历史成功结果，请输入要认领的序号：\n${options}`, "1");
+      const index = Number(answer) - 1;
+      if (!Number.isInteger(index) || !candidates[index]) return;
+      const candidate = candidates[index];
+      if (!window.confirm(`确认认领 Run #${candidate.runId} 的 Artifact ${candidate.artifactName} 吗？\n分支：${candidate.ref}`)) return;
+      await performAction(project, "adopt-historical", candidate.runId);
+      return;
+    }
     if (action === "legacy-validate") {
       const errors = payload.result.issues.filter((issue) => issue.severity !== "warning").length;
       const warnings = payload.result.issues.filter((issue) => issue.severity === "warning").length;

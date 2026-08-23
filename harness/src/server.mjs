@@ -73,7 +73,7 @@ function serveStatic(response, urlPath) {
   response.end(body);
 }
 
-function serveApi(response, pathname, search) {
+async function serveApi(response, pathname, search, remoteJobMonitor) {
   if (pathname === "/api/projects") {
     sendJson(response, 200, { projects: listVideoProjects() });
     return true;
@@ -81,10 +81,14 @@ function serveApi(response, pathname, search) {
 
   const projectMatch = pathname.match(/^\/api\/projects\/([a-z0-9]+(?:-[a-z0-9]+)*)$/);
   if (projectMatch) {
-    const project = getVideoProject(projectMatch[1]);
+    let project = getVideoProject(projectMatch[1]);
     if (!project) {
       sendJson(response, 404, { error: "Video project not found" });
       return true;
+    }
+    if (project.initialized) {
+      await remoteJobMonitor.poll();
+      project = getVideoProject(projectMatch[1]);
     }
     sendJson(response, 200, { project });
     return true;
@@ -205,6 +209,46 @@ async function serveAction(response, request, pathname) {
     return true;
   }
 
+  if (action === "find-historical") {
+    const stage = body.stage;
+    if (stage !== "smoke-render" && stage !== "render") {
+      sendJson(response, 400, { error: "find-historical only supports smoke-render and render" });
+      return true;
+    }
+    try {
+      requireGitHubActionsConfig();
+      const candidates = await request.remoteJobMonitor.findHistorical({ slug, stage });
+      sendJson(response, 200, { result: { action, stage, candidates }, project: getVideoProject(slug) });
+    } catch (error) {
+      sendJson(response, 400, {
+        error: error instanceof Error ? error.message : String(error),
+        code: error.code ?? "historical-recovery-failed",
+        issues: error.issues ?? [],
+      });
+    }
+    return true;
+  }
+
+  if (action === "adopt-historical") {
+    const stage = body.stage;
+    if ((stage !== "smoke-render" && stage !== "render") || body.runId === undefined || body.runId === null) {
+      sendJson(response, 400, { error: "adopt-historical requires smoke-render/render and runId" });
+      return true;
+    }
+    try {
+      requireGitHubActionsConfig();
+      const job = await request.remoteJobMonitor.adoptHistorical({ slug, stage, runId: body.runId });
+      sendJson(response, 200, { result: { action, stage, status: "succeeded" }, job, project: getVideoProject(slug) });
+    } catch (error) {
+      sendJson(response, 400, {
+        error: error instanceof Error ? error.message : String(error),
+        code: error.code ?? "historical-adoption-failed",
+        issues: error.issues ?? [],
+      });
+    }
+    return true;
+  }
+
   if (action === "remote-run") {
     const stage = body.stage;
     if (stage !== "smoke-render" && stage !== "render") {
@@ -296,7 +340,7 @@ async function handleRequest(request, response, host, remoteJobMonitor) {
     return;
   }
 
-  if (requestUrl.pathname.startsWith("/api/") && serveApi(response, requestUrl.pathname, requestUrl.search)) {
+  if (requestUrl.pathname.startsWith("/api/") && await serveApi(response, requestUrl.pathname, requestUrl.search, remoteJobMonitor)) {
     return;
   }
 

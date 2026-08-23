@@ -911,3 +911,54 @@ Gate 2 检查 `Visual Script` 和 `Visual Prototype` 时，不能只检查 Scene
   → 同名文件逐项回归对照
   → 进入人工 Gate
 ```
+
+## 2026-08-23：远程完整渲染不能要求本地 MP4 作为前置产物
+
+### 问题现象
+
+远程完整 `render` 由 GitHub Actions 生成 MP4，但 Harness 的阶段校验仍要求本地存在 `out/<slug>.mp4`。因此远程任务尚未提交时，Web UI 会显示缺少产物并隐藏远程任务按钮；即使远程 Artifact 成功，也无法自然进入 Gate 4 人工确认。
+
+### 根因与固定规则
+
+1. 远程 `render` 的执行前校验只检查上游输入和可执行条件，不把本地 MP4 当成提交前输入。
+2. 完整渲染成功的依据是 GitHub Actions Run 成功，以及适配器验证出的目标 Artifact 存在、非空且未过期；本地下载不是 Harness 自动推进的前提。
+3. 远程 Artifact 成功后，Harness 直接将 Gate 4 置为等待人工确认；Artifact 下载、播放和最终内容检查仍由用户完成。
+4. 远程输出阶段不使用本地 MP4 指纹，避免用户下载 Artifact 后被误判为上游文件变化而重新失效 Gate 4。
+
+## 2026-08-23：远程任务首次检查失败后必须自动找回
+
+### 问题现象
+
+GitHub Actions 的完整渲染可能已经被 dispatch，但 Harness 第一次检查 Run 时因 Token 临时失效或网络错误失败。若只把任务标记为失败，Web UI 会再次显示“提交远程任务”，用户无法判断已有渲染是否已经完成，也可能重复触发完整渲染。
+
+### 固定规则
+
+1. 任务记录必须保留 `workflow`、`ref`、`slug`、`compositionId` 和 `dispatchedAt`；这些信息足以在后续轮询中定位原任务。
+2. 对于已经保存 dispatch 信息但还没有 `runId` 的远程失败任务，后台监控应自动进入恢复检查，先查找原提交时间之后的既有 Run，不重新 dispatch。
+3. 找到成功 Run 后继续检查目标 Artifact；只有目标 Artifact 存在、非空且未过期，才回填 `render` 成功并进入 Gate 4。
+4. 只有从未保存 dispatch 意图的任务，才允许通过“提交远程任务”创建新的远程任务。
+
+## 2026-08-23：已有完整渲染也必须能被 Harness 自动识别
+
+### 问题现象
+
+视频可能在 Harness 初始化前就已经完成 GitHub Actions 完整渲染，或本次任务的首次检查失败后才恢复 Token。此时本地没有 MP4，Harness 也没有可用的 `runId`，页面会错误地继续显示“可以执行 render”。
+
+### 固定规则
+
+1. 恢复检查先按 dispatch 时间查找原 Run；找不到时，按工作流、分支和目标 Artifact 名称查找最近一次成功的完整渲染。
+2. 只有成功 Run 同时拥有对应 slug 的非空、未过期 Artifact，才允许认领为当前视频的远程输出，避免只凭分支或时间误认其他任务。
+3. Web UI 打开已初始化项目详情时，先执行一次非重复提交的远程状态同步，再返回页面数据；用户刷新详情即可看到最新 Gate 状态，不必等待 20 分钟定时轮询。
+
+## 2026-08-23：dispatch 意图与 GitHub 已确认提交必须分离
+
+### 问题现象
+
+远程任务第一次检查 GitHub API 时遇到 401 或网络错误，任务记录已经保存了 workflow、分支和提交时间，但实际上可能还没有成功调用 dispatch。旧逻辑会把这条记录直接当成“等待 Run”，后续只查 Run、不再重新提交，最终长期停在 Web UI 的“等待 Run”。
+
+### 固定规则
+
+1. 新建远程任务先记录 `dispatchState: pending`，只有发现既有 Run 或 dispatch API 成功返回后，才能写入 `dispatchState: confirmed` 和 `dispatchConfirmedAt`。
+2. 未确认的任务恢复时，先按原 workflow、分支和时间查找既有 Run；找不到时才重新 dispatch。这样既能恢复首次授权失败，也能避免已经成功提交的任务重复提交。
+3. 已确认但尚未出现 Run 的任务只进入等待和轮询，不重新 dispatch。
+4. 旧分支的成功 Render 不自动跨分支认领；Web UI 提供“查找历史 Artifact”和确认认领操作，必须同时匹配 workflow、成功 Run、目标 slug Artifact、Artifact 非空且未过期。
