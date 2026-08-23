@@ -133,7 +133,7 @@ test("initializes explicit workflow, style, and target project configuration", (
   assert.equal(project.config.workflowVersion, 1);
   assert.equal(project.config.style, "current");
   assert.equal(project.config.target, "gate-4");
-  assert.equal(project.config.harnessVersion, "0.4.0");
+  assert.equal(project.config.harnessVersion, "0.5.0");
 });
 
 test("builds a single-stage context task packet with bounded read and write paths", () => {
@@ -189,7 +189,7 @@ test("reports wildcard artifacts only when a matching file exists", () => {
       workflowVersion: 1,
       style: "current",
       target: "gate-4",
-      harnessVersion: "0.4.0",
+      harnessVersion: "0.5.0",
       sourceDirectory: `videos/${slug}`,
       remotionDirectory: `src/videos/${slug}`,
     },
@@ -545,4 +545,35 @@ test("rejects a successful GitHub Actions run without a usable artifact", async 
   });
 
   await assert.rejects(() => adapter.run({ stage: "smoke-render", project: loadFixture(slug) }), /did not produce expected artifact/);
+});
+
+test("supports non-blocking remote inspection for recovery monitors", async () => {
+  const { slug } = createFixture();
+  const responses = [
+    { status: 200, ok: true, text: async () => JSON.stringify({ id: 321, status: "in_progress", conclusion: null, html_url: "https://github.com/example/video/actions/runs/321" }) },
+    { status: 200, ok: true, text: async () => JSON.stringify({ id: 321, status: "completed", conclusion: "success", html_url: "https://github.com/example/video/actions/runs/321" }) },
+    { status: 200, ok: true, text: async () => JSON.stringify({ artifacts: [{ name: `${slug}-smoke-test`, id: 654, size_in_bytes: 100, expired: false }] }) },
+  ];
+  const adapter = createGitHubActionsAdapter({
+    token: "test-token",
+    repository: "example/video",
+    ref: "main",
+    fetchImpl: async () => responses.shift(),
+  });
+  const dispatch = {
+    workflow: "smoke-test-video.yml",
+    ref: "main",
+    slug,
+    compositionId: slug,
+    dispatchedAt: "2026-08-20T00:00:00.000Z",
+    runId: 321,
+  };
+
+  const running = await adapter.inspectRun({ stage: "smoke-render", dispatch, runId: 321 });
+  assert.equal(running.status, "running");
+  assert.equal(running.remote.runId, 321);
+
+  const succeeded = await adapter.inspectRun({ stage: "smoke-render", dispatch, runId: 321 });
+  assert.equal(succeeded.status, "succeeded");
+  assert.equal(succeeded.result.outputs[0].artifacts[0].id, 654);
 });

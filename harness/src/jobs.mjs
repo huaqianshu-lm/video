@@ -1,9 +1,9 @@
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
-import { projectDirectory, readJson, writeJson } from "./storage.mjs";
+import { projectDirectory, projectsRoot, readJson, writeJson } from "./storage.mjs";
 
-const activeStatuses = new Set(["queued", "running"]);
+const activeStatuses = new Set(["queued", "dispatching", "waiting-config", "waiting-run", "running"]);
 
 function jobsDirectory(slug) {
   return path.join(projectDirectory(slug), "jobs");
@@ -18,9 +18,41 @@ function saveJob(job) {
   return job;
 }
 
-function updateJob(slug, id, patch) {
+export function updateJob(slug, id, patch) {
   const job = readJson(jobPath(slug, id));
   return saveJob({ ...job, ...patch, updatedAt: new Date().toISOString() });
+}
+
+export function getJob(slug, id) {
+  const filePath = jobPath(slug, id);
+  return fs.existsSync(filePath) ? readJson(filePath) : null;
+}
+
+export function listAllJobs() {
+  const root = projectsRoot();
+  if (!fs.existsSync(root)) return [];
+  return fs.readdirSync(root, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .flatMap((entry) => listJobs(entry.name));
+}
+
+export function createJobRecord({ slug, stage, metadata = {} }) {
+  const now = new Date().toISOString();
+  return saveJob({
+    id: crypto.randomUUID(),
+    slug,
+    stage,
+    status: "queued",
+    result: null,
+    error: null,
+    ...metadata,
+    createdAt: now,
+    updatedAt: now,
+    startedAt: null,
+    completedAt: null,
+    lastCheckedAt: null,
+    nextCheckAt: null,
+  });
 }
 
 export function listJobs(slug) {
