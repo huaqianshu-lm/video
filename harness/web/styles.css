@@ -114,6 +114,7 @@ h1 {
 .detail-heading,
 .detail-toolbar,
 .card-heading,
+.project-label,
 .stage-heading,
 .card-meta,
 .detail-summary,
@@ -122,6 +123,10 @@ h1 {
   align-items: center;
   justify-content: space-between;
   gap: 18px;
+}
+
+.card-heading {
+  gap: 10px;
 }
 
 .section-heading {
@@ -186,21 +191,51 @@ h1 {
 
 .project-card h3 {
   margin: 0;
-  overflow-wrap: anywhere;
-  font-size: 17px;
+  overflow-wrap: break-word;
+  word-break: normal;
+  font-size: 19px;
+  line-height: 1.25;
+}
+
+.project-label {
+  justify-content: flex-start;
+  gap: 10px;
+  min-width: 0;
+}
+
+.project-name {
+  min-height: 48px;
+  margin-top: 14px !important;
+}
+
+.project-sequence {
+  display: inline-grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 32px;
+  height: 26px;
+  border: 1px solid #4d89c7;
+  border-radius: 7px;
+  background: #152541;
+  color: #8ac8ff;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
 }
 
 .card-kicker {
-  margin: 0 0 7px;
+  margin: 0;
   color: #75b9ff;
   font-size: 10px;
   letter-spacing: 0.14em;
 }
 
 .project-card .status {
-  max-width: 150px;
+  flex: 0 1 126px;
+  max-width: 126px;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .progress-track {
@@ -234,7 +269,9 @@ h1 {
 }
 
 .project-card .button {
-  width: 100%;
+  align-self: flex-start;
+  min-width: 112px;
+  padding: 8px 16px;
   margin-top: auto;
 }
 
@@ -435,14 +472,14 @@ h1 {
 }
 
 .prototype-frame {
-  min-height: 420px;
+  height: 820px;
   background: #080d18;
 }
 
 .prototype-frame iframe {
   display: block;
   width: 100%;
-  min-height: 620px;
+  height: 100%;
   border: 0;
   background: #080d18;
 }

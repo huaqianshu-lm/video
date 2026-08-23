@@ -42,16 +42,23 @@ function labelFor(status, labels = statusLabels) {
   return labels[status] ?? status;
 }
 
+function projectSequence(project) {
+  return project.sequence === null || project.sequence === undefined
+    ? "—"
+    : String(project.sequence).padStart(2, "0");
+}
+
 function projectCard(project) {
   return `
     <article class="project-card">
       <div class="card-heading">
-        <div>
+        <div class="project-label">
+          <span class="project-sequence" aria-label="原文件序号 ${escapeHtml(projectSequence(project))}">${escapeHtml(projectSequence(project))}</span>
           <p class="card-kicker">VIDEO PROJECT</p>
-          <h3>${escapeHtml(project.slug)}</h3>
         </div>
         <span class="status status-${escapeHtml(project.status)}">${escapeHtml(labelFor(project.status))}</span>
       </div>
+      <h3 class="project-name">${escapeHtml(project.slug)}</h3>
       <div class="progress-track"><span style="width: ${project.progress}%"></span></div>
       <div class="card-meta">
         <span>${project.succeededCount}/${project.stageCount} 个阶段</span>
@@ -103,7 +110,7 @@ function renderDetail(project, files, jobs) {
   projectDetail.innerHTML = `
     <div class="detail-heading">
       <div>
-        <p class="card-kicker">VIDEO PROJECT</p>
+        <p class="card-kicker">VIDEO PROJECT · 原文件序号 ${escapeHtml(projectSequence(project))}</p>
         <h2>${escapeHtml(project.slug)}</h2>
         <p class="detail-path">${escapeHtml(project.sourceDirectory)} · ${escapeHtml(project.remotionDirectory)}</p>
       </div>

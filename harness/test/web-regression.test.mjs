@@ -49,14 +49,18 @@ test("Web UI data readers pass read-only regression for real video projects", ()
     path.join(repositoryRoot, "src", "videos", slug),
   ]);
   const before = roots.map(snapshotTree);
-  const listedSlugs = listVideoProjects().map((project) => project.slug);
+  const projects = listVideoProjects();
+  const listedSlugs = projects.map((project) => project.slug);
 
   assert.deepEqual([...listedSlugs].sort(), realVideoSlugs);
+  assert.deepEqual(projects.map((project) => project.sequence), Array.from({ length: realVideoSlugs.length }, (_, index) => index + 1));
+  assert.equal(new Set(projects.map((project) => project.sequence)).size, realVideoSlugs.length);
 
   for (const slug of realVideoSlugs) {
     assert.ok(listedSlugs.includes(slug), `${slug} is missing from project list`);
     const project = getVideoProject(slug);
     assert.equal(project.slug, slug);
+    assert.equal(typeof project.sequence, "number");
     assert.equal(project.stages.length, 15);
 
     const files = listProjectFiles(slug).filter((file) => file.present);
