@@ -8,14 +8,14 @@
 ## 当前阶段
 
 - Harness 0.4 已完成本地实现、测试和推送，PR #3 已合并到 `main`（`5fcefb89`）；本阶段只补齐单视频生产资料校验、Remotion 技术校验和 Gate 边界，不改现有视频内容。
-- Harness Web UI 第一版已合入待处理视频集成分支；53 个视频项目按原文件序号 01–53 展示和排序，目录索引已补齐，项目卡片以完整项目名称为主信息，Harness 测试和项目级检查均已通过。
+- Harness Web UI 第一版已合入待处理视频集成分支；53 个视频项目按原文件序号 01–53 展示和排序，目录索引已补齐，项目卡片以完整项目名称为主信息，项目列表、详情、资料和 Visual Prototype 预览人工回归通过。
 - 新视频 `remotion-video` 已完成七层生产资料、Gate 1、Gate 2 和 12 Scene 横屏 Visual Prototype；源文档与指定文章字节一致，按任务边界停止在原型阶段，未生成 TTS 或 Remotion 资料。
 - 新视频 `glossary` 已完成七层生产资料、Gate 1、Gate 2 和 12 Scene 横屏 Visual Prototype；源文档与指定文章字节一致，按任务边界停止，未生成 TTS 或 Remotion 资料。
 - 新视频 `troubleshooting` 已完成七层生产资料、Gate 1、Gate 2 和 12 Scene 横屏 Visual Prototype；源文档与指定文章字节一致，按任务边界停止在原型阶段，未生成 TTS 或 Remotion 资料。
 - 新视频 `voice` 已完成七层生产资料、Gate 1、Gate 2 和 12 Scene 横屏 Visual Prototype；源文档字节一致，按任务边界停止在原型阶段，未生成 TTS 或 Remotion 资料。
 - 新视频 `claude-code-how-it-works` 已通过 GitHub Smoke Render 和完整 Render；Run `32360625092` 成功，最终 MP4 已完成 Gate 4 人工确认。
-- `claude-code-first-run`、`claude-code-coding-plan`、`claude-code-third-party-models` 已进入 Gate 3 视觉检查，分别关注音画同步、字幕安全区、场景节奏、文字溢出和清洁输出。
-- 新视频 `vscode` 已完成 TTS、字幕／Timeline 和 Remotion 接入；Smoke Render 和完整 GitHub Actions Render 均已成功，最终 MP4 的本地规格核对待完成。
+- `claude-code-coding-plan`、`claude-code-third-party-models` 已进入 Gate 3 视觉检查，分别关注场景节奏、字幕安全区、文字溢出和清洁输出。
+- 新视频 `vscode` 和 `claude-code-first-run` 已完成 TTS、字幕／Timeline、Remotion 接入及完整 GitHub Actions Render，最终 MP4 均通过用户 Gate 4 人工验收。
 
 ## 已完成（最近 10 条）
 
@@ -41,19 +41,14 @@
 
 ## 进行中
 
-- `vscode` 与 `claude-code-first-run` 的完整 GitHub Actions Render 已成功，Artifact 已确认存在且未过期；最终 MP4 规格核对待完成。
-- `claude-code-first-run` 已完成 TTS 和 Remotion 接入；等待 Gate 3 检查音画同步、字幕安全区、场景节奏、文字溢出和清洁输出。
 - `claude-code-coding-plan` 已完成 Gate 2 和 Remotion 接入；Scene 03 的三张付费卡片已提前到对应口播前约 1.2 秒，等待 Gate 3 视觉检查。
 - `claude-code-third-party-models` 的 Remotion Studio 已构建完成；等待检查字幕安全区、主文案密度、9 个 Scene 的状态变化和是否存在无关画面文字。
 - `claude-code-api-config` 的第二次冒烟 Artifact 已下载并检查，等待用户确认代表帧；Scene 12 的下一条预告卡片与底部字幕区域有视觉叠放，需要用户决定是否接受。
 
 ## 下一步
 
-1. 用户下载并核对 `vscode` 与 `claude-code-first-run` 最终 MP4 的分辨率、帧率、视频／音频编码、采样率、声道和时长。
-2. 用户打开并确认两个最终 MP4 的内容、声音、字幕和清洁输出，完成 Gate 4。
-3. 用户打开本地 Web UI，确认 53 个项目列表、项目详情、资料查看和 Visual Prototype 预览。
-4. 选择一个待处理视频初始化 Harness，验证从 `source` 开始的状态记录；已有旧视频先使用 Legacy 只读检查。
-5. Harness 0.5 修复远程任务配置缺失问题：提交前检查 `GITHUB_TOKEN`、仓库和分支配置，并把 GitHub Actions Run 监控改为可恢复的后台任务。
+1. 选择一个待处理视频初始化 Harness，验证从 `source` 开始的状态记录；已有旧视频先使用 Legacy 只读检查。
+2. Harness 0.5 修复远程任务配置缺失问题：提交前检查 `GITHUB_TOKEN`、仓库和分支配置，并把 GitHub Actions Run 监控改为可恢复的后台任务。
 
 ## 阻塞
 
@@ -61,7 +56,6 @@
 - `claude-code-third-party-models` 的本机浏览器画面检查仍受旧版 macOS Chromium `SIGTRAP` 影响；Studio 服务已构建并运行，需在可访问 Studio 的环境完成人工画面检查。
 - 当前 macOS 上 Remotion Chromium 启动即因旧系统返回 `SIGTRAP`，无法在本机生成 still／MP4；当前视频必须由 GitHub Actions 完成冒烟和最终画面验证。
 - `claude-code-coding-plan` 的本机浏览器画面检查可能受旧版 macOS Chromium `SIGTRAP` 影响；Studio 构建已通过，需在可访问 Studio 的环境完成人工 Gate 3。
-- `vscode` 的本机 Composition 画面检查同样受旧版 macOS Chromium 启动失败影响；当前只能确认 Studio 服务、构建、Manifest 和帧边界，不能把 Gate 3 标记为通过。
 
 ## 关键避坑
 
@@ -79,7 +73,10 @@
 
 ## 最近验证（最近 10 条）
 
-- 2026-08-21：`vscode` 完整 Render Run `32496527485` 和 `claude-code-first-run` 完整 Render Run `32496531865` 均为 `success`；Artifact 分别为 12,153,238 和 14,683,118 bytes，均未过期；最终 MP4 本地规格核对因 Artifact 下载限制暂未完成。
+- 2026-08-23：Web UI 人工回归通过；53 个项目的模块内容、项目状态、详情、资料和 Visual Prototype 预览均能正常显示。
+- 2026-08-23：`vscode` 和 `claude-code-first-run` 最终 MP4 通过用户人工验收，内容、声音、字幕和清洁输出无问题，Gate 4 完成。
+
+- 2026-08-21：`vscode` 完整 Render Run `32496527485` 和 `claude-code-first-run` 完整 Render Run `32496531865` 均为 `success`；Artifact 分别为 12,153,238 和 14,683,118 bytes，均未过期。
 - 2026-08-21：`vscode` Scene 01 右上角定位标识改动通过 `npm run check` 和 `git diff --check`；本机 Chromium 仍无法完成实际画面复核，Gate 3 保持未通过。
 - 2026-08-21：`vscode` 8 个模拟工作区场景改动通过 `npm run check` 和 `git diff --check`；本机 Chromium 仍因 `SIGTRAP` 无法完成实际画面复核，Gate 3 保持未通过。
 - 2026-08-21：`vscode` 的 TTS／字幕／Timeline／Remotion 确定性回归通过；9 个 Scene、9 个 Segment、117 条字幕 Cue、262.464 秒 Timeline、资源路径和连续 30fps Scene 边界均有效，Composition 已注册。
