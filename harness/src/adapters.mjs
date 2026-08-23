@@ -132,7 +132,7 @@ export function createGitHubActionsAdapter({
     const workflow = workflowPath(stage);
     const slug = project.state.slug;
     const compositionId = project.config.compositionId ?? slug;
-    return { workflow, ref, slug, compositionId, dispatchedAt };
+    return { workflow, ref, slug, compositionId, dispatchedAt, dispatchState: "pending" };
   }
 
   async function dispatchWorkflow({ stage, project, dispatchedAt = now().toISOString() }) {
@@ -150,15 +150,19 @@ export function createGitHubActionsAdapter({
       }),
     });
 
-    return dispatch;
+    return {
+      ...dispatch,
+      dispatchState: "confirmed",
+      dispatchConfirmedAt: now().toISOString(),
+    };
   }
 
-  async function listRuns({ workflow, ref: runRef }) {
+  async function listRuns({ workflow, ref: runRef = null }) {
     const query = new URLSearchParams({
       event: "workflow_dispatch",
-      branch: runRef,
       per_page: "20",
     });
+    if (runRef) query.set("branch", runRef);
     const payload = await request(
       `/repos/${repository}/actions/workflows/${encodeURIComponent(workflow)}/runs?${query.toString()}`,
     );
@@ -187,6 +191,30 @@ export function createGitHubActionsAdapter({
       .filter((run) => run.head_branch === dispatch.ref)
       .filter((run) => Date.parse(run.created_at) >= startTime)
       .sort((left, right) => Date.parse(right.created_at) - Date.parse(left.created_at))[0] ?? null;
+  }
+
+  async function findSuccessfulRunsWithArtifactOnce(dispatch, { anyBranch = false } = {}) {
+    const runs = await listRuns(anyBranch ? { ...dispatch, ref: null } : dispatch);
+    const artifactStage = dispatch.workflow === "render-video.yml" ? "render" : "smoke-render";
+    const expectedName = expectedArtifactName(artifactStage, dispatch.slug);
+    const candidates = runs
+      .filter((run) => anyBranch || run.head_branch === dispatch.ref)
+      .filter((run) => run.status === "completed" && run.conclusion === "success")
+      .sort((left, right) => Date.parse(right.created_at) - Date.parse(left.created_at));
+
+    const matches = [];
+    for (const run of candidates) {
+      const artifacts = await listArtifacts(run.id);
+      const artifact = artifacts.find((item) => item.name === expectedName);
+      if (artifact && !artifact.expired && artifact.id && artifact.size_in_bytes > 0) {
+        matches.push({ run, artifacts, artifact });
+      }
+    }
+    return matches;
+  }
+
+  async function findSuccessfulRunWithArtifactOnce(dispatch, options = {}) {
+    return (await findSuccessfulRunsWithArtifactOnce(dispatch, options))[0] ?? null;
   }
 
   async function getRun(runId) {
@@ -221,8 +249,16 @@ export function createGitHubActionsAdapter({
     };
   }
 
-  async function inspectRun({ stage, dispatch, runId = null }) {
-    const run = runId ? await getRun(runId) : await findDispatchedRunOnce(dispatch);
+  async function inspectRun({ stage, dispatch, runId = null, recoverExisting = false }) {
+    let run = runId ? await getRun(runId) : await findDispatchedRunOnce(dispatch);
+    let artifacts = null;
+    if (!run && recoverExisting) {
+      const recovered = await findSuccessfulRunWithArtifactOnce(dispatch);
+      if (recovered) {
+        run = recovered.run;
+        artifacts = recovered.artifacts;
+      }
+    }
     if (!run) {
       return { status: "waiting-run", run: null, remote: dispatch };
     }
@@ -238,7 +274,7 @@ export function createGitHubActionsAdapter({
         error: `GitHub Actions run ${run.id} ended with ${run.conclusion ?? "unknown"}`,
       };
     }
-    const artifacts = await listArtifacts(run.id);
+    artifacts ??= await listArtifacts(run.id);
     const expectedArtifact = requireUsableArtifact(stage, dispatch.slug, artifacts);
     return {
       status: "succeeded",
@@ -284,6 +320,8 @@ export function createGitHubActionsAdapter({
     createDispatch,
     findDispatchedRun,
     findDispatchedRunOnce,
+    findSuccessfulRunsWithArtifactOnce,
+    findSuccessfulRunWithArtifactOnce,
     getRun,
     inspectRun,
     listArtifacts,

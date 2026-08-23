@@ -1,4 +1,4 @@
-import { isGateStage, nextStage, previousStage, stageIndex, ADAPTER_REQUIRED_STAGES, STAGES } from "./stages.mjs";
+import { isGateStage, nextStage, previousStage, stageIndex, ADAPTER_REQUIRED_STAGES, STAGES, STAGE_DEFINITIONS } from "./stages.mjs";
 import { validateProjectStage } from "./validation.mjs";
 import { writeJson } from "./storage.mjs";
 import { fingerprintStageArtifacts } from "./fingerprints.mjs";
@@ -44,7 +44,9 @@ function completeStage(project, stage, outputs = []) {
   item.invalidatedBy = null;
   item.outputs = outputs;
   item.remote = null;
-  item.outputFingerprint = fingerprintStageArtifacts(project, stage);
+  item.outputFingerprint = STAGE_DEFINITIONS[stage].remoteOutput
+    ? null
+    : fingerprintStageArtifacts(project, stage);
   item.updatedAt = new Date().toISOString();
   const following = nextStage(stage);
   if (following) {
@@ -82,10 +84,14 @@ export function completeAdapterStage(project, stage, result) {
   return { stage, status: "succeeded", nextStage: project.state.currentStage };
 }
 
-export function validateStage(project, requestedStage) {
+export function validateStage(project, requestedStage, options = {}) {
   const stage = requestedStage ?? project.state.currentStage;
   requireKnownStage(stage);
-  return validateProjectStage(project, stage);
+  const defaultOptions = {
+    remotePreflight: project.state?.stages?.[stage]?.status === "ready"
+      && STAGE_DEFINITIONS[stage].remoteOutput === true,
+  };
+  return validateProjectStage(project, stage, { ...defaultOptions, ...options });
 }
 
 export function runStage(project, requestedStage, { adapters = {}, deferAdapters = false } = {}) {
