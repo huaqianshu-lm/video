@@ -16,7 +16,7 @@
 - 新视频 `claude-code-how-it-works` 已通过 GitHub Smoke Render 和完整 Render；Run `32360625092` 成功，最终 MP4 已完成 Gate 4 人工确认。
 - `claude-code-coding-plan`、`claude-code-third-party-models` 已进入 Gate 3 视觉检查，分别关注场景节奏、字幕安全区、文字溢出和清洁输出。
 - 新视频 `vscode` 和 `claude-code-first-run` 已完成 TTS、字幕／Timeline、Remotion 接入及完整 GitHub Actions Render，最终 MP4 均通过用户 Gate 4 人工验收。
-- Harness 0.6 已在独立分支 `feat/video-harness-v0.6` 完成实现和人工回归；已补齐远程任务状态分类、可恢复错误、超时终态、GitHub 环境诊断、全局远程任务视图和 Gate 审查记录，48 项 Harness 回归、类型检查、差异检查及 GitHub 配置／全局任务／项目详情页人工检查均通过，未修改视频内容；提交 `6a7c437` 已推送，当前待创建并合并 PR。
+- Harness 0.6 已在独立分支 `feat/video-harness-v0.6` 完成实现和人工回归；已补齐远程任务状态分类、可恢复错误、超时终态、GitHub 环境诊断、全局远程任务视图和 Gate 审查记录，48 项 Harness 回归、类型检查、差异检查及 GitHub 配置／全局任务／项目详情页人工检查均通过，未修改视频内容；PR #5 已合并到 `main`，合并提交为 `a37cd7e`。
 
 ## 已完成（最近 10 条）
 
@@ -54,8 +54,8 @@
 
 ## 下一步
 
-1. 用户审阅 Harness 0.6 差异后，提交并推送 `feat/video-harness-v0.6`。
-2. 推送后进行分支级人工 Web UI 回归，再决定是否创建 PR 合并到 `main`。
+1. Harness 0.6 已合并到 `main`；后续 Harness 改动先单独制定实施计划。
+2. 继续处理视频项目时，沿用已合并的 Harness 和 Web UI 流程。
 
 ## 阻塞
 
