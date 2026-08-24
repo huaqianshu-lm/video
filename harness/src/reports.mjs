@@ -1,4 +1,4 @@
-import { isGateStage, previousStage, STAGE_DEFINITIONS, STAGES } from "./stages.mjs";
+import { isGateStage, previousStage, returnToStages, STAGE_DEFINITIONS, STAGES } from "./stages.mjs";
 import { validateStage } from "./runner.mjs";
 
 function commandFor(project, command, stage = null) {
@@ -33,6 +33,8 @@ export function buildNextAction(project) {
       commands: [commandFor(project, "approve", stage)],
       issues,
       manualChecks: STAGE_DEFINITIONS[stage].manualChecks,
+      returnToStages: returnToStages(stage),
+      recommendedReturnTo: STAGE_DEFINITIONS[stage].fallbackStage,
     };
   }
   if (item.status === "failed") {

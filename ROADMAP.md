@@ -14,12 +14,14 @@
 - 新视频 `troubleshooting` 已完成七层生产资料、Gate 1、Gate 2 和 12 Scene 横屏 Visual Prototype；源文档与指定文章字节一致，按任务边界停止在原型阶段，未生成 TTS 或 Remotion 资料。
 - 新视频 `voice` 已完成七层生产资料、Gate 1、Gate 2 和 12 Scene 横屏 Visual Prototype；源文档字节一致，按任务边界停止在原型阶段，未生成 TTS 或 Remotion 资料。
 - 新视频 `claude-code-how-it-works` 已通过 GitHub Smoke Render 和完整 Render；Run `32360625092` 成功，最终 MP4 已完成 Gate 4 人工确认。
-- `claude-code-coding-plan`、`claude-code-third-party-models` 已进入 Gate 3 视觉检查，分别关注场景节奏、字幕安全区、文字溢出和清洁输出。
+- `claude-code-coding-plan`、`claude-code-third-party-models` 和 `claude-code-api-config` 已完成 TTS、字幕／Timeline、Remotion、远程 Smoke Render、完整 Render 及 Gate 4 最终人工确认。
 - 新视频 `vscode` 和 `claude-code-first-run` 已完成 TTS、字幕／Timeline、Remotion 接入及完整 GitHub Actions Render，最终 MP4 均通过用户 Gate 4 人工验收。
 - Harness 0.6 已在独立分支 `feat/video-harness-v0.6` 完成实现和人工回归；已补齐远程任务状态分类、可恢复错误、超时终态、GitHub 环境诊断、全局远程任务视图和 Gate 审查记录，48 项 Harness 回归、类型检查、差异检查及 GitHub 配置／全局任务／项目详情页人工检查均通过，未修改视频内容；PR #5 已合并到 `main`，合并提交为 `a37cd7e`。
 
 ## 已完成（最近 10 条）
 
+- 2026-08-24：Harness Gate 2 通过后自动从纯口播稿派生并校验 `tts-script.json`；`jetbrains` 已补齐 9 个 Scene 的 TTS 输入，校验通过且未调用外部 TTS。
+- 2026-08-24：在 `feat/harness-gate-return-stage-select` 将 Web UI 的 Gate 驳回回退阶段改为 Harness 契约驱动的选择框，并保留必填驳回原因；Harness 核心 23/23、Web Server 5/5、类型检查和差异检查通过，未修改视频内容。
 - 2026-08-24：Harness 0.6 的 GitHub 配置诊断、全局远程任务列表和项目详情页人工回归完成，状态、操作和远程任务信息均正常，未修改视频内容。
 - 2026-08-24：Harness 0.6 完成远程任务状态模型、超时／可恢复错误处理、GitHub `doctor` 诊断、全局任务 API／CLI、Gate 审查记录和 Web UI 展示；`npm test --prefix harness` 48/48、`npm run check`、前端语法和 `git diff --check` 通过，视频目录无改动。
 - 2026-08-23：修复远程任务把“已保存 dispatch 意图”误判为“GitHub 已接受提交”的问题；首次 401／网络失败后可自动重试，已确认提交仍不会重复 dispatch；新增跨分支成功 Artifact 的 Web UI 查找与确认认领，未修改视频内容。
@@ -48,21 +50,18 @@
 
 ## 进行中
 
-- `claude-code-coding-plan` 已完成 Gate 2 和 Remotion 接入；Scene 03 的三张付费卡片已提前到对应口播前约 1.2 秒，等待 Gate 3 视觉检查。
-- `claude-code-third-party-models` 的 Remotion Studio 已构建完成；等待检查字幕安全区、主文案密度、9 个 Scene 的状态变化和是否存在无关画面文字。
-- `claude-code-api-config` 的第二次冒烟 Artifact 已下载并检查，等待用户确认代表帧；Scene 12 的下一条预告卡片与底部字幕区域有视觉叠放，需要用户决定是否接受。
+- 当前没有待完成的 Gate 3／Gate 4 视频验收项。
+- `jetbrains` 已通过 Gate 2，当前进入 `tts`；`tts-script.json` 已自动派生并通过校验，尚未调用外部 TTS。
 
 ## 下一步
 
-1. Harness 0.6 已合并到 `main`；后续 Harness 改动先单独制定实施计划。
-2. 继续处理视频项目时，沿用已合并的 Harness 和 Web UI 流程。
+1. 按 `+25%` 语速调用项目既定 TTS，生成 JetBrains 的音频、字幕和 Timeline 输入。
+2. 继续处理尚停留在 Visual Prototype 阶段的新视频时，从 Harness 初始化开始维护状态文件，确保 Web UI 反映真实进度；历史视频不回填状态。
 
 ## 阻塞
 
 - 当前 macOS 上 Remotion Chromium 启动即因旧系统返回 `SIGTRAP`，无法在本机生成 still／MP4；需要本机画面复核的视频必须使用可访问 Studio／Chromium 的环境。
-- `claude-code-third-party-models` 的本机浏览器画面检查仍受旧版 macOS Chromium `SIGTRAP` 影响；Studio 服务已构建并运行，需在可访问 Studio 的环境完成人工画面检查。
 - 当前 macOS 上 Remotion Chromium 启动即因旧系统返回 `SIGTRAP`，无法在本机生成 still／MP4；当前视频必须由 GitHub Actions 完成冒烟和最终画面验证。
-- `claude-code-coding-plan` 的本机浏览器画面检查可能受旧版 macOS Chromium `SIGTRAP` 影响；Studio 构建已通过，需在可访问 Studio 的环境完成人工 Gate 3。
 
 ## 关键避坑
 
@@ -80,6 +79,10 @@
 
 ## 最近验证（最近 10 条）
 
+- 2026-08-24：Gate 驳回回退阶段改动通过 Harness 核心 23/23、Web Server 5/5、`npm run check`、前端语法检查和 `git diff --check`；Web UI 人工点击回归待执行。
+- 2026-08-24：`jetbrains` Gate 2 通过后的自动派生回归完成；`tts-script.json` 包含 9 个 Scene，TTS 输入校验 0 个问题，Harness 下一步为可执行 `tts`，尚未调用外部 TTS。
+- 2026-08-24：`jetbrains` 已通过 Harness 的 Source 至 Visual Prototype 阶段校验，Web UI 读取状态为已初始化、7/15 阶段完成、当前 `gate-2`，视频资料未修改。
+- 2026-08-24：用户确认 `claude-code-coding-plan`、`claude-code-third-party-models` 和 `claude-code-api-config` 已完成全部生产流程及 Gate 4 最终验收。
 - 2026-08-24：用户完成人工 Web UI 回归；GitHub 配置诊断、全局远程任务列表、`vscode`／`claude-code-first-run` 项目详情页均正常，未触发重复远程任务，视频目录无改动。
 - 2026-08-24：Harness 0.6 完整回归 48/48 通过；包含远程任务生命周期、超时、临时 API 错误恢复、GitHub 诊断、Gate 审查记录、Web API／Web Server 和 53 个视频项目只读回归，视频目录无改动。
 - 2026-08-23：远程 dispatch 生命周期、失败后重试、重复提交防护、跨分支历史 Artifact 显式认领和 Web UI 操作路由回归通过；Harness 核心 34 项、Web Server 4 项、`npm run check`、`git diff --check` 通过，未触发远程任务，视频目录无改动。

@@ -96,7 +96,7 @@ function stageItem(stage) {
       <div class="stage-content">
         <div class="stage-heading">
           <div>
-            <h3>${escapeHtml(stage.stage)}</h3>
+            <h3>${escapeHtml(stage.label ?? stage.stage)}</h3>
             <p>${escapeHtml(stage.objective)}</p>
           </div>
           <span class="stage-status">${escapeHtml(labelFor(status, stageStatusLabels))}</span>
@@ -104,6 +104,39 @@ function stageItem(stage) {
         <div class="stage-meta"><span>${escapeHtml(artifactText)}</span>${stage.requiresApproval ? "<span>需要人工确认</span>" : ""}${stage.review ? `<span>审查：${escapeHtml(stage.review.decision === "approved" ? "已通过" : "已驳回")}</span>` : ""}</div>
       </div>
     </li>
+  `;
+}
+
+function rejectGateDialog(project) {
+  const returnStages = project.next.returnToStages ?? [];
+  const recommendedReturnTo = project.next.recommendedReturnTo ?? returnStages[0]?.stage;
+  return `
+    <dialog id="reject-gate-dialog" class="reject-dialog">
+      <form class="reject-form" data-reject-form>
+        <div class="reject-dialog-heading">
+          <div>
+            <p class="eyebrow">GATE REVIEW</p>
+            <h2>驳回 ${escapeHtml(project.currentStage)}</h2>
+          </div>
+          <button class="dialog-close" type="button" data-reject-cancel aria-label="关闭">×</button>
+        </div>
+        <p class="reject-help">请选择需要重新制作的阶段。回退后，该阶段到当前 Gate 之间的阶段状态会被清空并重新执行。</p>
+        <label class="form-field">
+          <span>回退到阶段</span>
+          <select name="returnTo" required>
+            ${returnStages.map((item) => `<option value="${escapeHtml(item.stage)}"${item.stage === recommendedReturnTo ? " selected" : ""}>${escapeHtml(item.label)}（${escapeHtml(item.stage)}）</option>`).join("")}
+          </select>
+        </label>
+        <label class="form-field">
+          <span>驳回原因</span>
+          <textarea name="reason" rows="4" required placeholder="请说明需要修改的内容"></textarea>
+        </label>
+        <div class="dialog-actions">
+          <button class="button button-secondary" type="button" data-reject-cancel>取消</button>
+          <button class="button button-primary" type="submit">确认驳回</button>
+        </div>
+      </form>
+    </dialog>
   `;
 }
 
@@ -141,6 +174,7 @@ function renderDetail(project, files, jobs) {
       <p>${escapeHtml(project.next.message)}</p>
       <div class="action-controls">${actionControls}</div>
     </div>
+    ${project.next.action === "approve-or-reject-gate" ? rejectGateDialog(project) : ""}
     <section class="jobs-section">
       <div class="section-heading"><div><p class="eyebrow">REMOTE JOBS</p><h2>远程任务</h2></div><button class="button button-secondary" id="refresh-jobs" type="button">刷新任务</button></div>
       <div id="jobs-list">${renderJobs(jobs)}</div>
@@ -181,6 +215,19 @@ function renderDetail(project, files, jobs) {
   });
   projectDetail.querySelectorAll("[data-action]").forEach((button) => {
     button.addEventListener("click", () => performAction(project, button.dataset.action));
+  });
+  const rejectDialog = projectDetail.querySelector("#reject-gate-dialog");
+  rejectDialog?.querySelectorAll("[data-reject-cancel]").forEach((button) => {
+    button.addEventListener("click", () => rejectDialog.close());
+  });
+  rejectDialog?.querySelector("[data-reject-form]")?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    const returnTo = String(form.get("returnTo") ?? "");
+    const reason = String(form.get("reason") ?? "").trim();
+    if (!returnTo || !reason) return;
+    rejectDialog.close();
+    await performAction(project, "reject", null, { returnTo, reason });
   });
   projectDetail.querySelector("#refresh-jobs")?.addEventListener("click", () => openProject(project.slug));
 }
@@ -243,16 +290,20 @@ function projectActions(project) {
   return buttons.join("");
 }
 
-async function performAction(project, action, runId = null) {
+async function performAction(project, action, runId = null, rejectInput = null) {
   if (action === "initialize" && !window.confirm(`初始化 ${project.slug} 的 Harness 状态吗？`)) return;
   const body = { action };
   if (["validate", "run", "retry", "remote-run", "find-historical", "adopt-historical"].includes(action)) body.stage = project.currentStage;
   if (action === "adopt-historical") body.runId = runId;
   if (action === "approve") body.gate = project.currentStage;
   if (action === "reject") {
+    if (!rejectInput) {
+      projectDetail.querySelector("#reject-gate-dialog")?.showModal();
+      return;
+    }
     body.gate = project.currentStage;
-    body.returnTo = window.prompt("请输入回退阶段，例如 visual-script：");
-    body.reason = window.prompt("请输入驳回原因：");
+    body.returnTo = rejectInput.returnTo;
+    body.reason = rejectInput.reason;
     if (!body.returnTo || !body.reason) return;
   }
 

@@ -786,6 +786,10 @@ Remotion Studio 报错：`Expected 3 explicit reveal times, received 1`。
 2. 数量不一致时省略显式时间点，让场景组件按自己的场景时长自动均匀展开。
 3. 如果以后需要精确绑定，应先为每个视觉元素建立独立的机器可读视觉锚点，再生成与元素数量严格匹配的时间数组。
 
+## 2026-08-24：Gate 2 通过后自动派生 TTS 输入
+
+Gate 2 的人工确认只代表口播、视觉脚本和原型检查通过，不能让后续阶段继续依赖人工记得补建 `tts-script.json`。Harness 现在在 Gate 2 通过动作中，从纯口播 `narration-script.md` 按 Scene 下的非空段落派生 `tts-script.json`，并立即复用 TTS 输入校验；已有文件不覆盖，只重新校验。这样 Gate 2 通过后，项目会直接进入可执行的 `tts` 状态，校验失败时仍会阻塞并返回具体问题。
+
 ## 2026-08-14：Narration Script 不能直接作为 TTS 输入
 
 ### 问题现象
