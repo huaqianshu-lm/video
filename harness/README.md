@@ -1,8 +1,17 @@
-# Video Production Harness 0.5
+# Video Production Harness 0.6
 
 ## 目标
 
-把当前已经验证的视频生产流程包装成一个可检查、可暂停、可恢复的单视频编排层。0.5 在 0.4 的阶段契约、资料校验和 Web UI 基础上，补齐远程配置预检、GitHub Actions Run／Artifact 分阶段监控、持久化任务和服务重启恢复；不追求自动替代内容判断。
+把当前已经验证的视频生产流程包装成一个可检查、可暂停、可恢复的单视频编排层。0.6 在 0.5 的阶段契约、资料校验和远程任务基础上，补齐远程任务状态分类、超时与可恢复错误、环境诊断、全局任务视图和 Gate 4 审查记录；不追求自动替代内容判断。
+
+## 0.6 新增能力
+
+- 远程任务统一记录 `submitted`、`waiting-run`、`running`、`recoverable`、`failed`、`timeout` 和 `succeeded` 状态。
+- GitHub API 临时网络错误进入 `recoverable` 并保留下一次检查时间；权限、Artifact 和真实 Run 失败仍明确标记为失败。
+- 已确认派发的任务超过超时阈值后进入 `timeout`，不再被后台轮询，并同步阻断对应阶段。
+- `node harness/src/cli.mjs doctor` 和 Web UI 的 GitHub 配置检查可以验证 Token 是否存在、仓库、分支和两个 Workflow 是否可访问；不显示或持久化 Token。
+- Web UI 首页提供全局远程任务列表，显示项目、阶段、Run、Artifact、最近检查和下次检查时间。
+- Gate 2、Gate 3、Gate 4 的人工通过／驳回结果写入阶段状态，项目详情可追溯人工审查结果。
 
 ## 0.5 新增能力
 
@@ -179,6 +188,7 @@ http://127.0.0.1:4173
 - 执行校验、阶段推进、Gate 通过／驳回、重试和断点续做；
 - 发起远程 Smoke Render／Render 后查看任务状态和 Artifact 元数据；
 - 查看后台任务的 Run 链接、Run ID、Artifact 名称、最近检查时间和失败原因；
+- 在首页查看所有视频项目的远程任务，并手动执行 GitHub 配置诊断；
 - 对未初始化的旧视频执行 Legacy 只读检查。
 
 Web UI 只监听 `127.0.0.1`，运行状态写入被 Git 忽略的 `harness/projects/`，不会修改视频生产资料。第一版不自动生成口播、视觉脚本或 Remotion 代码。
@@ -191,6 +201,8 @@ Web UI 只监听 `127.0.0.1`，运行状态写入被 Git 忽略的 `harness/proj
 node harness/src/cli.mjs init <video-slug>
 node harness/src/cli.mjs status <video-slug>
 node harness/src/cli.mjs jobs <video-slug>
+node harness/src/cli.mjs jobs --all
+node harness/src/cli.mjs doctor
 node harness/src/cli.mjs validate <video-slug> [stage]
 node harness/src/cli.mjs next <video-slug>
 node harness/src/cli.mjs report <video-slug>
@@ -198,6 +210,7 @@ node harness/src/cli.mjs context <video-slug>
 node harness/src/cli.mjs plan <video-slug> --until visual-prototype
 node harness/src/cli.mjs next <video-slug> --json
 node harness/src/cli.mjs report <video-slug> --json
+node harness/src/cli.mjs doctor --json
 ```
 
 阶段执行遵守当前阶段顺序；Gate 阶段会进入等待状态：

@@ -4,6 +4,8 @@ const detailView = document.querySelector("#detail-view");
 const projectGrid = document.querySelector("#project-grid");
 const projectListState = document.querySelector("#project-list-state");
 const projectDetail = document.querySelector("#project-detail");
+const globalJobsList = document.querySelector("#global-jobs-list");
+const githubDiagnostics = document.querySelector("#github-diagnostics");
 
 const statusLabels = {
   completed: "已完成",
@@ -35,6 +37,9 @@ const jobStatusLabels = {
   queued: "排队中",
   running: "执行中",
   succeeded: "成功",
+  submitted: "已提交",
+  timeout: "超时",
+  recoverable: "可恢复",
   "waiting-config": "等待配置",
   "waiting-run": "等待 Run",
 };
@@ -96,7 +101,7 @@ function stageItem(stage) {
           </div>
           <span class="stage-status">${escapeHtml(labelFor(status, stageStatusLabels))}</span>
         </div>
-        <div class="stage-meta"><span>${escapeHtml(artifactText)}</span>${stage.requiresApproval ? "<span>需要人工确认</span>" : ""}</div>
+        <div class="stage-meta"><span>${escapeHtml(artifactText)}</span>${stage.requiresApproval ? "<span>需要人工确认</span>" : ""}${stage.review ? `<span>审查：${escapeHtml(stage.review.decision === "approved" ? "已通过" : "已驳回")}</span>` : ""}</div>
       </div>
     </li>
   `;
@@ -180,11 +185,10 @@ function renderDetail(project, files, jobs) {
   projectDetail.querySelector("#refresh-jobs")?.addEventListener("click", () => openProject(project.slug));
 }
 
-function renderJobs(jobs) {
-  if (jobs.length === 0) return `<div class="loading-state">暂无远程任务。</div>`;
-  return `<div class="jobs-list">${jobs.map((job) => `
+function jobCard(job) {
+  return `
     <article class="job-card">
-      <div><strong>${escapeHtml(job.stage)}</strong><span class="job-id">${escapeHtml(job.id)}</span></div>
+      <div><strong>${escapeHtml(job.slug ? `${job.slug} · ` : "")}${escapeHtml(job.stage)}</strong><span class="job-id">${escapeHtml(job.id)}</span></div>
       <span class="stage-status">${escapeHtml(labelFor(job.status, jobStatusLabels))}</span>
       <p>${job.error?.message
         ? escapeHtml(job.error.message)
@@ -195,9 +199,22 @@ function renderJobs(jobs) {
         <span>${escapeHtml(job.remote?.runId ? `Run #${job.remote.runId}` : "尚未发现 Run")}</span>
         <span>${escapeHtml(job.result?.outputs?.[0]?.artifactName ? `Artifact：${job.result.outputs[0].artifactName}` : "Artifact：待检查")}</span>
         <span>${escapeHtml(job.lastCheckedAt ? `最近检查：${job.lastCheckedAt}` : "尚未检查")}</span>
+        ${job.nextCheckAt ? `<span>下次检查：${escapeHtml(job.nextCheckAt)}</span>` : ""}
       </div>
     </article>
-  `).join("")}</div>`;
+  `;
+}
+
+function renderJobs(jobs) {
+  if (jobs.length === 0) return `<div class="loading-state">暂无远程任务。</div>`;
+  return `<div class="jobs-list">${jobs.map(jobCard).join("")}</div>`;
+}
+
+function renderGlobalJobs(jobs) {
+  globalJobsList.classList.remove("loading-state");
+  globalJobsList.innerHTML = jobs.length === 0
+    ? `<div class="loading-state">暂无远程任务。</div>`
+    : jobs.map(jobCard).join("");
 }
 
 function projectActions(project) {
@@ -298,14 +315,31 @@ async function loadProjects() {
   projectListState.hidden = false;
   projectListState.textContent = "正在读取视频项目……";
   try {
-    const response = await fetch("/api/projects", { cache: "no-store" });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const payload = await response.json();
-    renderProjects(payload.projects);
+    const [projectsResponse, jobsResponse] = await Promise.all([
+      fetch("/api/projects", { cache: "no-store" }),
+      fetch("/api/jobs", { cache: "no-store" }),
+    ]);
+    if (!projectsResponse.ok || !jobsResponse.ok) throw new Error(`HTTP ${projectsResponse.status}/${jobsResponse.status}`);
+    const [projectsPayload, jobsPayload] = await Promise.all([projectsResponse.json(), jobsResponse.json()]);
+    renderProjects(projectsPayload.projects);
+    renderGlobalJobs(jobsPayload.jobs);
   } catch (error) {
     projectListState.hidden = false;
     projectListState.textContent = `读取失败：${error.message}`;
     projectGrid.innerHTML = "";
+  }
+}
+
+async function checkGitHubConfig() {
+  githubDiagnostics.hidden = false;
+  githubDiagnostics.textContent = "正在检查 GitHub 配置和远程权限……";
+  try {
+    const response = await fetch("/api/diagnostics/github", { cache: "no-store" });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const result = await response.json();
+    githubDiagnostics.innerHTML = `<strong>${result.ok ? "GitHub Actions 配置可用" : "GitHub Actions 配置仍有问题"}</strong><br>${result.checks.map((item) => `${escapeHtml(item.status)} · ${escapeHtml(item.name)}：${escapeHtml(item.message)}`).join("<br>")}`;
+  } catch (error) {
+    githubDiagnostics.textContent = `检查失败：${error.message}`;
   }
 }
 
@@ -349,6 +383,8 @@ async function checkHealth() {
 }
 
 document.querySelector("#refresh-projects").addEventListener("click", loadProjects);
+document.querySelector("#refresh-jobs-dashboard").addEventListener("click", loadProjects);
+document.querySelector("#check-github-config").addEventListener("click", checkGitHubConfig);
 document.querySelector("#back-to-projects").addEventListener("click", showDashboard);
 
 checkHealth();

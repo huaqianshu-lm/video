@@ -8,13 +8,15 @@ import { requireGitHubActionsConfig } from "./github-config.mjs";
 import { buildNextAction, buildProjectReport } from "./reports.mjs";
 import { buildTaskPacket } from "./context.mjs";
 import { buildProjectPlan } from "./plans.mjs";
-import { listJobs } from "./jobs.mjs";
+import { listAllJobs, listJobs } from "./jobs.mjs";
+import { diagnoseGitHubActions } from "./diagnostics.mjs";
 
 function usage() {
   console.log(`Usage:
   node harness/src/cli.mjs init <slug>
   node harness/src/cli.mjs status <slug> [--json]
   node harness/src/cli.mjs jobs <slug> [--json]
+  node harness/src/cli.mjs jobs --all [--json]
   node harness/src/cli.mjs validate <slug> [stage]
   node harness/src/cli.mjs run <slug> [stage]
   node harness/src/cli.mjs approve <slug> <gate>
@@ -25,6 +27,7 @@ function usage() {
   node harness/src/cli.mjs report <slug> [--json]
   node harness/src/cli.mjs context <slug>
   node harness/src/cli.mjs plan <slug> --until <stage> [--json]
+  node harness/src/cli.mjs doctor [--json]
 
 GitHub Actions adapter environment:
   GITHUB_TOKEN or GH_TOKEN, GITHUB_REPOSITORY, and GITHUB_REF_NAME (or HARNESS_GITHUB_REF)`);
@@ -71,6 +74,23 @@ function printJobs(slug, asJson) {
   }
 }
 
+function printAllJobs(asJson) {
+  const jobs = listAllJobs();
+  if (asJson) {
+    console.log(JSON.stringify(jobs, null, 2));
+    return;
+  }
+  console.log("Remote jobs: all projects");
+  if (jobs.length === 0) {
+    console.log("  No remote jobs");
+    return;
+  }
+  for (const job of jobs) {
+    const run = job.remote?.runId ? `Run #${job.remote.runId}` : "Run pending";
+    console.log(`  ${job.slug} · ${job.stage}: ${job.status} · ${run}`);
+  }
+}
+
 function printNext(next) {
   console.log(`Current stage: ${next.currentStage}`);
   console.log(`Status: ${next.status}`);
@@ -109,6 +129,16 @@ function printPlan(plan) {
   }
 }
 
+function printDiagnostics(result) {
+  console.log(`GitHub Actions: ${result.ok ? "ready" : "not ready"}`);
+  console.log(`Repository: ${result.config.repository || "未配置"}`);
+  console.log(`Ref: ${result.config.ref || "未配置"}`);
+  console.log(`Token: ${result.config.tokenConfigured ? "已配置" : "未配置"}`);
+  for (const item of result.checks) {
+    console.log(`  [${item.status}] ${item.name}: ${item.message}`);
+  }
+}
+
 function configuredAdapters() {
   requireGitHubActionsConfig();
   const adapter = createGitHubActionsAdapterFromEnv();
@@ -120,6 +150,13 @@ async function main(args) {
   if (!command) {
     usage();
     return 1;
+  }
+
+  if (command === "doctor") {
+    const result = await diagnoseGitHubActions();
+    if (options.includes("--json")) console.log(JSON.stringify(result, null, 2));
+    else printDiagnostics(result);
+    return result.ok ? 0 : 1;
   }
 
   if (command === "init") {
@@ -137,6 +174,10 @@ async function main(args) {
   }
 
   if (command === "jobs") {
+    if (slug === "--all") {
+      printAllJobs(options.includes("--json"));
+      return 0;
+    }
     validateSlug(slug);
     printJobs(slug, options.includes("--json"));
     return 0;

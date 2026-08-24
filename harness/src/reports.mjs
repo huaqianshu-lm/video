@@ -118,6 +118,7 @@ export function buildProjectReport(project) {
         attempts: item.attempts,
         invalidatedBy: item.invalidatedBy,
         outputCount: item.outputs.length,
+        review: item.review ?? null,
         error: item.error,
         manualChecks: STAGE_DEFINITIONS[stage].manualChecks,
         updatedAt: item.updatedAt,

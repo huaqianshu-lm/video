@@ -133,7 +133,7 @@ test("initializes explicit workflow, style, and target project configuration", (
   assert.equal(project.config.workflowVersion, 1);
   assert.equal(project.config.style, "current");
   assert.equal(project.config.target, "gate-4");
-  assert.equal(project.config.harnessVersion, "0.5.0");
+  assert.equal(project.config.harnessVersion, "0.6.0");
 });
 
 test("builds a single-stage context task packet with bounded read and write paths", () => {
@@ -189,7 +189,7 @@ test("reports wildcard artifacts only when a matching file exists", () => {
       workflowVersion: 1,
       style: "current",
       target: "gate-4",
-      harnessVersion: "0.5.0",
+      harnessVersion: "0.6.0",
       sourceDirectory: `videos/${slug}`,
       remotionDirectory: `src/videos/${slug}`,
     },
@@ -424,6 +424,8 @@ test("completes the fixture workflow with mock adapters", () => {
   const finalState = loadFixture(slug).state;
   assert.equal(finalState.currentStage, "completed");
   assert.equal(finalState.stages["gate-4"].status, "succeeded");
+  assert.equal(finalState.stages["gate-4"].review.decision, "approved");
+  assert.ok(finalState.stages["gate-4"].review.reviewedAt);
   assert.deepEqual(smoke.calls, [{ stage: "smoke-render", slug }]);
   assert.deepEqual(render.calls, [{ stage: "render", slug }]);
 });
@@ -456,6 +458,12 @@ test("requires an explicit return stage when rejecting a Gate", () => {
   assert.equal(state.stages.remotion.status, "ready");
   assert.equal(state.stages["gate-3"].status, "pending");
   assert.equal(state.stages["gate-3"].error.message, "visual mismatch");
+  assert.deepEqual(state.stages["gate-3"].review, {
+    decision: "rejected",
+    returnTo: "remotion",
+    reason: "visual mismatch",
+    reviewedAt: state.stages["gate-3"].review.reviewedAt,
+  });
 });
 
 test("completes a GitHub Actions run and records its artifact metadata", async () => {

@@ -1,6 +1,6 @@
-# Harness 0.5 阶段校验矩阵
+# Harness 0.6 阶段校验矩阵
 
-这份矩阵是 `harness/src/stages.mjs` 中阶段契约的实现清单。它区分自动校验、适配器校验和必须由人工完成的质量判断；0.5 另外覆盖远程任务配置、Run 监控和 Artifact 恢复检查。
+这份矩阵是 `harness/src/stages.mjs` 中阶段契约的实现清单。它区分自动校验、适配器校验和必须由人工完成的质量判断；0.6 另外覆盖远程任务状态、超时／恢复、环境诊断、全局任务视图和 Gate 4 审查记录。
 
 ## 校验类型
 
@@ -43,11 +43,14 @@
 | gate-4 | `manual-gate` | 人工 | 保留人工确认 |
 |  | `final-output-review` | 人工 | 只记录人工检查要求 |
 
-## 0.5 远程任务边界
+## 0.6 远程任务边界
 
 - 远程任务提交前必须通过 GitHub Actions 配置预检。
 - Run 发现、状态查询和 Artifact 验证可以分次执行，任务记录保存在 `harness/projects/<slug>/jobs/`。
-- Web 服务重启后恢复 `queued`、`waiting-run`、`running` 和 `waiting-config` 任务；已有 dispatch 意图会先查询 Run，避免重复触发。
+- Web 服务重启后恢复 `queued`、`submitted`、`waiting-run`、`running`、`recoverable` 和 `waiting-config` 任务；已有 dispatch 意图会先查询 Run，避免重复触发。
+- 临时网络／GitHub API 错误进入 `recoverable` 并等待下一次检查；权限错误、Run 失败、Artifact 缺失和超时进入明确终态，不会无限轮询。
+- `doctor` 只检查配置和 GitHub 访问能力，不输出 Token；Web UI 首页提供全局远程任务列表和显式诊断入口。
+- Gate 通过／驳回会记录审查决定、时间、回退阶段和驳回原因；Harness 不自动判断最终 MP4 的内容质量。
 - Agent 只检查 Run 结论和 Artifact 元数据；Artifact 下载、视频播放和最终 Gate 4 内容检查仍由用户完成。
 
 ## 0.4 边界

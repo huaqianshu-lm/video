@@ -13,7 +13,10 @@ async function request(server, pathname, options = {}) {
 }
 
 test("serves the Web UI shell and health endpoint on localhost", async () => {
-  const webServer = createWebServer({ port: 0 });
+  const webServer = createWebServer({
+    port: 0,
+    remoteJobMonitor: { start() {}, stop() {}, async poll() {} },
+  });
   await webServer.listen();
 
   try {
@@ -27,7 +30,7 @@ test("serves the Web UI shell and health endpoint on localhost", async () => {
     assert.match(health.contentType, /application\/json/);
     assert.deepEqual(JSON.parse(health.body), {
       service: "video-production-harness-web",
-      harnessVersion: "0.5.0",
+      harnessVersion: "0.6.0",
       status: "ok",
     });
 
@@ -80,6 +83,10 @@ test("serves the Web UI shell and health endpoint on localhost", async () => {
     assert.equal(jobs.status, 200);
     assert.deepEqual(JSON.parse(jobs.body).jobs, []);
 
+    const globalJobs = await request(webServer, "/api/jobs");
+    assert.equal(globalJobs.status, 200);
+    assert.ok(Array.isArray(JSON.parse(globalJobs.body).jobs));
+
     const legacy = await request(webServer, "/api/projects/claude-code-what-is/action", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -88,6 +95,32 @@ test("serves the Web UI shell and health endpoint on localhost", async () => {
     assert.equal(legacy.status, 200);
     assert.equal(JSON.parse(legacy.body).result.readOnly, true);
     assert.equal(JSON.parse(legacy.body).result.validationPolicy, "legacy");
+  } finally {
+    await webServer.close();
+  }
+});
+
+test("serves explicit GitHub diagnostics without persisting credentials", async () => {
+  const webServer = createWebServer({
+    port: 0,
+    remoteJobMonitor: { start() {}, stop() {}, async poll() {} },
+    diagnose: async () => ({
+      ok: false,
+      config: { tokenConfigured: true, repository: "example/video", ref: "main", issues: [] },
+      checks: [{ name: "repository", status: "failed", message: "GitHub API 返回 HTTP 403" }],
+    }),
+  });
+  await webServer.listen();
+
+  try {
+    const diagnostics = await request(webServer, "/api/diagnostics/github");
+    assert.equal(diagnostics.status, 200);
+    assert.deepEqual(JSON.parse(diagnostics.body).config, {
+      tokenConfigured: true,
+      repository: "example/video",
+      ref: "main",
+      issues: [],
+    });
   } finally {
     await webServer.close();
   }
