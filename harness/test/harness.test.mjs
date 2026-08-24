@@ -15,11 +15,13 @@ import {
   ADAPTER_REQUIRED_STAGES,
   DEFAULT_WORKFLOW_ID,
   GATE_STAGES,
+  returnToStages,
   STAGE_DEFINITIONS,
   STAGES,
   WORKFLOW_DEFINITIONS,
 } from "../src/stages.mjs";
 import { validateProjectStage } from "../src/validation.mjs";
+import { buildTtsScript } from "../src/tts-script.mjs";
 
 const repositoryRoot = path.resolve(new URL("../..", import.meta.url).pathname);
 
@@ -111,6 +113,7 @@ test("defines one canonical workflow for all 15 production stages", () => {
   assert.deepEqual([...GATE_STAGES], ["gate-2", "gate-3", "gate-4"]);
   assert.deepEqual([...ADAPTER_REQUIRED_STAGES], ["smoke-render", "render"]);
   assert.equal(STAGE_DEFINITIONS["narration-script"].artifacts[0], "videos/{slug}/narration-script.md");
+  assert.equal(STAGE_DEFINITIONS["gate-3"].label, "Gate 3：Remotion 预览确认");
   assert.equal(STAGE_DEFINITIONS["gate-3"].kind, "gate");
   assert.equal(STAGE_DEFINITIONS["gate-3"].requiresApproval, true);
   assert.equal(STAGE_DEFINITIONS["gate-3"].previousStage, "remotion");
@@ -259,6 +262,53 @@ test("checks TTS coverage and timeline segment alignment", () => {
   assert.equal(issues.some((item) => item.code === "segment-id-mismatch"), false);
 });
 
+test("derives TTS Script from narration paragraphs", () => {
+  const script = buildTtsScript("fixture-video", "## Scene 01｜测试\n\n第一段口播。\n\n第二段口播。\n");
+  assert.deepEqual(script, {
+    schemaVersion: "1.0",
+    videoId: "fixture-video",
+    scenes: [{
+      sceneId: "01",
+      segments: [
+        { id: "01-01", text: "第一段口播。" },
+        { id: "01-02", text: "第二段口播。" },
+      ],
+    }],
+  });
+});
+
+test("automatically creates and validates TTS Script when Gate 2 is approved", () => {
+  const { slug } = createFixture();
+  const project = loadFixture(slug);
+  const ttsPath = path.join(project.config.workspaceRoot, `videos/${slug}/tts-script.json`);
+  fs.rmSync(ttsPath);
+
+  for (const stage of [
+    "source",
+    "content-analysis",
+    "video-narrative",
+    "scene-script",
+    "narration-script",
+    "visual-script",
+    "visual-prototype",
+  ]) {
+    runStage(project, stage);
+  }
+  runStage(project, "gate-2");
+
+  const result = approveGate(project, "gate-2");
+  assert.deepEqual(result.ttsScript, {
+    created: true,
+    path: `videos/${slug}/tts-script.json`,
+    sceneCount: 1,
+  });
+  assert.equal(fs.existsSync(ttsPath), true);
+  assert.equal(loadFixture(slug).state.currentStage, "tts");
+  assert.equal(loadFixture(slug).state.stages.tts.status, "ready");
+  assert.deepEqual(validateStage(loadFixture(slug), "tts"), []);
+  assert.equal(buildNextAction(loadFixture(slug)).action, "run-stage");
+});
+
 test("supports legacy read-only validation without weakening strict generation rules", () => {
   const { slug } = createFixture();
   const project = loadFixture(slug);
@@ -367,6 +417,9 @@ test("reports the next action for a ready stage and a waiting Gate", () => {
   assert.equal(gateAction.action, "approve-or-reject-gate");
   assert.equal(gateAction.requiresUser, true);
   assert.equal(gateAction.manualChecks.length, 3);
+  assert.equal(gateAction.recommendedReturnTo, "remotion");
+  assert.deepEqual(gateAction.returnToStages, returnToStages("gate-3"));
+  assert.deepEqual(gateAction.returnToStages.at(-1), { stage: "remotion", label: "Remotion 实现" });
 
   const report = buildProjectReport(loadFixture(slug));
   assert.equal(report.stages.length, 15);

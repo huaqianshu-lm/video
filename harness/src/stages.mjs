@@ -3,6 +3,7 @@ export const HARNESS_VERSION = "0.6.0";
 const rawStageDefinitions = [
   {
     stage: "source",
+    label: "原始内容",
     artifacts: ["videos/{slug}/source.md"],
     objective: "固定并登记单条视频的输入内容。",
     inputStages: [],
@@ -12,6 +13,7 @@ const rawStageDefinitions = [
   },
   {
     stage: "content-analysis",
+    label: "内容分析",
     artifacts: ["videos/{slug}/content-analysis.md"],
     objective: "提取核心命题、知识骨架、关系和可视觉化内容。",
     inputStages: ["source"],
@@ -21,6 +23,7 @@ const rawStageDefinitions = [
   },
   {
     stage: "video-narrative",
+    label: "视频叙事",
     artifacts: ["videos/{slug}/video-narrative.md"],
     objective: "按观众认知过程重组视频叙事。",
     inputStages: ["content-analysis"],
@@ -30,6 +33,7 @@ const rawStageDefinitions = [
   },
   {
     stage: "scene-script",
+    label: "Scene 脚本",
     artifacts: ["videos/{slug}/scene-script.md"],
     objective: "把视频叙事拆分为具有明确认知任务的 Scene。",
     inputStages: ["video-narrative"],
@@ -39,6 +43,7 @@ const rawStageDefinitions = [
   },
   {
     stage: "narration-script",
+    label: "口播稿",
     artifacts: ["videos/{slug}/narration-script.md"],
     objective: "生成只包含实际口播、可独立观看的讲解稿。",
     inputStages: ["scene-script"],
@@ -48,6 +53,7 @@ const rawStageDefinitions = [
   },
   {
     stage: "visual-script",
+    label: "视觉脚本",
     artifacts: ["videos/{slug}/visual-script.md"],
     objective: "为每个 Scene 设计与口播互补的视觉表达。",
     inputStages: ["scene-script", "narration-script"],
@@ -57,6 +63,7 @@ const rawStageDefinitions = [
   },
   {
     stage: "visual-prototype",
+    label: "视觉原型",
     artifacts: ["videos/{slug}/visual-prototype.html"],
     objective: "用低成本横屏原型确认构图、信息密度和视觉事件。",
     inputStages: ["visual-script"],
@@ -66,6 +73,7 @@ const rawStageDefinitions = [
   },
   {
     stage: "gate-2",
+    label: "Gate 2：口播与视觉原型确认",
     kind: "gate",
     artifacts: [],
     objective: "确认口播、视觉表达和原型可以进入下游生产。",
@@ -81,6 +89,7 @@ const rawStageDefinitions = [
   },
   {
     stage: "tts",
+    label: "TTS 输入",
     artifacts: ["videos/{slug}/tts-script.json"],
     objective: "从冻结口播派生并校验下游 TTS 输入。",
     inputStages: ["gate-2"],
@@ -90,6 +99,7 @@ const rawStageDefinitions = [
   },
   {
     stage: "subtitle-timeline",
+    label: "音频／字幕／时间轴",
     artifacts: [
       "src/videos/{slug}/generated/audio-manifest.json",
       "src/videos/{slug}/generated/subtitle-manifest.json",
@@ -103,6 +113,7 @@ const rawStageDefinitions = [
   },
   {
     stage: "remotion",
+    label: "Remotion 实现",
     artifacts: ["src/videos/{slug}/video.config.ts", "src/videos/{slug}/*Video.tsx"],
     objective: "把已确认的内容、视觉和时间资料接入 Remotion Composition。",
     inputStages: ["subtitle-timeline", "visual-prototype"],
@@ -112,6 +123,7 @@ const rawStageDefinitions = [
   },
   {
     stage: "gate-3",
+    label: "Gate 3：Remotion 预览确认",
     kind: "gate",
     artifacts: [],
     objective: "确认 Remotion 预览中的音画同步、节奏、文字和清洁输出。",
@@ -127,6 +139,7 @@ const rawStageDefinitions = [
   },
   {
     stage: "smoke-render",
+    label: "Smoke Render",
     requiresAdapter: true,
     artifacts: [],
     objective: "在远程环境验证代表帧、短片、字体、资源和音轨。",
@@ -137,6 +150,7 @@ const rawStageDefinitions = [
   },
   {
     stage: "render",
+    label: "完整渲染",
     requiresAdapter: true,
     remoteOutput: true,
     artifacts: ["out/{slug}.mp4"],
@@ -148,6 +162,7 @@ const rawStageDefinitions = [
   },
   {
     stage: "gate-4",
+    label: "Gate 4：最终视频确认",
     kind: "gate",
     artifacts: [],
     objective: "确认最终 MP4 的内容、声音、字幕、画面和交付质量。",
@@ -173,6 +188,7 @@ const stageDefinitions = rawStageDefinitions.map((definition, order) => ({
   previousStage: rawStageDefinitions[order - 1]?.stage ?? null,
   nextStage: rawStageDefinitions[order + 1]?.stage ?? null,
   contract: Object.freeze({
+    label: definition.label,
     objective: definition.objective,
     inputStages: Object.freeze([...(definition.inputStages ?? [])]),
     outputArtifacts: Object.freeze([...definition.artifacts]),
@@ -257,6 +273,15 @@ export function stageIndex(stage) {
 export function previousStage(stage) {
   const index = stageIndex(stage);
   return index > 0 ? STAGES[index - 1] : null;
+}
+
+export function returnToStages(stage) {
+  const index = stageIndex(stage);
+  if (index <= 0) return [];
+  return STAGES.slice(0, index).map((returnStage) => ({
+    stage: returnStage,
+    label: STAGE_DEFINITIONS[returnStage].label,
+  }));
 }
 
 export function nextStage(stage) {

@@ -77,6 +77,7 @@ function artifactPresence(slug, stage, stateItem = null) {
 function stageView(definition, stateItem, artifacts) {
   return {
     stage: definition.stage,
+    label: definition.label,
     order: definition.order,
     kind: definition.kind,
     objective: definition.objective,

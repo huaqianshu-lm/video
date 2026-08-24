@@ -2,6 +2,7 @@ import { isGateStage, nextStage, previousStage, stageIndex, ADAPTER_REQUIRED_STA
 import { validateProjectStage } from "./validation.mjs";
 import { writeJson } from "./storage.mjs";
 import { fingerprintStageArtifacts } from "./fingerprints.mjs";
+import { ensureTtsScript } from "./tts-script.mjs";
 
 function saveState(project) {
   project.state.updatedAt = new Date().toISOString();
@@ -187,13 +188,28 @@ export function approveGate(project, gate) {
   if (project.state.currentStage !== gate || project.state.stages[gate].status !== "waiting") {
     throw new Error(`Gate ${gate} is not waiting for approval`);
   }
+
+  let ttsScript = null;
+  if (gate === "gate-2") {
+    ttsScript = ensureTtsScript(project);
+    const issues = validateStage(project, "tts").filter((item) => item.severity !== "warning");
+    if (issues.length > 0) {
+      throw new Error(`Gate 2 通过后无法进入 TTS：${issues.map((item) => item.message).join("；")}`);
+    }
+  }
+
   completeStage(project, gate);
   project.state.stages[gate].review = {
     decision: "approved",
     reviewedAt: new Date().toISOString(),
   };
   saveState(project);
-  return { stage: gate, status: "succeeded", nextStage: project.state.currentStage };
+  return {
+    stage: gate,
+    status: "succeeded",
+    nextStage: project.state.currentStage,
+    ...(ttsScript ? { ttsScript } : {}),
+  };
 }
 
 export function rejectGate(project, gate, returnTo, reason) {
