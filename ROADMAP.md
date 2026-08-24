@@ -7,7 +7,7 @@
 
 ## 当前阶段
 
-- Harness 0.4 已完成本地实现、测试和推送，PR #3 已合并到 `main`（`5fcefb89`）；本阶段只补齐单视频生产资料校验、Remotion 技术校验和 Gate 边界，不改现有视频内容。
+- Harness 0.4 已完成本地实现、测试和推送，PR #3 已合并到 `main`（`5fcefb89`）；Harness 0.5 已在 `feat/video-harness-v0.5` 完成实现、远程 render／Gate 4 闭环修复、已提交任务自动找回 Run／Artifact、全量测试、文档收尾和受控真实 Smoke Render 监控验收（Run `32632006287`、Artifact `vscode-smoke-test`），等待合并，不改现有视频内容。
 - Harness Web UI 第一版已合入待处理视频集成分支；53 个视频项目按原文件序号 01–53 展示和排序，目录索引已补齐，项目卡片以完整项目名称为主信息，项目列表、详情、资料和 Visual Prototype 预览人工回归通过。
 - 新视频 `remotion-video` 已完成七层生产资料、Gate 1、Gate 2 和 12 Scene 横屏 Visual Prototype；源文档与指定文章字节一致，按任务边界停止在原型阶段，未生成 TTS 或 Remotion 资料。
 - 新视频 `glossary` 已完成七层生产资料、Gate 1、Gate 2 和 12 Scene 横屏 Visual Prototype；源文档与指定文章字节一致，按任务边界停止，未生成 TTS 或 Remotion 资料。
@@ -16,9 +16,14 @@
 - 新视频 `claude-code-how-it-works` 已通过 GitHub Smoke Render 和完整 Render；Run `32360625092` 成功，最终 MP4 已完成 Gate 4 人工确认。
 - `claude-code-coding-plan`、`claude-code-third-party-models` 已进入 Gate 3 视觉检查，分别关注场景节奏、字幕安全区、文字溢出和清洁输出。
 - 新视频 `vscode` 和 `claude-code-first-run` 已完成 TTS、字幕／Timeline、Remotion 接入及完整 GitHub Actions Render，最终 MP4 均通过用户 Gate 4 人工验收。
+- Harness 0.5 已完成远程配置预检、GitHub Actions 分阶段监控、持久化任务、重启恢复、dispatch 未确认重试、已提交任务自动找回 Run／Artifact、重复 dispatch 防护、跨分支历史 Artifact 显式认领、CLI／Web UI 状态展示及 34 项核心测试；Web Server 4 项回归通过。
 
 ## 已完成（最近 10 条）
 
+- 2026-08-23：修复远程任务把“已保存 dispatch 意图”误判为“GitHub 已接受提交”的问题；首次 401／网络失败后可自动重试，已确认提交仍不会重复 dispatch；新增跨分支成功 Artifact 的 Web UI 查找与确认认领，未修改视频内容。
+- 2026-08-23：补齐已有完整渲染的自动识别；远程任务按工作流、分支和目标 Artifact 找回历史成功 Render，Web UI 打开详情时立即同步远程状态，不再要求用户提供 Run 链接，未修改视频内容。
+- 2026-08-23：补齐远程任务自动找回：已 dispatch 但首次因 401 或临时错误检查失败的任务，后续后台轮询会复用原工作流、分支、slug 和提交时间查找既有 Run，不重复触发渲染；回归测试通过，未修改视频内容。
+- 2026-08-23：修复 Harness 远程 `render` 前置校验错误：没有本地 `out/<slug>.mp4` 时仍可提交远程任务；远程 Artifact 验证成功后自动进入 Gate 4 等待人工确认，未修改视频内容。
 - 2026-08-21：`vscode` Scene 01 将“右上角”口播绑定到编辑器顶部实际入口位置，并增加缺失态红色定位框与出现态蓝绿色高亮。
 - 2026-08-21：将 `vscode` Scene 01、02、04、05、06、07、08、09 统一改为 VSCode 模拟工作区，突出各幕当前操作重点；Scene 03 保留为独立扩展市场素材场景。
 - 2026-08-21：完成 `vscode` 的 `tts-script.json`、`+25%` TTS、117 条字幕 Cue、262.464 秒 Timeline 和独立 Remotion Composition；9 个 Scene、音频／字幕／时间轴 ID 对齐，未执行渲染。
@@ -47,8 +52,8 @@
 
 ## 下一步
 
-1. 选择一个待处理视频初始化 Harness，验证从 `source` 开始的状态记录；已有旧视频先使用 Legacy 只读检查。
-2. Harness 0.5 修复远程任务配置缺失问题：提交前检查 `GITHUB_TOKEN`、仓库和分支配置，并把 GitHub Actions Run 监控改为可恢复的后台任务。
+1. 创建并合并 Harness 0.5 PR 到 `main`。
+2. 合并后根据真实验收结果制定 Harness 0.6 实施计划。
 
 ## 阻塞
 
@@ -73,8 +78,14 @@
 
 ## 最近验证（最近 10 条）
 
+- 2026-08-23：远程 dispatch 生命周期、失败后重试、重复提交防护、跨分支历史 Artifact 显式认领和 Web UI 操作路由回归通过；Harness 核心 34 项、Web Server 4 项、`npm run check`、`git diff --check` 通过，未触发远程任务，视频目录无改动。
+- 2026-08-23：历史 Render 自动找回和 Web UI 详情即时同步回归通过；Harness 核心测试 28 项、Web Server 3 项通过，未触发远程任务，视频目录无改动。
+- 2026-08-23：远程任务自动恢复回归通过；模拟首次 401 后发现成功 Run／有效 Artifact，Harness 自动推进到 `gate-4`，未重复 dispatch；`npm test --prefix harness` 核心 30 项、Web UI 数据回归、Web 服务回归、`npm run check` 和 `git diff --check` 均通过，视频目录无改动。
+- 2026-08-23：Harness 远程 render／Gate 4 回归通过；全量 Harness 测试 29 项、`npm run check`、`git diff --check` 通过，当前真实 `vscode` 报告从阻塞校验变为可执行 `render`，视频目录无改动。
+- 2026-08-23：Harness 0.5 通过真实 GitHub Actions 后台监控完成 `vscode` Smoke Render；Run `32632006287` 为 `success`，Artifact `vscode-smoke-test` 存在、大小 1,425,085 bytes 且未过期；Harness 任务推进到 `render`，未下载 Artifact，未修改视频目录。
 - 2026-08-23：Web UI 人工回归通过；53 个项目的模块内容、项目状态、详情、资料和 Visual Prototype 预览均能正常显示。
 - 2026-08-23：`vscode` 和 `claude-code-first-run` 最终 MP4 通过用户人工验收，内容、声音、字幕和清洁输出无问题，Gate 4 完成。
+- 2026-08-23：Harness 0.5 全量回归通过 30 项测试；53 个视频项目只读检查、Web 服务/API、配置预检、远程任务恢复和 Artifact 验证均通过，视频目录无改动。
 
 - 2026-08-21：`vscode` 完整 Render Run `32496527485` 和 `claude-code-first-run` 完整 Render Run `32496531865` 均为 `success`；Artifact 分别为 12,153,238 和 14,683,118 bytes，均未过期。
 - 2026-08-21：`vscode` Scene 01 右上角定位标识改动通过 `npm run check` 和 `git diff --check`；本机 Chromium 仍无法完成实际画面复核，Gate 3 保持未通过。

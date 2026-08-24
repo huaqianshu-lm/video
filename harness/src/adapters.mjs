@@ -22,6 +22,8 @@ const WORKFLOWS_BY_STAGE = Object.freeze({
   render: "render-video.yml",
 });
 
+import { requireGitHubActionsConfig } from "./github-config.mjs";
+
 const DEFAULT_API_URL = "https://api.github.com";
 const DEFAULT_DISCOVERY_TIMEOUT_MS = 120_000;
 const DEFAULT_RUN_TIMEOUT_MS = 45 * 60 * 1_000;
@@ -126,33 +128,41 @@ export function createGitHubActionsAdapter({
     return workflow;
   }
 
-  async function dispatchWorkflow({ stage, project }) {
+  function createDispatch({ stage, project, dispatchedAt = now().toISOString() }) {
     const workflow = workflowPath(stage);
     const slug = project.state.slug;
     const compositionId = project.config.compositionId ?? slug;
-    const dispatchedAt = now().toISOString();
+    return { workflow, ref, slug, compositionId, dispatchedAt, dispatchState: "pending" };
+  }
 
-    await request(`/repos/${repository}/actions/workflows/${encodeURIComponent(workflow)}/dispatches`, {
+  async function dispatchWorkflow({ stage, project, dispatchedAt = now().toISOString() }) {
+    const dispatch = createDispatch({ stage, project, dispatchedAt });
+
+    await request(`/repos/${repository}/actions/workflows/${encodeURIComponent(dispatch.workflow)}/dispatches`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         ref,
         inputs: {
-          video_slug: slug,
-          composition_id: compositionId,
+          video_slug: dispatch.slug,
+          composition_id: dispatch.compositionId,
         },
       }),
     });
 
-    return { workflow, ref, slug, compositionId, dispatchedAt };
+    return {
+      ...dispatch,
+      dispatchState: "confirmed",
+      dispatchConfirmedAt: now().toISOString(),
+    };
   }
 
-  async function listRuns({ workflow, ref: runRef }) {
+  async function listRuns({ workflow, ref: runRef = null }) {
     const query = new URLSearchParams({
       event: "workflow_dispatch",
-      branch: runRef,
       per_page: "20",
     });
+    if (runRef) query.set("branch", runRef);
     const payload = await request(
       `/repos/${repository}/actions/workflows/${encodeURIComponent(workflow)}/runs?${query.toString()}`,
     );
@@ -160,15 +170,10 @@ export function createGitHubActionsAdapter({
   }
 
   async function findDispatchedRun(dispatch) {
-    const startTime = Date.parse(dispatch.dispatchedAt) - 15_000;
     const deadline = Date.now() + discoveryTimeoutMs;
 
     while (true) {
-      const runs = await listRuns(dispatch);
-      const matchingRun = runs
-        .filter((run) => run.head_branch === dispatch.ref)
-        .filter((run) => Date.parse(run.created_at) >= startTime)
-        .sort((left, right) => Date.parse(right.created_at) - Date.parse(left.created_at))[0];
+      const matchingRun = await findDispatchedRunOnce(dispatch);
       if (matchingRun) {
         return matchingRun;
       }
@@ -179,6 +184,39 @@ export function createGitHubActionsAdapter({
     }
   }
 
+  async function findDispatchedRunOnce(dispatch) {
+    const startTime = Date.parse(dispatch.dispatchedAt) - 15_000;
+    const runs = await listRuns(dispatch);
+    return runs
+      .filter((run) => run.head_branch === dispatch.ref)
+      .filter((run) => Date.parse(run.created_at) >= startTime)
+      .sort((left, right) => Date.parse(right.created_at) - Date.parse(left.created_at))[0] ?? null;
+  }
+
+  async function findSuccessfulRunsWithArtifactOnce(dispatch, { anyBranch = false } = {}) {
+    const runs = await listRuns(anyBranch ? { ...dispatch, ref: null } : dispatch);
+    const artifactStage = dispatch.workflow === "render-video.yml" ? "render" : "smoke-render";
+    const expectedName = expectedArtifactName(artifactStage, dispatch.slug);
+    const candidates = runs
+      .filter((run) => anyBranch || run.head_branch === dispatch.ref)
+      .filter((run) => run.status === "completed" && run.conclusion === "success")
+      .sort((left, right) => Date.parse(right.created_at) - Date.parse(left.created_at));
+
+    const matches = [];
+    for (const run of candidates) {
+      const artifacts = await listArtifacts(run.id);
+      const artifact = artifacts.find((item) => item.name === expectedName);
+      if (artifact && !artifact.expired && artifact.id && artifact.size_in_bytes > 0) {
+        matches.push({ run, artifacts, artifact });
+      }
+    }
+    return matches;
+  }
+
+  async function findSuccessfulRunWithArtifactOnce(dispatch, options = {}) {
+    return (await findSuccessfulRunsWithArtifactOnce(dispatch, options))[0] ?? null;
+  }
+
   async function getRun(runId) {
     return request(`/repos/${repository}/actions/runs/${runId}`);
   }
@@ -186,6 +224,64 @@ export function createGitHubActionsAdapter({
   async function listArtifacts(runId) {
     const payload = await request(`/repos/${repository}/actions/runs/${runId}/artifacts?per_page=100`);
     return Array.isArray(payload?.artifacts) ? payload.artifacts : [];
+  }
+
+  function outputForRun(stage, dispatch, run, artifacts, expectedArtifact) {
+    return {
+      kind: "github-actions-run",
+      stage,
+      workflow: dispatch.workflow,
+      ref: dispatch.ref,
+      runId: run.id,
+      runUrl: run.html_url,
+      status: run.status,
+      conclusion: run.conclusion,
+      artifactName: expectedArtifact.name,
+      artifacts: artifacts.map((artifact) => ({
+        name: artifact.name,
+        id: artifact.id,
+        sizeInBytes: artifact.size_in_bytes,
+        expired: artifact.expired,
+        archiveDownloadUrl: artifact.archive_download_url,
+        createdAt: artifact.created_at,
+        expiresAt: artifact.expires_at,
+      })),
+    };
+  }
+
+  async function inspectRun({ stage, dispatch, runId = null, recoverExisting = false }) {
+    let run = runId ? await getRun(runId) : await findDispatchedRunOnce(dispatch);
+    let artifacts = null;
+    if (!run && recoverExisting) {
+      const recovered = await findSuccessfulRunWithArtifactOnce(dispatch);
+      if (recovered) {
+        run = recovered.run;
+        artifacts = recovered.artifacts;
+      }
+    }
+    if (!run) {
+      return { status: "waiting-run", run: null, remote: dispatch };
+    }
+    const remote = { ...dispatch, runId: run.id, runUrl: run.html_url };
+    if (run.status !== "completed") {
+      return { status: "running", run, remote };
+    }
+    if (run.conclusion !== "success") {
+      return {
+        status: "failed",
+        run,
+        remote,
+        error: `GitHub Actions run ${run.id} ended with ${run.conclusion ?? "unknown"}`,
+      };
+    }
+    artifacts ??= await listArtifacts(run.id);
+    const expectedArtifact = requireUsableArtifact(stage, dispatch.slug, artifacts);
+    return {
+      status: "succeeded",
+      run,
+      remote,
+      result: { outputs: [outputForRun(stage, dispatch, run, artifacts, expectedArtifact)] },
+    };
   }
 
   async function waitForRun(dispatch) {
@@ -209,48 +305,34 @@ export function createGitHubActionsAdapter({
   }
 
   return {
-    async run({ stage, project }) {
+    async run({ stage, project, defer = false }) {
       const dispatch = await dispatchWorkflow({ stage, project });
+      if (defer) {
+        return { deferred: true, remote: dispatch };
+      }
       const { run, artifacts } = await waitForRun(dispatch);
       const expectedArtifact = requireUsableArtifact(stage, dispatch.slug, artifacts);
       return {
-        outputs: [
-          {
-            kind: "github-actions-run",
-            stage,
-            workflow: dispatch.workflow,
-            ref: dispatch.ref,
-            runId: run.id,
-            runUrl: run.html_url,
-            status: run.status,
-            conclusion: run.conclusion,
-            artifactName: expectedArtifact.name,
-            artifacts: artifacts.map((artifact) => ({
-              name: artifact.name,
-              id: artifact.id,
-              sizeInBytes: artifact.size_in_bytes,
-              expired: artifact.expired,
-              archiveDownloadUrl: artifact.archive_download_url,
-              createdAt: artifact.created_at,
-              expiresAt: artifact.expires_at,
-            })),
-          },
-        ],
+        outputs: [outputForRun(stage, dispatch, run, artifacts, expectedArtifact)],
       };
     },
     dispatchWorkflow,
+    createDispatch,
     findDispatchedRun,
+    findDispatchedRunOnce,
+    findSuccessfulRunsWithArtifactOnce,
+    findSuccessfulRunWithArtifactOnce,
     getRun,
+    inspectRun,
     listArtifacts,
     waitForRun,
   };
 }
 
 export function createGitHubActionsAdapterFromEnv(options = {}) {
+  const config = requireGitHubActionsConfig();
   return createGitHubActionsAdapter({
-    token: process.env.GITHUB_TOKEN ?? process.env.GH_TOKEN,
-    repository: process.env.GITHUB_REPOSITORY,
-    ref: process.env.GITHUB_REF_NAME ?? process.env.HARNESS_GITHUB_REF,
+    ...config,
     ...options,
   });
 }

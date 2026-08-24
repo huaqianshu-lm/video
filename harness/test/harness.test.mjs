@@ -133,7 +133,7 @@ test("initializes explicit workflow, style, and target project configuration", (
   assert.equal(project.config.workflowVersion, 1);
   assert.equal(project.config.style, "current");
   assert.equal(project.config.target, "gate-4");
-  assert.equal(project.config.harnessVersion, "0.4.0");
+  assert.equal(project.config.harnessVersion, "0.5.0");
 });
 
 test("builds a single-stage context task packet with bounded read and write paths", () => {
@@ -189,7 +189,7 @@ test("reports wildcard artifacts only when a matching file exists", () => {
       workflowVersion: 1,
       style: "current",
       target: "gate-4",
-      harnessVersion: "0.4.0",
+      harnessVersion: "0.5.0",
       sourceDirectory: `videos/${slug}`,
       remotionDirectory: `src/videos/${slug}`,
     },
@@ -373,6 +373,20 @@ test("reports the next action for a ready stage and a waiting Gate", () => {
   assert.equal(report.next.action, "approve-or-reject-gate");
 });
 
+test("allows remote render preflight without a local MP4", () => {
+  const { slug } = createFixture();
+  const project = loadFixture(slug);
+  runToGate3(project);
+  approveGate(project, "gate-3");
+  runStage(project, "smoke-render", { adapters: { "smoke-render": createMockAdapter() } });
+
+  const next = buildNextAction(loadFixture(slug));
+  assert.equal(next.currentStage, "render");
+  assert.equal(next.action, "run-stage");
+  assert.deepEqual(next.issues, []);
+  assert.deepEqual(validateStage(loadFixture(slug), "render"), []);
+});
+
 function runToGate3(project) {
   const preGateStages = [
     "source",
@@ -545,4 +559,133 @@ test("rejects a successful GitHub Actions run without a usable artifact", async 
   });
 
   await assert.rejects(() => adapter.run({ stage: "smoke-render", project: loadFixture(slug) }), /did not produce expected artifact/);
+});
+
+test("supports non-blocking remote inspection for recovery monitors", async () => {
+  const { slug } = createFixture();
+  const responses = [
+    { status: 200, ok: true, text: async () => JSON.stringify({ id: 321, status: "in_progress", conclusion: null, html_url: "https://github.com/example/video/actions/runs/321" }) },
+    { status: 200, ok: true, text: async () => JSON.stringify({ id: 321, status: "completed", conclusion: "success", html_url: "https://github.com/example/video/actions/runs/321" }) },
+    { status: 200, ok: true, text: async () => JSON.stringify({ artifacts: [{ name: `${slug}-smoke-test`, id: 654, size_in_bytes: 100, expired: false }] }) },
+  ];
+  const adapter = createGitHubActionsAdapter({
+    token: "test-token",
+    repository: "example/video",
+    ref: "main",
+    fetchImpl: async () => responses.shift(),
+  });
+  const dispatch = {
+    workflow: "smoke-test-video.yml",
+    ref: "main",
+    slug,
+    compositionId: slug,
+    dispatchedAt: "2026-08-20T00:00:00.000Z",
+    runId: 321,
+  };
+
+  const running = await adapter.inspectRun({ stage: "smoke-render", dispatch, runId: 321 });
+  assert.equal(running.status, "running");
+  assert.equal(running.remote.runId, 321);
+
+  const succeeded = await adapter.inspectRun({ stage: "smoke-render", dispatch, runId: 321 });
+  assert.equal(succeeded.status, "succeeded");
+  assert.equal(succeeded.result.outputs[0].artifacts[0].id, 654);
+});
+
+test("recovers the latest successful render by its matching Artifact", async () => {
+  const { slug } = createFixture();
+  const responses = [
+    { status: 200, ok: true, text: async () => JSON.stringify({ workflow_runs: [] }) },
+    {
+      status: 200,
+      ok: true,
+      text: async () => JSON.stringify({
+        workflow_runs: [{
+          id: 999,
+          head_branch: "main",
+          created_at: "2026-08-22T00:00:01.000Z",
+          status: "completed",
+          conclusion: "success",
+          html_url: "https://github.com/example/video/actions/runs/999",
+        }],
+      }),
+    },
+    {
+      status: 200,
+      ok: true,
+      text: async () => JSON.stringify({
+        artifacts: [{ name: slug, id: 777, size_in_bytes: 100, expired: false }],
+      }),
+    },
+  ];
+  const adapter = createGitHubActionsAdapter({
+    token: "test-token",
+    repository: "example/video",
+    ref: "main",
+    fetchImpl: async () => responses.shift(),
+  });
+
+  const inspection = await adapter.inspectRun({
+    stage: "render",
+    dispatch: {
+      workflow: "render-video.yml",
+      ref: "main",
+      slug,
+      compositionId: slug,
+      dispatchedAt: "2026-08-23T00:00:00.000Z",
+    },
+    recoverExisting: true,
+  });
+
+  assert.equal(inspection.status, "succeeded");
+  assert.equal(inspection.remote.runId, 999);
+  assert.equal(inspection.result.outputs[0].artifactName, slug);
+});
+
+test("lists successful render Artifacts from other branches for explicit adoption", async () => {
+  const { slug } = createFixture();
+  const responses = [
+    {
+      status: 200,
+      ok: true,
+      text: async () => JSON.stringify({
+        workflow_runs: [{
+          id: 1001,
+          head_branch: "feat/video-production-pending",
+          created_at: "2026-08-21T15:14:30.000Z",
+          status: "completed",
+          conclusion: "success",
+          html_url: "https://github.com/example/video/actions/runs/1001",
+        }],
+      }),
+    },
+    {
+      status: 200,
+      ok: true,
+      text: async () => JSON.stringify({
+        artifacts: [{ name: slug, id: 1002, size_in_bytes: 100, expired: false }],
+      }),
+    },
+  ];
+  const adapter = createGitHubActionsAdapter({
+    token: "test-token",
+    repository: "example/video",
+    ref: "feat/video-harness-v0.5",
+    fetchImpl: async (url) => {
+      assert.doesNotMatch(url, /[?&]branch=/);
+      return responses.shift();
+    },
+  });
+
+  const candidates = await adapter.findSuccessfulRunsWithArtifactOnce({
+    workflow: "render-video.yml",
+    ref: "feat/video-harness-v0.5",
+    slug,
+    compositionId: slug,
+    dispatchedAt: "2026-08-23T00:00:00.000Z",
+  }, { anyBranch: true });
+
+  assert.equal(candidates.length, 1);
+  assert.equal(candidates[0].run.id, 1001);
+  assert.equal(candidates[0].artifacts[0].name, slug);
 });
