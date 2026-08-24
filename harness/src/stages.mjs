@@ -1,4 +1,4 @@
-export const HARNESS_VERSION = "0.5.0";
+export const HARNESS_VERSION = "0.6.0";
 
 const rawStageDefinitions = [
   {
@@ -209,6 +209,7 @@ export function createStageState(stage, index) {
     status: index === 0 ? "ready" : "pending",
     attempts: 0,
     outputs: [],
+    review: null,
     error: null,
     invalidatedBy: null,
     outputFingerprint: null,

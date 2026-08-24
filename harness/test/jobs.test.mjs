@@ -297,12 +297,120 @@ test("does not dispatch twice after recovering a persisted dispatch intent", asy
         remote: { ...dispatch, runId: 456, runUrl: "https://github.com/example/video/actions/runs/456" },
       }),
     };
-    const monitor = createRemoteJobMonitor({ adapterFactory: () => adapter });
+    const monitor = createRemoteJobMonitor({
+      adapterFactory: () => adapter,
+      now: () => new Date("2026-08-23T00:00:02.000Z"),
+    });
     await monitor.processJob(job.id);
 
     assert.equal(dispatchCount, 0);
     assert.equal(getJob("recover-video", job.id).status, "running");
     assert.equal(getJob("recover-video", job.id).remote.runId, 456);
+  } finally {
+    if (previousRoot === undefined) delete process.env.HARNESS_PROJECTS_DIR;
+    else process.env.HARNESS_PROJECTS_DIR = previousRoot;
+    fs.rmSync(projectsRoot, { recursive: true, force: true });
+  }
+});
+
+test("marks a dispatched remote job as timed out and stops scheduling checks", async () => {
+  const projectsRoot = fs.mkdtempSync(path.join(os.tmpdir(), "video-harness-timeout-"));
+  const previousRoot = process.env.HARNESS_PROJECTS_DIR;
+  process.env.HARNESS_PROJECTS_DIR = projectsRoot;
+  fs.mkdirSync(path.join(projectsRoot, "timeout-video"), { recursive: true });
+
+  try {
+    initializeProject("timeout-video");
+    const project = loadProject("timeout-video", { refresh: false });
+    project.state.currentStage = "render";
+    for (const stage of ["source", "content-analysis", "video-narrative", "scene-script", "narration-script", "visual-script", "visual-prototype", "gate-2", "tts", "subtitle-timeline", "remotion", "gate-3", "smoke-render"]) {
+      project.state.stages[stage].status = "succeeded";
+    }
+    project.state.stages.render.status = "running";
+    writeJson(project.files.state, project.state);
+
+    const job = createJobRecord({
+      slug: "timeout-video",
+      stage: "render",
+      metadata: {
+        status: "running",
+        startedAt: "2026-08-23T00:00:00.000Z",
+        remote: {
+          workflow: "render-video.yml",
+          ref: "main",
+          slug: "timeout-video",
+          compositionId: "timeout-video",
+          dispatchState: "confirmed",
+          dispatchConfirmedAt: "2026-08-23T00:00:00.000Z",
+          runId: 99,
+        },
+      },
+    });
+    const monitor = createRemoteJobMonitor({
+      adapterFactory: () => ({ inspectRun: async () => ({ status: "running" }) }),
+      now: () => new Date("2026-08-23T01:00:01.000Z"),
+      jobTimeoutMs: 60 * 60 * 1_000,
+    });
+
+    await monitor.processJob(job.id);
+
+    const timedOut = getJob("timeout-video", job.id);
+    assert.equal(timedOut.status, "timeout");
+    assert.equal(timedOut.error.code, "remote-job-timeout");
+    assert.equal(timedOut.nextCheckAt, null);
+    assert.equal(loadProject("timeout-video").state.stages.render.status, "failed");
+  } finally {
+    if (previousRoot === undefined) delete process.env.HARNESS_PROJECTS_DIR;
+    else process.env.HARNESS_PROJECTS_DIR = previousRoot;
+    fs.rmSync(projectsRoot, { recursive: true, force: true });
+  }
+});
+
+test("keeps transient GitHub API failures recoverable without failing the stage", async () => {
+  const projectsRoot = fs.mkdtempSync(path.join(os.tmpdir(), "video-harness-recoverable-"));
+  const previousRoot = process.env.HARNESS_PROJECTS_DIR;
+  process.env.HARNESS_PROJECTS_DIR = projectsRoot;
+  fs.mkdirSync(path.join(projectsRoot, "recoverable-video"), { recursive: true });
+
+  try {
+    initializeProject("recoverable-video");
+    const project = loadProject("recoverable-video", { refresh: false });
+    project.state.currentStage = "render";
+    for (const stage of ["source", "content-analysis", "video-narrative", "scene-script", "narration-script", "visual-script", "visual-prototype", "gate-2", "tts", "subtitle-timeline", "remotion", "gate-3", "smoke-render"]) {
+      project.state.stages[stage].status = "succeeded";
+    }
+    project.state.stages.render.status = "running";
+    writeJson(project.files.state, project.state);
+
+    const job = createJobRecord({
+      slug: "recoverable-video",
+      stage: "render",
+      metadata: {
+        status: "running",
+        remote: {
+          workflow: "render-video.yml",
+          ref: "main",
+          slug: "recoverable-video",
+          compositionId: "recoverable-video",
+          dispatchState: "confirmed",
+          dispatchConfirmedAt: new Date().toISOString(),
+          runId: 100,
+        },
+      },
+    });
+    const error = new Error("GitHub API 503: Service Unavailable");
+    const monitor = createRemoteJobMonitor({
+      adapterFactory: () => ({ inspectRun: async () => { throw error; } }),
+      now: () => new Date(),
+    });
+
+    await monitor.processJob(job.id);
+
+    const recoverable = getJob("recoverable-video", job.id);
+    assert.equal(recoverable.status, "recoverable");
+    assert.equal(recoverable.error.classification, "recoverable");
+    assert.ok(recoverable.nextCheckAt);
+    assert.equal(loadProject("recoverable-video").state.stages.render.status, "running");
   } finally {
     if (previousRoot === undefined) delete process.env.HARNESS_PROJECTS_DIR;
     else process.env.HARNESS_PROJECTS_DIR = previousRoot;

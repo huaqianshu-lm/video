@@ -7,7 +7,7 @@
 
 ## 当前阶段
 
-- Harness 0.4 已完成本地实现、测试和推送，PR #3 已合并到 `main`（`5fcefb89`）；Harness 0.5 已在 `feat/video-harness-v0.5` 完成实现、远程 render／Gate 4 闭环修复、已提交任务自动找回 Run／Artifact、全量测试、文档收尾和受控真实 Smoke Render 监控验收（Run `32632006287`、Artifact `vscode-smoke-test`），等待合并，不改现有视频内容。
+- Harness 0.4 已完成本地实现、测试和推送，PR #3 已合并到 `main`（`5fcefb89`）；Harness 0.5 已完成实现、远程 render／Gate 4 闭环修复、已提交任务自动找回 Run／Artifact、全量测试、文档收尾和受控真实 Smoke Render 监控验收（Run `32632006287`、Artifact `vscode-smoke-test`），PR #4 已合并到 `main`（`bd991479`），不改现有视频内容。
 - Harness Web UI 第一版已合入待处理视频集成分支；53 个视频项目按原文件序号 01–53 展示和排序，目录索引已补齐，项目卡片以完整项目名称为主信息，项目列表、详情、资料和 Visual Prototype 预览人工回归通过。
 - 新视频 `remotion-video` 已完成七层生产资料、Gate 1、Gate 2 和 12 Scene 横屏 Visual Prototype；源文档与指定文章字节一致，按任务边界停止在原型阶段，未生成 TTS 或 Remotion 资料。
 - 新视频 `glossary` 已完成七层生产资料、Gate 1、Gate 2 和 12 Scene 横屏 Visual Prototype；源文档与指定文章字节一致，按任务边界停止，未生成 TTS 或 Remotion 资料。
@@ -16,10 +16,12 @@
 - 新视频 `claude-code-how-it-works` 已通过 GitHub Smoke Render 和完整 Render；Run `32360625092` 成功，最终 MP4 已完成 Gate 4 人工确认。
 - `claude-code-coding-plan`、`claude-code-third-party-models` 已进入 Gate 3 视觉检查，分别关注场景节奏、字幕安全区、文字溢出和清洁输出。
 - 新视频 `vscode` 和 `claude-code-first-run` 已完成 TTS、字幕／Timeline、Remotion 接入及完整 GitHub Actions Render，最终 MP4 均通过用户 Gate 4 人工验收。
-- Harness 0.5 已完成远程配置预检、GitHub Actions 分阶段监控、持久化任务、重启恢复、dispatch 未确认重试、已提交任务自动找回 Run／Artifact、重复 dispatch 防护、跨分支历史 Artifact 显式认领、CLI／Web UI 状态展示及 34 项核心测试；Web Server 4 项回归通过。
+- Harness 0.6 已在独立分支 `feat/video-harness-v0.6` 完成实现和人工回归；已补齐远程任务状态分类、可恢复错误、超时终态、GitHub 环境诊断、全局远程任务视图和 Gate 审查记录，48 项 Harness 回归、类型检查、差异检查及 GitHub 配置／全局任务／项目详情页人工检查均通过，未修改视频内容；提交 `6a7c437` 已推送，当前待创建并合并 PR。
 
 ## 已完成（最近 10 条）
 
+- 2026-08-24：Harness 0.6 的 GitHub 配置诊断、全局远程任务列表和项目详情页人工回归完成，状态、操作和远程任务信息均正常，未修改视频内容。
+- 2026-08-24：Harness 0.6 完成远程任务状态模型、超时／可恢复错误处理、GitHub `doctor` 诊断、全局任务 API／CLI、Gate 审查记录和 Web UI 展示；`npm test --prefix harness` 48/48、`npm run check`、前端语法和 `git diff --check` 通过，视频目录无改动。
 - 2026-08-23：修复远程任务把“已保存 dispatch 意图”误判为“GitHub 已接受提交”的问题；首次 401／网络失败后可自动重试，已确认提交仍不会重复 dispatch；新增跨分支成功 Artifact 的 Web UI 查找与确认认领，未修改视频内容。
 - 2026-08-23：补齐已有完整渲染的自动识别；远程任务按工作流、分支和目标 Artifact 找回历史成功 Render，Web UI 打开详情时立即同步远程状态，不再要求用户提供 Run 链接，未修改视频内容。
 - 2026-08-23：补齐远程任务自动找回：已 dispatch 但首次因 401 或临时错误检查失败的任务，后续后台轮询会复用原工作流、分支、slug 和提交时间查找既有 Run，不重复触发渲染；回归测试通过，未修改视频内容。
@@ -52,8 +54,8 @@
 
 ## 下一步
 
-1. 创建并合并 Harness 0.5 PR 到 `main`。
-2. 合并后根据真实验收结果制定 Harness 0.6 实施计划。
+1. 用户审阅 Harness 0.6 差异后，提交并推送 `feat/video-harness-v0.6`。
+2. 推送后进行分支级人工 Web UI 回归，再决定是否创建 PR 合并到 `main`。
 
 ## 阻塞
 
@@ -78,6 +80,8 @@
 
 ## 最近验证（最近 10 条）
 
+- 2026-08-24：用户完成人工 Web UI 回归；GitHub 配置诊断、全局远程任务列表、`vscode`／`claude-code-first-run` 项目详情页均正常，未触发重复远程任务，视频目录无改动。
+- 2026-08-24：Harness 0.6 完整回归 48/48 通过；包含远程任务生命周期、超时、临时 API 错误恢复、GitHub 诊断、Gate 审查记录、Web API／Web Server 和 53 个视频项目只读回归，视频目录无改动。
 - 2026-08-23：远程 dispatch 生命周期、失败后重试、重复提交防护、跨分支历史 Artifact 显式认领和 Web UI 操作路由回归通过；Harness 核心 34 项、Web Server 4 项、`npm run check`、`git diff --check` 通过，未触发远程任务，视频目录无改动。
 - 2026-08-23：历史 Render 自动找回和 Web UI 详情即时同步回归通过；Harness 核心测试 28 项、Web Server 3 项通过，未触发远程任务，视频目录无改动。
 - 2026-08-23：远程任务自动恢复回归通过；模拟首次 401 后发现成功 Run／有效 Artifact，Harness 自动推进到 `gate-4`，未重复 dispatch；`npm test --prefix harness` 核心 30 项、Web UI 数据回归、Web 服务回归、`npm run check` 和 `git diff --check` 均通过，视频目录无改动。

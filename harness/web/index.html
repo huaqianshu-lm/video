@@ -26,6 +26,21 @@
         </div>
         <div id="project-list-state" class="loading-state">正在读取视频项目……</div>
         <div id="project-grid" class="project-grid"></div>
+
+        <section class="dashboard-section">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">REMOTE JOBS</p>
+              <h2>全局远程任务</h2>
+            </div>
+            <div class="section-actions">
+              <button id="check-github-config" class="button button-secondary" type="button">检查 GitHub 配置</button>
+              <button id="refresh-jobs-dashboard" class="button button-secondary" type="button">刷新任务</button>
+            </div>
+          </div>
+          <div id="github-diagnostics" class="loading-state" hidden></div>
+          <div id="global-jobs-list" class="jobs-list loading-state">正在读取远程任务……</div>
+        </section>
       </section>
 
       <section id="detail-view" hidden>
