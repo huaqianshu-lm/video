@@ -1,4 +1,4 @@
-export const HARNESS_VERSION = "0.4.0";
+export const HARNESS_VERSION = "0.5.0";
 
 const rawStageDefinitions = [
   {
@@ -138,6 +138,7 @@ const rawStageDefinitions = [
   {
     stage: "render",
     requiresAdapter: true,
+    remoteOutput: true,
     artifacts: ["out/{slug}.mp4"],
     objective: "在远程环境生成最终完整 MP4。",
     inputStages: ["smoke-render"],

@@ -6,8 +6,9 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { getProjectFile, getProjectPrototype, listProjectFiles } from "./project-files.mjs";
 import { getVideoProject, listVideoProjects } from "./project-view.mjs";
-import { createJob, findActiveJob, listJobs } from "./jobs.mjs";
-import { createGitHubActionsAdapterFromEnv } from "./adapters.mjs";
+import { findActiveJob, listJobs } from "./jobs.mjs";
+import { requireGitHubActionsConfig } from "./github-config.mjs";
+import { createRemoteJobMonitor } from "./remote-jobs.mjs";
 import { artifactManifestFor } from "./artifacts.mjs";
 import { approveGate, rejectGate, resumeProject, retryStage, runStage, validateStage } from "./runner.mjs";
 import { validateProjectStage } from "./validation.mjs";
@@ -72,7 +73,7 @@ function serveStatic(response, urlPath) {
   response.end(body);
 }
 
-function serveApi(response, pathname, search) {
+async function serveApi(response, pathname, search, remoteJobMonitor) {
   if (pathname === "/api/projects") {
     sendJson(response, 200, { projects: listVideoProjects() });
     return true;
@@ -80,10 +81,14 @@ function serveApi(response, pathname, search) {
 
   const projectMatch = pathname.match(/^\/api\/projects\/([a-z0-9]+(?:-[a-z0-9]+)*)$/);
   if (projectMatch) {
-    const project = getVideoProject(projectMatch[1]);
+    let project = getVideoProject(projectMatch[1]);
     if (!project) {
       sendJson(response, 404, { error: "Video project not found" });
       return true;
+    }
+    if (project.initialized) {
+      await remoteJobMonitor.poll();
+      project = getVideoProject(projectMatch[1]);
     }
     sendJson(response, 200, { project });
     return true;
@@ -204,10 +209,60 @@ async function serveAction(response, request, pathname) {
     return true;
   }
 
+  if (action === "find-historical") {
+    const stage = body.stage;
+    if (stage !== "smoke-render" && stage !== "render") {
+      sendJson(response, 400, { error: "find-historical only supports smoke-render and render" });
+      return true;
+    }
+    try {
+      requireGitHubActionsConfig();
+      const candidates = await request.remoteJobMonitor.findHistorical({ slug, stage });
+      sendJson(response, 200, { result: { action, stage, candidates }, project: getVideoProject(slug) });
+    } catch (error) {
+      sendJson(response, 400, {
+        error: error instanceof Error ? error.message : String(error),
+        code: error.code ?? "historical-recovery-failed",
+        issues: error.issues ?? [],
+      });
+    }
+    return true;
+  }
+
+  if (action === "adopt-historical") {
+    const stage = body.stage;
+    if ((stage !== "smoke-render" && stage !== "render") || body.runId === undefined || body.runId === null) {
+      sendJson(response, 400, { error: "adopt-historical requires smoke-render/render and runId" });
+      return true;
+    }
+    try {
+      requireGitHubActionsConfig();
+      const job = await request.remoteJobMonitor.adoptHistorical({ slug, stage, runId: body.runId });
+      sendJson(response, 200, { result: { action, stage, status: "succeeded" }, job, project: getVideoProject(slug) });
+    } catch (error) {
+      sendJson(response, 400, {
+        error: error instanceof Error ? error.message : String(error),
+        code: error.code ?? "historical-adoption-failed",
+        issues: error.issues ?? [],
+      });
+    }
+    return true;
+  }
+
   if (action === "remote-run") {
     const stage = body.stage;
     if (stage !== "smoke-render" && stage !== "render") {
       sendJson(response, 400, { error: "remote-run only supports smoke-render and render" });
+      return true;
+    }
+    try {
+      requireGitHubActionsConfig();
+    } catch (error) {
+      sendJson(response, 400, {
+        error: error instanceof Error ? error.message : String(error),
+        code: error.code ?? "github-config-invalid",
+        issues: error.issues ?? [],
+      });
       return true;
     }
     const activeJob = findActiveJob(slug, stage);
@@ -215,15 +270,7 @@ async function serveAction(response, request, pathname) {
       sendJson(response, 409, { error: "A remote job for this stage is already running", job: activeJob });
       return true;
     }
-    const { job } = createJob({
-      slug,
-      stage,
-      run: async () => {
-        const project = loadProject(slug, { refresh: true });
-        const adapter = createGitHubActionsAdapterFromEnv();
-        return runStage(project, stage, { adapters: { [stage]: adapter } });
-      },
-    });
+    const job = request.remoteJobMonitor.submit({ slug, stage });
     sendJson(response, 202, { result: { action, status: "queued" }, job });
     return true;
   }
@@ -271,7 +318,7 @@ async function serveAction(response, request, pathname) {
   return true;
 }
 
-async function handleRequest(request, response, host) {
+async function handleRequest(request, response, host, remoteJobMonitor) {
   const requestUrl = new URL(request.url ?? "/", `http://${host}`);
   const isAction = request.method === "POST" && requestUrl.pathname.endsWith("/action");
   if (request.method !== "GET" && request.method !== "HEAD" && !isAction) {
@@ -279,6 +326,7 @@ async function handleRequest(request, response, host) {
     return;
   }
 
+  request.remoteJobMonitor = remoteJobMonitor;
   if (isAction && await serveAction(response, request, requestUrl.pathname)) {
     return;
   }
@@ -292,7 +340,7 @@ async function handleRequest(request, response, host) {
     return;
   }
 
-  if (requestUrl.pathname.startsWith("/api/") && serveApi(response, requestUrl.pathname, requestUrl.search)) {
+  if (requestUrl.pathname.startsWith("/api/") && await serveApi(response, requestUrl.pathname, requestUrl.search, remoteJobMonitor)) {
     return;
   }
 
@@ -315,9 +363,9 @@ function servePrototype(response, pathname) {
   return true;
 }
 
-export function createWebServer({ host = defaultHost, port = defaultPort } = {}) {
+export function createWebServer({ host = defaultHost, port = defaultPort, remoteJobMonitor = createRemoteJobMonitor() } = {}) {
   const server = http.createServer((request, response) => {
-    handleRequest(request, response, host).catch((error) => {
+    handleRequest(request, response, host, remoteJobMonitor).catch((error) => {
       if (response.headersSent) {
         response.destroy(error);
         return;
@@ -340,10 +388,12 @@ export function createWebServer({ host = defaultHost, port = defaultPort } = {})
         };
         server.once("error", onError);
         server.once("listening", onListening);
+        server.once("listening", () => remoteJobMonitor.start());
         server.listen(port, host);
       });
     },
     close() {
+      remoteJobMonitor.stop();
       return new Promise((resolve, reject) => {
         if (!server.listening) {
           resolve();

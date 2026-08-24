@@ -21,11 +21,13 @@ const INTERNAL_NARRATION_PATTERNS = [
   "Gate 检查清单",
 ];
 
-export function validateStageArtifacts(project, stage) {
+export function validateStageArtifacts(project, stage, { remotePreflight = false } = {}) {
   const entries = project.artifacts.stages[stage] ?? [];
+  const definition = STAGE_DEFINITIONS[stage];
+  const remoteOutputVerified = hasVerifiedRemoteOutput(project, stage);
   const workspaceRoot = project.config.workspaceRoot;
   return entries
-    .filter((entry) => !matchesArtifactPath(workspaceRoot, entry.path))
+    .filter((entry) => !(remotePreflight && definition?.remoteOutput) && !remoteOutputVerified && !matchesArtifactPath(workspaceRoot, entry.path))
     .map((entry) => ({
       code: "missing-artifact",
       stage,
@@ -40,6 +42,20 @@ function issue(stage, code, message, issuePath = null, severity = "error") {
 
 function absolutePath(project, relativePath) {
   return path.join(project.config.workspaceRoot, relativePath);
+}
+
+function hasVerifiedRemoteOutput(project, stage) {
+  const definition = STAGE_DEFINITIONS[stage];
+  if (!definition?.remoteOutput) return false;
+  return (project.state?.stages?.[stage]?.outputs ?? []).some((output) =>
+    output.artifactName === project.config.slug
+    && (output.artifacts ?? []).some((artifact) =>
+      artifact.name === project.config.slug
+      && artifact.expired === false
+      && artifact.id
+      && artifact.sizeInBytes > 0,
+    ),
+  );
 }
 
 function readTextArtifact(project, relativePath) {
@@ -396,5 +412,10 @@ export function validateStageContent(project, stage, options = {}) {
 }
 
 export function validateProjectStage(project, stage, options = {}) {
-  return [...validateStageArtifacts(project, stage), ...validateStageContent(project, stage, options)];
+  const issues = [
+    ...validateStageArtifacts(project, stage, options),
+    ...validateStageContent(project, stage, options),
+  ];
+  if (project.config.validationPolicy !== "legacy") return issues;
+  return issues.map((item) => ({ ...item, severity: "warning" }));
 }

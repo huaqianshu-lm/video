@@ -382,6 +382,19 @@ h1 {
   overflow-wrap: anywhere;
 }
 
+.job-card a {
+  color: #8ac8ff;
+}
+
+.job-meta {
+  display: flex;
+  flex-wrap: wrap;
+  grid-column: 1 / -1;
+  gap: 8px 16px;
+  color: #71809b;
+  font-size: 11px;
+}
+
 .pipeline-section {
   padding-bottom: 30px;
 }

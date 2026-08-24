@@ -27,7 +27,7 @@ test("serves the Web UI shell and health endpoint on localhost", async () => {
     assert.match(health.contentType, /application\/json/);
     assert.deepEqual(JSON.parse(health.body), {
       service: "video-production-harness-web",
-      harnessVersion: "0.4.0",
+      harnessVersion: "0.5.0",
       status: "ok",
     });
 
@@ -104,6 +104,83 @@ test("rejects path traversal and unsupported methods", async () => {
     const method = await request(webServer, "/api/health", { method: "POST" });
     assert.equal(method.status, 405);
   } finally {
+    await webServer.close();
+  }
+});
+
+test("refreshes an initialized project before returning its detail", async () => {
+  let pollCount = 0;
+  const monitor = {
+    start() {},
+    stop() {},
+    async poll() {
+      pollCount += 1;
+    },
+  };
+  const webServer = createWebServer({ port: 0, remoteJobMonitor: monitor });
+  await webServer.listen();
+
+  try {
+    const detail = await request(webServer, "/api/projects/claude-code-api-config");
+    assert.equal(detail.status, 200);
+    assert.equal(pollCount, 1);
+  } finally {
+    await webServer.close();
+  }
+});
+
+test("serves explicit historical Artifact discovery and adoption actions", async () => {
+  const previousToken = process.env.GITHUB_TOKEN;
+  const previousRepository = process.env.GITHUB_REPOSITORY;
+  const previousRef = process.env.GITHUB_REF_NAME;
+  process.env.GITHUB_TOKEN = "test-token";
+  process.env.GITHUB_REPOSITORY = "example/video";
+  process.env.GITHUB_REF_NAME = "feat/video-harness-v0.5";
+  const monitor = {
+    start() {},
+    stop() {},
+    async poll() {},
+    async findHistorical({ slug, stage }) {
+      return [{
+        runId: 1001,
+        runUrl: "https://github.com/example/video/actions/runs/1001",
+        ref: "feat/video-production-pending",
+        createdAt: "2026-08-21T15:14:30.000Z",
+        artifactName: slug,
+        artifactSizeInBytes: 100,
+        stage,
+      }];
+    },
+    async adoptHistorical({ slug, stage, runId }) {
+      return { id: "job-1001", slug, stage, runId, status: "succeeded" };
+    },
+  };
+  const webServer = createWebServer({ port: 0, remoteJobMonitor: monitor });
+  await webServer.listen();
+
+  try {
+    const search = await request(webServer, "/api/projects/claude-code-api-config/action", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "find-historical", stage: "render" }),
+    });
+    assert.equal(search.status, 200);
+    assert.equal(JSON.parse(search.body).result.candidates[0].runId, 1001);
+
+    const adopt = await request(webServer, "/api/projects/claude-code-api-config/action", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "adopt-historical", stage: "render", runId: 1001 }),
+    });
+    assert.equal(adopt.status, 200);
+    assert.equal(JSON.parse(adopt.body).job.status, "succeeded");
+  } finally {
+    if (previousToken === undefined) delete process.env.GITHUB_TOKEN;
+    else process.env.GITHUB_TOKEN = previousToken;
+    if (previousRepository === undefined) delete process.env.GITHUB_REPOSITORY;
+    else process.env.GITHUB_REPOSITORY = previousRepository;
+    if (previousRef === undefined) delete process.env.GITHUB_REF_NAME;
+    else process.env.GITHUB_REF_NAME = previousRef;
     await webServer.close();
   }
 });

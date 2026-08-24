@@ -54,10 +54,23 @@ function artifactPaths(slug, stage) {
   return STAGE_DEFINITIONS[stage].artifacts.map((artifact) => artifact.replaceAll("{slug}", slug));
 }
 
-function artifactPresence(slug, stage) {
+function remoteArtifactPresent(stage, stateItem, slug) {
+  if (stage !== "render") return false;
+  return (stateItem?.outputs ?? []).some((output) =>
+    output.artifactName === slug
+    && (output.artifacts ?? []).some((artifact) =>
+      artifact.name === slug
+      && artifact.expired === false
+      && artifact.id
+      && artifact.sizeInBytes > 0,
+    ),
+  );
+}
+
+function artifactPresence(slug, stage, stateItem = null) {
   return artifactPaths(slug, stage).map((relativePath) => ({
     path: relativePath,
-    present: matchesArtifactPath(repositoryRoot, relativePath),
+    present: matchesArtifactPath(repositoryRoot, relativePath) || remoteArtifactPresent(stage, stateItem, slug),
   }));
 }
 
@@ -121,7 +134,7 @@ function buildInitializedView(slug) {
   const stages = STAGES.map((stage) => {
     const definition = STAGE_DEFINITIONS[stage];
     const reportItem = report.stages.find((item) => item.stage === stage);
-    return stageView(definition, project.state.stages[stage], artifactPresence(slug, stage), reportItem);
+    return stageView(definition, project.state.stages[stage], artifactPresence(slug, stage, project.state.stages[stage]), reportItem);
   });
   const succeededCount = stages.filter((stage) => stage.status === "succeeded").length;
 

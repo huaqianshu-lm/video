@@ -1,4 +1,4 @@
-import { isGateStage, nextStage, previousStage, stageIndex, ADAPTER_REQUIRED_STAGES, STAGES } from "./stages.mjs";
+import { isGateStage, nextStage, previousStage, stageIndex, ADAPTER_REQUIRED_STAGES, STAGES, STAGE_DEFINITIONS } from "./stages.mjs";
 import { validateProjectStage } from "./validation.mjs";
 import { writeJson } from "./storage.mjs";
 import { fingerprintStageArtifacts } from "./fingerprints.mjs";
@@ -43,7 +43,10 @@ function completeStage(project, stage, outputs = []) {
   item.error = null;
   item.invalidatedBy = null;
   item.outputs = outputs;
-  item.outputFingerprint = fingerprintStageArtifacts(project, stage);
+  item.remote = null;
+  item.outputFingerprint = STAGE_DEFINITIONS[stage].remoteOutput
+    ? null
+    : fingerprintStageArtifacts(project, stage);
   item.updatedAt = new Date().toISOString();
   const following = nextStage(stage);
   if (following) {
@@ -55,7 +58,7 @@ function completeStage(project, stage, outputs = []) {
   saveState(project);
 }
 
-function failAdapterStage(project, stage, error) {
+export function markAdapterStageFailed(project, stage, error) {
   const failure = {
     code: "adapter-failed",
     stage,
@@ -65,23 +68,33 @@ function failAdapterStage(project, stage, error) {
   item.status = "failed";
   item.error = failure;
   item.invalidatedBy = null;
+  item.remote = null;
   item.updatedAt = new Date().toISOString();
   saveState(project);
+  return failure;
+}
+
+function failAdapterStage(project, stage, error) {
+  const failure = markAdapterStageFailed(project, stage, error);
   throw new Error(failure.message);
 }
 
-function completeAdapterStage(project, stage, result) {
+export function completeAdapterStage(project, stage, result) {
   completeStage(project, stage, result?.outputs ?? []);
   return { stage, status: "succeeded", nextStage: project.state.currentStage };
 }
 
-export function validateStage(project, requestedStage) {
+export function validateStage(project, requestedStage, options = {}) {
   const stage = requestedStage ?? project.state.currentStage;
   requireKnownStage(stage);
-  return validateProjectStage(project, stage);
+  const defaultOptions = {
+    remotePreflight: project.state?.stages?.[stage]?.status === "ready"
+      && STAGE_DEFINITIONS[stage].remoteOutput === true,
+  };
+  return validateProjectStage(project, stage, { ...defaultOptions, ...options });
 }
 
-export function runStage(project, requestedStage, { adapters = {} } = {}) {
+export function runStage(project, requestedStage, { adapters = {}, deferAdapters = false } = {}) {
   const stage = requireCurrentStage(project, requestedStage);
   requireReady(project, stage);
   requirePreviousSucceeded(project, stage);
@@ -125,12 +138,26 @@ export function runStage(project, requestedStage, { adapters = {} } = {}) {
     }
 
     try {
-      const result = adapter.run({ stage, project });
+      const result = adapter.run({ stage, project, defer: deferAdapters });
       if (result && typeof result.then === "function") {
         return result.then(
-          (resolved) => completeAdapterStage(project, stage, resolved),
+          (resolved) => {
+            if (resolved?.deferred) {
+              item.remote = resolved.remote ?? null;
+              item.updatedAt = new Date().toISOString();
+              saveState(project);
+              return { stage, status: "running", remote: resolved.remote ?? null };
+            }
+            return completeAdapterStage(project, stage, resolved);
+          },
           (error) => failAdapterStage(project, stage, error),
         );
+      }
+      if (result?.deferred) {
+        item.remote = result.remote ?? null;
+        item.updatedAt = new Date().toISOString();
+        saveState(project);
+        return { stage, status: "running", remote: result.remote ?? null };
       }
       return completeAdapterStage(project, stage, result);
     } catch (error) {

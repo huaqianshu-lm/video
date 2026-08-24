@@ -1,8 +1,17 @@
-# Video Production Harness 0.4
+# Video Production Harness 0.5
 
 ## 目标
 
-把当前已经验证的视频生产流程包装成一个可检查、可暂停、可恢复的单视频编排层。0.4 在 0.3 的阶段契约、任务包和样式边界基础上，补齐生产资料结构校验、Remotion 技术校验、Gate 自动前置校验和人工检查清单；不追求自动替代内容判断，也不建设 Web 平台。
+把当前已经验证的视频生产流程包装成一个可检查、可暂停、可恢复的单视频编排层。0.5 在 0.4 的阶段契约、资料校验和 Web UI 基础上，补齐远程配置预检、GitHub Actions Run／Artifact 分阶段监控、持久化任务和服务重启恢复；不追求自动替代内容判断。
+
+## 0.5 新增能力
+
+- 远程任务提交前统一检查 Token、仓库和分支配置，配置错误不会生成失败任务。
+- GitHub Actions 适配器支持独立的 dispatch、Run 发现、Run 状态查询和 Artifact 校验。
+- 远程任务保存为可恢复记录，包含阶段、Workflow、分支、Run、Artifact、检查时间和错误信息。
+- Web 服务启动时恢复未完成任务；页面关闭或服务重启后，任务仍可继续监控。
+- 远程 Smoke Render／Render 成功后自动推进对应 Harness 阶段，失败时同时记录任务和阶段错误。
+- CLI 新增 `jobs` 命令，Web UI 展示 Run 链接、Artifact、最近检查时间和后台状态。
 
 ## 0.4 新增能力
 
@@ -25,7 +34,7 @@ Harness 可以读取并调用现有的：
 - 现有检查脚本；
 - 项目既定的 TTS 和 GitHub Actions 入口。
 
-0.2 不直接修改已经完成的视频资料，也不重写共享 Remotion 场景。真实视频只用于只读回归，继续用最小测试项目验证 Harness 自身行为。
+Harness 不直接修改已经完成的视频资料，也不重写共享 Remotion 场景。真实视频只用于只读回归，继续用最小测试项目验证 Harness 自身行为。
 
 ## 0.2 范围
 
@@ -50,7 +59,7 @@ Harness 可以读取并调用现有的：
 
 ### 不包含
 
-- Web UI、数据库和多用户权限；
+- 数据库和多用户权限；
 - 批量视频编排；
 - 自动生成高质量口播的模型服务；
 - 自动替代人工 Gate；
@@ -147,7 +156,7 @@ npm test --prefix harness
 
 测试使用 Node 原生测试运行器和系统临时目录，不调用真实 TTS、GitHub Actions 或本机 MP4 渲染。
 
-## Web UI 第一版
+## Web UI
 
 从仓库根目录启动本地管理界面：
 
@@ -169,6 +178,7 @@ http://127.0.0.1:4173
 - 初始化 Harness 项目状态；
 - 执行校验、阶段推进、Gate 通过／驳回、重试和断点续做；
 - 发起远程 Smoke Render／Render 后查看任务状态和 Artifact 元数据；
+- 查看后台任务的 Run 链接、Run ID、Artifact 名称、最近检查时间和失败原因；
 - 对未初始化的旧视频执行 Legacy 只读检查。
 
 Web UI 只监听 `127.0.0.1`，运行状态写入被 Git 忽略的 `harness/projects/`，不会修改视频生产资料。第一版不自动生成口播、视觉脚本或 Remotion 代码。
@@ -180,6 +190,7 @@ Web UI 只监听 `127.0.0.1`，运行状态写入被 Git 忽略的 `harness/proj
 ```bash
 node harness/src/cli.mjs init <video-slug>
 node harness/src/cli.mjs status <video-slug>
+node harness/src/cli.mjs jobs <video-slug>
 node harness/src/cli.mjs validate <video-slug> [stage]
 node harness/src/cli.mjs next <video-slug>
 node harness/src/cli.mjs report <video-slug>
@@ -209,4 +220,4 @@ node harness/src/cli.mjs run <video-slug> smoke-render
 node harness/src/cli.mjs run <video-slug> render
 ```
 
-真实渲染使用 GitHub Actions，不使用本机 Remotion 渲染；适配器会等待对应 Run 完成，并把 Run 和 Artifact 元数据写入 Harness 阶段状态。
+真实渲染使用 GitHub Actions，不使用本机 Remotion 渲染；Web UI 后台监控器会持续查询对应 Run，完成后检查 Artifact 并推进 Harness 阶段。CLI 的 `run` 保留一次性等待模式；`jobs` 可查看已经持久化的远程任务。
