@@ -188,6 +188,11 @@ export function approveGate(project, gate) {
     throw new Error(`Gate ${gate} is not waiting for approval`);
   }
   completeStage(project, gate);
+  project.state.stages[gate].review = {
+    decision: "approved",
+    reviewedAt: new Date().toISOString(),
+  };
+  saveState(project);
   return { stage: gate, status: "succeeded", nextStage: project.state.currentStage };
 }
 
@@ -213,10 +218,17 @@ export function rejectGate(project, gate, returnTo, reason) {
     project.state.stages[stage].status = stage === returnTo ? "ready" : "pending";
     project.state.stages[stage].error = stage === gate ? rejection : null;
     project.state.stages[stage].outputs = [];
+    project.state.stages[stage].review = null;
     project.state.stages[stage].invalidatedBy = null;
     project.state.stages[stage].outputFingerprint = null;
     project.state.stages[stage].updatedAt = new Date().toISOString();
   }
+  project.state.stages[gate].review = {
+    decision: "rejected",
+    returnTo,
+    reason,
+    reviewedAt: new Date().toISOString(),
+  };
   project.state.currentStage = returnTo;
   saveState(project);
   return { stage: gate, status: "rejected", returnTo, reason };

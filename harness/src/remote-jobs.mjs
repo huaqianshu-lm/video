@@ -1,10 +1,16 @@
 import { createGitHubActionsAdapterFromEnv } from "./adapters.mjs";
 import { createJobRecord, findActiveJob, getJob, listAllJobs, updateJob } from "./jobs.mjs";
 import { markAdapterStageFailed, completeAdapterStage, runStage } from "./runner.mjs";
+import {
+  ACTIVE_REMOTE_JOB_STATUSES,
+  REMOTE_JOB_STATUS,
+  classifyRemoteError,
+} from "./remote-status.mjs";
 import { isGateStage } from "./stages.mjs";
 import { loadProject } from "./storage.mjs";
 
 const DEFAULT_POLL_INTERVAL_MS = 20 * 60 * 1_000;
+const DEFAULT_JOB_TIMEOUT_MS = 45 * 60 * 1_000;
 const REMOTE_STAGES = new Set(["smoke-render", "render"]);
 
 function canReconcileDispatchedJob(job) {
@@ -16,7 +22,7 @@ function canReconcileDispatchedJob(job) {
 }
 
 function isPollableJob(job) {
-  return ["queued", "dispatching", "waiting-config", "waiting-run", "running"].includes(job.status)
+  return ["queued", "dispatching", REMOTE_JOB_STATUS.WAITING_CONFIG, ...ACTIVE_REMOTE_JOB_STATUSES].includes(job.status)
     || canReconcileDispatchedJob(job)
     || (job.status === "failed"
       && REMOTE_STAGES.has(job.stage)
@@ -34,6 +40,7 @@ function errorRecord(error) {
     code: error?.code ?? "remote-job-failed",
     message: error instanceof Error ? error.message : String(error),
     issues: error?.issues ?? undefined,
+    classification: classifyRemoteError(error),
   };
 }
 
@@ -52,6 +59,7 @@ function historicalCandidate(match) {
 export function createRemoteJobMonitor({
   adapterFactory = () => createGitHubActionsAdapterFromEnv(),
   pollIntervalMs = DEFAULT_POLL_INTERVAL_MS,
+  jobTimeoutMs = DEFAULT_JOB_TIMEOUT_MS,
   now = () => new Date(),
   setIntervalImpl = setInterval,
   clearIntervalImpl = clearInterval,
@@ -63,11 +71,26 @@ export function createRemoteJobMonitor({
     return {
       ...patch,
       lastCheckedAt: isoNow(now),
-      nextCheckAt: new Date(now().getTime() + pollIntervalMs).toISOString(),
+      nextCheckAt: patch.status && ["succeeded", "failed", REMOTE_JOB_STATUS.TIMEOUT].includes(patch.status)
+        ? null
+        : new Date(now().getTime() + pollIntervalMs).toISOString(),
     };
   }
 
-  async function failJob(job, error, { markStage = true } = {}) {
+  function timeoutReached(job) {
+    if (!job.remote?.dispatchConfirmedAt && !job.remote?.runId) return false;
+    const startedAt = job.remote?.dispatchConfirmedAt ?? job.startedAt ?? job.createdAt;
+    return Number.isFinite(Date.parse(startedAt))
+      && now().getTime() - Date.parse(startedAt) >= jobTimeoutMs;
+  }
+
+  async function timeoutJob(job) {
+    const error = new Error(`Remote ${job.stage} job exceeded timeout of ${jobTimeoutMs}ms`);
+    error.code = "remote-job-timeout";
+    return failJob(job, error, { status: REMOTE_JOB_STATUS.TIMEOUT });
+  }
+
+  async function failJob(job, error, { markStage = true, status = REMOTE_JOB_STATUS.FAILED } = {}) {
     const failure = errorRecord(error);
     if (markStage) {
       try {
@@ -80,7 +103,7 @@ export function createRemoteJobMonitor({
       }
     }
     return updateJob(job.slug, job.id, schedulePatch(job, {
-      status: "failed",
+      status,
       error: failure,
       completedAt: isoNow(now),
     }));
@@ -93,6 +116,10 @@ export function createRemoteJobMonitor({
       let job = listAllJobs().find((item) => item.id === jobId) ?? null;
       if (!job || !isPollableJob(job)) {
         return job;
+      }
+
+      if (timeoutReached(job)) {
+        return timeoutJob(job);
       }
 
       let project;
@@ -145,7 +172,7 @@ export function createRemoteJobMonitor({
         }
 
         updateJob(job.slug, job.id, schedulePatch(job, {
-          status: remote.runId ? "running" : "waiting-run",
+          status: remote.runId ? REMOTE_JOB_STATUS.RUNNING : REMOTE_JOB_STATUS.SUBMITTED,
           remote,
           startedAt: job.startedAt ?? isoNow(now),
           error: null,
@@ -185,8 +212,15 @@ export function createRemoteJobMonitor({
       } catch (error) {
         if (error?.code === "github-config-invalid") {
           return updateJob(job.slug, job.id, schedulePatch(job, {
-            status: "waiting-config",
+            status: REMOTE_JOB_STATUS.WAITING_CONFIG,
             error: errorRecord(error),
+          }));
+        }
+        if (classifyRemoteError(error) === REMOTE_JOB_STATUS.RECOVERABLE) {
+          return updateJob(job.slug, job.id, schedulePatch(getJob(job.slug, job.id) ?? job, {
+            status: REMOTE_JOB_STATUS.RECOVERABLE,
+            error: errorRecord(error),
+            completedAt: null,
           }));
         }
         return failJob(getJob(job.slug, job.id) ?? job, error);

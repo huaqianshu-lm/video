@@ -133,6 +133,17 @@ h1 {
   margin: 34px 0 20px;
 }
 
+.section-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.dashboard-section {
+  padding-bottom: 30px;
+}
+
 .section-heading h2,
 .detail-heading h2 {
   margin-bottom: 0;

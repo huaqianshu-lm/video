@@ -119,6 +119,7 @@ export function refreshProject(project) {
     item.error = null;
     item.invalidatedBy = stage === changedStage ? null : changedStage;
     item.outputs = [];
+    item.review = null;
     item.outputFingerprint = null;
     item.updatedAt = now;
   }
