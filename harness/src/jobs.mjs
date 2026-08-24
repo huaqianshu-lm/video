@@ -2,8 +2,14 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { projectDirectory, projectsRoot, readJson, writeJson } from "./storage.mjs";
+import { ACTIVE_REMOTE_JOB_STATUSES, REMOTE_JOB_STATUS } from "./remote-status.mjs";
 
-const activeStatuses = new Set(["queued", "dispatching", "waiting-config", "waiting-run", "running"]);
+const activeStatuses = new Set([
+  "queued",
+  "dispatching",
+  REMOTE_JOB_STATUS.WAITING_CONFIG,
+  ...ACTIVE_REMOTE_JOB_STATUSES,
+]);
 
 function jobsDirectory(slug) {
   return path.join(projectDirectory(slug), "jobs");

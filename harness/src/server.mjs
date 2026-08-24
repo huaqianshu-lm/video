@@ -6,8 +6,9 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { getProjectFile, getProjectPrototype, listProjectFiles } from "./project-files.mjs";
 import { getVideoProject, listVideoProjects } from "./project-view.mjs";
-import { findActiveJob, listJobs } from "./jobs.mjs";
+import { findActiveJob, listAllJobs, listJobs } from "./jobs.mjs";
 import { requireGitHubActionsConfig } from "./github-config.mjs";
+import { diagnoseGitHubActions } from "./diagnostics.mjs";
 import { createRemoteJobMonitor } from "./remote-jobs.mjs";
 import { artifactManifestFor } from "./artifacts.mjs";
 import { approveGate, rejectGate, resumeProject, retryStage, runStage, validateStage } from "./runner.mjs";
@@ -73,7 +74,17 @@ function serveStatic(response, urlPath) {
   response.end(body);
 }
 
-async function serveApi(response, pathname, search, remoteJobMonitor) {
+async function serveApi(response, pathname, search, remoteJobMonitor, diagnose) {
+  if (pathname === "/api/jobs") {
+    sendJson(response, 200, { jobs: listAllJobs() });
+    return true;
+  }
+
+  if (pathname === "/api/diagnostics/github") {
+    sendJson(response, 200, await diagnose());
+    return true;
+  }
+
   if (pathname === "/api/projects") {
     sendJson(response, 200, { projects: listVideoProjects() });
     return true;
@@ -318,7 +329,7 @@ async function serveAction(response, request, pathname) {
   return true;
 }
 
-async function handleRequest(request, response, host, remoteJobMonitor) {
+async function handleRequest(request, response, host, remoteJobMonitor, diagnose) {
   const requestUrl = new URL(request.url ?? "/", `http://${host}`);
   const isAction = request.method === "POST" && requestUrl.pathname.endsWith("/action");
   if (request.method !== "GET" && request.method !== "HEAD" && !isAction) {
@@ -340,7 +351,7 @@ async function handleRequest(request, response, host, remoteJobMonitor) {
     return;
   }
 
-  if (requestUrl.pathname.startsWith("/api/") && await serveApi(response, requestUrl.pathname, requestUrl.search, remoteJobMonitor)) {
+  if (requestUrl.pathname.startsWith("/api/") && await serveApi(response, requestUrl.pathname, requestUrl.search, remoteJobMonitor, diagnose)) {
     return;
   }
 
@@ -363,9 +374,14 @@ function servePrototype(response, pathname) {
   return true;
 }
 
-export function createWebServer({ host = defaultHost, port = defaultPort, remoteJobMonitor = createRemoteJobMonitor() } = {}) {
+export function createWebServer({
+  host = defaultHost,
+  port = defaultPort,
+  remoteJobMonitor = createRemoteJobMonitor(),
+  diagnose = diagnoseGitHubActions,
+} = {}) {
   const server = http.createServer((request, response) => {
-    handleRequest(request, response, host, remoteJobMonitor).catch((error) => {
+    handleRequest(request, response, host, remoteJobMonitor, diagnose).catch((error) => {
       if (response.headersSent) {
         response.destroy(error);
         return;
@@ -399,6 +415,7 @@ export function createWebServer({ host = defaultHost, port = defaultPort, remote
           resolve();
           return;
         }
+        server.closeIdleConnections?.();
         server.close((error) => (error ? reject(error) : resolve()));
       });
     },
