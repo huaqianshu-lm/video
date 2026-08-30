@@ -18,10 +18,20 @@ import {ClaudeCodeHowItWorksVideo} from './videos/claude-code-how-it-works/Claud
 import {videoConfig as claudeCodeHowItWorksConfig} from './videos/claude-code-how-it-works/video.config';
 import {VscodeVideo} from './videos/vscode/VscodeVideo';
 import {videoConfig as vscodeConfig} from './videos/vscode/video.config';
+import {WhatIsCodexVideo} from './videos/01-what-is-codex/WhatIsCodexVideo';
+import {videoConfig as whatIsCodexConfig} from './videos/01-what-is-codex/video.config';
 
 export const Root = () => {
   return (
     <>
+      <Composition
+        id={whatIsCodexConfig.slug}
+        component={WhatIsCodexVideo}
+        durationInFrames={getTotalDurationFrames(whatIsCodexConfig)}
+        fps={whatIsCodexConfig.fps}
+        width={whatIsCodexConfig.width}
+        height={whatIsCodexConfig.height}
+      />
       <Composition
         id={claudeCodeApiConfig.slug}
         component={ClaudeCodeApiConfigVideo}

@@ -1,0 +1,1212 @@
+{
+  "schemaVersion": "1.0",
+  "videoId": "01-what-is-codex",
+  "scenes": [
+    {
+      "sceneId": "01",
+      "file": "subtitles/scene-01.json",
+      "segments": [
+        {
+          "segmentId": "01-01",
+          "audioFile": "audio/scene-01/01-01.mp3",
+          "cues": [
+            {
+              "id": "01-01-a",
+              "text": "第一次打开 Codex，",
+              "start": 0.09,
+              "end": 1.71
+            },
+            {
+              "id": "01-01-b",
+              "text": "你可能会看到桌面 App、",
+              "start": 1.71,
+              "end": 3.22
+            },
+            {
+              "id": "01-01-c",
+              "text": "命令行、编辑器扩展，",
+              "start": 3.22,
+              "end": 4.89
+            },
+            {
+              "id": "01-01-d",
+              "text": "还有云端网页",
+              "start": 4.89,
+              "end": 6.24
+            }
+          ]
+        },
+        {
+          "segmentId": "01-02",
+          "audioFile": "audio/scene-01/01-02.mp3",
+          "cues": [
+            {
+              "id": "01-02-a",
+              "text": "它们看起来像四个不同产品，",
+              "start": 0.09,
+              "end": 2.17
+            },
+            {
+              "id": "01-02-b",
+              "text": "到底哪个才是 Codex 本体",
+              "start": 2.17,
+              "end": 4.44
+            }
+          ]
+        },
+        {
+          "segmentId": "01-03",
+          "audioFile": "audio/scene-01/01-03.mp3",
+          "cues": [
+            {
+              "id": "01-03-a",
+              "text": "答案是：它们都是",
+              "start": 0.09,
+              "end": 1.944
+            }
+          ]
+        },
+        {
+          "segmentId": "01-04",
+          "audioFile": "audio/scene-01/01-04.mp3",
+          "cues": [
+            {
+              "id": "01-04-a",
+              "text": "Codex 不是一个固定窗口，",
+              "start": 0.09,
+              "end": 2.06
+            },
+            {
+              "id": "01-04-b",
+              "text": "而是 OpenAI 面向编程工作的 AI 代理",
+              "start": 2.06,
+              "end": 5.25
+            },
+            {
+              "id": "01-04-c",
+              "text": "桌面 App、CLI、",
+              "start": 5.25,
+              "end": 6.93
+            },
+            {
+              "id": "01-04-d",
+              "text": "IDE 扩展和云端 Web，",
+              "start": 6.93,
+              "end": 8.7
+            },
+            {
+              "id": "01-04-e",
+              "text": "只是进入同一套能力的四扇门",
+              "start": 8.7,
+              "end": 10.992
+            }
+          ]
+        },
+        {
+          "segmentId": "01-05",
+          "audioFile": "audio/scene-01/01-05.mp3",
+          "cues": [
+            {
+              "id": "01-05-a",
+              "text": "先把这张地图记住：",
+              "start": 0.09,
+              "end": 1.55
+            },
+            {
+              "id": "01-05-b",
+              "text": "一个 Codex，四种入口",
+              "start": 1.55,
+              "end": 3.624
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sceneId": "02",
+      "file": "subtitles/scene-02.json",
+      "segments": [
+        {
+          "segmentId": "02-01",
+          "audioFile": "audio/scene-02/02-01.mp3",
+          "cues": [
+            {
+              "id": "02-01-a",
+              "text": "那 AI 编程代理和普通的代码问答，有什么不同",
+              "start": 0.09,
+              "end": 3.864
+            }
+          ]
+        },
+        {
+          "segmentId": "02-02",
+          "audioFile": "audio/scene-02/02-02.mp3",
+          "cues": [
+            {
+              "id": "02-02-a",
+              "text": "如果你把报错放进聊天框，",
+              "start": 0.09,
+              "end": 1.94
+            },
+            {
+              "id": "02-02-b",
+              "text": "得到的通常是一段解释和几行代码",
+              "start": 1.94,
+              "end": 4.76
+            },
+            {
+              "id": "02-02-c",
+              "text": "接下来，复制、",
+              "start": 4.76,
+              "end": 6.05
+            },
+            {
+              "id": "02-02-d",
+              "text": "粘贴、寻找文件、",
+              "start": 6.05,
+              "end": 7.55
+            },
+            {
+              "id": "02-02-e",
+              "text": "重新运行，还是要你自己完成",
+              "start": 7.55,
+              "end": 10.056
+            }
+          ]
+        },
+        {
+          "segmentId": "02-03",
+          "audioFile": "audio/scene-02/02-03.mp3",
+          "cues": [
+            {
+              "id": "02-03-a",
+              "text": "Codex 接收的则是一个任务目标",
+              "start": 0.09,
+              "end": 2.808
+            }
+          ]
+        },
+        {
+          "segmentId": "02-04",
+          "audioFile": "audio/scene-02/02-04.mp3",
+          "cues": [
+            {
+              "id": "02-04-a",
+              "text": "它可以进入项目，读取文件，",
+              "start": 0.09,
+              "end": 2.08
+            },
+            {
+              "id": "02-04-b",
+              "text": "运行命令，再把改动和结果交回来",
+              "start": 2.08,
+              "end": 4.992
+            }
+          ]
+        },
+        {
+          "segmentId": "02-05",
+          "audioFile": "audio/scene-02/02-05.mp3",
+          "cues": [
+            {
+              "id": "02-05-a",
+              "text": "真正的区别，不只是回答得更聪明，",
+              "start": 0.09,
+              "end": 2.68
+            },
+            {
+              "id": "02-05-b",
+              "text": "而是从给建议变成了参与执行",
+              "start": 2.68,
+              "end": 5.28
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sceneId": "03",
+      "file": "subtitles/scene-03.json",
+      "segments": [
+        {
+          "segmentId": "03-01",
+          "audioFile": "audio/scene-03/03-01.mp3",
+          "cues": [
+            {
+              "id": "03-01-a",
+              "text": "比如一个旧项目突然跑不起来，",
+              "start": 0.09,
+              "end": 2.29
+            },
+            {
+              "id": "03-01-b",
+              "text": "你可以让 Codex 查清原因，",
+              "start": 2.29,
+              "end": 4.09
+            },
+            {
+              "id": "03-01-c",
+              "text": "并修到测试通过",
+              "start": 4.09,
+              "end": 5.664
+            }
+          ]
+        },
+        {
+          "segmentId": "03-02",
+          "audioFile": "audio/scene-03/03-02.mp3",
+          "cues": [
+            {
+              "id": "03-02-a",
+              "text": "它会先读取项目结构和依赖，",
+              "start": 0.09,
+              "end": 2.15
+            },
+            {
+              "id": "03-02-b",
+              "text": "再结合报错定位问题",
+              "start": 2.15,
+              "end": 4.08
+            }
+          ]
+        },
+        {
+          "segmentId": "03-03",
+          "audioFile": "audio/scene-03/03-03.mp3",
+          "cues": [
+            {
+              "id": "03-03-a",
+              "text": "找到原因后，它修改对应文件，",
+              "start": 0.09,
+              "end": 2.34
+            },
+            {
+              "id": "03-03-b",
+              "text": "重新运行命令和测试，",
+              "start": 2.34,
+              "end": 4.09
+            },
+            {
+              "id": "03-03-c",
+              "text": "最后把 diff 交给你检查",
+              "start": 4.09,
+              "end": 6.192
+            }
+          ]
+        },
+        {
+          "segmentId": "03-04",
+          "audioFile": "audio/scene-03/03-04.mp3",
+          "cues": [
+            {
+              "id": "03-04-a",
+              "text": "读取项目、定位问题、",
+              "start": 0.09,
+              "end": 1.84
+            },
+            {
+              "id": "03-04-b",
+              "text": "修改文件、运行测试、",
+              "start": 1.84,
+              "end": 3.6
+            },
+            {
+              "id": "03-04-c",
+              "text": "交付结果，这一串动作都围绕同一个目标展开",
+              "start": 3.6,
+              "end": 7.32
+            }
+          ]
+        },
+        {
+          "segmentId": "03-05",
+          "audioFile": "audio/scene-03/03-05.mp3",
+          "cues": [
+            {
+              "id": "03-05-a",
+              "text": "这就是代理的分量：",
+              "start": 0.09,
+              "end": 1.41
+            },
+            {
+              "id": "03-05-b",
+              "text": "不只告诉你可以怎么做，",
+              "start": 1.41,
+              "end": 3.15
+            },
+            {
+              "id": "03-05-c",
+              "text": "而是进入工作现场，",
+              "start": 3.15,
+              "end": 4.5
+            },
+            {
+              "id": "03-05-d",
+              "text": "把步骤真正走一遍",
+              "start": 4.5,
+              "end": 6.168
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sceneId": "04",
+      "file": "subtitles/scene-04.json",
+      "segments": [
+        {
+          "segmentId": "04-01",
+          "audioFile": "audio/scene-04/04-01.mp3",
+          "cues": [
+            {
+              "id": "04-01-a",
+              "text": "四种入口背后，",
+              "start": 0.09,
+              "end": 1.32
+            },
+            {
+              "id": "04-01-b",
+              "text": "最重要的区别是任务在哪里执行",
+              "start": 1.32,
+              "end": 3.984
+            }
+          ]
+        },
+        {
+          "segmentId": "04-02",
+          "audioFile": "audio/scene-04/04-02.mp3",
+          "cues": [
+            {
+              "id": "04-02-a",
+              "text": "桌面 App、CLI 和 IDE 扩展都在你的电脑上",
+              "start": 0.09,
+              "end": 3.5
+            },
+            {
+              "id": "04-02-b",
+              "text": "工作。它们读取本机文件，",
+              "start": 3.5,
+              "end": 5.7
+            },
+            {
+              "id": "04-02-c",
+              "text": "也运行本机命令",
+              "start": 5.7,
+              "end": 7.272
+            }
+          ]
+        },
+        {
+          "segmentId": "04-03",
+          "audioFile": "audio/scene-04/04-03.mp3",
+          "cues": [
+            {
+              "id": "04-03-a",
+              "text": "云端 Web 走的是另一条路",
+              "start": 0.09,
+              "end": 2.23
+            },
+            {
+              "id": "04-03-b",
+              "text": "你从浏览器发起任务，",
+              "start": 2.23,
+              "end": 3.84
+            },
+            {
+              "id": "04-03-c",
+              "text": "任务进入远程隔离环境，",
+              "start": 3.84,
+              "end": 5.61
+            },
+            {
+              "id": "04-03-d",
+              "text": "从远程仓库取得代码，",
+              "start": 5.61,
+              "end": 7.31
+            },
+            {
+              "id": "04-03-e",
+              "text": "完成后再交回 diff，",
+              "start": 7.31,
+              "end": 8.89
+            },
+            {
+              "id": "04-03-f",
+              "text": "甚至可以准备拉取请求",
+              "start": 8.89,
+              "end": 10.968
+            }
+          ]
+        },
+        {
+          "segmentId": "04-04",
+          "audioFile": "audio/scene-04/04-04.mp3",
+          "cues": [
+            {
+              "id": "04-04-a",
+              "text": "所以这张地图可以再简化一点：",
+              "start": 0.09,
+              "end": 2.59
+            },
+            {
+              "id": "04-04-b",
+              "text": "三扇门通向本机项目，",
+              "start": 2.59,
+              "end": 4.3
+            },
+            {
+              "id": "04-04-c",
+              "text": "一扇门通向云端环境",
+              "start": 4.3,
+              "end": 6.336
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sceneId": "05",
+      "file": "subtitles/scene-05.json",
+      "segments": [
+        {
+          "segmentId": "05-01",
+          "audioFile": "audio/scene-05/05-01.mp3",
+          "cues": [
+            {
+              "id": "05-01-a",
+              "text": "既然能力相通，就不用纠结哪个入口才最正宗",
+              "start": 0.09,
+              "end": 3.72
+            }
+          ]
+        },
+        {
+          "segmentId": "05-02",
+          "audioFile": "audio/scene-05/05-02.mp3",
+          "cues": [
+            {
+              "id": "05-02-a",
+              "text": "想用图形界面查看 diff，",
+              "start": 0.09,
+              "end": 2.11
+            },
+            {
+              "id": "05-02-b",
+              "text": "还要并排观察多个任务，",
+              "start": 2.11,
+              "end": 3.71
+            },
+            {
+              "id": "05-02-c",
+              "text": "可以从桌面 App 开始",
+              "start": 3.71,
+              "end": 5.544
+            }
+          ]
+        },
+        {
+          "segmentId": "05-03",
+          "audioFile": "audio/scene-05/05-03.mp3",
+          "cues": [
+            {
+              "id": "05-03-a",
+              "text": "习惯终端，或者需要在 SSH 和脚本环境里工作，",
+              "start": 0.09,
+              "end": 3.91
+            },
+            {
+              "id": "05-03-b",
+              "text": "CLI 更顺手",
+              "start": 3.91,
+              "end": 5.448
+            }
+          ]
+        },
+        {
+          "segmentId": "05-04",
+          "audioFile": "audio/scene-05/05-04.mp3",
+          "cues": [
+            {
+              "id": "05-04-a",
+              "text": "一天大部分时间都在编辑器里，",
+              "start": 0.09,
+              "end": 2.19
+            },
+            {
+              "id": "05-04-b",
+              "text": "就用 IDE 扩展，",
+              "start": 2.19,
+              "end": 3.69
+            },
+            {
+              "id": "05-04-c",
+              "text": "把任务放在代码旁边",
+              "start": 3.69,
+              "end": 5.592
+            }
+          ]
+        },
+        {
+          "segmentId": "05-05",
+          "audioFile": "audio/scene-05/05-05.mp3",
+          "cues": [
+            {
+              "id": "05-05-a",
+              "text": "需要运行不占本机的后台长任务，",
+              "start": 0.09,
+              "end": 2.48
+            },
+            {
+              "id": "05-05-b",
+              "text": "或者同时推进多个任务，",
+              "start": 2.48,
+              "end": 4.14
+            },
+            {
+              "id": "05-05-c",
+              "text": "再考虑云端 Web",
+              "start": 4.14,
+              "end": 5.592
+            }
+          ]
+        },
+        {
+          "segmentId": "05-06",
+          "audioFile": "audio/scene-05/05-06.mp3",
+          "cues": [
+            {
+              "id": "05-06-a",
+              "text": "选择标准不是谁更强，",
+              "start": 0.09,
+              "end": 2.02
+            },
+            {
+              "id": "05-06-b",
+              "text": "而是你在哪里工作，",
+              "start": 2.02,
+              "end": 3.45
+            },
+            {
+              "id": "05-06-c",
+              "text": "这个任务适合在哪里执行",
+              "start": 3.45,
+              "end": 5.688
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sceneId": "06",
+      "file": "subtitles/scene-06.json",
+      "segments": [
+        {
+          "segmentId": "06-01",
+          "audioFile": "audio/scene-06/06-01.mp3",
+          "cues": [
+            {
+              "id": "06-01-a",
+              "text": "进入任意一扇门以后，",
+              "start": 0.09,
+              "end": 1.57
+            },
+            {
+              "id": "06-01-b",
+              "text": "Codex 能接手的工作大致有五类",
+              "start": 1.57,
+              "end": 4.272
+            }
+          ]
+        },
+        {
+          "segmentId": "06-02",
+          "audioFile": "audio/scene-06/06-02.mp3",
+          "cues": [
+            {
+              "id": "06-02-a",
+              "text": "它可以按项目现有结构写代码，",
+              "start": 0.09,
+              "end": 2.28
+            },
+            {
+              "id": "06-02-b",
+              "text": "也可以快速理解一套陌生代码库",
+              "start": 2.28,
+              "end": 4.944
+            }
+          ]
+        },
+        {
+          "segmentId": "06-03",
+          "audioFile": "audio/scene-06/06-03.mp3",
+          "cues": [
+            {
+              "id": "06-03-a",
+              "text": "它能审查改动，寻找潜在错误和遗漏的边界条件",
+              "start": 0.09,
+              "end": 4.008
+            }
+          ]
+        },
+        {
+          "segmentId": "06-04",
+          "audioFile": "audio/scene-06/06-04.mp3",
+          "cues": [
+            {
+              "id": "06-04-a",
+              "text": "遇到报错，它可以沿着日志定位根因，",
+              "start": 0.09,
+              "end": 2.92
+            },
+            {
+              "id": "06-04-b",
+              "text": "再修改并验证",
+              "start": 2.92,
+              "end": 4.368
+            }
+          ]
+        },
+        {
+          "segmentId": "06-05",
+          "audioFile": "audio/scene-06/06-05.mp3",
+          "cues": [
+            {
+              "id": "06-05-a",
+              "text": "重构、补测试、",
+              "start": 0.09,
+              "end": 1.44
+            },
+            {
+              "id": "06-05-b",
+              "text": "迁移和环境调整这些重复工作，",
+              "start": 1.44,
+              "end": 3.81
+            },
+            {
+              "id": "06-05-c",
+              "text": "也可以作为完整任务交给它",
+              "start": 3.81,
+              "end": 5.88
+            }
+          ]
+        },
+        {
+          "segmentId": "06-06",
+          "audioFile": "audio/scene-06/06-06.mp3",
+          "cues": [
+            {
+              "id": "06-06-a",
+              "text": "这些能力的共同点是：",
+              "start": 0.09,
+              "end": 1.65
+            },
+            {
+              "id": "06-06-b",
+              "text": "Codex 不只生成一段代码，",
+              "start": 1.65,
+              "end": 3.74
+            },
+            {
+              "id": "06-06-c",
+              "text": "而是结合项目上下文完成工作",
+              "start": 3.74,
+              "end": 6.288
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sceneId": "07",
+      "file": "subtitles/scene-07.json",
+      "segments": [
+        {
+          "segmentId": "07-01",
+          "audioFile": "audio/scene-07/07-01.mp3",
+          "cues": [
+            {
+              "id": "07-01-a",
+              "text": "但能执行，不等于可以把一切都交出去",
+              "start": 0.09,
+              "end": 3.24
+            }
+          ]
+        },
+        {
+          "segmentId": "07-02",
+          "audioFile": "audio/scene-07/07-02.mp3",
+          "cues": [
+            {
+              "id": "07-02-a",
+              "text": "技术方向怎么选，",
+              "start": 0.09,
+              "end": 1.38
+            },
+            {
+              "id": "07-02-b",
+              "text": "需求应该怎么取舍，",
+              "start": 1.38,
+              "end": 2.88
+            },
+            {
+              "id": "07-02-c",
+              "text": "哪些行为绝对不能改变，",
+              "start": 2.88,
+              "end": 4.61
+            },
+            {
+              "id": "07-02-d",
+              "text": "这些判断仍然属于人",
+              "start": 4.61,
+              "end": 6.528
+            }
+          ]
+        },
+        {
+          "segmentId": "07-03",
+          "audioFile": "audio/scene-07/07-03.mp3",
+          "cues": [
+            {
+              "id": "07-03-a",
+              "text": "Codex 给出的也是高质量候选，",
+              "start": 0.09,
+              "end": 2.47
+            },
+            {
+              "id": "07-03-b",
+              "text": "不是百分之百正确的答案",
+              "start": 2.47,
+              "end": 4.392
+            }
+          ]
+        },
+        {
+          "segmentId": "07-04",
+          "audioFile": "audio/scene-07/07-04.mp3",
+          "cues": [
+            {
+              "id": "07-04-a",
+              "text": "所以每次改动都要看 diff，",
+              "start": 0.09,
+              "end": 2.19
+            },
+            {
+              "id": "07-04-b",
+              "text": "需要的测试也要真的运行，",
+              "start": 2.19,
+              "end": 4.13
+            },
+            {
+              "id": "07-04-c",
+              "text": "最终结果由你验收",
+              "start": 4.13,
+              "end": 5.856
+            }
+          ]
+        },
+        {
+          "segmentId": "07-05",
+          "audioFile": "audio/scene-07/07-05.mp3",
+          "cues": [
+            {
+              "id": "07-05-a",
+              "text": "更清楚的人机分工是：",
+              "start": 0.09,
+              "end": 1.66
+            },
+            {
+              "id": "07-05-b",
+              "text": "人负责目标、边界、",
+              "start": 1.66,
+              "end": 3.23
+            },
+            {
+              "id": "07-05-c",
+              "text": "审查和拍板；AI 负责分析、",
+              "start": 3.23,
+              "end": 5.63
+            },
+            {
+              "id": "07-05-d",
+              "text": "执行和重复劳动",
+              "start": 5.63,
+              "end": 7.44
+            }
+          ]
+        },
+        {
+          "segmentId": "07-06",
+          "audioFile": "audio/scene-07/07-06.mp3",
+          "cues": [
+            {
+              "id": "07-06-a",
+              "text": "它是能动手的搭档，",
+              "start": 0.09,
+              "end": 1.48
+            },
+            {
+              "id": "07-06-b",
+              "text": "但不是无需检查的自动驾驶",
+              "start": 1.48,
+              "end": 3.792
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sceneId": "08",
+      "file": "subtitles/scene-08.json",
+      "segments": [
+        {
+          "segmentId": "08-01",
+          "audioFile": "audio/scene-08/08-01.mp3",
+          "cues": [
+            {
+              "id": "08-01-a",
+              "text": "再把几个经常放在一起的名字归个位",
+              "start": 0.09,
+              "end": 2.952
+            }
+          ]
+        },
+        {
+          "segmentId": "08-02",
+          "audioFile": "audio/scene-08/08-02.mp3",
+          "cues": [
+            {
+              "id": "08-02-a",
+              "text": "ChatGPT 更常见的交互是你提问，",
+              "start": 0.09,
+              "end": 2.86
+            },
+            {
+              "id": "08-02-b",
+              "text": "它给出解释、建议和方案",
+              "start": 2.86,
+              "end": 5.088
+            }
+          ]
+        },
+        {
+          "segmentId": "08-03",
+          "audioFile": "audio/scene-08/08-03.mp3",
+          "cues": [
+            {
+              "id": "08-03-a",
+              "text": "Codex 和 Claude Code 则都属于能进入项目、",
+              "start": 0.09,
+              "end": 3.17
+            },
+            {
+              "id": "08-03-b",
+              "text": "修改文件、运行命令的编程代理",
+              "start": 3.17,
+              "end": 5.784
+            }
+          ]
+        },
+        {
+          "segmentId": "08-04",
+          "audioFile": "audio/scene-08/08-04.mp3",
+          "cues": [
+            {
+              "id": "08-04-a",
+              "text": "它们来自不同公司，",
+              "start": 0.09,
+              "end": 1.46
+            },
+            {
+              "id": "08-04-b",
+              "text": "使用不同模型体系，",
+              "start": 1.46,
+              "end": 2.93
+            },
+            {
+              "id": "08-04-c",
+              "text": "也有各自的项目说明文件和入口侧重",
+              "start": 2.93,
+              "end": 5.952
+            }
+          ]
+        },
+        {
+          "segmentId": "08-05",
+          "audioFile": "audio/scene-08/08-05.mp3",
+          "cues": [
+            {
+              "id": "08-05-a",
+              "text": "但这些差异不需要变成一场永远不变的强弱排名",
+              "start": 0.09,
+              "end": 3.816
+            }
+          ]
+        },
+        {
+          "segmentId": "08-06",
+          "audioFile": "audio/scene-08/08-06.mp3",
+          "cues": [
+            {
+              "id": "08-06-a",
+              "text": "更实用的做法，是先判断任务需要问答还是执行，",
+              "start": 0.09,
+              "end": 3.77
+            },
+            {
+              "id": "08-06-b",
+              "text": "再按自己的工作流选择工具",
+              "start": 3.77,
+              "end": 6.024
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sceneId": "09",
+      "file": "subtitles/scene-09.json",
+      "segments": [
+        {
+          "segmentId": "09-01",
+          "audioFile": "audio/scene-09/09-01.mp3",
+          "cues": [
+            {
+              "id": "09-01-a",
+              "text": "现在可以做一个三十秒的小检查",
+              "start": 0.09,
+              "end": 2.52
+            }
+          ]
+        },
+        {
+          "segmentId": "09-02",
+          "audioFile": "audio/scene-09/09-02.mp3",
+          "cues": [
+            {
+              "id": "09-02-a",
+              "text": "打开终端，输入 `codex --version`",
+              "start": 0.09,
+              "end": 2.736
+            }
+          ]
+        },
+        {
+          "segmentId": "09-03",
+          "audioFile": "audio/scene-09/09-03.mp3",
+          "cues": [
+            {
+              "id": "09-03-a",
+              "text": "如果出现版本号，",
+              "start": 0.09,
+              "end": 1.33
+            },
+            {
+              "id": "09-03-b",
+              "text": "说明 Codex CLI 已经安装，",
+              "start": 1.33,
+              "end": 3.53
+            },
+            {
+              "id": "09-03-c",
+              "text": "可以继续使用",
+              "start": 3.53,
+              "end": 4.872
+            }
+          ]
+        },
+        {
+          "segmentId": "09-04",
+          "audioFile": "audio/scene-09/09-04.mp3",
+          "cues": [
+            {
+              "id": "09-04-a",
+              "text": "如果出现 `command not found`，",
+              "start": 0.09,
+              "end": 1.9
+            },
+            {
+              "id": "09-04-b",
+              "text": "也不代表操作失败，",
+              "start": 1.9,
+              "end": 3.27
+            },
+            {
+              "id": "09-04-c",
+              "text": "它只是告诉你 CLI 还没有安装",
+              "start": 3.27,
+              "end": 5.928
+            }
+          ]
+        },
+        {
+          "segmentId": "09-05",
+          "audioFile": "audio/scene-09/09-05.mp3",
+          "cues": [
+            {
+              "id": "09-05-a",
+              "text": "两种结果都完成了同一件事：",
+              "start": 0.09,
+              "end": 2.21
+            },
+            {
+              "id": "09-05-b",
+              "text": "确认这台电脑目前认不认识 Codex",
+              "start": 2.21,
+              "end": 5.208
+            }
+          ]
+        },
+        {
+          "segmentId": "09-06",
+          "audioFile": "audio/scene-09/09-06.mp3",
+          "cues": [
+            {
+              "id": "09-06-a",
+              "text": "安装和登录留到后面的步骤，",
+              "start": 0.09,
+              "end": 2.18
+            },
+            {
+              "id": "09-06-b",
+              "text": "现在只需要记住这个状态",
+              "start": 2.18,
+              "end": 4.272
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sceneId": "10",
+      "file": "subtitles/scene-10.json",
+      "segments": [
+        {
+          "segmentId": "10-01",
+          "audioFile": "audio/scene-10/10-01.mp3",
+          "cues": [
+            {
+              "id": "10-01-a",
+              "text": "最后把这张地图收起来",
+              "start": 0.09,
+              "end": 2.16
+            }
+          ]
+        },
+        {
+          "segmentId": "10-02",
+          "audioFile": "audio/scene-10/10-02.mp3",
+          "cues": [
+            {
+              "id": "10-02-a",
+              "text": "Codex 是一个能进入项目执行任务的 AI 编程代理，",
+              "start": 0.09,
+              "end": 3.76
+            },
+            {
+              "id": "10-02-b",
+              "text": "它有桌面 App、CLI、",
+              "start": 3.76,
+              "end": 5.67
+            },
+            {
+              "id": "10-02-c",
+              "text": "IDE 扩展和云端 Web 四种入口",
+              "start": 5.67,
+              "end": 8.352
+            }
+          ]
+        },
+        {
+          "segmentId": "10-03",
+          "audioFile": "audio/scene-10/10-03.mp3",
+          "cues": [
+            {
+              "id": "10-03-a",
+              "text": "选择入口时，看自己的工作位置和任务节奏，",
+              "start": 0.09,
+              "end": 3.38
+            },
+            {
+              "id": "10-03-b",
+              "text": "不用寻找唯一正确答案",
+              "start": 3.38,
+              "end": 5.304
+            }
+          ]
+        },
+        {
+          "segmentId": "10-04",
+          "audioFile": "audio/scene-10/10-04.mp3",
+          "cues": [
+            {
+              "id": "10-04-a",
+              "text": "把分析和执行交给 AI，",
+              "start": 0.09,
+              "end": 1.92
+            },
+            {
+              "id": "10-04-b",
+              "text": "同时把目标、边界和验收留在人手里",
+              "start": 1.92,
+              "end": 5.088
+            }
+          ]
+        },
+        {
+          "segmentId": "10-05",
+          "audioFile": "audio/scene-10/10-05.mp3",
+          "cues": [
+            {
+              "id": "10-05-a",
+              "text": "下一集，我们继续认识 Codex 的核心概念：",
+              "start": 0.09,
+              "end": 3.35
+            },
+            {
+              "id": "10-05-b",
+              "text": "代理循环、上下文、`AGENTS.md`、",
+              "start": 3.35,
+              "end": 6.13
+            },
+            {
+              "id": "10-05-c",
+              "text": "审批模式、沙箱、",
+              "start": 6.13,
+              "end": 7.66
+            },
+            {
+              "id": "10-05-d",
+              "text": "Skills 和 MCP",
+              "start": 7.66,
+              "end": 9.48
+            }
+          ]
+        },
+        {
+          "segmentId": "10-06",
+          "audioFile": "audio/scene-10/10-06.mp3",
+          "cues": [
+            {
+              "id": "10-06-a",
+              "text": "把这些词捋顺之后，",
+              "start": 0.09,
+              "end": 1.49
+            },
+            {
+              "id": "10-06-b",
+              "text": "你就能看懂 Codex 为什么这样工作，",
+              "start": 1.49,
+              "end": 3.93
+            },
+            {
+              "id": "10-06-c",
+              "text": "也更知道应该怎样和它协作",
+              "start": 3.93,
+              "end": 6.312
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

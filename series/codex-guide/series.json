@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "codex-guide",
+  "title": "Codex 教程系列",
+  "cover": "series-assets/codex-guide/cover.png",
+  "coverDurationFrames": 45,
+  "videos": [
+    "01-what-is-codex"
+  ],
+  "updatedAt": "2026-08-30T02:58:51.924Z"
+}
