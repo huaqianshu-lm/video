@@ -161,7 +161,12 @@ export const getTotalDurationSeconds = (config: VideoConfig) => {
 };
 
 export const getTotalDurationFrames = (config: VideoConfig) => {
-  return secondsToFrames(getTotalDurationSeconds(config), config.fps);
+  return getContentStartFrame(config) + secondsToFrames(getTotalDurationSeconds(config), config.fps);
+};
+
+export const getContentStartFrame = (config: VideoConfig) => {
+  if (!config.series?.coverSrc) return 0;
+  return Math.max(0, Math.round(config.series.coverDurationFrames));
 };
 
 export const getSceneStartFrame = (

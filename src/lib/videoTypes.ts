@@ -101,6 +101,7 @@ export type SummarySceneConfig = BaseSceneConfig & {
   highlight: string;
   roleCards?: VisualBeat[];
   teaser?: VisualBeat;
+  teaserStartSeconds?: number;
   compactLayout?: boolean;
 };
 
@@ -125,6 +126,12 @@ export type SubtitleCue = {
   text: string;
 };
 
+export type SeriesVideoConfig = {
+  id: string;
+  coverSrc?: string;
+  coverDurationFrames: number;
+};
+
 export type VideoConfig = {
   slug: string;
   title: string;
@@ -132,6 +139,7 @@ export type VideoConfig = {
   width: number;
   height: number;
   fps: number;
+  series?: SeriesVideoConfig;
   audioTracks?: AudioTrackConfig[];
   subtitleCues?: SubtitleCue[];
   scenes: SceneConfig[];
