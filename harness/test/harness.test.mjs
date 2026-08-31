@@ -22,6 +22,14 @@ import {
 } from "../src/stages.mjs";
 import { validateProjectStage } from "../src/validation.mjs";
 import { buildTtsScript } from "../src/tts-script.mjs";
+import { approveSmokeQc, approveTtsQc, approveTtsQcForProject, batchForView, createBatch, retryFailedBatchItems, runBatch } from "../src/batches.mjs";
+import { completeRemotionTask, ensureRemotionTask, listRemotionTasks, runRemotionTask, startRemotionTask } from "../src/remotion-tasks.mjs";
+import { buildRemotionExecutionInput } from "../src/remotion-executor.mjs";
+import { createRemoteRenderExecutor } from "../src/remote-executor.mjs";
+import { runSingleStage } from "../src/single-runner.mjs";
+import { createJobRecord, updateJob } from "../src/jobs.mjs";
+import { adoptExistingProjectToGate2, markHistoricalProjectCompleted } from "../src/adoption.mjs";
+import { getSeriesDefinitionForSlug, getStyleDefinition, resolveStyleId } from "../src/styles.mjs";
 
 const repositoryRoot = path.resolve(new URL("../..", import.meta.url).pathname);
 
@@ -137,6 +145,99 @@ test("initializes explicit workflow, style, and target project configuration", (
   assert.equal(project.config.style, "current");
   assert.equal(project.config.target, "gate-4");
   assert.equal(project.config.harnessVersion, "0.6.0");
+});
+
+test("resolves the Codex series style and exposes dedicated style definitions", () => {
+  assert.equal(getSeriesDefinitionForSlug("02-core-concepts")?.style, "codex");
+  assert.equal(resolveStyleId({ style: "current" }, "02-core-concepts"), "codex");
+  assert.equal(getStyleDefinition("codex")?.path, "styles/codex/STYLE.md");
+  assert.equal(getStyleDefinition("claude-code")?.path, "styles/current/STYLE.md");
+});
+
+test("adopts an existing prototype-only project into a waiting Gate 2 state", () => {
+  const workspaceRoot = fs.mkdtempSync(path.join(os.tmpdir(), "video-harness-adoption-workspace-"));
+  const projectsRoot = fs.mkdtempSync(path.join(os.tmpdir(), "video-harness-adoption-projects-"));
+  const slug = "adoption-video";
+  const files = {
+    "source.md": "# Source\n\n内容。\n",
+    "content-analysis.md": "# Content Analysis\n\n## 核心命题\n内容。\n\n## 关键关系\n关系。\n\n## 可视觉化内容\n状态。\n",
+    "video-narrative.md": "# Video Narrative\n\n## 叙事目标\n解释。\n\n## 叙事原则\n清晰。\n\n## 整体叙事结构\n开始到结束。\n",
+    "scene-script.md": "# Scene Script\n\n## Scene 01｜测试\n\n### 目的\n验证。\n\n### narrativeRole\n建立。\n\n### narrationIntent\n解释。\n\n### visualIntent\n展示。\n\n### visualType\n流程。\n\n### keyOnScreenText\n状态。\n\n### videoValue\n可见。\n",
+    "narration-script.md": "# Narration Script\n\n## Scene 01｜测试\n\n这是测试口播。\n",
+    "visual-script.md": "# Visual Script\n\n## 全局视觉原则\n清晰。\n\n## Scene 01｜测试\n\n### 视觉目标\n展示。\n\n### 画面结构\n卡片。\n\n### 动画\n淡入。\n\n### 屏幕文字\n状态。\n\n### Visual Type\n流程。\n",
+    "visual-prototype.html": "<!doctype html><main><button>上一幕</button><button>下一幕</button><button>自动播放</button><div id=\"progress\"></div><section class=\"scene\">Scene 01</section></main>\n",
+  };
+  for (const [file, content] of Object.entries(files)) {
+    const absolutePath = path.join(workspaceRoot, `videos/${slug}`, file);
+    fs.mkdirSync(path.dirname(absolutePath), { recursive: true });
+    fs.writeFileSync(absolutePath, content, "utf8");
+  }
+  process.env.HARNESS_PROJECTS_DIR = projectsRoot;
+  process.env.HARNESS_WORKSPACE_ROOT = workspaceRoot;
+
+  const result = adoptExistingProjectToGate2(slug);
+  const project = loadProject(slug, { refresh: false });
+  assert.equal(result.status, "waiting");
+  assert.equal(project.state.currentStage, "gate-2");
+  assert.equal(project.state.stages["gate-2"].status, "waiting");
+  assert.equal(project.state.stages["gate-2"].review, null);
+  assert.ok(project.state.stages["visual-prototype"].outputFingerprint);
+  assert.equal(project.config.adoption.method, "existing-artifacts");
+});
+
+test("repairs a freshly initialized prototype-only project without overwriting downstream state", () => {
+  const workspaceRoot = fs.mkdtempSync(path.join(os.tmpdir(), "video-harness-initialized-adoption-workspace-"));
+  const projectsRoot = fs.mkdtempSync(path.join(os.tmpdir(), "video-harness-initialized-adoption-projects-"));
+  const slug = "initialized-adoption-video";
+  const files = {
+    "source.md": "# Source\n\n内容。\n",
+    "content-analysis.md": "# Content Analysis\n\n## 核心命题\n内容。\n\n## 关键关系\n关系。\n\n## 可视觉化内容\n状态。\n",
+    "video-narrative.md": "# Video Narrative\n\n## 叙事目标\n解释。\n\n## 叙事原则\n清晰。\n\n## 整体叙事结构\n开始到结束。\n",
+    "scene-script.md": "# Scene Script\n\n## Scene 01｜测试\n\n### 目的\n验证。\n\n### narrativeRole\n建立。\n\n### narrationIntent\n解释。\n\n### visualIntent\n展示。\n\n### visualType\n流程。\n\n### keyOnScreenText\n状态。\n\n### videoValue\n可见。\n",
+    "narration-script.md": "# Narration Script\n\n## Scene 01｜测试\n\n这是测试口播。\n",
+    "visual-script.md": "# Visual Script\n\n## 全局视觉原则\n清晰。\n\n## Scene 01｜测试\n\n### 视觉目标\n展示。\n\n### 画面结构\n卡片。\n\n### 动画\n淡入。\n\n### 屏幕文字\n状态。\n\n### Visual Type\n流程。\n",
+    "visual-prototype.html": "<!doctype html><main><button>上一幕</button><button>下一幕</button><button>自动播放</button><div id=\"progress\"></div><section class=\"scene\">Scene 01</section></main>\n",
+  };
+  for (const [file, content] of Object.entries(files)) {
+    const absolutePath = path.join(workspaceRoot, `videos/${slug}`, file);
+    fs.mkdirSync(path.dirname(absolutePath), { recursive: true });
+    fs.writeFileSync(absolutePath, content, "utf8");
+  }
+  process.env.HARNESS_PROJECTS_DIR = projectsRoot;
+  process.env.HARNESS_WORKSPACE_ROOT = workspaceRoot;
+
+  initializeProject(slug);
+  const initialized = loadProject(slug, { refresh: false });
+  initialized.state.stages.source.status = "succeeded";
+  initialized.state.stages.source.outputFingerprint = "existing-source-fingerprint";
+  initialized.state.currentStage = "content-analysis";
+  initialized.state.stages["content-analysis"].status = "ready";
+  fs.writeFileSync(initialized.files.state, `${JSON.stringify(initialized.state, null, 2)}\n`, "utf8");
+
+  const result = adoptExistingProjectToGate2(slug);
+  const project = loadProject(slug, { refresh: false });
+  assert.equal(result.status, "waiting");
+  assert.equal(project.state.currentStage, "gate-2");
+  assert.equal(project.state.stages["gate-2"].status, "waiting");
+  assert.equal(project.config.adoption.method, "existing-artifacts-after-init");
+  assert.equal(Object.values(project.state.stages).filter((item) => item.status === "succeeded").length, 7);
+});
+
+test("marks a user-confirmed historical render as completed without current validation", () => {
+  const workspaceRoot = fs.mkdtempSync(path.join(os.tmpdir(), "video-harness-historical-workspace-"));
+  const projectsRoot = fs.mkdtempSync(path.join(os.tmpdir(), "video-harness-historical-projects-"));
+  const slug = "historical-video";
+  process.env.HARNESS_PROJECTS_DIR = projectsRoot;
+  process.env.HARNESS_WORKSPACE_ROOT = workspaceRoot;
+
+  const result = markHistoricalProjectCompleted(slug);
+  const project = loadProject(slug, { refresh: false });
+  assert.equal(result.status, "completed");
+  assert.equal(project.state.currentStage, "completed");
+  assert.equal(project.config.historical.method, "user-confirmed-existing-render");
+  assert.equal(Object.values(project.state.stages).filter((item) => item.status === "succeeded").length, 15);
+  assert.equal(project.state.stages["gate-4"].review.decision, "approved");
+  assert.equal(project.state.stages.render.outputFingerprint, null);
 });
 
 test("builds a single-stage context task packet with bounded read and write paths", () => {
@@ -309,6 +410,461 @@ test("automatically creates and validates TTS Script when Gate 2 is approved", (
   assert.equal(buildNextAction(loadFixture(slug)).action, "run-stage");
 });
 
+test("runs the Gate 2 batch independently and stops every video at Gate 2", async () => {
+  const { slug } = createFixture();
+  const batchRoot = fs.mkdtempSync(path.join(os.tmpdir(), "video-harness-batches-"));
+  process.env.HARNESS_BATCHES_DIR = batchRoot;
+
+  const batch = createBatch({ type: "to-gate-2", slugs: [slug] });
+  const result = await runBatch(batch.id);
+
+  assert.equal(result.status, "waiting");
+  assert.equal(result.items[0].status, "waiting-gate");
+  assert.equal(result.items[0].phase, "gate-2");
+  assert.equal(loadFixture(slug).state.currentStage, "gate-2");
+  assert.equal(loadFixture(slug).state.stages["gate-2"].status, "waiting");
+});
+
+test("does not enter TTS quality review before audio, subtitle, and Timeline artifacts exist", async () => {
+  const { slug } = createFixture();
+  const batchRoot = fs.mkdtempSync(path.join(os.tmpdir(), "video-harness-batches-"));
+  process.env.HARNESS_BATCHES_DIR = batchRoot;
+  const project = loadFixture(slug);
+  runToGate2(project);
+  approveGate(loadFixture(slug), "gate-2");
+  for (const relativePath of [
+    `src/videos/${slug}/generated/audio-manifest.json`,
+    `src/videos/${slug}/generated/subtitle-manifest.json`,
+    `src/videos/${slug}/generated/timeline-manifest.json`,
+  ]) fs.rmSync(path.join(project.config.workspaceRoot, relativePath));
+
+  const batch = createBatch({ type: "to-tts", slugs: [slug] });
+  const result = await runBatch(batch.id);
+  assert.equal(result.items[0].status, "failed");
+  assert.equal(result.items[0].phase, "subtitle-timeline");
+  assert.equal(loadFixture(slug).state.currentStage, "subtitle-timeline");
+  assert.equal(loadFixture(slug).state.stages["subtitle-timeline"].status, "failed");
+});
+
+test("creates a resumable Remotion production task when batch inputs are ready but code is missing", async () => {
+  const { slug } = createFixture();
+  const batchRoot = fs.mkdtempSync(path.join(os.tmpdir(), "video-harness-batches-"));
+  const taskRoot = fs.mkdtempSync(path.join(os.tmpdir(), "video-harness-remotion-tasks-"));
+  process.env.HARNESS_BATCHES_DIR = batchRoot;
+  process.env.HARNESS_REMOTION_TASKS_DIR = taskRoot;
+  const project = loadFixture(slug);
+  const workspaceRoot = project.config.workspaceRoot;
+  const remotionFiles = [
+    `src/videos/${slug}/video.config.ts`,
+    `src/videos/${slug}/FixtureVideo.tsx`,
+  ].map((relativePath) => ({
+    relativePath,
+    content: fs.readFileSync(path.join(workspaceRoot, relativePath), "utf8"),
+  }));
+
+  runToGate2(project);
+  approveGate(loadFixture(slug), "gate-2");
+  const ttsBatch = createBatch({ type: "to-tts", slugs: [slug] });
+  await runBatch(ttsBatch.id);
+  approveTtsQc(ttsBatch.id, slug);
+  for (const { relativePath } of remotionFiles) fs.rmSync(path.join(workspaceRoot, relativePath));
+
+  const remotionBatch = createBatch({ type: "to-remotion", slugs: [slug] });
+  const paused = await runBatch(remotionBatch.id);
+  assert.equal(paused.status, "waiting");
+  assert.equal(paused.items[0].status, "waiting-remotion-task");
+  assert.equal(listRemotionTasks().length, 1);
+  const task = listRemotionTasks()[0];
+  assert.equal(task.batchId, remotionBatch.id);
+  assert.deepEqual(task.outputArtifacts.map((item) => item.path), [
+    `src/videos/${slug}/video.config.ts`,
+    `src/videos/${slug}/*Video.tsx`,
+  ]);
+
+  startRemotionTask(task.id);
+  for (const { relativePath, content } of remotionFiles) {
+    const absolutePath = path.join(workspaceRoot, relativePath);
+    fs.mkdirSync(path.dirname(absolutePath), { recursive: true });
+    fs.writeFileSync(absolutePath, content, "utf8");
+  }
+  const completed = completeRemotionTask(task.id);
+  assert.equal(completed.completed, true);
+  const resumed = await runBatch(remotionBatch.id);
+  assert.equal(resumed.items[0].status, "waiting-gate");
+  assert.equal(loadFixture(slug).state.currentStage, "gate-3");
+});
+
+test("runs a single Remotion executor and validates its generated files before completion", async () => {
+  const { slug } = createFixture();
+  const project = loadFixture(slug);
+  runToGate2(project);
+  approveGate(loadFixture(slug), "gate-2");
+  runStage(loadFixture(slug), "tts");
+  runStage(loadFixture(slug), "subtitle-timeline");
+
+  const ready = loadFixture(slug);
+  ready.state.stages["subtitle-timeline"].review = {
+    kind: "tts-qc",
+    decision: "approved",
+    reviewedAt: new Date().toISOString(),
+  };
+  ready.state.currentStage = "remotion";
+  ready.state.stages.remotion.status = "ready";
+  fs.writeFileSync(ready.files.state, `${JSON.stringify(ready.state, null, 2)}\n`, "utf8");
+
+  const workspaceRoot = ready.config.workspaceRoot;
+  const generatedFiles = [
+    `src/videos/${slug}/video.config.ts`,
+    `src/videos/${slug}/FixtureVideo.tsx`,
+  ].map((relativePath) => ({
+    relativePath,
+    content: fs.readFileSync(path.join(workspaceRoot, relativePath), "utf8"),
+  }));
+  for (const { relativePath } of generatedFiles) fs.rmSync(path.join(workspaceRoot, relativePath));
+
+  const task = ensureRemotionTask({ slug });
+  const packet = buildRemotionExecutionInput(loadFixture(slug), task);
+  assert.equal(packet.kind, "video-remotion-execution");
+  assert.equal(packet.taskId, task.id);
+  assert.deepEqual(packet.outputArtifacts.map((item) => item.path), [
+    `src/videos/${slug}/video.config.ts`,
+    `src/videos/${slug}/*Video.tsx`,
+  ]);
+
+  const result = await runRemotionTask(task.id, {
+    executor: {
+      async run({ project: current }) {
+        for (const { relativePath, content } of generatedFiles) {
+          const absolutePath = path.join(current.config.workspaceRoot, relativePath);
+          fs.mkdirSync(path.dirname(absolutePath), { recursive: true });
+          fs.writeFileSync(absolutePath, content, "utf8");
+        }
+        return { executor: "test-remotion-agent" };
+      },
+    },
+  });
+
+  assert.equal(result.completed, true);
+  assert.equal(result.task.status, "completed");
+  assert.equal(loadFixture(slug).state.currentStage, "remotion");
+  assert.equal(loadFixture(slug).state.stages.remotion.status, "ready");
+});
+
+test("records a failed single Remotion executor without claiming generated code", async () => {
+  const { slug } = createFixture();
+  const project = loadFixture(slug);
+  runToGate3(project);
+  const remotionFiles = [
+    `src/videos/${slug}/video.config.ts`,
+    `src/videos/${slug}/FixtureVideo.tsx`,
+  ];
+  const current = loadFixture(slug);
+  current.state.currentStage = "remotion";
+  current.state.stages.remotion.status = "ready";
+  current.state.stages["gate-3"].status = "pending";
+  fs.writeFileSync(current.files.state, `${JSON.stringify(current.state, null, 2)}\n`, "utf8");
+  for (const relativePath of remotionFiles) fs.rmSync(path.join(current.config.workspaceRoot, relativePath));
+  const task = ensureRemotionTask({ slug });
+
+  const result = await runRemotionTask(task.id, {
+    executor: {
+      run() {
+        const error = new Error("Agent provider unavailable");
+        error.code = "agent-provider-unavailable";
+        throw error;
+      },
+    },
+  });
+
+  assert.equal(result.completed, false);
+  assert.equal(result.task.status, "failed");
+  assert.equal(result.task.error.code, "agent-provider-unavailable");
+  assert.equal(loadFixture(slug).state.currentStage, "remotion");
+  assert.equal(loadFixture(slug).state.stages.remotion.status, "ready");
+});
+
+test("runs the single-stage path from TTS through Remotion to remote render submission", async () => {
+  const { slug } = createFixture();
+  const project = loadFixture(slug);
+  runToGate2(project);
+  approveGate(loadFixture(slug), "gate-2");
+
+  await runSingleStage(loadFixture(slug), "tts");
+  await runSingleStage(loadFixture(slug), "subtitle-timeline", {
+    ttsExecutor: { run: async () => ({ executor: "test-tts" }) },
+  });
+
+  const ready = loadFixture(slug);
+  ready.state.stages["subtitle-timeline"].review = {
+    kind: "tts-qc",
+    decision: "approved",
+    reviewedAt: new Date().toISOString(),
+  };
+  ready.state.currentStage = "remotion";
+  ready.state.stages.remotion.status = "ready";
+  fs.writeFileSync(ready.files.state, `${JSON.stringify(ready.state, null, 2)}\n`, "utf8");
+
+  const workspaceRoot = ready.config.workspaceRoot;
+  const remotionFiles = [
+    `src/videos/${slug}/video.config.ts`,
+    `src/videos/${slug}/FixtureVideo.tsx`,
+  ].map((relativePath) => ({
+    relativePath,
+    content: fs.readFileSync(path.join(workspaceRoot, relativePath), "utf8"),
+  }));
+  for (const { relativePath } of remotionFiles) fs.rmSync(path.join(workspaceRoot, relativePath));
+
+  const remotionResult = await runSingleStage(loadFixture(slug), "remotion", {
+    remotionExecutor: {
+      async run({ project: current }) {
+        for (const { relativePath, content } of remotionFiles) {
+          const absolutePath = path.join(current.config.workspaceRoot, relativePath);
+          fs.mkdirSync(path.dirname(absolutePath), { recursive: true });
+          fs.writeFileSync(absolutePath, content, "utf8");
+        }
+        return { executor: "test-remotion-agent" };
+      },
+    },
+  });
+  assert.equal(remotionResult.completed, true);
+  assert.equal(loadFixture(slug).state.currentStage, "gate-3");
+  assert.equal(loadFixture(slug).state.stages["gate-3"].status, "waiting");
+
+  approveGate(loadFixture(slug), "gate-3");
+  const remoteCalls = [];
+  const remoteResult = await runSingleStage(loadFixture(slug), "smoke-render", {
+    remoteExecutor: createRemoteRenderExecutor({
+      validateInputs() {},
+      monitor: {
+        submit(input) {
+          remoteCalls.push(input);
+          return { id: "single-pipeline-job", status: "queued", ...input };
+        },
+      },
+    }),
+  });
+  assert.equal(remoteResult.deferred, true);
+  assert.deepEqual(remoteCalls, [{ slug, stage: "smoke-render" }]);
+});
+
+test("supports TTS quality approval from a single project and resumes its TTS batch", async () => {
+  const { slug } = createFixture();
+  const batchRoot = fs.mkdtempSync(path.join(os.tmpdir(), "video-harness-batches-"));
+  process.env.HARNESS_BATCHES_DIR = batchRoot;
+  const project = loadFixture(slug);
+  runToGate2(project);
+  approveGate(loadFixture(slug), "gate-2");
+
+  const ttsBatch = createBatch({ type: "to-tts", slugs: [slug] });
+  const waiting = await runBatch(ttsBatch.id);
+  assert.equal(waiting.items[0].status, "waiting-tts-qc");
+
+  const result = await approveTtsQcForProject(slug);
+  assert.equal(result.project.state.stages["subtitle-timeline"].review.decision, "approved");
+  assert.equal(result.batches[0].items[0].status, "succeeded");
+});
+
+test("projects one current video status into every batch view", async () => {
+  const { slug } = createFixture();
+  const batchRoot = fs.mkdtempSync(path.join(os.tmpdir(), "video-harness-batches-"));
+  process.env.HARNESS_BATCHES_DIR = batchRoot;
+  const project = loadFixture(slug);
+  runToGate2(project);
+  approveGate(loadFixture(slug), "gate-2");
+
+  const ttsBatch = createBatch({ type: "to-tts", slugs: [slug] });
+  await runBatch(ttsBatch.id);
+  approveTtsQc(ttsBatch.id, slug);
+
+  const completedBatch = batchForView({
+    id: "completed-batch",
+    items: [{ slug, status: "succeeded", message: "批次目标已完成。" }],
+  });
+  const staleBatch = batchForView({
+    id: "stale-batch",
+    items: [{ slug, status: "waiting-tts-qc", message: "等待 TTS 质检。" }],
+  });
+
+  assert.equal(completedBatch.items[0].currentProject.status, "ready");
+  assert.equal(staleBatch.items[0].currentProject.status, "ready");
+  assert.equal(completedBatch.items[0].currentProject.currentStage, "remotion");
+  assert.deepEqual(completedBatch.items[0].currentProject, staleBatch.items[0].currentProject);
+});
+
+test("splits TTS, Remotion, and render batches at their human checkpoints", async () => {
+  const { slug } = createFixture();
+  const batchRoot = fs.mkdtempSync(path.join(os.tmpdir(), "video-harness-batches-"));
+  process.env.HARNESS_BATCHES_DIR = batchRoot;
+  const project = loadFixture(slug);
+  runToGate2(project);
+  approveGate(loadFixture(slug), "gate-2");
+
+  const ttsBatch = createBatch({ type: "to-tts", slugs: [slug] });
+  const paused = await runBatch(ttsBatch.id);
+  assert.equal(paused.status, "waiting");
+  assert.equal(paused.items[0].status, "waiting-tts-qc");
+  assert.equal(loadFixture(slug).state.currentStage, "remotion");
+
+  approveTtsQc(ttsBatch.id, slug);
+  const remotionBatch = createBatch({ type: "to-remotion", slugs: [slug] });
+  const remotionResult = await runBatch(remotionBatch.id);
+  assert.equal(remotionResult.items[0].status, "waiting-gate");
+  assert.equal(remotionResult.items[0].phase, "gate-3");
+  assert.equal(loadFixture(slug).state.currentStage, "gate-3");
+  assert.equal(loadFixture(slug).state.stages["gate-3"].status, "waiting");
+
+  approveGate(loadFixture(slug), "gate-3");
+  const renderBatch = createBatch({ type: "to-render", slugs: [slug] });
+  const smoke = createMockAdapter();
+  const render = createMockAdapter();
+  const smokeResult = await runBatch(renderBatch.id, { adapters: { "smoke-render": smoke, render } });
+  assert.equal(smokeResult.items[0].status, "waiting-smoke-qc");
+  assert.equal(loadFixture(slug).state.currentStage, "render");
+
+  approveSmokeQc(renderBatch.id, slug);
+  const renderResult = await runBatch(renderBatch.id, { adapters: { "smoke-render": smoke, render } });
+  assert.equal(renderResult.items[0].status, "waiting-gate");
+  assert.equal(renderResult.items[0].phase, "gate-4");
+  assert.equal(loadFixture(slug).state.currentStage, "gate-4");
+  assert.equal(loadFixture(slug).state.stages["gate-4"].status, "waiting");
+  assert.deepEqual(smoke.calls, [{ stage: "smoke-render", slug }]);
+  assert.deepEqual(render.calls, [{ stage: "render", slug }]);
+});
+
+test("routes batch TTS and Remotion work through the configured single-video executors", async () => {
+  const { slug } = createFixture();
+  const batchRoot = fs.mkdtempSync(path.join(os.tmpdir(), "video-harness-batches-"));
+  const taskRoot = fs.mkdtempSync(path.join(os.tmpdir(), "video-harness-remotion-tasks-"));
+  process.env.HARNESS_BATCHES_DIR = batchRoot;
+  process.env.HARNESS_REMOTION_TASKS_DIR = taskRoot;
+  runToGate2(loadFixture(slug));
+  approveGate(loadFixture(slug), "gate-2");
+
+  const ttsCalls = [];
+  const ttsBatch = createBatch({ type: "to-tts", slugs: [slug] });
+  const ttsResult = await runBatch(ttsBatch.id, {
+    executors: {
+      "subtitle-timeline": {
+        async run({ project }) {
+          ttsCalls.push(project.config.slug);
+          return { executor: "test-batch-tts" };
+        },
+      },
+    },
+  });
+  assert.equal(ttsResult.items[0].status, "waiting-tts-qc");
+  assert.deepEqual(ttsCalls, [slug]);
+
+  approveTtsQc(ttsBatch.id, slug);
+  const project = loadFixture(slug);
+  const workspaceRoot = project.config.workspaceRoot;
+  const remotionFiles = [
+    `src/videos/${slug}/video.config.ts`,
+    `src/videos/${slug}/FixtureVideo.tsx`,
+  ].map((relativePath) => ({
+    relativePath,
+    content: fs.readFileSync(path.join(workspaceRoot, relativePath), "utf8"),
+  }));
+  for (const { relativePath } of remotionFiles) fs.rmSync(path.join(workspaceRoot, relativePath));
+
+  const remotionCalls = [];
+  const remotionBatch = createBatch({ type: "to-remotion", slugs: [slug] });
+  const remotionResult = await runBatch(remotionBatch.id, {
+    executors: {
+      remotion: {
+        async run({ project: current }) {
+          remotionCalls.push(current.config.slug);
+          for (const { relativePath, content } of remotionFiles) {
+            const target = path.join(current.config.workspaceRoot, relativePath);
+            fs.mkdirSync(path.dirname(target), { recursive: true });
+            fs.writeFileSync(target, content, "utf8");
+          }
+          return { executor: "test-batch-remotion" };
+        },
+      },
+    },
+  });
+  assert.equal(remotionResult.items[0].status, "waiting-gate");
+  assert.deepEqual(remotionCalls, [slug]);
+  assert.equal(loadFixture(slug).state.currentStage, "gate-3");
+});
+
+test("keeps a batch remote job waiting and does not submit it twice", async () => {
+  const { slug } = createFixture();
+  const batchRoot = fs.mkdtempSync(path.join(os.tmpdir(), "video-harness-batches-"));
+  process.env.HARNESS_BATCHES_DIR = batchRoot;
+  runToGate3(loadFixture(slug));
+  approveGate(loadFixture(slug), "gate-3");
+
+  let submissions = 0;
+  const monitor = { async poll() {}, submit(input) {
+    submissions += 1;
+    return createJobRecord(input);
+  } };
+  const remoteExecutor = createRemoteRenderExecutor({ monitor, validateInputs() {} });
+  const batch = createBatch({ type: "to-render", slugs: [slug] });
+  const first = await runBatch(batch.id, { remoteMonitor: monitor, remoteExecutor });
+  assert.equal(first.items[0].status, "waiting-remote");
+  assert.equal(submissions, 1);
+
+  const second = await runBatch(batch.id, { remoteMonitor: monitor, remoteExecutor });
+  assert.equal(second.items[0].status, "waiting-remote");
+  assert.equal(submissions, 1);
+
+  updateJob(slug, first.items[0].remoteJobId, { status: "succeeded", completedAt: new Date().toISOString() });
+  const resumed = await runBatch(batch.id, { remoteMonitor: monitor, remoteExecutor });
+  assert.equal(resumed.items[0].status, "waiting-smoke-qc");
+  assert.equal(submissions, 1);
+});
+
+test("retries a failed batch Remotion executor together with its production task", async () => {
+  const { slug } = createFixture();
+  const batchRoot = fs.mkdtempSync(path.join(os.tmpdir(), "video-harness-batches-"));
+  const taskRoot = fs.mkdtempSync(path.join(os.tmpdir(), "video-harness-remotion-tasks-"));
+  process.env.HARNESS_BATCHES_DIR = batchRoot;
+  process.env.HARNESS_REMOTION_TASKS_DIR = taskRoot;
+  runToGate2(loadFixture(slug));
+  approveGate(loadFixture(slug), "gate-2");
+  const ttsBatch = createBatch({ type: "to-tts", slugs: [slug] });
+  await runBatch(ttsBatch.id);
+  approveTtsQc(ttsBatch.id, slug);
+
+  const project = loadFixture(slug);
+  const workspaceRoot = project.config.workspaceRoot;
+  const remotionFiles = [
+    `src/videos/${slug}/video.config.ts`,
+    `src/videos/${slug}/FixtureVideo.tsx`,
+  ].map((relativePath) => ({
+    relativePath,
+    content: fs.readFileSync(path.join(workspaceRoot, relativePath), "utf8"),
+  }));
+  for (const { relativePath } of remotionFiles) fs.rmSync(path.join(workspaceRoot, relativePath));
+
+  const remotionBatch = createBatch({ type: "to-remotion", slugs: [slug] });
+  const failed = await runBatch(remotionBatch.id, {
+    executors: { remotion: { async run() { throw Object.assign(new Error("temporary Agent failure"), { code: "temporary-agent-failure" }); } } },
+  });
+  assert.equal(failed.items[0].status, "failed");
+  assert.equal(listRemotionTasks()[0].status, "failed");
+
+  retryFailedBatchItems(remotionBatch.id);
+  const recovered = await runBatch(remotionBatch.id, {
+    executors: {
+      remotion: {
+        async run({ project: current }) {
+          for (const { relativePath, content } of remotionFiles) {
+            const target = path.join(current.config.workspaceRoot, relativePath);
+            fs.mkdirSync(path.dirname(target), { recursive: true });
+            fs.writeFileSync(target, content, "utf8");
+          }
+        },
+      },
+    },
+  });
+  assert.equal(recovered.items[0].status, "waiting-gate");
+  assert.equal(listRemotionTasks()[0].status, "completed");
+});
+
 test("supports legacy read-only validation without weakening strict generation rules", () => {
   const { slug } = createFixture();
   const project = loadFixture(slug);
@@ -416,7 +972,7 @@ test("reports the next action for a ready stage and a waiting Gate", () => {
   assert.equal(gateAction.currentStage, "gate-3");
   assert.equal(gateAction.action, "approve-or-reject-gate");
   assert.equal(gateAction.requiresUser, true);
-  assert.equal(gateAction.manualChecks.length, 3);
+  assert.equal(gateAction.manualChecks.length, 4);
   assert.equal(gateAction.recommendedReturnTo, "remotion");
   assert.deepEqual(gateAction.returnToStages, returnToStages("gate-3"));
   assert.deepEqual(gateAction.returnToStages.at(-1), { stage: "remotion", label: "Remotion 实现" });
@@ -424,6 +980,24 @@ test("reports the next action for a ready stage and a waiting Gate", () => {
   const report = buildProjectReport(loadFixture(slug));
   assert.equal(report.stages.length, 15);
   assert.equal(report.next.action, "approve-or-reject-gate");
+});
+
+test("allows a Remotion task to create its missing alignment output", () => {
+  const { slug } = createFixture();
+  const project = loadFixture(slug);
+  for (const file of ["video.config.ts", "FixtureVideo.tsx"]) {
+    fs.rmSync(path.join(project.config.workspaceRoot, "src", "videos", slug, file));
+  }
+  runToGate2(project);
+  approveGate(project, "gate-2");
+  runStage(project, "tts");
+  runStage(project, "subtitle-timeline");
+
+  const next = buildNextAction(loadFixture(slug));
+  assert.equal(next.currentStage, "remotion");
+  assert.equal(next.status, "ready");
+  assert.equal(next.action, "run-stage");
+  assert.equal(validateStage(loadFixture(slug), "remotion").some((issue) => issue.code === "missing-remotion-alignment"), true);
 });
 
 test("allows remote render preflight without a local MP4", () => {
@@ -441,6 +1015,15 @@ test("allows remote render preflight without a local MP4", () => {
 });
 
 function runToGate3(project) {
+  runToGate2(project);
+  approveGate(project, "gate-2");
+  runStage(project, "tts");
+  runStage(project, "subtitle-timeline");
+  runStage(project, "remotion");
+  runStage(project, "gate-3");
+}
+
+function runToGate2(project) {
   const preGateStages = [
     "source",
     "content-analysis",
@@ -454,11 +1037,6 @@ function runToGate3(project) {
     runStage(project, stage);
   }
   runStage(project, "gate-2");
-  approveGate(project, "gate-2");
-  runStage(project, "tts");
-  runStage(project, "subtitle-timeline");
-  runStage(project, "remotion");
-  runStage(project, "gate-3");
 }
 
 test("completes the fixture workflow with mock adapters", () => {
@@ -517,6 +1095,28 @@ test("requires an explicit return stage when rejecting a Gate", () => {
     reason: "visual mismatch",
     reviewedAt: state.stages["gate-3"].review.reviewedAt,
   });
+});
+
+test("requires new Remotion output after Gate 3 rejection", async () => {
+  const { slug } = createFixture();
+  const project = loadFixture(slug);
+  runToGate3(project);
+  const previousFingerprint = loadFixture(slug).state.stages.remotion.outputFingerprint;
+
+  rejectGate(loadFixture(slug), "gate-3", "remotion", "修复白屏和同步问题");
+  const rejected = loadFixture(slug);
+  assert.equal(rejected.state.stages.remotion.status, "ready");
+  assert.equal(rejected.state.stages.remotion.invalidatedBy, "gate-3-rejected");
+  assert.equal(rejected.state.stages.remotion.rebuildBaselineFingerprint, previousFingerprint);
+
+  const task = ensureRemotionTask({ slug });
+  const result = await runRemotionTask(task.id, {
+    executor: { async run() { return { executor: "no-op" }; } },
+  });
+  assert.equal(result.completed, false);
+  assert.equal(result.task.status, "blocked");
+  assert.equal(result.task.error.code, "remotion-unchanged-after-gate-rejection");
+  assert.equal(loadFixture(slug).state.currentStage, "remotion");
 });
 
 test("completes a GitHub Actions run and records its artifact metadata", async () => {

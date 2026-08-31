@@ -13,6 +13,7 @@ const documentFiles = Object.freeze([
   ["narration-script.md", "narration-script", "口播稿"],
   ["visual-script.md", "visual-script", "视觉脚本"],
   ["visual-prototype.html", "visual-prototype", "视觉原型"],
+  ["remotion-alignment.json", "remotion", "Remotion 对齐清单"],
   ["tts-script.json", "tts", "TTS 输入"],
 ]);
 

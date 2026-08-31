@@ -185,13 +185,39 @@ http://127.0.0.1:4173
 - 查看生产资料、TTS／字幕／Timeline Manifest 和 Remotion 文件；
 - 预览 Visual Prototype；
 - 初始化 Harness 项目状态；
+- 为 Agent 阶段创建持久化后台任务，查看状态、有界日志并在失败后重试；Agent 退出后只有真实产物通过 Harness 校验才推进阶段；
+- Gate 2 通过时冻结 Visual Script／Visual Prototype 指纹，Remotion 阶段校验逐 Scene `remotion-alignment.json`，Gate 3 并排对照原型与 Remotion Studio；
 - 执行校验、阶段推进、Gate 通过／驳回、重试和断点续做；
 - 发起远程 Smoke Render／Render 后查看任务状态和 Artifact 元数据；
 - 查看后台任务的 Run 链接、Run ID、Artifact 名称、最近检查时间和失败原因；
 - 在首页查看所有视频项目的远程任务，并手动执行 GitHub 配置诊断；
 - 对未初始化的旧视频执行 Legacy 只读检查。
 
-Web UI 只监听 `127.0.0.1`，运行状态写入被 Git 忽略的 `harness/projects/`，不会修改视频生产资料。第一版不自动生成口播、视觉脚本或 Remotion 代码。
+Web UI 只监听 `127.0.0.1`，运行状态写入被 Git 忽略的 `harness/projects/`。Agent 任务会按当前阶段声明的输出路径修改视频生产资料，但仍不自动通过人工 Gate。
+
+要让 Web UI 的“执行当前阶段”真正调用 Agent，需要配置本地命令及 JSON 参数数组：
+
+```bash
+export HARNESS_AGENT_EXECUTOR_COMMAND="<agent-command>"
+export HARNESS_AGENT_EXECUTOR_ARGS='["<arg-1>","<arg-2>"]'
+export HARNESS_AGENT_EXECUTOR_CWD="<optional-working-directory>"
+```
+
+Harness 通过 stdin 发送结构化阶段任务包。`subtitle-timeline` 和 `remotion` 分别继续使用 `HARNESS_TTS_EXECUTOR_*` 与 `HARNESS_REMOTION_EXECUTOR_*`；浏览器不会接触执行器凭据。
+
+### TTS 执行器
+
+当前项目已提供可直接接入既有 TTS 工程的 Harness 适配器。它会读取冻结的 `videos/<video-slug>/tts-script.json`，按 `+25%` 调用 TTS 工程中的三个脚本，再把音频、字幕和 Timeline Manifest 同步到当前视频目录。默认假设 TTS 工程与本仓库同级，目录为 `../tts`；如果目录不同，显式设置：
+
+```bash
+export HARNESS_TTS_EXECUTOR_COMMAND="node"
+export HARNESS_TTS_EXECUTOR_ARGS='["/Users/limiao/personal/2-topic/4-AI/project/video/harness/src/tts-harness-adapter.mjs"]'
+export HARNESS_TTS_EXECUTOR_CWD="/Users/limiao/personal/2-topic/4-AI/project/video"
+export HARNESS_TTS_PROJECT_DIR="/Users/limiao/personal/2-topic/4-AI/project/tts"
+export HARNESS_TTS_PYTHON="/Users/limiao/personal/2-topic/4-AI/project/tts/.venv/bin/python"
+```
+
+适配器会在 `harness/.cache/tts/` 保留按 TTS Script 内容哈希区分的可恢复中间结果；这个目录已加入 Git 忽略。启动 Web UI 的终端必须继承上述环境变量，修改后需要重启 Web Server。
 
 ## CLI 使用
 
@@ -228,9 +254,11 @@ node harness/src/cli.mjs resume <video-slug>
 ```bash
 export GITHUB_TOKEN="<token>"
 export GITHUB_REPOSITORY="<owner>/<repo>"
-export GITHUB_REF_NAME="<branch>"
+export HARNESS_GITHUB_REF="<optional-explicit-branch>"
 node harness/src/cli.mjs run <video-slug> smoke-render
 node harness/src/cli.mjs run <video-slug> render
 ```
+
+`HARNESS_GITHUB_REF` 是显式覆盖项；未设置时，本地 Harness 默认使用当前 Git 工作区分支。只有无法从当前工作区解析分支时，才回退到 `GITHUB_REF_NAME`。
 
 真实渲染使用 GitHub Actions，不使用本机 Remotion 渲染；Web UI 后台监控器会持续查询对应 Run，完成后检查 Artifact 并推进 Harness 阶段。CLI 的 `run` 保留一次性等待模式；`jobs` 可查看已经持久化的远程任务。

@@ -6,18 +6,18 @@
 
 当前目录是 Remotion AI Video MVP 工程目录，用于验证「原始内容 → Content Analysis → Video Narrative → Scene Script → Narration Script → Visual Script → Visual Prototype → 人工确认 → Remotion 场景实现 → Studio 预览 → 人工确认 → MP4 渲染」的可复用视频生产流程。
 
-当前目标不是完整视频平台、剪辑软件、素材管理系统或自动化视频工厂。Harness Web UI 第一版只作为本地视频生产流程的查看和控制界面，不改变这个范围。
+当前目标不是完整视频平台、剪辑软件、素材管理系统或自动化视频工厂。Harness Web UI 第一版只作为本地视频生产流程的查看和控制界面，并在明确选择的视频范围内编排四类可暂停、可恢复的批量任务，不改变这个范围。
 
 长期产品目标：将本项目中验证过的 AI 视频生产流程，逐步产品化为一个专门的视频生产 Harness，最终让其他人可以安装、配置和使用。该 Harness 只服务于视频生产，不扩展为能够处理代码、数据或其他任务的通用 Harness。后续所有架构、工具和功能取舍，都必须优先服务于视频生产流程的可复用、可配置、可检查、可恢复和可交付；只对单条视频一次性有效、无法沉淀为复用能力的工作，不作为长期建设方向，除非它是完成当前视频交付的必要步骤。
 
 历史说明：`HelloIntro` 只是早期 Remotion 技术 spike，用于确认环境可运行；它不再作为后续架构、组件或视觉设计基础。
 
-「源文档 → 分阶段生产资料 → TTS → 音频／字幕回传 → Remotion 音画同步 → 人工确认 → GitHub Actions 渲染与轮询」端到端方案记录在 `docs/END-TO-END-VIDEO-PRODUCTION-PLAN.md`。当前第一条真实验证视频已完成 TTS、Remotion 接入和 Gate 3，GitHub Actions 已支持通过受控输入渲染不同视频；自动 TTS、后台常驻轮询和批量任务编排仍未实现，具体真实进度以 `ROADMAP.md` 为准。
+「源文档 → 分阶段生产资料 → TTS → 音频／字幕回传 → Remotion 音画同步 → 人工确认 → GitHub Actions 渲染与轮询」端到端方案记录在 `docs/END-TO-END-VIDEO-PRODUCTION-PLAN.md`。当前第一条真实验证视频已完成 TTS、Remotion 接入和 Gate 3，GitHub Actions 已支持通过受控输入渲染不同视频；批量任务仅负责编排既定 Agent／适配器和断点恢复，不绕过人工 Gate 或把 Harness 变成自动内容生成平台，具体真实进度以 `ROADMAP.md` 为准。
 
 ## Harness 0.1 实施边界
 
 - 第一版 Harness 使用独立顶层目录 `harness/`，作为现有视频生产流程的编排层；不直接重写已完成视频的生产资料、TTS 资源、字幕、时间轴或 Remotion 场景。
-- Harness 先实现单视频项目的阶段状态、产物记录、校验、人工 Gate、失败重试和断点续做，再考虑批量任务、多用户或可视化界面。
+- Harness 先实现单视频项目的阶段状态、产物记录、校验、人工 Gate、失败重试和断点续做；批量任务只在这些契约之上编排多个独立视频，不改变单视频状态模型。
 - Harness 通过适配器调用现有 TTS、字幕／时间轴、Remotion 和 GitHub Actions 能力；不得绕过 `narration-script.md`、冻结后的 `tts-script.json` 及其校验边界。
 - 第一版必须先用最小测试视频完成自动化验收，再用已有视频做只读回归；真实视频的人工内容和画面确认仍属于用户 Gate，不由 Harness 自动替代。
 
@@ -29,9 +29,15 @@ Harness Web UI 第一版建立在 Harness 0.4 之上，只提供本地管理界�
 - 查看七层生产资料、TTS／字幕／Timeline Manifest、Remotion 配置、Visual Prototype 和远程渲染结果。
 - 调用现有 Harness 核心完成校验、`next`、`report`、`context`、`plan`、Gate 通过／驳回、重试和断点续做。
 - 通过后台任务触发并查看 GitHub Actions Smoke Render、完整 Render 和 Artifact；浏览器不得接触 GitHub Token。
-- Web UI 只绑定 `127.0.0.1`，第一版不引入数据库、登录、多用户、批量编排或公网部署。
-- Agent 阶段仍由既定生产流程和 Agent 完成；Web UI 第一版不自动生成内容分析、口播、Visual Script 或 Remotion 代码。
+- 本地 Web UI 提交 GitHub Actions 任务时，目标分支优先使用显式 `HARNESS_GITHUB_REF`；未配置时必须从当前 Git 工作区解析分支，只有不在 Git 工作区或处于 detached HEAD 时才允许回退到 `GITHUB_REF_NAME`。不得把本机残留的 `GITHUB_REF_NAME` 当作普通启动时的默认分支。
+- 提交 Smoke Render 或完整 Render 前，必须校验 `assets/<video-slug>-assets.zip` 本身可完整解压、顶层目录为 `<video-slug>/`、包含 `subtitles/captions.vtt` 和 `subtitles/captions.srt`，并逐项确认 ZIP 内 MP3 路径和数量与 Audio Manifest 一致；不得只检查 ZIP 文件存在。
+- Web UI 只绑定 `127.0.0.1`，第一版不引入数据库、登录、多用户或公网部署；批量编排使用本地批次文件，不引入数据库。
+- Agent 阶段仍由既定生产流程和 Agent 完成；批量入口只编排已配置的 Agent／TTS／Remotion／GitHub Actions 执行器，不复制生产逻辑、不自动通过 Gate。Remotion 没有配置自动执行器时，必须创建可恢复的 Remotion 制作任务并明确等待 Agent 产出，不能把“等待制作”伪装成失败或把校验通过伪装成真实产物完成。
+- Web UI 执行 Agent 阶段时，必须创建持久化后台 Agent Job，由本地 Server 调用已配置的 Agent 执行器；浏览器只提交任务、轮询状态和查看有界日志。Agent 进程退出后，Harness 必须重新读取并校验真实产物，校验通过才推进阶段；未配置执行器、进程失败或产物校验失败都必须保留为可重试任务，不得退化为“只校验已有文件”。
+- Web UI 的 Remotion Agent 使用项目内适配器作为默认执行器，普通 `npm run harness:web` 启动必须自动加载该默认配置；环境变量只用于显式覆盖，不应要求用户每次重启 Server 后手工重新配置。默认适配器必须继续使用任务包声明的输入、输出路径、Gate 2 冻结基线和校验契约，不得自动通过 Gate 3。
+- Remotion Agent 的运行／重试动作必须幂等：任务已处于 `in-progress` 时，重复提交应返回当前任务状态而不是报错；Web UI 提交后必须立即禁用同一任务的操作按钮。项目内默认适配器调用 Codex CLI 时必须使用当前版本兼容的审批参数组合。
 - Web UI 代码放在 `harness/` 内，Remotion 的 `src/Root.tsx` 和现有视频目录不承担管理后台职责。
+- 视频 slug 按用户指定的源文件名保留序号时，序号视为系列内编号；不同教程系列可以出现相同序号。Web UI 必须以 slug 唯一标识项目，同序号项目按 slug 稳定排序，不得为维持全局连续序号而改写 source 或 slug。
 
 Web UI 必须复用 Harness 的阶段契约和状态文件，不能在前端复制一套阶段判断、Gate 规则或渲染状态模型。真实视频内容、画面质量和 Gate 人工判断仍以现有生产资料和项目规范为准。
 
@@ -40,10 +46,10 @@ Web UI 必须复用 Harness 的阶段契约和状态文件，不能在前端复�
 端到端试点不在每份 Markdown 生成后单独停下来确认。Gate 1 默认由 Agent 完成内容一致性、事实边界、叙事关系和基线结构审查；只有遇到无法从源文档判断的重大取舍，才向用户提出单点问题。需要用户直接判断画面和交付质量的阶段，仍保留人工确认：
 
 - Gate 1：完成 `content-analysis.md`、`video-narrative.md` 和 `scene-script.md`，由 Agent 完成核心命题、信息取舍、叙事路径、Scene 拆分、Video Value 和基线结构审查；默认不暂停等待用户逐篇确认。
-- Gate 2：完成 `narration-script.md`、`visual-script.md` 和 `visual-prototype.html`，统一确认口播、视觉表达、声音与画面的互补关系、构图和信息密度；同时逐项检查所有画面文字是否能在当前视频的生产资料中找到依据。口播在生成阶段就必须按可独立观看的视频来写，不得把原始材料作为视频中的叙事对象或对话对象；禁止出现“原文档”“源文档”“本文”“这篇文章”“上文”“下文”“文中”“原文”等来源指代表达。参考视频只允许提供格式、风格和交互结构参考，不得把其业务语义、固定文案或状态文字带入当前视频。
+- Gate 2：完成 `narration-script.md`、`visual-script.md` 和 `visual-prototype.html`，统一确认口播、视觉表达、声音与画面的互补关系、构图和信息密度；同时逐项检查所有画面文字是否能在当前视频的生产资料中找到依据。口播在生成阶段就必须按可独立观看的视频来写，不得把原始材料作为视频中的叙事对象或对话对象；禁止出现“原文档”“源文档”“本文”“这篇文章”“上文”“下文”“文中”“原文”等来源指代表达。参考视频只允许提供格式、风格和交互结构参考，不得把其业务语义、固定文案或状态文字带入当前视频。Gate 2 通过时，Harness 必须冻结 Visual Script 与 Visual Prototype 指纹及 Scene 清单，作为后续 Remotion 对齐基线。
 - `tts-script.json` 内部审查：由 Agent 自动完成 Scene／Segment 数量、ID、空文本、口播覆盖和内部制作文字检查；不单独暂停等待用户确认。
 - TTS 质检：确认发音、声音自然度、目标语速、停顿、字幕文本和字幕时间；这是进入 Remotion 前的阻塞性检查点，不单独计入正式 Gate 数量。
-- Gate 3：确认 Remotion 音画预览中的同步、字幕、动画节奏、信息密度和溢出情况；确认所有进入 Composition 的画面文字都与当前视频内容相关，并完成最终输出清洁画面检查，移除或隔离预览导航、调试文字、辅助说明和其他不应进入 MP4 的内容。
+- Gate 3：确认 Remotion 音画预览中的同步、字幕、动画节奏、信息密度和溢出情况；必须结合 `remotion-alignment.json` 逐 Scene 对照 Gate 2 冻结的原型布局、视觉事件、屏幕文字和实现文件，原型发生变化时旧 Remotion 结果失效。确认所有进入 Composition 的画面文字都与当前视频内容相关，并完成最终输出清洁画面检查，移除或隔离预览导航、调试文字、辅助说明和其他不应进入 MP4 的内容。
 - Smoke Render 检查：确认远程冒烟结果、代表帧、字体、资源和音轨后，才允许进入完整渲染；代表帧和短片还必须通过画面文字相关性与清洁输出检查。这是远程渲染流程中的阻塞性检查点。
 - Gate 4：确认最终完整 MP4 的内容、声音、字幕、画面和交付质量；再次确认最终文件不包含预览辅助控件、调试信息、参考视频残留文案或其他无关画面文字。
 
@@ -56,6 +62,7 @@ Gate 不通过时，依据问题回退到对应的内部生产阶段；不默认
 - 口播生成完成后、派生 `tts-script.json` 之前，必须先做一次来源指代语义检查；发现来源关联表达时，回到口播生成阶段重写并重新检查，不得等到 TTS、字幕或 Remotion 阶段再补救。内部 `source.md`、`content-analysis.md` 等制作资料可以保留来源关系，但这些内部说明不得复制进 Scene 口播正文。
 - TTS 不直接消费整份制作文档。Gate 2 通过后，必须先从纯口播的 `narration-script.md` 派生独立的 `tts-script.json`，完成 Scene／Segment 拆分和 TTS 文本清理，再把 `tts-script.json` 交给 TTS。
 - narrated 视频的 TTS 默认语速为 `+25%`；调用 TTS 前必须显式检查并传入 `--rate +25%`，除非用户明确指定其他语速。当前 `claude-code-third-party-models` 已生成的 `+0%` 音频保持不变，不回溯重做。
+- 本项目内经过 Gate 2 冻结并通过校验的 `tts-script.json`，默认获准发送到项目既定的 Microsoft Edge TTS 服务（`speech.platform.bing.com`），使用既定语音生成视频配音、Word Boundary、字幕和 Timeline；Agent 执行或断点续跑时不得再次询问外发授权。该长期授权仅覆盖当前 `video` 项目、冻结口播文本、既定 Edge TTS 服务和回传当前项目的视频生产产物；项目、输入范围、外部服务或数据目的地发生变化时才需要重新确认。
 - 生成字幕时，去掉每条字幕文本句末的标点符号；句内标点符号保留。该清理只作用于字幕展示文本，不得修改 TTS 朗读文本、音频或时间轴；字幕来源一致性校验应按“应用此规则后的字幕文本”进行。
 - 音频、字幕和时间轴只能从经过 Agent 校验并在 Gate 2 冻结的 `tts-script.json` 生成；交给 TTS 前必须检查生成的 Segment 中没有内部制作文字。
 - 参考格式以 `videos/claude-code-what-is/narration-script.md` 为准：标题和分隔线可以存在，但每个 Scene 下的正文必须全部是实际口播。
@@ -121,10 +128,10 @@ Gate 不通过时，依据问题回退到对应的内部生产阶段；不默认
 - 9:16 竖屏继续优化。
 - 方屏 1:1。
 - 真实配音录制和剪辑。
-- 自动 TTS。
+- 通用自动 TTS 平台；但允许在项目既定 TTS 服务和冻结 `tts-script.json` 边界内，由明确的批量 TTS 执行器生成本项目视频资源。
 - 逐字字幕高亮。
 - 自动字幕对齐。
-- 批量生成。
+- 无边界的批量自动生成；只支持由用户明确选择视频的四类批量编排：到 Gate 2、完成 TTS、完成 Remotion、批量渲染。批次必须在 Gate 2、TTS 质检、Gate 3、Smoke Render 检查和 Gate 4 等人工确认点暂停或等待。
 - 后端服务。
 - 数据库。
 - 登录系统。
@@ -158,7 +165,7 @@ Gate 不通过时，依据问题回退到对应的内部生产阶段；不默认
 - 无明确口播的视频，沿用原始内容驱动方案：按画面内容、逐句字幕的正常阅读或口播估算时长、必要停顿和画面主要元素完成入场时间确定每个场景时长。
 - 场景时长不能短于画面主要元素完成入场所需时间，避免列表、终端输出或总结要点还没出现就切走。
 - 如果无明确口播视频估算后的总时长不适合短视频，优先调整脚本文案的信息密度，而不是强行拉长静止画面或压缩正常讲解节奏。
-- 本地原始素材放在 `local/<video-slug>/`；Remotion 可播放资源放在 `public/local-assets/<video-slug>/`，并保持不提交到 Git。
+- 本地原始素材放在 `local/<video-slug>/`；单条视频的 Remotion 可播放资源放在 `public/local-assets/<video-slug>/`，并保持不提交到 Git。系列共享封面等公共视觉资源放在 `public/series-assets/<series-id>/`，必须提交到 Git，供本地预览和 GitHub Actions 共同读取。
 
 约定路径：
 
@@ -170,6 +177,7 @@ Gate 不通过时，依据问题回退到对应的内部生产阶段；不默认
 - 口播稿：`videos/<video-slug>/narration-script.md`
 - 视觉脚本：`videos/<video-slug>/visual-script.md`
 - 视觉原型：`videos/<video-slug>/visual-prototype.html`
+- Remotion 对齐清单：`videos/<video-slug>/remotion-alignment.json`
 - 单条视频审查记录：`videos/<video-slug>/reviews/*.md`
 - 视频配置：`src/videos/<video-slug>/video.config.ts`
 - 视频主组件：`src/videos/<video-slug>/<VideoName>Video.tsx`
@@ -186,6 +194,7 @@ Gate 不通过时，依据问题回退到对应的内部生产阶段；不默认
 - `videos/<video-slug>/narration-script.md`
 - `videos/<video-slug>/visual-script.md`
 - `videos/<video-slug>/visual-prototype.html`
+- 用户确认视觉原型后的 `videos/<video-slug>/remotion-alignment.json`
 - 用户确认视觉原型后的 `src/videos/<video-slug>/video.config.ts`
 - 必要素材目录
 - 本地人工音频和 SRT 字幕对应的静态预览资源
@@ -211,6 +220,15 @@ Gate 不通过时，依据问题回退到对应的内部生产阶段；不默认
 - 下一集预告必须同步进入 `scene-script.md`、`narration-script.md`、`visual-script.md` 和 `visual-prototype.html`；进入 TTS、字幕、时间轴或 Remotion 后，也必须保持同一条预告的内容和顺序。
 - 预告文案必须有当前系列源文档或叙事资料依据；如果源文档已经给出下一集主题，优先沿用其主题，再根据视频口播和画面密度确定最终表达。
 - 优先在 `SummaryScene` 中承载预告，不为预告单独创建场景组件；应为观众留出约 2～3 秒的可读和停留时间，并检查预告卡片与字幕区域不叠放。
+
+## 系列封面规则
+
+- 系列共享信息保存在 `series/<series-id>/series.json`，系列封面保存在 `public/series-assets/<series-id>/cover.<ext>`；同一系列的视频只引用一份封面，不得复制到各自的 `public/local-assets/<video-slug>/`。
+- Harness Web UI 可以创建系列、上传或替换系列封面、设置封面帧数并关联视频；上传接口必须限制本地访问、校验 series ID、文件类型和文件大小，并使用临时文件完成原子替换，不引入数据库或通用素材管理系统。
+- 已有系列的视频关联不得静默移除；保存关联列表时，服务端必须检测被移除的既有成员并拒绝未明确确认的移除，Web UI 必须在移除前展示二次确认。
+- 默认系列封面从 Composition 第 0 帧开始展示 45 帧。正文音频、字幕和所有 Scene 必须共同使用同一个 `contentStartFrame` 后移，总时长增加相同帧数；不得分别修改 TTS、字幕或各 Scene 的源时间数据。
+- 系列封面不进入七层生产资料、TTS、字幕和 Timeline Manifest 的内容生成链路，也不触发 TTS 重做；新增或替换封面后，受影响视频必须回到 Gate 3 重新检查封面显示、正文起点、音画同步和清洁输出。
+- 系列封面必须保持当前视频规格的 16:9 构图。Web UI 应在上传前展示预览并校验宽高比；与 16:9 的相对偏差不超过 1% 时，使用居中 `cover` 裁切并标准化为 1920 × 1080 后上传，不得拉伸；偏差超过 1% 时拒绝上传，避免自动裁掉重要主体。图片进入仓库前不得包含密钥、私人信息或无关调试内容。
 
 ## 技术约束
 
@@ -282,6 +300,7 @@ Gate 不通过时，依据问题回退到对应的内部生产阶段；不默认
 
 - Visual Prototype 阶段用于低成本确认画面语言、横屏构图、信息密度和状态变化。
 - 用户确认 Visual Prototype 前，不继续修改正式 Remotion 视频逻辑。
+- Gate 2 通过后，Remotion Agent 必须以冻结的 Visual Script／Visual Prototype 为约束生成 `remotion-alignment.json`；每个 Scene 都要声明布局、视觉事件、屏幕文字和实现文件。未覆盖全部 Scene、引用旧指纹或实现文件不存在时，不得完成 Remotion 阶段。
 - Remotion Studio 预览阶段用于调动画、字幕、音频同步和最终画面效果。
 - 预览页面中的上一幕／下一幕、自动播放、进度提示、调试标记和制作辅助说明只服务于预览，不得进入最终 Composition 或 MP4；渲染前必须执行一次清洁画面检查。
 - 默认不讨论、不建议、不执行渲染；只有当用户明确说需要渲染时，才说明渲染命令、渲染前提或执行渲染。
@@ -387,17 +406,14 @@ npm run render
 
 ## 后续扩展边界
 
-只有当第一条横屏样片完成并用第二条视频验证复用价值后，才考虑扩展：
+只有当第一条横屏样片完成并用第二条视频验证复用价值后，才考虑扩展。系列封面和系列目录已由用户确认进入当前实现范围，其他扩展仍包括：
 
 - 第二条 Claude Code 教程视频。
 - `CodeBlockScene`。
 - `ScreenshotScene`。
 - 人工配音导入。
 - 字幕时间轴。
-- 封面图导出。
-- 系列视频目录。
-- 批量渲染。
-- 自动 TTS。
+- 不受控的批量渲染或通用自动 TTS；项目范围内的批量渲染和既定 TTS 执行器不属于本条限制。
 - 逐字字幕高亮。
 
 不要在第一阶段就做这些扩展。

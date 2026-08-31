@@ -1,19 +1,35 @@
+import { execFileSync } from "node:child_process";
+
 const repositoryPattern = /^[^/\s]+\/[^/\s]+$/;
 
 function firstNonEmpty(...values) {
   return values.find((value) => typeof value === "string" && value.trim()) ?? "";
 }
 
-export function readGitHubActionsConfig(environment = process.env) {
+export function readCurrentGitRef(cwd = process.cwd()) {
+  try {
+    return execFileSync("git", ["symbolic-ref", "--quiet", "--short", "HEAD"], {
+      cwd,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    }).trim();
+  } catch {
+    return "";
+  }
+}
+
+export function readGitHubActionsConfig(environment = process.env, options = {}) {
+  const currentGitRef = options.currentGitRef ?? readCurrentGitRef(options.cwd);
+
   return {
     token: firstNonEmpty(environment.GITHUB_TOKEN, environment.GH_TOKEN),
     repository: firstNonEmpty(environment.GITHUB_REPOSITORY),
-    ref: firstNonEmpty(environment.HARNESS_GITHUB_REF, environment.GITHUB_REF_NAME),
+    ref: firstNonEmpty(environment.HARNESS_GITHUB_REF, currentGitRef, environment.GITHUB_REF_NAME),
   };
 }
 
-export function validateGitHubActionsConfig(environment = process.env) {
-  const config = readGitHubActionsConfig(environment);
+export function validateGitHubActionsConfig(environment = process.env, options = {}) {
+  const config = readGitHubActionsConfig(environment, options);
   const issues = [];
 
   if (!config.token.trim()) {
@@ -31,8 +47,8 @@ export function validateGitHubActionsConfig(environment = process.env) {
   return { config, issues, valid: issues.length === 0 };
 }
 
-export function requireGitHubActionsConfig(environment = process.env) {
-  const result = validateGitHubActionsConfig(environment);
+export function requireGitHubActionsConfig(environment = process.env, options = {}) {
+  const result = validateGitHubActionsConfig(environment, options);
   if (!result.valid) {
     const error = new Error(result.issues.map((issue) => issue.message).join("; "));
     error.code = "github-config-invalid";

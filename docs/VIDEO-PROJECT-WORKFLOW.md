@@ -226,6 +226,8 @@ HTML + CSS + 少量 JS
 
 确认视觉方向后，再进入 Remotion。
 
+Gate 2 通过时由 Harness 冻结 Visual Script、Visual Prototype 指纹和 Scene 清单。Remotion 实现必须同时提交 `remotion-alignment.json`，逐 Scene 说明原型中的布局、视觉事件和屏幕文字由哪些组件或配置实现；Gate 3 在 Web UI 中结合原型预览、对齐清单和 Remotion Studio 做人工对照。
+
 ---
 
 # 3. 不要一次生成全部文档
@@ -420,6 +422,8 @@ Visual Prototype
 再开始真正实现。
 
 音频和字幕准备好之后，再用于最终时间同步。
+
+进入 Remotion 前必须确认 Gate 2 冻结基线存在。若 Visual Script 或 Visual Prototype 在冻结后发生变化，应先回到对应阶段重新确认，不允许继续沿用旧实现。
 
 ---
 

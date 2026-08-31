@@ -7,7 +7,7 @@
 
 ## 当前阶段
 
-- 远程渲染分支配置已先完成最小修复：显式 `HARNESS_GITHUB_REF` 现在优先于残留的 `GITHUB_REF_NAME`；`02-core-concepts` 的 Remotion、Manifest 和资产 ZIP 已通过本地预检，待形成提交并推送到实际渲染分支后即可重试 Smoke Render。
+- `02-core-concepts` 已完成 Smoke Run `33403378772`、完整 Render `33403831520` 和 Gate 4 人工验收；两个 Artifact 均存在且未过期，当前视频流程完成。
 - Web UI 已对运行中的 Smoke／完整 Render 远程任务锁定重复提交入口：按钮显示“远程任务执行中”并说明任务状态和 ID，详情页每 5 秒同步状态；旧页面或竞态产生的重复请求由服务端幂等返回已有任务，不再报错或创建第二条任务。
 - Codex 系列风格已配置为独立 `codex` 基线；01、02 共享 Codex 令牌，Harness 会解析系列风格并在原型／Remotion 校验阶段阻止风格漂移。
 - `codex-guide` 系列清单已恢复为同时关联 `01-what-is-codex` 和 `02-core-concepts`；系列关联保存现在禁止未经确认的成员移除，Web UI 会在移除前二次确认。
@@ -45,6 +45,9 @@
 
 ## 已完成（最近 10 条）
 
+- 2026-08-31：修复远程渲染只检查资产 ZIP 存在、未检查内部字幕和音频的问题；TTS 适配器同步公共字幕，`02-core-concepts` ZIP 已包含 43 个 MP3、VTT／SRT 和 Scene 字幕，Harness 在创建 Remote Job 前验证 ZIP CRC、目录、逐音频路径、数量和三份 Manifest Scene。
+- 2026-08-31：修复 Web UI 普通重启后再次回退到残留 `GITHUB_REF_NAME` 的问题；本地 Harness 未显式指定分支时改为读取当前 Git 工作区分支，专项与 Web Server 回归 17/17、TypeScript 和实时诊断通过，并将 `02-core-concepts` 新 Smoke 任务提交到正确分支。
+- 2026-08-31：将 `02-core-concepts` 的 Remotion 代码、三份 Manifest、生产资料和资产 ZIP 随提交 `53cda64` 推送到 `feat/harness-batch-to-prototype-gate3`；Web UI 已用显式目标分支重启，GitHub 仓库、分支和两个渲染工作流诊断全部通过，项目保持 `smoke-render / ready`。
 - 2026-08-31：修复远程渲染显式分支被旧 `GITHUB_REF_NAME` 覆盖的问题；`HARNESS_GITHUB_REF` 现为最高优先级，空值会正确回退，GitHub 配置专项 5/5、TypeScript、`02-core-concepts` Remotion、资产 ZIP 和差异检查通过，未触发远程任务。
 - 2026-08-31：修复 Web UI 在 Smoke／完整 Render 已有活跃远程任务时仍显示可提交按钮的问题；详情接口返回当前阶段活跃任务，按钮禁用并显示状态说明，服务端重复提交改为幂等返回已有任务，专项 11/11、Harness 全量 98/98、TypeScript、语法和差异检查通过。
 - 2026-08-31：修复 Web UI 将已完成的历史 Remotion 任务误当作当前任务、导致“执行当前阶段”消失的问题；历史任务保留展示但不再参与当前操作判断，目标回归、Harness 全量 97/97、TypeScript、前端语法和差异检查通过。
@@ -115,7 +118,6 @@
 
 ## 进行中
 
-- `02-core-concepts` 已通过 Gate 3，当前为 `smoke-render / ready`；前两次 Smoke Run 均从旧分支 `feat/video-harness-v0.5` 执行并因缺少资产包失败，当前工作区已补齐 `assets/02-core-concepts-assets.zip` 并通过本地预检。
 - `01-what-is-codex` 完整 Render 已成功；等待用户下载最终 Artifact 并完成 Gate 4 的内容、声音、字幕、画面和清洁输出检查。
 - Web UI Agent Job 和 Prototype→Remotion 对齐契约已完成自动化验证；Remotion 任务支持 Server 重启恢复、未配置或进程失败时保留可重试状态，详情页和任务列表显示具体错误。
 - 四个视频的 TTS 批次 `b16cceae-8ebc-4619-ba21-b472653e8fb4` 已停在 TTS 质检；需要确认发音、自然度、语速、停顿、字幕文本和字幕时间。
@@ -126,14 +128,12 @@
 ## 下一步
 
 1. 用户检查 `01-what-is-codex` 最终 Artifact；确认完整 MP4 无问题后，在 Web UI 通过 Gate 4。
-2. 将 `02-core-concepts` 的 Remotion 代码、三份 Manifest 和 `assets/02-core-concepts-assets.zip` 提交并推送到 `feat/harness-batch-to-prototype-gate3`，用显式 `HARNESS_GITHUB_REF` 重启 Web UI 后重试 Smoke Render。
-3. 按 `todo.md` 的“远程渲染分支与产物预检 TODO”实施分支／提交／资产预检，防止缺少 ZIP 或 dispatch ref 与产物所在分支不一致时仍创建远程任务；本轮不修改 GitHub Actions。
-4. 由用户确认新增 33 个视频的 Gate 2；通过后按四类批次逐段推进，历史完成视频不再回溯。
-5. 后续按 `todo.md` 统一改造 Web UI 的 32 类异步／业务按钮：补齐提交中、持久禁用、原因说明、多入口同步和服务端幂等；本轮只完成盘点，未修改 Web UI 实现。
+2. 按 `todo.md` 继续完成目标远程分支／commit SHA 和未推送产物检查；本轮未修改 GitHub Actions。
+3. 由用户确认新增 33 个视频的 Gate 2；通过后按四类批次逐段推进，历史完成视频不再回溯。
+4. 后续按 `todo.md` 统一改造 Web UI 的 32 类异步／业务按钮：补齐提交中、持久禁用、原因说明、多入口同步和服务端幂等；本轮只完成盘点，未修改 Web UI 实现。
 
 ## 阻塞
 
-- `02-core-concepts` 暂时不能直接重试 Smoke Render：本地新增的资产包和视频产物尚未提交、推送到远程分支；当前启动环境仍带有旧 `GITHUB_REF_NAME=feat/video-harness-v0.5`，需要在新配置生效后重启 Web UI。
 - `01-what-is-codex` 当前只等待 Gate 4 最终人工验收；远程渲染与 Artifact 生成无阻塞。
 
 ## 关键避坑
@@ -148,7 +148,8 @@
 - 画面文字必须能追溯到当前视频生产资料；预览导航、调试标记和辅助说明不得进入最终 MP4，具体检查要求见 `CLAUDE.md` 和 `docs/video-production-notes.md`。
 - 新视频口播必须在生成阶段按独立视频表达，禁止把原始材料作为口播叙事对象；来源指代检查必须在派生 `tts-script.json` 前完成，已完成视频不回溯修改。
 - Web UI 提交远程任务前必须确认 GitHub Actions 适配器所需环境变量已配置；缺少 Token 时应在提交前给出明确配置提示，不应创建一个立即失败的远程任务。
-- 显式 `HARNESS_GITHUB_REF` 已优先于 `GITHUB_REF_NAME`；远程渲染前仍须确认 Web UI 已重启并在诊断中显示实际目标分支，直到远端提交／资产预检功能完成。
+- 本地 Harness 的分支优先级必须保持为显式 `HARNESS_GITHUB_REF`、当前 Git 工作区分支、`GITHUB_REF_NAME`；远程渲染前仍须确认诊断中的实际目标分支，直到远端提交／资产预检功能完成。
+- 远程渲染资产检查不能停在“ZIP 文件存在”；必须在提交前验证 ZIP 可解压、顶层目录、VTT／SRT、逐个 MP3 路径和数量，并与三份 Manifest 的视频及 Scene 对齐。
 - 批量“完成 TTS”只有在音频、字幕和 Timeline Manifest 都实际存在并通过校验后才能进入 TTS 质检；“批量渲染”必须先等待 Smoke Render 检查，不能直接进入完整渲染。
 - 批量 Remotion 不应把缺少 `video.config.ts` 或 `*Video.tsx` 直接当作批次失败；应创建 Remotion 制作任务，等待 Agent 产出后重新校验并恢复批次。
 - 单条执行器必须先完成副作用，再由 Harness 重新校验产物和推进状态；未配置外部命令或 Agent 时必须明确报错，不能生成占位产物或把任务创建显示为完成。
@@ -156,6 +157,9 @@
 
 ## 最近验证（最近 10 条）
 
+- 2026-08-31：提交 `ee39d98` 后远端分支与本地一致；`02-core-concepts-assets.zip` 通过 CRC 与 Harness 真实预检，包含 43 个 MP3、`captions.vtt`、`captions.srt` 和 8 份 Scene 字幕；新 Smoke Run `33403378772` 已确认执行中，远程预检／TTS 适配器专项 5/5、非 Web Harness 91/91、Web 主接口 1/1、Web 不完整 ZIP 阻断 1/1、`npm run check` 和差异检查通过。
+- 2026-08-31：在环境残留 `GITHUB_REF_NAME=feat/video-harness-v0.5` 时，普通 Web UI 启动仍解析到当前分支 `feat/harness-batch-to-prototype-gate3`；GitHub 配置与 Web Server 回归 17/17、`npm run check`、差异检查和实时 GitHub 诊断通过，新任务持久化 ref 与当前分支一致。
+- 2026-08-31：远端分支与本地提交差异为 `0/0`；远端树包含 `assets/02-core-concepts-assets.zip`、Composition 代码及三份 Manifest；Web UI GitHub 诊断 `ok: true`，实际 ref 为 `feat/harness-batch-to-prototype-gate3`，项目 API 返回 `smoke-render / ready`。
 - 2026-08-31：GitHub 配置专项 5/5、`npm run check`、`validate 02-core-concepts remotion`、资产 ZIP 完整性和目标差异检查通过；Harness 全量运行至第 88 项全部通过后长时间无新增输出并被中止，未记为全量通过。
 - 2026-08-31：远程任务运行中禁用重复提交入口并展示任务说明；Web Server 11/11、Harness 全量 98/98、`npm run check`、前后端语法和 `git diff --check` 均通过，未触发新的远程任务或修改视频产物。
 - 2026-08-31：已完成历史 Remotion 任务不再遮蔽当前阶段操作；当前 `127.0.0.1:4173` 已加载新判断，Web Server 10/10、Harness 全量 97/97、`npm run check`、`node --check harness/web/app.js` 和 `git diff --check` 均通过。

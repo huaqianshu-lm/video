@@ -2,6 +2,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { STAGE_DEFINITIONS, stageIndex } from "./stages.mjs";
 import { matchesArtifactPath } from "./artifact-paths.mjs";
+import { validateRemotionAlignment } from "./remotion-alignment.mjs";
+import { getSeriesDefinitionForSlug, getStyleDefinition } from "./styles.mjs";
 
 const SOURCE_REFERENCE_PATTERNS = [
   { label: "原文档", test: (text) => text.includes("原文档") },
@@ -81,7 +83,7 @@ function normalizeText(text) {
 }
 
 function sceneIdsFromMarkdown(text) {
-  return [...text.matchAll(/^##\s+Scene\s+(\d+)/gim)].map((match) => match[1].padStart(2, "0"));
+  return [...text.matchAll(/^#{1,6}\s+Scene\s+(\d+)/gim)].map((match) => match[1].padStart(2, "0"));
 }
 
 function markdownHeadings(text, level = 2) {
@@ -222,7 +224,7 @@ function validateStageStructure(project, stage) {
 }
 
 function sceneBodiesFromNarration(text) {
-  const matches = [...text.matchAll(/^##\s+Scene\s+(\d+).*$/gim)];
+  const matches = [...text.matchAll(/^#{1,6}\s+Scene\s+(\d+).*$/gim)];
   return matches.map((match, index) => {
     const start = match.index + match[0].length;
     const end = matches[index + 1]?.index ?? text.length;
@@ -298,6 +300,44 @@ function validateSceneAlignment(project, stage) {
     entries.push({ label: "Visual Prototype", ids: [...prototype.matchAll(/<section\s+class=["']scene\b/gi)].map((_, index) => String(index + 1).padStart(2, "0")) });
   }
   return compareSceneIds(stage, entries);
+}
+
+function validateSeriesStyle(project, stage) {
+  const series = getSeriesDefinitionForSlug(project.config.slug);
+  if (!series?.style) return [];
+
+  const expectedStyle = series.style;
+  const configuredStyle = project.config.style ?? expectedStyle;
+  const issues = [];
+  if (!getStyleDefinition(expectedStyle)) {
+    issues.push(issue(stage, "unknown-series-style", `系列 ${series.id} 配置了未知风格：${expectedStyle}`));
+    return issues;
+  }
+  if (configuredStyle !== expectedStyle) {
+    issues.push(issue(stage, "series-style-mismatch", `项目风格 ${configuredStyle} 与系列 ${series.id} 的风格 ${expectedStyle} 不一致`, "project.json"));
+    return issues;
+  }
+
+  if (stageIndex(stage) < stageIndex("visual-prototype")) return issues;
+  const prototypePath = artifactPathFor(project, "visual-prototype", 0);
+  const prototype = readTextArtifact(project, prototypePath);
+  if (expectedStyle === "codex" && prototype !== null && !/--app\s*:\s*#39d7c2|--accent\s*:\s*#39d7c2/i.test(prototype)) {
+    issues.push(issue(stage, "series-style-mismatch", "Codex Visual Prototype 未声明 Codex 青绿色视觉令牌", prototypePath));
+  }
+
+  if (stageIndex(stage) < stageIndex("remotion")) return issues;
+  const remotionRelativeDirectory = project.config.remotionDirectory ?? `src/videos/${project.config.slug}`;
+  const remotionDirectory = path.join(project.config.workspaceRoot, remotionRelativeDirectory);
+  const remotionFiles = fs.existsSync(remotionDirectory) && fs.statSync(remotionDirectory).isDirectory()
+    ? fs.readdirSync(remotionDirectory).filter((entry) => entry.endsWith(".tsx"))
+    : [];
+  if (expectedStyle === "codex" && remotionFiles.length > 0) {
+    const usesCodexTokens = remotionFiles.some((entry) => /styles\/codex/.test(readTextArtifact(project, path.posix.join(remotionRelativeDirectory, entry)) ?? ""));
+    if (!usesCodexTokens) {
+      issues.push(issue(stage, "series-style-mismatch", "Codex Remotion 未接入 Codex 风格令牌", remotionRelativeDirectory));
+    }
+  }
+  return issues;
 }
 
 function validateTts(project, stage, { strict = true } = {}) {
@@ -403,11 +443,13 @@ export function validateStageContent(project, stage, options = {}) {
   const strict = options.strict ?? project.config.validationPolicy !== "legacy";
   const index = stageIndex(stage);
   const issues = [];
+  issues.push(...validateSeriesStyle(project, stage));
   issues.push(...validateStageStructure(project, stage));
   if (index >= stageIndex("scene-script")) issues.push(...validateSceneAlignment(project, stage));
   if (index >= stageIndex("narration-script")) issues.push(...validateNarration(project, stage, { strict }));
   if (index >= stageIndex("tts")) issues.push(...validateTts(project, stage, { strict }));
   if (index >= stageIndex("subtitle-timeline")) issues.push(...validateTimeline(project, stage));
+  if (index >= stageIndex("remotion")) issues.push(...validateRemotionAlignment(project));
   return issues;
 }
 

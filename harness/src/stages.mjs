@@ -118,7 +118,7 @@ const rawStageDefinitions = [
     objective: "把已确认的内容、视觉和时间资料接入 Remotion Composition。",
     inputStages: ["subtitle-timeline", "visual-prototype"],
     executor: "agent",
-    validation: ["required-artifacts", "remotion-config", "resource-manifest"],
+    validation: ["required-artifacts", "remotion-config", "resource-manifest", "remotion-alignment"],
     fallbackStage: "subtitle-timeline",
   },
   {
@@ -131,6 +131,7 @@ const rawStageDefinitions = [
     executor: "human",
     validation: ["manual-gate", "clean-output-review"],
     manualChecks: [
+      "逐 Scene 对照 Gate 2 冻结原型与 remotion-alignment.json，确认布局、视觉事件和屏幕文字已兑现。",
       "音频、字幕、视觉事件和 Scene 边界同步。",
       "字幕和主文字处于安全区，画面没有溢出、遮挡或白屏。",
       "Composition 中没有预览导航、调试标记、辅助说明或无关文字。",
@@ -228,6 +229,7 @@ export function createStageState(stage, index) {
     review: null,
     error: null,
     invalidatedBy: null,
+    rebuildBaselineFingerprint: null,
     outputFingerprint: null,
     updatedAt: null,
   };

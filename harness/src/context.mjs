@@ -3,8 +3,9 @@ import {
   getWorkflowDefinition,
   isGateStage,
 } from "./stages.mjs";
-import { DEFAULT_STYLE_ID, getStyleDefinition } from "./styles.mjs";
+import { getStyleDefinition, resolveStyleId } from "./styles.mjs";
 import { matchesArtifactPath } from "./artifact-paths.mjs";
+import { getPrototypeBaseline, remotionAlignmentPath } from "./remotion-alignment.mjs";
 
 function commandFor(command, slug, stage = null) {
   const suffix = stage ? ` ${stage}` : "";
@@ -33,7 +34,7 @@ export function buildTaskPacket(project) {
   if (!workflow) {
     throw new Error(`Unknown workflow: ${config.workflow}`);
   }
-  const styleId = config.style ?? DEFAULT_STYLE_ID;
+  const styleId = resolveStyleId(config, state.slug);
   const style = getStyleDefinition(styleId);
   if (!style) {
     throw new Error(`Unknown style: ${styleId}`);
@@ -64,6 +65,21 @@ export function buildTaskPacket(project) {
   const contract = definition.contract;
   const inputs = artifactEntries(project, contract.inputStages);
   const outputs = artifactEntries(project, [stage]);
+  const prototypeBaseline = stage === "remotion" ? getPrototypeBaseline(project) : null;
+  if (stage === "remotion" && prototypeBaseline?.alignmentRequired !== false) {
+    for (const outputPath of [
+      remotionAlignmentPath(project),
+      `src/videos/${config.slug}/*.tsx`,
+      "src/Root.tsx",
+    ]) {
+      outputs.push({
+        stage,
+        path: outputPath,
+        status: "unverified",
+        exists: matchesArtifactPath(config.workspaceRoot, outputPath),
+      });
+    }
+  }
   const commands = {
     validate: commandFor("validate", state.slug, stage),
     execute: isGateStage(stage)
@@ -122,7 +138,12 @@ export function buildTaskPacket(project) {
         "只处理当前阶段，不跳过前置阶段或提前执行下游阶段。",
         "只写入当前阶段声明的输出产物。",
         "完成输出后执行任务包中列出的校验命令。",
+        ...(stage === "remotion" ? [
+          "Gate 2 冻结的 Visual Script 与 Visual Prototype 是 Remotion 的强制视觉基线。",
+          "必须逐 Scene 生成 remotion-alignment.json，记录布局、视觉事件、屏幕文字和实现文件。",
+        ] : []),
       ],
+      ...(stage === "remotion" ? { prototypeBaseline } : {}),
     },
   };
 }

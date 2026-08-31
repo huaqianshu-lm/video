@@ -22,7 +22,7 @@ export const SummaryScene = ({scene}: SummarySceneProps) => {
   const roleCards = getRoleCards(scene);
   const teaserStartFrame = Math.max(
     summaryEndFrame + Math.round(fps * 1.2),
-    Math.round(scene.durationSeconds * fps * 0.72),
+    Math.round((scene.teaserStartSeconds ?? scene.durationSeconds * 0.72) * fps),
   );
   const teaser = scene.teaser;
   const summaryCardsOpacity = teaser
