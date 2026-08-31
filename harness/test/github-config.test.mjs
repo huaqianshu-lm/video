@@ -16,6 +16,32 @@ test("accepts the supported GitHub Actions environment variables", () => {
   });
 });
 
+test("prefers the explicit Harness ref over a stale GitHub ref", () => {
+  const result = validateGitHubActionsConfig({
+    GITHUB_TOKEN: "secret",
+    GITHUB_REPOSITORY: "owner/video",
+    GITHUB_REF_NAME: "feat/video-harness-v0.5",
+    HARNESS_GITHUB_REF: "feat/harness-batch-to-prototype-gate3",
+  });
+
+  assert.equal(result.valid, true);
+  assert.equal(result.config.ref, "feat/harness-batch-to-prototype-gate3");
+});
+
+test("ignores empty primary values and uses supported fallbacks", () => {
+  const result = validateGitHubActionsConfig({
+    GITHUB_TOKEN: "",
+    GH_TOKEN: "secret",
+    GITHUB_REPOSITORY: "owner/video",
+    HARNESS_GITHUB_REF: "",
+    GITHUB_REF_NAME: "main",
+  });
+
+  assert.equal(result.valid, true);
+  assert.equal(result.config.token, "secret");
+  assert.equal(result.config.ref, "main");
+});
+
 test("reports every missing or malformed GitHub Actions setting", () => {
   const result = validateGitHubActionsConfig({
     GITHUB_TOKEN: "",

@@ -7,20 +7,85 @@
 
 ## 当前阶段
 
+- 远程渲染分支配置已先完成最小修复：显式 `HARNESS_GITHUB_REF` 现在优先于残留的 `GITHUB_REF_NAME`；`02-core-concepts` 的 Remotion、Manifest 和资产 ZIP 已通过本地预检，待形成提交并推送到实际渲染分支后即可重试 Smoke Render。
+- Web UI 已对运行中的 Smoke／完整 Render 远程任务锁定重复提交入口：按钮显示“远程任务执行中”并说明任务状态和 ID，详情页每 5 秒同步状态；旧页面或竞态产生的重复请求由服务端幂等返回已有任务，不再报错或创建第二条任务。
+- Codex 系列风格已配置为独立 `codex` 基线；01、02 共享 Codex 令牌，Harness 会解析系列风格并在原型／Remotion 校验阶段阻止风格漂移。
+- `codex-guide` 系列清单已恢复为同时关联 `01-what-is-codex` 和 `02-core-concepts`；系列关联保存现在禁止未经确认的成员移除，Web UI 会在移除前二次确认。
+- Web UI 已修复项目级“执行当前阶段”与 Remotion 任务状态不同步的问题：按接口真实的 `result.taskId` 进入轮询，`ready / in-progress / failed` 分别显示执行、制作中或重试状态，已完成的历史任务不再遮蔽当前 `run-stage` 操作，任务完成前不提供 Gate 3 通过入口。`02-core-concepts` 已重新冻结 Codex 风格 Gate 2 指纹，Remotion 对齐清单已同步，当前为 `remotion / ready`，可执行当前阶段并进入 Gate 3。
+- TTS Harness 适配器已补齐并通过不联网契约测试：可从 stdin 接收 `video-tts-execution`，调用既有 TTS 三段 Python 脚本并回写音频／字幕／Timeline；`02-core-concepts` 已完成真实 TTS、字幕和 Timeline 产物并通过质检。
+- `02-core-concepts` TTS 已完成并通过 TTS 质检；Remotion 报告已修正为允许在缺少待生成 `remotion-alignment.json` 时创建制作任务，任务完成后仍严格校验对齐清单。
+- Harness Web UI 已接入持久化后台 Agent Job，并建立 Gate 2 冻结原型、Remotion 逐 Scene 对齐清单和 Gate 3 同屏对照；第 3 项远程渲染分支／提交预检按用户要求暂缓，等待前两项实际使用确认后再做。
+- 新视频 `01-what-is-codex` 已关联 `codex-guide` 系列并接入45帧共享封面片头；用户已通过 Gate 3 和 Smoke 人工检查，完整 Render Run `33290995317` 成功并生成有效 Artifact，当前等待 Gate 4 最终人工验收。
 - Harness 0.4 已完成本地实现、测试和推送，PR #3 已合并到 `main`（`5fcefb89`）；Harness 0.5 已完成实现、远程 render／Gate 4 闭环修复、已提交任务自动找回 Run／Artifact、全量测试、文档收尾和受控真实 Smoke Render 监控验收（Run `32632006287`、Artifact `vscode-smoke-test`），PR #4 已合并到 `main`（`bd991479`），不改现有视频内容。
-- Harness Web UI 第一版已合入待处理视频集成分支；53 个视频项目按原文件序号 01–53 展示和排序，目录索引已补齐，项目卡片以完整项目名称为主信息，项目列表、详情、资料和 Visual Prototype 预览人工回归通过。
+- Harness Web UI 第一版已合入待处理视频集成分支；视频项目按原文件的系列内序号展示和排序，同序号项目以 slug 唯一标识并稳定排序，目录索引已补齐，项目卡片以完整项目名称为主信息。
 - 新视频 `remotion-video` 已完成七层生产资料、Gate 1、Gate 2 和 12 Scene 横屏 Visual Prototype；源文档与指定文章字节一致，按任务边界停止在原型阶段，未生成 TTS 或 Remotion 资料。
 - 新视频 `glossary` 已完成七层生产资料、Gate 1、Gate 2 和 12 Scene 横屏 Visual Prototype；源文档与指定文章字节一致，按任务边界停止，未生成 TTS 或 Remotion 资料。
 - 新视频 `troubleshooting` 已完成七层生产资料、Gate 1、Gate 2 和 12 Scene 横屏 Visual Prototype；源文档与指定文章字节一致，按任务边界停止在原型阶段，未生成 TTS 或 Remotion 资料。
 - 新视频 `voice` 已完成七层生产资料、Gate 1、Gate 2 和 12 Scene 横屏 Visual Prototype；源文档字节一致，按任务边界停止在原型阶段，未生成 TTS 或 Remotion 资料。
 - 新视频 `claude-code-how-it-works` 已通过 GitHub Smoke Render 和完整 Render；Run `32360625092` 成功，最终 MP4 已完成 Gate 4 人工确认。
-- `claude-code-coding-plan`、`claude-code-third-party-models` 和 `claude-code-api-config` 已完成 TTS、字幕／Timeline、Remotion、远程 Smoke Render、完整 Render 及 Gate 4 最终人工确认。
+- `claude-code-coding-plan`、`claude-code-third-party-models`、`claude-code-api-config` 和 `claude-code-first-run` 已完成 TTS、字幕／Timeline、Remotion、远程 Smoke Render、完整 Render 及 Gate 4 最终人工确认。
 - 新视频 `vscode` 和 `claude-code-first-run` 已完成 TTS、字幕／Timeline、Remotion 接入及完整 GitHub Actions Render，最终 MP4 均通过用户 Gate 4 人工验收。
 - Harness 0.6 已在独立分支 `feat/video-harness-v0.6` 完成实现和人工回归；已补齐远程任务状态分类、可恢复错误、超时终态、GitHub 环境诊断、全局远程任务视图和 Gate 审查记录，48 项 Harness 回归、类型检查、差异检查及 GitHub 配置／全局任务／项目详情页人工检查均通过，未修改视频内容；PR #5 已合并到 `main`，合并提交为 `a37cd7e`。
+- 批量生产已拆为四类目标：到 Gate 2、完成 TTS、完成 Remotion、批量渲染；批次会在 TTS 质检和 Smoke Render 检查前暂停，旧批次类型保留只读兼容。
+- Remotion 制作任务层已接入：TTS 质检后的批量 Remotion 在产物缺失时创建可恢复任务，等待 Agent 生成配置／主组件，完成后自动校验并继续到 Gate 3；当前仍未配置自动 Remotion 生成器。
+- 单条 TTS 执行器已接入 Harness 核心：执行器通过无 shell 的 JSON stdin 协议调用外部 TTS，固定传入冻结 `tts-script.json`、`+25%` 和输出契约；执行结束后由 Harness 校验音频、字幕和 Timeline，失败不会推进阶段。
+- 单条 Remotion Agent 和远程 Smoke／Render 执行器已接入统一单条入口；Remotion 任务完成后自动校验并停在 Gate 3，远程渲染创建持久化任务并交给现有 GitHub Actions 监控，均未自动通过人工 Gate。
+- 批量 TTS、Remotion 和远程渲染已改为复用统一单条入口；批量任务支持执行器产物验收、Remotion 任务关联、远程任务等待、Smoke 质检暂停和避免重复提交，均未触发真实外部执行器。
+- Web UI 单视频详情页已增加 TTS 质检确认入口；确认后复用 Harness 审核逻辑，并同步当前等待中的 TTS 批次。
+- 批量页面的每条视频现在统一展示 Harness 项目当前状态；批次自身的历史执行记录与视频当前状态分开保存，避免同一视频在不同批次中显示过期状态。
+- `jetbrains`、`desktop`、`web-and-cloud`、`project-init` 已使用冻结的 `tts-script.json` 完成真实 `+25%` TTS、字幕和 Timeline 生成；批次 `b16cceae-8ebc-4619-ba21-b472653e8fb4` 当前等待 TTS 质检。
+- 11 个已有 Visual Prototype 且未进入下游生产的视频已接管到 Harness Gate 2 等待确认，保留文件指纹，未修改视频资料。
+- 其余 33 个视频已按已有原型接管到 Harness Gate 2 等待确认；当前 53 个视频均已纳入 Harness 管理，未修改视频资料。
+- 7 个已有完整下游产物且用户确认已渲染完成的历史视频已标记为 Harness `completed`；保留历史标记，不再按当前严格资料规则回溯处理。
+- 22 条未初始化视频的结构缺失已按最早受影响资料完成修复；只调整可识别的 Markdown 结构标题，未改正文和下游产物。
+- 17 条未初始化视频的 Scene 字段缺失已按现有内容完成对齐；补齐逐 Scene 的视觉目标、屏幕文字和 Visual Type，未进入 TTS 或 Remotion。
+- `claude-md-guide` 的 Visual Prototype Scene 容器已按基线对齐；未修改画面内容、交互逻辑或下游产物。
+- `getting-started-practice`、`glossary`、`security`、`slash-commands`、`voice` 的口播来源指代已按语义修复；未生成或修改下游 TTS、字幕和 Remotion 产物。
+- `skill-creator` Scene 10、`troubleshooting` Scene 12 的口播边界已清理；移除末尾内部 Gate 检查清单，实际口播内容未变。
 
 ## 已完成（最近 10 条）
 
+- 2026-08-31：修复远程渲染显式分支被旧 `GITHUB_REF_NAME` 覆盖的问题；`HARNESS_GITHUB_REF` 现为最高优先级，空值会正确回退，GitHub 配置专项 5/5、TypeScript、`02-core-concepts` Remotion、资产 ZIP 和差异检查通过，未触发远程任务。
+- 2026-08-31：修复 Web UI 在 Smoke／完整 Render 已有活跃远程任务时仍显示可提交按钮的问题；详情接口返回当前阶段活跃任务，按钮禁用并显示状态说明，服务端重复提交改为幂等返回已有任务，专项 11/11、Harness 全量 98/98、TypeScript、语法和差异检查通过。
+- 2026-08-31：修复 Web UI 将已完成的历史 Remotion 任务误当作当前任务、导致“执行当前阶段”消失的问题；历史任务保留展示但不再参与当前操作判断，目标回归、Harness 全量 97/97、TypeScript、前端语法和差异检查通过。
+- 2026-08-31：同步 `02-core-concepts/remotion-alignment.json` 到重新冻结的 Gate 2 Visual Script／Visual Prototype 指纹；扫描全部 55 个 Harness 项目后确认只有该项目存在 Remotion 对齐清单，其余项目未进入对齐契约或缺少 Remotion 实现；目标项目 Remotion、TTS、字幕／Timeline 校验、Harness 全量测试和 TypeScript 检查通过。
+- 2026-08-31：建立系列级视觉风格继承与校验；新增 `codex`／`claude-code` 风格定义，Codex 01／02 共享 `src/styles/codex.ts`，02 的 Visual Prototype 与 Remotion 已切换到 Codex 基线；`npm run check`、Harness 核心和真实视频只读回归通过。
+- 2026-08-31：恢复 `codex-guide` 系列的 `01-what-is-codex` 关联；服务端拒绝未经确认的既有成员移除，Web UI 增加二次确认，系列文件和视频产物未删除。
+- 2026-08-31：修复 Web UI 项目级 Remotion 执行状态同步；前端读取 `result.taskId`，运行中自动刷新项目状态并禁用重复执行，失败时保留重试入口，完成后才恢复 Gate 3 操作；Harness 全量 95/95、Web Server 10/10、TypeScript、前端语法和差异检查通过。
+- 2026-08-31：修正 Remotion 重试时 Codex CLI 参数互斥和重复提交误报 `in-progress` 的问题；默认适配器改用兼容的 `--approve-for-me` 参数，运行接口支持幂等返回，前端提交后锁定同任务按钮，专项回归、类型检查和 Web UI 重启验证通过。
+- 2026-08-31：`02-core-concepts` Remotion 任务完成；修正 Scene 06 三条上下文连接线与箭头的几何对齐，补齐最终确定性／补充性收束文字，Harness Remotion 校验、TypeScript 和差异检查通过，项目进入 Gate 3 等待人工预览。
+- 2026-08-31：Web UI 项目详情和 Remotion 任务列表持久显示执行器失败原因；修正任务恢复错误的可读消息并更新前端缓存版本，Remotion 产物未修改。
+- 2026-08-30：Web UI“执行当前阶段”增加页面内提交中／错误反馈；即使浏览器不显示弹窗，也能看到 Remotion 任务的阻塞原因，未修改视频或 Remotion 文件。
+- 2026-08-30：Web UI 阶段执行按钮增加提交中状态和 Agent Job 立即失败反馈；未配置 TTS 执行器时保留失败 Job 与重试入口，不再表现为无响应。
+
+- 2026-08-30：修复 Gate 2 仅识别 `## Scene` 导致一级或三级 Visual Script Scene 被误判为不一致的问题；统一支持 Markdown 标题层级 1～6，`02-core-concepts` Gate 2 已成功通过并进入 `tts`。
+
+- 2026-08-30：Web UI“执行当前阶段”改为创建持久化后台 Agent Job，支持有界日志、失败重试和 Server 重启后的中断恢复；进程退出后必须由 Harness 校验真实产物才推进，不再把已有文件校验伪装成 Agent 执行。
+- 2026-08-30：Gate 2 通过时冻结 Visual Script／Visual Prototype 指纹和 Scene 清单；新视频 Remotion 必须提交逐 Scene `remotion-alignment.json`，Gate 3 Web UI 同屏展示冻结原型、Remotion Studio 和对齐清单，历史实现保持兼容。
+- 2026-08-30：`01-what-is-codex` 已在 `feat/harness-batch-to-prototype-gate3` 完成 GitHub Actions Smoke 和完整 Render；完整 Run `33290995317` 成功，Artifact `01-what-is-codex` 为14,485,652 bytes且未过期，Harness 已进入 Gate 4。
+- 2026-08-30：用户确认 `01-what-is-codex` Remotion 预览无问题；Harness Gate 3 审批记录已补齐并验证为 `succeeded`，项目进入 `smoke-render / ready`。
+- 2026-08-30：系列共享封面支持上传前裁切预览；比例偏差不超过1%的图片会在浏览器内居中 `cover` 裁切并标准化为1920×1080，超过1%仍拒绝上传；资源继续保存到 `public/series-assets/`，Remotion 的45帧片头和 Gate 3 回退规则不变。
+- 2026-08-30：`01-what-is-codex` Scene 01 已按 Gate 3 反馈把四个入口卡片改为 2×2，并将“一个 Codex”核心圆绑定到四卡网格几何中心；Visual Prototype 与 Remotion 同步更新，类型和 Harness 校验通过，继续等待 Gate 3 人工确认。
+- 2026-08-26：`01-what-is-codex` 使用冻结的 10 Scene、55 Segment 输入完成 `zh-CN-XiaoxiaoNeural`、`+25%` TTS，生成 55 个音频、55 份 Timing、136 条字幕 Cue 和 296.664 秒 Timeline，并通过用户人工 TTS 质检；项目规范已明确同一授权边界内不再重复确认外发权限。
+- 2026-08-25：统一批量页面的视频状态展示；所有批次项目通过项目状态投影显示同一条视频的当前阶段和下一步信息，旧批次历史记录不再覆盖当前状态。
+- 2026-08-25：为单视频详情页增加 TTS 质检确认按钮和项目级接口；确认后同步等待中的 TTS 批次，不再要求用户返回批量记录操作。
+- 2026-08-25：清理 `jetbrains`、`desktop`、`web-and-cloud`、`project-init` 的字幕展示文本句末标点；不修改 TTS 朗读文本、音频和 Timeline。
+- 2026-08-25：新增 Remotion 制作任务层；批量 Remotion 遇到缺失产物时不再直接失败，而是创建可恢复任务，支持 CLI／Web API／Web UI 查询、启动、完成校验、重试和批次续做。
+- 2026-08-25：接入单条 TTS 执行器；通过配置注入外部命令，使用冻结 `tts-script.json` 和显式 `+25%` 生成真实音频／字幕／Timeline 后再由 Harness 校验，执行失败保持阶段失败；新增执行器成功、失败和输入契约回归。
+- 2026-08-25：接入单条 Remotion Agent、Smoke／Render 执行器和共享单条阶段入口；Remotion 成功、失败、远程任务提交、阶段前置条件和统一入口回归通过，Harness 全量 69/69，未触发真实 Agent 或远程渲染。
+- 2026-08-25：批量 TTS、Remotion 和远程渲染复用统一单条入口；补充执行器产物验收、Remotion 任务恢复、远程任务等待、防重复提交和失败重试回归，Harness 全量 73/73，`npm run check` 和 `git diff --check` 通过，未触发真实外部执行器。
+- 2026-08-25：修复 `claude-md-guide` 的 Visual Prototype Scene 容器结构；原型结构校验清零，未修改画面内容和交互逻辑。
+- 2026-08-25：修复 5 条未初始化视频的口播来源指代；目标视频校验清零，历史完成视频仍按约定不回溯。
+- 2026-08-25：清理 `skill-creator` 和 `troubleshooting` 口播文档末尾的内部 Gate 检查清单；内部制作文字校验清零，实际口播未改。
+- 2026-08-25：将 33 个误按普通初始化的视频按已有原型接管到 Gate 2 等待确认；全部 53 个视频均已建立正确阶段状态，未修改视频资料。
+- 2026-08-25：修复 17 条未初始化视频的 Harness `missing-scene-field` 问题；逐 Scene 字段回归清零，未改口播、原型或下游产物。
+- 2026-08-25：修复 22 条未初始化视频的 Harness `missing-structure` 问题；结构校验已清零，未修改正文、Scene、口播、原型或下游产物。
+- 2026-08-24：新增已有产物接管能力；`desktop`、`web-and-cloud`、`prompting`、`subagents`、`memory`、`agent-skills`、`skills-in-practice`、`agent-teams`、`choosing-features`、`settings-json`、`hooks` 均同步为 Gate 2 等待人工确认。
+- 2026-08-24：将 `claude-code-coding-plan`、`claude-code-how-it-works`、`claude-code-install`、`claude-code-third-party-models`、`claude-code-what-is`、`claude-code-api-config` 按用户确认的历史渲染结果标记为 Harness `completed`，未修改视频资料。
+- 2026-08-25：将 `claude-code-first-run` 按用户确认的历史渲染结果标记为 Harness `completed`，未修改视频资料。
 - 2026-08-24：Harness Gate 2 通过后自动从纯口播稿派生并校验 `tts-script.json`；`jetbrains` 已补齐 9 个 Scene 的 TTS 输入，校验通过且未调用外部 TTS。
+- 2026-08-25：批量生产改为“到 Gate 2”“完成 TTS”“完成 Remotion”“批量渲染”四个批次目标；新增 TTS／Smoke Render 质检记录和恢复动作，未配置执行器或缺少真实产物时明确失败。
+- 2026-08-25：完成 `jetbrains`、`desktop`、`web-and-cloud`、`project-init` 的真实 `+25%` TTS、字幕和 Timeline；共生成 63 个音频 Segment、385 条字幕 Cue，四个 Harness 项目均通过 `subtitle-timeline` 校验并暂停等待 TTS 质检。
 - 2026-08-24：在 `feat/harness-gate-return-stage-select` 将 Web UI 的 Gate 驳回回退阶段改为 Harness 契约驱动的选择框，并保留必填驳回原因；Harness 核心 23/23、Web Server 5/5、类型检查和差异检查通过，未修改视频内容。
 - 2026-08-24：Harness 0.6 的 GitHub 配置诊断、全局远程任务列表和项目详情页人工回归完成，状态、操作和远程任务信息均正常，未修改视频内容。
 - 2026-08-24：Harness 0.6 完成远程任务状态模型、超时／可恢复错误处理、GitHub `doctor` 诊断、全局任务 API／CLI、Gate 审查记录和 Web UI 展示；`npm test --prefix harness` 48/48、`npm run check`、前端语法和 `git diff --check` 通过，视频目录无改动。
@@ -50,18 +115,26 @@
 
 ## 进行中
 
-- 当前没有待完成的 Gate 3／Gate 4 视频验收项。
-- `jetbrains` 已通过 Gate 2，当前进入 `tts`；`tts-script.json` 已自动派生并通过校验，尚未调用外部 TTS。
+- `02-core-concepts` 已通过 Gate 3，当前为 `smoke-render / ready`；前两次 Smoke Run 均从旧分支 `feat/video-harness-v0.5` 执行并因缺少资产包失败，当前工作区已补齐 `assets/02-core-concepts-assets.zip` 并通过本地预检。
+- `01-what-is-codex` 完整 Render 已成功；等待用户下载最终 Artifact 并完成 Gate 4 的内容、声音、字幕、画面和清洁输出检查。
+- Web UI Agent Job 和 Prototype→Remotion 对齐契约已完成自动化验证；Remotion 任务支持 Server 重启恢复、未配置或进程失败时保留可重试状态，详情页和任务列表显示具体错误。
+- 四个视频的 TTS 批次 `b16cceae-8ebc-4619-ba21-b472653e8fb4` 已停在 TTS 质检；需要确认发音、自然度、语速、停顿、字幕文本和字幕时间。
+- 四个视频的 Remotion 制作任务层已可用；实际 Remotion 配置和主组件仍需 Agent 逐视频生成，完成后由 Harness 校验并续做批次。
+- 批量渲染已接入持久化远程任务路径；当前只推进到真实 TTS 产物和 TTS 质检检查点，尚未执行真实批量渲染。
+- 全部 53 个视频已初始化 Harness；新增 33 个已有原型视频当前为 Gate 2 `waiting`，下游产物缺失属于尚未通过人工 Gate 的正常状态。
 
 ## 下一步
 
-1. 按 `+25%` 语速调用项目既定 TTS，生成 JetBrains 的音频、字幕和 Timeline 输入。
-2. 继续处理尚停留在 Visual Prototype 阶段的新视频时，从 Harness 初始化开始维护状态文件，确保 Web UI 反映真实进度；历史视频不回填状态。
+1. 用户检查 `01-what-is-codex` 最终 Artifact；确认完整 MP4 无问题后，在 Web UI 通过 Gate 4。
+2. 将 `02-core-concepts` 的 Remotion 代码、三份 Manifest 和 `assets/02-core-concepts-assets.zip` 提交并推送到 `feat/harness-batch-to-prototype-gate3`，用显式 `HARNESS_GITHUB_REF` 重启 Web UI 后重试 Smoke Render。
+3. 按 `todo.md` 的“远程渲染分支与产物预检 TODO”实施分支／提交／资产预检，防止缺少 ZIP 或 dispatch ref 与产物所在分支不一致时仍创建远程任务；本轮不修改 GitHub Actions。
+4. 由用户确认新增 33 个视频的 Gate 2；通过后按四类批次逐段推进，历史完成视频不再回溯。
+5. 后续按 `todo.md` 统一改造 Web UI 的 32 类异步／业务按钮：补齐提交中、持久禁用、原因说明、多入口同步和服务端幂等；本轮只完成盘点，未修改 Web UI 实现。
 
 ## 阻塞
 
-- 当前 macOS 上 Remotion Chromium 启动即因旧系统返回 `SIGTRAP`，无法在本机生成 still／MP4；需要本机画面复核的视频必须使用可访问 Studio／Chromium 的环境。
-- 当前 macOS 上 Remotion Chromium 启动即因旧系统返回 `SIGTRAP`，无法在本机生成 still／MP4；当前视频必须由 GitHub Actions 完成冒烟和最终画面验证。
+- `02-core-concepts` 暂时不能直接重试 Smoke Render：本地新增的资产包和视频产物尚未提交、推送到远程分支；当前启动环境仍带有旧 `GITHUB_REF_NAME=feat/video-harness-v0.5`，需要在新配置生效后重启 Web UI。
+- `01-what-is-codex` 当前只等待 Gate 4 最终人工验收；远程渲染与 Artifact 生成无阻塞。
 
 ## 关键避坑
 
@@ -75,11 +148,51 @@
 - 画面文字必须能追溯到当前视频生产资料；预览导航、调试标记和辅助说明不得进入最终 MP4，具体检查要求见 `CLAUDE.md` 和 `docs/video-production-notes.md`。
 - 新视频口播必须在生成阶段按独立视频表达，禁止把原始材料作为口播叙事对象；来源指代检查必须在派生 `tts-script.json` 前完成，已完成视频不回溯修改。
 - Web UI 提交远程任务前必须确认 GitHub Actions 适配器所需环境变量已配置；缺少 Token 时应在提交前给出明确配置提示，不应创建一个立即失败的远程任务。
+- 显式 `HARNESS_GITHUB_REF` 已优先于 `GITHUB_REF_NAME`；远程渲染前仍须确认 Web UI 已重启并在诊断中显示实际目标分支，直到远端提交／资产预检功能完成。
+- 批量“完成 TTS”只有在音频、字幕和 Timeline Manifest 都实际存在并通过校验后才能进入 TTS 质检；“批量渲染”必须先等待 Smoke Render 检查，不能直接进入完整渲染。
+- 批量 Remotion 不应把缺少 `video.config.ts` 或 `*Video.tsx` 直接当作批次失败；应创建 Remotion 制作任务，等待 Agent 产出后重新校验并恢复批次。
+- 单条执行器必须先完成副作用，再由 Harness 重新校验产物和推进状态；未配置外部命令或 Agent 时必须明确报错，不能生成占位产物或把任务创建显示为完成。
 - 远程渲染完成后，Agent 只检查 GitHub Actions Run 结论和 Artifact 是否存在、非空、未过期；Artifact 下载、视频播放和最终 Gate 4 内容检查由用户完成。
 
 ## 最近验证（最近 10 条）
 
-- 2026-08-24：Gate 驳回回退阶段改动通过 Harness 核心 23/23、Web Server 5/5、`npm run check`、前端语法检查和 `git diff --check`；Web UI 人工点击回归待执行。
+- 2026-08-31：GitHub 配置专项 5/5、`npm run check`、`validate 02-core-concepts remotion`、资产 ZIP 完整性和目标差异检查通过；Harness 全量运行至第 88 项全部通过后长时间无新增输出并被中止，未记为全量通过。
+- 2026-08-31：远程任务运行中禁用重复提交入口并展示任务说明；Web Server 11/11、Harness 全量 98/98、`npm run check`、前后端语法和 `git diff --check` 均通过，未触发新的远程任务或修改视频产物。
+- 2026-08-31：已完成历史 Remotion 任务不再遮蔽当前阶段操作；当前 `127.0.0.1:4173` 已加载新判断，Web Server 10/10、Harness 全量 97/97、`npm run check`、`node --check harness/web/app.js` 和 `git diff --check` 均通过。
+- 2026-08-31：`02-core-concepts` 的 Gate 2 指纹与 Remotion 对齐清单已一致；`validate remotion`、Visual Script、Visual Prototype、TTS、字幕／Timeline 均返回 `issues: []`，全量 Harness `97/97`、`npm run check` 和差异检查通过；扫描 55 个项目仅发现 1 个对齐清单且无其他失配。
+- 2026-08-31：系列关联保护专项和 Harness 全量回归通过；`npm test --prefix harness` 96/96、`npm run check`、`node --check harness/web/app.js`、`node --check harness/src/server.mjs` 和 `git diff --check` 均通过。
+- 2026-08-31：Web UI Remotion 状态同步回归通过；Harness 全量 95/95、Web Server 10/10、`npm run check`、`node --check harness/web/app.js` 和 `git diff --check` 均通过，未修改视频内容或触发渲染。
+- 2026-08-31：Remotion Agent 兼容参数与幂等重试通过适配器／恢复 4 项、Web Server 10 项回归，`npm run check`、前端语法和 `git diff --check` 通过；Harness Web Server 已在 `127.0.0.1:4173` 重启，未触发 Agent 或修改视频产物。
+- 2026-08-31：`02-core-concepts` Remotion 任务 `b872dce9-0180-4182-a613-63c3b772399f` 完成；`validate 02-core-concepts remotion` 返回 `issues: []`，`npm run check` 和差异空白检查通过，Harness 项目进入 `gate-3 / waiting`。
+- 2026-08-31：本地 API `POST /api/projects/02-core-concepts/action` 实测返回 202，任务状态可见为 `in-progress`；前端脚本可从当前 Web Server 取到事件委托、版本标记和 Remotion 状态轮询；`node --check harness/web/app.js`、`npm run check`、`git diff --check` 通过。
+- 2026-08-30：修复 Gate 3 驳回后旧 Remotion 产物直接重新进入 Gate 3 的问题；回退记录旧指纹并强制可恢复 Remotion 任务，产物未变化时保持阻塞；新增回归通过，`npm run check` 通过。
+
+- 2026-08-30：修复 Web UI Remotion 按钮无响应链路；启动时恢复遗留 `in-progress` 任务，未配置执行器时保留可重试 `blocked` 状态，前端读取任务终态并提示原因；Remotion 任务恢复回归 2/2、Harness 目标回归 43/43、脚本语法和类型检查通过，未执行渲染。
+
+- 2026-08-30：新增 `harness/src/tts-harness-adapter.mjs`，用模拟三段 TTS CLI 完成桥接契约测试；Harness 88 项中 79 项通过，9 项 Web Server 测试仅因当前沙箱禁止监听 `127.0.0.1` 未运行，`npm run check` 和 `git diff --check` 通过，未调用真实 TTS。
+
+- 2026-08-30：复现 `02-core-concepts` Web UI 执行 `subtitle-timeline`；API 成功创建持久化 Job，但因运行进程未配置 TTS 执行器而立即失败；前端反馈修复后通过 `node --check harness/web/app.js`、Harness 全量 87/87、`npm run check` 和 `git diff --check`。
+
+- 2026-08-30：`02-core-concepts` Gate 2 重新通过；Visual Script 与 Visual Prototype 均识别为 8 个 Scene，Prototype baseline 已冻结，Harness 状态进入 `tts / ready`；Harness 全量 87/87、`npm run check`、`git diff --check` 通过。
+
+- 2026-08-30：修复 Agent 阶段启动前把自身待生成产物误判为阻塞的问题；`02-core-concepts` 的下一步已恢复为 `run-stage`，Agent 无产物退出仍严格失败，Harness 86/86、TypeScript 和 `git diff --check` 通过。
+- 2026-08-30：Agent Job 成功、未配置、零产物失败、重试和 Web API 后台排队回归通过；Gate 2 指纹冻结、Remotion 对齐清单、原型变更失效和历史兼容回归通过；Harness 全量测试、TypeScript、前端语法和差异检查通过。
+- 2026-08-30：正确分支完整 Render Run `33290995317` 结论为 `success`；Artifact `01-what-is-codex` 存在、大小14,485,652 bytes、未过期，Harness `render` 已为 `succeeded` 并进入 Gate 4。
+- 2026-08-30：`01-what-is-codex` Gate 3 审批已写入 Harness，报告显示 `gate-3 / succeeded`、`smoke-render / ready`；系列封面文件确认为1920×1080 PNG。远程渲染前置检查发现目标视频与封面仍未提交，目标资产 ZIP 尚不存在。
+- 2026-08-30：系列封面自动裁切通过 `npm run check`、前端脚本语法和 Harness 全量80/80回归；覆盖严格16:9、`1672×941` 近似比例居中裁切、超过1%拒绝、上传 API 和 Gate 3 回退，实际封面与现有 TTS／字幕／Timeline 文件均未修改。
+- 2026-08-30：`01-what-is-codex` Scene 01 的 2×2 入口网格与中心圆改动通过 `npm run check`、`git diff --check` 和 Harness Remotion 零问题校验；Visual Prototype 与 Remotion 布局保持一致，Harness 继续为 `gate-3 / waiting`。
+- 2026-08-26：`01-what-is-codex` 的 55 个 MP3／Timing、136 条字幕 Cue 和 296.664 秒 Timeline 通过自动质检；语音为 `zh-CN-XiaoxiaoNeural`、语速为 `+25%`，Manifest ID、音频时长和字幕规则无问题，用户已在 Web UI 确认 TTS 质检，Harness 保持 `remotion / ready`。
+- 2026-08-25：批次状态投影回归通过；四个真实视频在 `to-tts` 和旧 `to-gate-3` 批次中均返回统一的 `remotion / ready` 项目状态，Harness 全量测试 61/61、`npm run check`、前端语法和 `git diff --check` 通过。
+- 2026-08-25：单视频 TTS 质检确认核心流程、Web Server 接口和前端语法检查通过；项目审查记录写入，等待中的 TTS 批次恢复，Harness 全量回归 60/60。
+- 2026-08-25：四个视频的 TTS、字幕／Timeline 自动质检重新通过；音频 Segment 全部存在、Manifest 时长与 MP3 差异为 0、字幕 Cue 无时间范围或顺序错误，TTS 质检仍等待实际听感确认。
+- 2026-08-25：17 条未初始化视频的 Scene 字段缺失回归通过；每条视频全阶段 `missing-scene-field` 均为 0，`npm run check` 和 `git diff --check` 通过。
+- 2026-08-25：`claude-md-guide` 的 Visual Prototype 结构回归通过；`missing-prototype-scenes` 已清零，未修改原型画面内容。
+- 2026-08-24：11 个已有原型视频接管回归通过；全部为 Gate 2 `waiting`、前 7 个阶段 `succeeded`、Gate 2 未写入 review，且 `videos/` 与 `src/videos/` 无 Git 变更。
+- 2026-08-25：7 个历史视频完成状态接管回归通过；`claude-code-first-run` 的 15/15 阶段均为 `succeeded`、项目 `currentStage` 为 `completed`，历史标记已写入且未伪造远程 Run／Artifact。
+- 2026-08-24：Gate 驳回回退阶段改动通过 Harness 核心 23/23、Web Server 5/5、`npm run check`、前端语法检查和 `git diff --check`；后续浏览器点击回归已完成。
+- 2026-08-25：四类批量目标、TTS／Smoke Render 质检暂停、跨批次 Gate 前置条件、失败重试和旧批次兼容回归通过；Web Server 测试需在允许 localhost 监听的环境复跑。
+- 2026-08-25：四个视频的 TTS／字幕／Timeline 真实产物回传并通过 Harness 校验；`jetbrains` 34 个音频 Segment、`desktop` 9 个、`web-and-cloud` 10 个、`project-init` 10 个，全部显式使用 `+25%`，批次进入 `waiting-tts-qc`。
+- 2026-08-24：Harness 全量回归 53/53、`npm run check`、前端语法检查和 `git diff --check` 通过；浏览器点击 E2E 验证批量选择、创建和逐视频跳过，现有视频目录未变化。
 - 2026-08-24：`jetbrains` Gate 2 通过后的自动派生回归完成；`tts-script.json` 包含 9 个 Scene，TTS 输入校验 0 个问题，Harness 下一步为可执行 `tts`，尚未调用外部 TTS。
 - 2026-08-24：`jetbrains` 已通过 Harness 的 Source 至 Visual Prototype 阶段校验，Web UI 读取状态为已初始化、7/15 阶段完成、当前 `gate-2`，视频资料未修改。
 - 2026-08-24：用户确认 `claude-code-coding-plan`、`claude-code-third-party-models` 和 `claude-code-api-config` 已完成全部生产流程及 Gate 4 最终验收。

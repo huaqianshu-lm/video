@@ -20,6 +20,8 @@ import {VscodeVideo} from './videos/vscode/VscodeVideo';
 import {videoConfig as vscodeConfig} from './videos/vscode/video.config';
 import {WhatIsCodexVideo} from './videos/01-what-is-codex/WhatIsCodexVideo';
 import {videoConfig as whatIsCodexConfig} from './videos/01-what-is-codex/video.config';
+import {CoreConceptsVideo} from './videos/02-core-concepts/CoreConceptsVideo';
+import {videoConfig as coreConceptsConfig} from './videos/02-core-concepts/video.config';
 
 export const Root = () => {
   return (
@@ -103,6 +105,14 @@ export const Root = () => {
         fps={vscodeConfig.fps}
         width={vscodeConfig.width}
         height={vscodeConfig.height}
+      />
+      <Composition
+        id={coreConceptsConfig.slug}
+        component={CoreConceptsVideo}
+        durationInFrames={getTotalDurationFrames(coreConceptsConfig)}
+        fps={coreConceptsConfig.fps}
+        width={coreConceptsConfig.width}
+        height={coreConceptsConfig.height}
       />
     </>
   );
