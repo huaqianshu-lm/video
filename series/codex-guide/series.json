@@ -2,10 +2,12 @@
   "schemaVersion": 1,
   "id": "codex-guide",
   "title": "Codex 教程系列",
+  "style": "codex",
   "cover": "series-assets/codex-guide/cover.png",
   "coverDurationFrames": 45,
   "videos": [
-    "01-what-is-codex"
+    "01-what-is-codex",
+    "02-core-concepts"
   ],
-  "updatedAt": "2026-08-30T02:58:51.924Z"
+  "updatedAt": "2026-08-31T08:22:53.300Z"
 }

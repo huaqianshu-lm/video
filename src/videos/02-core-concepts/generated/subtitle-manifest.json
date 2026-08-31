@@ -1,0 +1,990 @@
+{
+  "schemaVersion": "1.0",
+  "videoId": "02-core-concepts",
+  "scenes": [
+    {
+      "sceneId": "01",
+      "file": "subtitles/scene-01.json",
+      "segments": [
+        {
+          "segmentId": "01-01",
+          "audioFile": "audio/scene-01/01-01.mp3",
+          "cues": [
+            {
+              "id": "01-01-a",
+              "text": "假设你让 Codex 同时重命名两个文件：",
+              "start": 0.09,
+              "end": 2.98
+            },
+            {
+              "id": "01-01-b",
+              "text": "一个在当前项目里，",
+              "start": 2.98,
+              "end": 4.33
+            },
+            {
+              "id": "01-01-c",
+              "text": "另一个在桌面上。",
+              "start": 4.33,
+              "end": 5.784
+            }
+          ]
+        },
+        {
+          "segmentId": "01-02",
+          "audioFile": "audio/scene-01/01-02.mp3",
+          "cues": [
+            {
+              "id": "01-02-a",
+              "text": "任务结束后，项目里的文件已经改名，",
+              "start": 0.09,
+              "end": 2.66
+            },
+            {
+              "id": "01-02-b",
+              "text": "桌面上的文件却没有变化。",
+              "start": 2.66,
+              "end": 4.92
+            }
+          ]
+        },
+        {
+          "segmentId": "01-03",
+          "audioFile": "audio/scene-01/01-03.mp3",
+          "cues": [
+            {
+              "id": "01-03-a",
+              "text": "它是漏做了，还是突然失灵了？",
+              "start": 0.09,
+              "end": 2.496
+            }
+          ]
+        },
+        {
+          "segmentId": "01-04",
+          "audioFile": "audio/scene-01/01-04.mp3",
+          "cues": [
+            {
+              "id": "01-04-a",
+              "text": "要解释这个反常结果，",
+              "start": 0.09,
+              "end": 1.66
+            },
+            {
+              "id": "01-04-b",
+              "text": "需要先认识五个核心概念：",
+              "start": 1.66,
+              "end": 3.69
+            },
+            {
+              "id": "01-04-c",
+              "text": "Agent、Sandbox、",
+              "start": 3.69,
+              "end": 5.1
+            },
+            {
+              "id": "01-04-d",
+              "text": "Approval、项目规则和上下文。",
+              "start": 5.1,
+              "end": 7.728
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sceneId": "02",
+      "file": "subtitles/scene-02.json",
+      "segments": [
+        {
+          "segmentId": "02-01",
+          "audioFile": "audio/scene-02/02-01.mp3",
+          "cues": [
+            {
+              "id": "02-01-a",
+              "text": "先看 Agent。",
+              "start": 0.09,
+              "end": 1.536
+            }
+          ]
+        },
+        {
+          "segmentId": "02-02",
+          "audioFile": "audio/scene-02/02-02.mp3",
+          "cues": [
+            {
+              "id": "02-02-a",
+              "text": "你给它的不是每一步操作，",
+              "start": 0.09,
+              "end": 2.1
+            },
+            {
+              "id": "02-02-b",
+              "text": "而是一个想要完成的目标。",
+              "start": 2.1,
+              "end": 4.008
+            }
+          ]
+        },
+        {
+          "segmentId": "02-03",
+          "audioFile": "audio/scene-02/02-03.mp3",
+          "cues": [
+            {
+              "id": "02-03-a",
+              "text": "它会理解目标、读取环境、",
+              "start": 0.09,
+              "end": 2.07
+            },
+            {
+              "id": "02-03-b",
+              "text": "决定下一步、执行动作，",
+              "start": 2.07,
+              "end": 3.9
+            },
+            {
+              "id": "02-03-c",
+              "text": "再查看结果。",
+              "start": 3.9,
+              "end": 5.24
+            },
+            {
+              "id": "02-03-d",
+              "text": "如果结果不对，它还会继续调整。",
+              "start": 5.24,
+              "end": 7.8
+            }
+          ]
+        },
+        {
+          "segmentId": "02-04",
+          "audioFile": "audio/scene-02/02-04.mp3",
+          "cues": [
+            {
+              "id": "02-04-a",
+              "text": "比如测试失败以后，",
+              "start": 0.09,
+              "end": 1.54
+            },
+            {
+              "id": "02-04-b",
+              "text": "它可以读取报错、修改代码，",
+              "start": 1.54,
+              "end": 3.59
+            },
+            {
+              "id": "02-04-c",
+              "text": "然后再次运行测试。",
+              "start": 3.59,
+              "end": 5.4
+            }
+          ]
+        },
+        {
+          "segmentId": "02-05",
+          "audioFile": "audio/scene-02/02-05.mp3",
+          "cues": [
+            {
+              "id": "02-05-a",
+              "text": "把这套循环压缩成四个字，",
+              "start": 0.09,
+              "end": 2.08
+            },
+            {
+              "id": "02-05-b",
+              "text": "就是：想、做、",
+              "start": 2.08,
+              "end": 3.59
+            },
+            {
+              "id": "02-05-c",
+              "text": "看、再决定。",
+              "start": 3.59,
+              "end": 4.968
+            }
+          ]
+        },
+        {
+          "segmentId": "02-06",
+          "audioFile": "audio/scene-02/02-06.mp3",
+          "cues": [
+            {
+              "id": "02-06-a",
+              "text": "所以 Agent 不只是给出建议，",
+              "start": 0.09,
+              "end": 2.41
+            },
+            {
+              "id": "02-06-b",
+              "text": "而是会围绕目标持续推进任务。",
+              "start": 2.41,
+              "end": 4.872
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sceneId": "03",
+      "file": "subtitles/scene-03.json",
+      "segments": [
+        {
+          "segmentId": "03-01",
+          "audioFile": "audio/scene-03/03-01.mp3",
+          "cues": [
+            {
+              "id": "03-01-a",
+              "text": "但 Agent 能行动，",
+              "start": 0.09,
+              "end": 1.53
+            },
+            {
+              "id": "03-01-b",
+              "text": "不代表它可以触碰电脑里的所有内容。",
+              "start": 1.53,
+              "end": 4.272
+            }
+          ]
+        },
+        {
+          "segmentId": "03-02",
+          "audioFile": "audio/scene-03/03-02.mp3",
+          "cues": [
+            {
+              "id": "03-02-a",
+              "text": "Sandbox，也就是沙箱，",
+              "start": 0.09,
+              "end": 1.91
+            },
+            {
+              "id": "03-02-b",
+              "text": "规定了它当前能够访问和修改哪些文件，",
+              "start": 1.91,
+              "end": 4.96
+            },
+            {
+              "id": "03-02-c",
+              "text": "能够运行哪些命令，",
+              "start": 4.96,
+              "end": 6.28
+            },
+            {
+              "id": "03-02-d",
+              "text": "以及能否使用网络等资源。",
+              "start": 6.28,
+              "end": 8.496
+            }
+          ]
+        },
+        {
+          "segmentId": "03-03",
+          "audioFile": "audio/scene-03/03-03.mp3",
+          "cues": [
+            {
+              "id": "03-03-a",
+              "text": "比如 `workspace-write` 表示工作区内可以写入，",
+              "start": 0.09,
+              "end": 3.1
+            },
+            {
+              "id": "03-03-b",
+              "text": "不代表整台电脑都可以写入。",
+              "start": 3.1,
+              "end": 5.424
+            }
+          ]
+        },
+        {
+          "segmentId": "03-04",
+          "audioFile": "audio/scene-03/03-04.mp3",
+          "cues": [
+            {
+              "id": "03-04-a",
+              "text": "这样再看开头的结果就清楚了：",
+              "start": 0.09,
+              "end": 2.25
+            },
+            {
+              "id": "03-04-b",
+              "text": "项目文件位于可写边界内，",
+              "start": 2.25,
+              "end": 4.24
+            },
+            {
+              "id": "03-04-c",
+              "text": "所以改名成功；桌面文件位于边界外，",
+              "start": 4.24,
+              "end": 7.0
+            },
+            {
+              "id": "03-04-d",
+              "text": "所以没有被直接修改。",
+              "start": 7.0,
+              "end": 8.76
+            }
+          ]
+        },
+        {
+          "segmentId": "03-05",
+          "audioFile": "audio/scene-03/03-05.mp3",
+          "cues": [
+            {
+              "id": "03-05-a",
+              "text": "这不是能力突然消失，",
+              "start": 0.09,
+              "end": 1.65
+            },
+            {
+              "id": "03-05-b",
+              "text": "而是行动遇到了明确边界。",
+              "start": 1.65,
+              "end": 3.864
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sceneId": "04",
+      "file": "subtitles/scene-04.json",
+      "segments": [
+        {
+          "segmentId": "04-01",
+          "audioFile": "audio/scene-04/04-01.mp3",
+          "cues": [
+            {
+              "id": "04-01-a",
+              "text": "边界外的动作是不是永远不能做？也不一定。",
+              "start": 0.09,
+              "end": 3.768
+            }
+          ]
+        },
+        {
+          "segmentId": "04-02",
+          "audioFile": "audio/scene-04/04-02.mp3",
+          "cues": [
+            {
+              "id": "04-02-a",
+              "text": "一个动作到来时，",
+              "start": 0.09,
+              "end": 1.31
+            },
+            {
+              "id": "04-02-b",
+              "text": "首先要判断它是否位于当前 Sandbox 之内。",
+              "start": 1.31,
+              "end": 4.704
+            }
+          ]
+        },
+        {
+          "segmentId": "04-03",
+          "audioFile": "audio/scene-04/04-03.mp3",
+          "cues": [
+            {
+              "id": "04-03-a",
+              "text": "边界内的动作，可以按照现有权限执行。",
+              "start": 0.09,
+              "end": 3.22
+            },
+            {
+              "id": "04-03-b",
+              "text": "边界外的动作，则可能进入 Approval，",
+              "start": 3.22,
+              "end": 5.83
+            },
+            {
+              "id": "04-03-c",
+              "text": "也就是授权流程。",
+              "start": 5.83,
+              "end": 7.416
+            }
+          ]
+        },
+        {
+          "segmentId": "04-04",
+          "audioFile": "audio/scene-04/04-04.mp3",
+          "cues": [
+            {
+              "id": "04-04-a",
+              "text": "只有你明确许可之后，",
+              "start": 0.09,
+              "end": 1.64
+            },
+            {
+              "id": "04-04-b",
+              "text": "Agent 才能在获准的范围内继续；",
+              "start": 1.64,
+              "end": 4.03
+            },
+            {
+              "id": "04-04-c",
+              "text": "没有获得许可，动作就会停止。",
+              "start": 4.03,
+              "end": 6.6
+            }
+          ]
+        },
+        {
+          "segmentId": "04-05",
+          "audioFile": "audio/scene-04/04-05.mp3",
+          "cues": [
+            {
+              "id": "04-05-a",
+              "text": "所以 Sandbox 回答的是“现在能不能做”，",
+              "start": 0.09,
+              "end": 2.93
+            },
+            {
+              "id": "04-05-b",
+              "text": "Approval 决定的是“越过边界前要不要问”。",
+              "start": 2.93,
+              "end": 5.904
+            }
+          ]
+        },
+        {
+          "segmentId": "04-06",
+          "audioFile": "audio/scene-04/04-06.mp3",
+          "cues": [
+            {
+              "id": "04-06-a",
+              "text": "两者连续工作，共同控制一次动作能否真正发生。",
+              "start": 0.09,
+              "end": 3.984
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sceneId": "05",
+      "file": "subtitles/scene-05.json",
+      "segments": [
+        {
+          "segmentId": "05-01",
+          "audioFile": "audio/scene-05/05-01.mp3",
+          "cues": [
+            {
+              "id": "05-01-a",
+              "text": "不过，能够执行，",
+              "start": 0.09,
+              "end": 1.56
+            },
+            {
+              "id": "05-01-b",
+              "text": "只解决了“能不能做”，",
+              "start": 1.56,
+              "end": 2.92
+            },
+            {
+              "id": "05-01-c",
+              "text": "还没有回答“应该怎样做”。",
+              "start": 2.92,
+              "end": 4.8
+            }
+          ]
+        },
+        {
+          "segmentId": "05-02",
+          "audioFile": "audio/scene-05/05-02.mp3",
+          "cues": [
+            {
+              "id": "05-02-a",
+              "text": "Agent 进入一个项目后，",
+              "start": 0.09,
+              "end": 1.78
+            },
+            {
+              "id": "05-02-b",
+              "text": "需要先读取 `AGENTS.md`，",
+              "start": 1.78,
+              "end": 3.99
+            },
+            {
+              "id": "05-02-c",
+              "text": "了解这个项目的构建命令、",
+              "start": 3.99,
+              "end": 5.62
+            },
+            {
+              "id": "05-02-d",
+              "text": "测试要求、审查规则和仓库约定。",
+              "start": 5.62,
+              "end": 8.76
+            }
+          ]
+        },
+        {
+          "segmentId": "05-03",
+          "audioFile": "audio/scene-05/05-03.mp3",
+          "cues": [
+            {
+              "id": "05-03-a",
+              "text": "同样是修改代码，",
+              "start": 0.09,
+              "end": 1.4
+            },
+            {
+              "id": "05-03-b",
+              "text": "不同项目可能有完全不同的做法。",
+              "start": 1.4,
+              "end": 4.04
+            },
+            {
+              "id": "05-03-c",
+              "text": "规则写得越明确，",
+              "start": 4.04,
+              "end": 5.39
+            },
+            {
+              "id": "05-03-d",
+              "text": "Agent 越不容易靠猜测行动。",
+              "start": 5.39,
+              "end": 7.728
+            }
+          ]
+        },
+        {
+          "segmentId": "05-04",
+          "audioFile": "audio/scene-05/05-04.mp3",
+          "cues": [
+            {
+              "id": "05-04-a",
+              "text": "如果一次纠正以后仍然需要长期遵守，",
+              "start": 0.09,
+              "end": 2.82
+            },
+            {
+              "id": "05-04-b",
+              "text": "也应该把它写回规则文件，",
+              "start": 2.82,
+              "end": 4.6
+            },
+            {
+              "id": "05-04-c",
+              "text": "而不是期待系统以后自动记住。",
+              "start": 4.6,
+              "end": 7.152
+            }
+          ]
+        },
+        {
+          "segmentId": "05-05",
+          "audioFile": "audio/scene-05/05-05.mp3",
+          "cues": [
+            {
+              "id": "05-05-a",
+              "text": "权限决定能做什么，",
+              "start": 0.09,
+              "end": 1.57
+            },
+            {
+              "id": "05-05-b",
+              "text": "项目规则决定应该怎样做。",
+              "start": 1.57,
+              "end": 3.792
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sceneId": "06",
+      "file": "subtitles/scene-06.json",
+      "segments": [
+        {
+          "segmentId": "06-01",
+          "audioFile": "audio/scene-06/06-01.mp3",
+          "cues": [
+            {
+              "id": "06-01-a",
+              "text": "除了项目规则，Agent 还可能获得另外两类信息：",
+              "start": 0.09,
+              "end": 3.58
+            },
+            {
+              "id": "06-01-b",
+              "text": "Memory 和 Chronicle。",
+              "start": 3.58,
+              "end": 5.208
+            }
+          ]
+        },
+        {
+          "segmentId": "06-02",
+          "audioFile": "audio/scene-06/06-02.mp3",
+          "cues": [
+            {
+              "id": "06-02-a",
+              "text": "Memory 会提炼过去会话里值得复用的信息，",
+              "start": 0.09,
+              "end": 3.13
+            },
+            {
+              "id": "06-02-b",
+              "text": "帮助后续任务延续已有背景。",
+              "start": 3.13,
+              "end": 5.544
+            }
+          ]
+        },
+        {
+          "segmentId": "06-03",
+          "audioFile": "audio/scene-06/06-03.mp3",
+          "cues": [
+            {
+              "id": "06-03-a",
+              "text": "Chronicle 则从近期的屏幕活动中补充工作上下文，",
+              "start": 0.09,
+              "end": 3.64
+            },
+            {
+              "id": "06-03-b",
+              "text": "让 Agent 更容易理解你刚刚在处理什么。",
+              "start": 3.64,
+              "end": 6.73
+            },
+            {
+              "id": "06-03-c",
+              "text": "使用这类信息时，",
+              "start": 6.73,
+              "end": 8.03
+            },
+            {
+              "id": "06-03-d",
+              "text": "也要注意隐私、提示注入和资源限制。",
+              "start": 8.03,
+              "end": 11.232
+            }
+          ]
+        },
+        {
+          "segmentId": "06-04",
+          "audioFile": "audio/scene-06/06-04.mp3",
+          "cues": [
+            {
+              "id": "06-04-a",
+              "text": "但它们都不能代替明确规则。",
+              "start": 0.09,
+              "end": 2.376
+            }
+          ]
+        },
+        {
+          "segmentId": "06-05",
+          "audioFile": "audio/scene-06/06-05.mp3",
+          "cues": [
+            {
+              "id": "06-05-a",
+              "text": "AGENTS.md` 负责提供稳定、",
+              "start": 0.09,
+              "end": 2.35
+            },
+            {
+              "id": "06-05-b",
+              "text": "确定、需要持续遵守的约定；",
+              "start": 2.35,
+              "end": 4.39
+            },
+            {
+              "id": "06-05-c",
+              "text": "Memory 和 Chronicle 负责补充可能有帮助的上下文。",
+              "start": 4.39,
+              "end": 8.136
+            }
+          ]
+        },
+        {
+          "segmentId": "06-06",
+          "audioFile": "audio/scene-06/06-06.mp3",
+          "cues": [
+            {
+              "id": "06-06-a",
+              "text": "一个负责确定性，",
+              "start": 0.09,
+              "end": 1.4
+            },
+            {
+              "id": "06-06-b",
+              "text": "另外两个负责补充性。",
+              "start": 1.4,
+              "end": 3.192
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sceneId": "07",
+      "file": "subtitles/scene-07.json",
+      "segments": [
+        {
+          "segmentId": "07-01",
+          "audioFile": "audio/scene-07/07-01.mp3",
+          "cues": [
+            {
+              "id": "07-01-a",
+              "text": "现在用一个对照实验，",
+              "start": 0.09,
+              "end": 1.68
+            },
+            {
+              "id": "07-01-b",
+              "text": "把 Sandbox 的作用看得更清楚。",
+              "start": 1.68,
+              "end": 4.176
+            }
+          ]
+        },
+        {
+          "segmentId": "07-02",
+          "audioFile": "audio/scene-07/07-02.mp3",
+          "cues": [
+            {
+              "id": "07-02-a",
+              "text": "两轮实验都提出同一个请求：",
+              "start": 0.09,
+              "end": 2.34
+            },
+            {
+              "id": "07-02-b",
+              "text": "在当前项目创建 `hello.txt`。",
+              "start": 2.34,
+              "end": 5.16
+            },
+            {
+              "id": "07-02-c",
+              "text": "使用的 Agent 也没有变化，",
+              "start": 5.16,
+              "end": 7.09
+            },
+            {
+              "id": "07-02-d",
+              "text": "唯一改变的是 Sandbox 模式。",
+              "start": 7.09,
+              "end": 9.408
+            }
+          ]
+        },
+        {
+          "segmentId": "07-03",
+          "audioFile": "audio/scene-07/07-03.mp3",
+          "cues": [
+            {
+              "id": "07-03-a",
+              "text": "第一轮使用 `read-only`。",
+              "start": 0.09,
+              "end": 1.92
+            },
+            {
+              "id": "07-03-b",
+              "text": "Agent 可以读取内容，",
+              "start": 1.92,
+              "end": 3.48
+            },
+            {
+              "id": "07-03-c",
+              "text": "却不能写入，所以文件树保持不变。",
+              "start": 3.48,
+              "end": 6.528
+            }
+          ]
+        },
+        {
+          "segmentId": "07-04",
+          "audioFile": "audio/scene-07/07-04.mp3",
+          "cues": [
+            {
+              "id": "07-04-a",
+              "text": "第二轮改成 `workspace-write`。",
+              "start": 0.09,
+              "end": 2.32
+            },
+            {
+              "id": "07-04-b",
+              "text": "写入发生在工作区内，`hello.txt` ",
+              "start": 2.32,
+              "end": 5.29
+            },
+            {
+              "id": "07-04-c",
+              "text": "成功出现。",
+              "start": 5.29,
+              "end": 6.504
+            }
+          ]
+        },
+        {
+          "segmentId": "07-05",
+          "audioFile": "audio/scene-07/07-05.mp3",
+          "cues": [
+            {
+              "id": "07-05-a",
+              "text": "请求没有变，Agent 没有变，",
+              "start": 0.09,
+              "end": 2.16
+            },
+            {
+              "id": "07-05-b",
+              "text": "只是边界变了，结果就跟着改变。",
+              "start": 2.16,
+              "end": 4.848
+            }
+          ]
+        },
+        {
+          "segmentId": "07-06",
+          "audioFile": "audio/scene-07/07-06.mp3",
+          "cues": [
+            {
+              "id": "07-06-a",
+              "text": "这也解释了为什么受限环境里的某次失败，",
+              "start": 0.09,
+              "end": 3.01
+            },
+            {
+              "id": "07-06-b",
+              "text": "不等于 Agent 时灵时不灵。",
+              "start": 3.01,
+              "end": 5.28
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sceneId": "08",
+      "file": "subtitles/scene-08.json",
+      "segments": [
+        {
+          "segmentId": "08-01",
+          "audioFile": "audio/scene-08/08-01.mp3",
+          "cues": [
+            {
+              "id": "08-01-a",
+              "text": "最后，把这些概念合成一套完整的工作模型。",
+              "start": 0.09,
+              "end": 3.72
+            }
+          ]
+        },
+        {
+          "segmentId": "08-02",
+          "audioFile": "audio/scene-08/08-02.mp3",
+          "cues": [
+            {
+              "id": "08-02-a",
+              "text": "你先给出任务目标，",
+              "start": 0.09,
+              "end": 1.41
+            },
+            {
+              "id": "08-02-b",
+              "text": "Agent 围绕目标持续行动；",
+              "start": 1.41,
+              "end": 3.41
+            },
+            {
+              "id": "08-02-c",
+              "text": "Sandbox 划定当前边界，",
+              "start": 3.41,
+              "end": 5.29
+            },
+            {
+              "id": "08-02-d",
+              "text": "Approval 管理越界授权；`AGENTS.md` 提供稳定",
+              "start": 5.29,
+              "end": 8.74
+            },
+            {
+              "id": "08-02-e",
+              "text": "规则，Memory 和 Chronicle 补充上下文。",
+              "start": 8.74,
+              "end": 11.928
+            }
+          ]
+        },
+        {
+          "segmentId": "08-03",
+          "audioFile": "audio/scene-08/08-03.mp3",
+          "cues": [
+            {
+              "id": "08-03-a",
+              "text": "开头那个没有被改名的桌面文件，",
+              "start": 0.09,
+              "end": 2.3
+            },
+            {
+              "id": "08-03-b",
+              "text": "现在也有了答案：",
+              "start": 2.3,
+              "end": 3.56
+            },
+            {
+              "id": "08-03-c",
+              "text": "不是任务被忘记，而是动作停在了工作区边界之外。",
+              "start": 3.56,
+              "end": 7.392
+            }
+          ]
+        },
+        {
+          "segmentId": "08-04",
+          "audioFile": "audio/scene-08/08-04.mp3",
+          "cues": [
+            {
+              "id": "08-04-a",
+              "text": "想稳定地使用 Codex，",
+              "start": 0.09,
+              "end": 1.81
+            },
+            {
+              "id": "08-04-b",
+              "text": "可以先记住三件事：",
+              "start": 1.81,
+              "end": 3.18
+            },
+            {
+              "id": "08-04-c",
+              "text": "给清目标，画好边界，写下规则。",
+              "start": 3.18,
+              "end": 6.072
+            }
+          ]
+        },
+        {
+          "segmentId": "08-05",
+          "audioFile": "audio/scene-08/08-05.mp3",
+          "cues": [
+            {
+              "id": "08-05-a",
+              "text": "下一集，我们进入实际操作，",
+              "start": 0.09,
+              "end": 2.24
+            },
+            {
+              "id": "08-05-b",
+              "text": "完成 Codex 的安装与登录，",
+              "start": 2.24,
+              "end": 4.16
+            },
+            {
+              "id": "08-05-c",
+              "text": "并分别看看 Mac、",
+              "start": 4.16,
+              "end": 5.54
+            },
+            {
+              "id": "08-05-d",
+              "text": "Windows 和 Linux 应该怎样开始。",
+              "start": 5.54,
+              "end": 8.28
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

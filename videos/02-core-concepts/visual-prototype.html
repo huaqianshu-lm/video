@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Codex 核心概念速览 · Visual Prototype</title>
+<style>
+:root{
+  --bg:#050b10;--bg2:#08131c;--panel:#0e1c27;--panel2:#0b151d;
+  --text:#f4f9fb;--muted:#9bb0bd;--line:#2a4652;--blue:#5da8ff;
+  --purple:#ad88ff;--green:#78dd6b;--red:#fb7185;--yellow:#f2b85b;--accent:#39d7c2;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;color:var(--text);font-family:Inter,"PingFang SC","Microsoft YaHei",sans-serif;
+  background:radial-gradient(circle at 14% 12%,rgba(57,215,194,.12),transparent 30%),
+             radial-gradient(circle at 86% 18%,rgba(93,168,255,.11),transparent 31%),
+             linear-gradient(145deg,#08131c,#050b10 68%);
+}
+.shell{width:min(1400px,94vw);margin:28px auto 60px}
+.topbar{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:16px}
+.topbar h1{margin:0;font-size:20px;font-weight:700;letter-spacing:.01em}
+.controls{display:flex;gap:8px;flex-wrap:wrap}
+button{padding:9px 13px;border:1px solid var(--line);border-radius:9px;background:#111d33;color:var(--text);cursor:pointer}
+button:hover{background:#1a2b49}
+.stage{position:relative;aspect-ratio:16/9;overflow:hidden;border:1px solid #2a4652;border-radius:24px;background:#050b10;box-shadow:0 28px 80px #0009}
+.scene{position:absolute;inset:0;padding:42px 52px 52px;opacity:0;pointer-events:none;transform:scale(.985);transition:opacity .45s,transform .45s}
+.scene.active{opacity:1;pointer-events:auto;transform:none}
+.eyebrow{margin-bottom:9px;color:var(--blue);font-size:12px;letter-spacing:.12em;text-transform:uppercase}
+h2{margin:0 0 22px;font-size:30px;line-height:1.2}
+.caption{position:absolute;bottom:19px;left:50%;transform:translateX(-50%);padding:8px 14px;border:1px solid #ffffff22;border-radius:10px;background:#050910e8;color:var(--text);font-size:16px;white-space:nowrap}
+.panel{border:1px solid var(--line);border-radius:18px;background:linear-gradient(180deg,rgba(14,28,39,.95),rgba(8,19,28,.96));box-shadow:inset 0 1px 0 rgba(255,255,255,.025),0 16px 36px #0007}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.muted{color:var(--muted)}.blue{color:var(--blue)}.purple{color:var(--purple)}.green{color:var(--green)}.red{color:var(--red)}.yellow{color:var(--yellow)}
+.fade-in{opacity:0;transform:translateY(10px);animation:fadeIn .55s ease forwards}
+.delay-1{animation-delay:.35s}.delay-2{animation-delay:.8s}.delay-3{animation-delay:1.25s}.delay-4{animation-delay:1.7s}.delay-5{animation-delay:2.15s}
+@keyframes fadeIn{to{opacity:1;transform:none}}
+@keyframes pulse{50%{box-shadow:0 0 0 7px #8bd2ff14,0 0 24px #8bd2ff30}}
+@keyframes pulseGreen{50%{box-shadow:0 0 0 7px #72dfaa14,0 0 24px #72dfaa3d}}
+@keyframes dash{to{stroke-dashoffset:-32}}
+@keyframes moveArrow{0%{transform:translateX(-22px);opacity:0}40%{opacity:1}100%{transform:translateX(22px);opacity:0}}
+@keyframes spinIn{from{transform:rotate(-4deg) scale(.94);opacity:0}to{transform:none;opacity:1}}
+.flow-arrow{color:var(--blue);font-size:28px;animation:moveArrow 1.8s ease-in-out infinite}
+.task-card{width:238px;padding:18px 20px;border-color:#466990;animation:pulse 2.4s ease-in-out infinite}
+.task-card .label{margin-bottom:10px;color:var(--muted);font-size:12px}
+.task-card strong{font-size:20px}
+.split-result{display:grid;grid-template-columns:1fr 180px 1fr;gap:18px;align-items:center;height:350px}
+.directory{min-height:220px;padding:22px 24px}.directory h3{margin:0 0 22px;font-size:18px}
+.file-state{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 0;border-top:1px solid #ffffff14;font-size:16px}
+.file-state:first-of-type{border-top:0}.file-state .status{font-size:13px}.file-state.done{animation:pulseGreen 2.3s ease-in-out infinite}.file-state.done .status{color:var(--green)}.file-state.stopped .status{color:var(--muted)}
+.center-task{display:flex;flex-direction:column;align-items:center;gap:16px}.center-task .flow-arrow{font-size:24px}
+.loop-layout{display:grid;grid-template-columns:220px 1fr;gap:30px;align-items:center;height:350px}
+.agent-core{display:grid;place-items:center;width:184px;height:184px;margin:auto;border:1px solid #5577a8;border-radius:50%;background:radial-gradient(circle,#233f65,#14243d 68%);box-shadow:0 0 0 9px #8bd2ff0d,0 18px 40px #0006;animation:pulse 2.6s ease-in-out infinite}
+.agent-core strong{font-size:25px}.agent-core span{display:block;margin-top:8px;color:var(--muted);font-size:13px;text-align:center}
+.loop-column{position:relative;display:grid;grid-template-columns:repeat(5,1fr);gap:8px;align-items:center}
+.loop-column::before{content:"";position:absolute;left:6%;right:6%;top:50%;height:1px;background:linear-gradient(90deg,transparent,var(--blue),transparent);z-index:0}
+.loop-step{position:relative;z-index:1;min-height:88px;padding:14px 8px;border:1px solid #3c5b83;border-radius:11px;background:#172842;text-align:center;opacity:0;animation:fadeIn .5s ease forwards}
+.loop-step:nth-child(1){animation-delay:.25s}.loop-step:nth-child(2){animation-delay:.65s}.loop-step:nth-child(3){animation-delay:1.05s}.loop-step:nth-child(4){animation-delay:1.45s}.loop-step:nth-child(5){animation-delay:1.85s}
+.loop-step strong{display:block;margin-bottom:8px;font-size:15px}.loop-step span{color:var(--muted);font-size:12px}
+.test-loop{display:flex;justify-content:center;gap:8px;align-items:center;margin-top:26px}.test-step{padding:10px 12px;border:1px solid #3c5b83;border-radius:9px;background:#172842;font-size:13px}.test-step:last-child{border-color:var(--green);color:var(--green)}
+.boundary-layout{position:relative;height:350px;padding:35px 54px;border:1px solid #4e8b9c;border-radius:18px;background:linear-gradient(90deg,#12314933,#1a2a4233);box-shadow:inset 0 0 40px #8bd2ff0a}
+.boundary-label{position:absolute;top:-14px;left:28px;padding:5px 12px;border:1px solid #4e8b9c;border-radius:8px;background:#0e1c2d;color:var(--blue);font-size:13px}
+.boundary-inside{width:55%;height:100%;padding:18px 20px;border:1px dashed #72dfaa99;border-radius:13px;background:#16312833}.boundary-inside h3{margin:0 0 22px;font-size:17px}.boundary-inside .file-state{padding:12px 0}
+.outside-file{position:absolute;right:44px;top:122px;width:30%;padding:18px;border:1px solid #47556d;border-radius:12px;background:#111a2b}.outside-file .file-state{border:0;padding:0;margin-top:15px}
+.write-route{position:absolute;left:35%;right:27%;top:205px;height:2px;background:linear-gradient(90deg,var(--green),var(--red));transform-origin:left;animation:dash 1.7s linear infinite;background-size:14px 2px}
+.write-route::after{content:"↦";position:absolute;right:-2px;top:-16px;color:var(--red);font-size:26px}.write-route::before{content:"↦";position:absolute;left:0;top:-16px;color:var(--green);font-size:26px}
+.decision-layout{display:grid;grid-template-columns:180px 210px 1fr;gap:18px;align-items:center;height:350px}.decision-layout .panel{padding:20px;text-align:center}.decision-layout h3{margin:0 0 16px;font-size:17px}.decision-node{border-color:#507399!important;animation:pulse 2.3s ease-in-out infinite}.decision-path{display:grid;gap:14px}.path{display:flex;align-items:center;gap:9px}.path .line{height:1px;flex:1;background:var(--blue)}.path.success .line{background:var(--green)}.path.stop .line{background:var(--red)}.path-label{min-width:150px;padding:11px 12px;border:1px solid #416187;border-radius:9px;background:#172842;text-align:center;font-size:13px}.path.success .path-label{border-color:#4d9673;color:var(--green)}.path.stop .path-label{border-color:#9b5866;color:var(--red)}
+.rule-layout{display:grid;grid-template-columns:220px 1fr;gap:26px;align-items:center;height:350px}.rule-file{padding:22px}.rule-file .file-icon{font-size:42px;color:var(--blue);text-align:center}.rule-file strong{display:block;margin-top:12px;text-align:center;font-size:21px}.rule-stream{position:relative;display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.rule-stream::before{content:"";position:absolute;left:-55px;right:0;top:50%;height:1px;background:linear-gradient(90deg,var(--blue),transparent);z-index:0}.rule-chip{position:relative;z-index:1;padding:18px 10px;border:1px solid #4b6487;border-radius:11px;background:#172842;text-align:center;opacity:0;animation:fadeIn .5s ease forwards}.rule-chip:nth-child(1){animation-delay:.35s}.rule-chip:nth-child(2){animation-delay:.8s}.rule-chip:nth-child(3){animation-delay:1.25s}.rule-chip:nth-child(4){animation-delay:1.7s}.rule-feedback{display:flex;align-items:center;justify-content:center;gap:12px;margin-top:25px}.feedback-chip{padding:10px 14px;border:1px solid #9b5866;border-radius:9px;background:#281e2d;color:var(--red);font-size:13px}.feedback-chip.good{border-color:#4d9673;background:#183329;color:var(--green)}
+.context-layout{position:relative;height:350px}.context-agent{position:absolute;left:50%;top:47%;transform:translate(-50%,-50%);width:190px;height:125px;padding:28px 15px;border:1px solid #5577a8;border-radius:16px;background:#192e4b;text-align:center;box-shadow:0 0 0 8px #8bd2ff0d}.context-agent strong{font-size:23px}.context-agent div{margin-top:8px;color:var(--muted);font-size:12px}.source-card{position:absolute;width:275px;padding:15px 17px}.source-card strong{display:block;margin-bottom:7px}.source-card span{font-size:12px}.source-card::after{content:"→";position:absolute;color:var(--blue);font-size:26px;animation:moveArrow 1.8s ease-in-out infinite}.source-rules{left:4%;top:18px;border-color:#507399}.source-rules::after{right:-38px;bottom:-35px;transform:rotate(28deg)}.source-memory{left:4%;bottom:23px;border-color:#655fb0}.source-memory::after{right:-38px;top:-34px;transform:rotate(-28deg);color:var(--purple)}.source-chronicle{right:4%;top:84px;border-color:#8a6d5b}.source-chronicle::after{left:-40px;top:28px;transform:rotate(180deg);color:var(--yellow)}.reliability{position:absolute;right:4%;bottom:20px;display:flex;gap:8px}.reliability span{padding:7px 9px;border-radius:8px;border:1px solid #846d50;background:#2a251d;color:var(--yellow);font-size:12px}
+.experiment-layout{height:350px}.request-bar{display:flex;align-items:center;justify-content:center;gap:15px;margin-bottom:18px;padding:14px 18px;border:1px solid #507399;border-radius:11px;background:#172842}.request-bar strong{font-size:17px}.experiment-rows{display:grid;gap:12px}.experiment-row{display:grid;grid-template-columns:160px 1fr 1fr;gap:12px;align-items:center}.mode-card,.tree-card,.result-card{min-height:90px;padding:15px 17px}.mode-card{border-color:#4d5e7a}.mode-card strong{display:block;margin-bottom:8px;font-size:16px}.tree-card{font-size:14px;line-height:1.8}.tree-card .tree-title{color:var(--muted);font-size:12px}.result-card{display:flex;align-items:center;justify-content:center;text-align:center}.result-card.stop{border-color:#8b5965;color:var(--muted)}.result-card.done{border-color:#4d9673;color:var(--green);animation:pulseGreen 2.2s ease-in-out infinite}.experiment-row:nth-child(1)>*{opacity:0;animation:fadeIn .5s ease forwards;animation-delay:.25s}.experiment-row:nth-child(1)>:nth-child(2){animation-delay:.55s}.experiment-row:nth-child(1)>:nth-child(3){animation-delay:.85s}.experiment-row:nth-child(2)>*{opacity:0;animation:fadeIn .5s ease forwards;animation-delay:1.25s}.experiment-row:nth-child(2)>:nth-child(2){animation-delay:1.55s}.experiment-row:nth-child(2)>:nth-child(3){animation-delay:1.85s}
+.summary-layout{height:350px;position:relative}.summary-map{display:flex;align-items:center;justify-content:center;gap:8px;padding-top:42px}.summary-node{padding:16px 18px;border:1px solid #4b678d;border-radius:11px;background:#172842;text-align:center}.summary-node strong{display:block;margin-bottom:7px}.summary-node span{color:var(--muted);font-size:12px}.summary-supports{display:flex;justify-content:center;gap:40px;margin-top:27px}.support{padding:10px 15px;border:1px solid #4b678d;border-radius:9px;background:#172842;font-size:13px}.support.rules{border-color:#507399}.support.context{border-color:#655fb0}.summary-conclusion{margin:30px auto 0;width:max-content;padding:13px 22px;border:1px solid var(--blue);border-radius:11px;background:#142a43;color:var(--blue);font-size:19px;font-weight:700;animation:spinIn .6s ease .9s both}.preview-card{position:absolute;inset:30px 90px 10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;border:1px solid var(--blue);border-radius:16px;background:linear-gradient(180deg,#14243deF,#101a2deF);opacity:0;pointer-events:none;animation:fadeIn .55s ease 2.2s forwards}.preview-card strong{font-size:25px}.preview-card .platforms{color:var(--muted);font-size:15px;letter-spacing:.12em}.preview-card .episode{color:var(--blue);font-size:14px}
+.progress{display:flex;justify-content:center;gap:7px;flex-wrap:wrap;margin-top:14px}.pill{width:30px;height:5px;border-radius:99px;background:#263858}.pill.on{background:var(--blue)}
+.note{margin-top:14px;color:var(--muted);text-align:center;font-size:13px;line-height:1.7}
+@media(max-width:900px){.shell{width:96vw}.scene{padding:30px 28px 48px}h2{font-size:24px}.caption{font-size:12px}.split-result{grid-template-columns:1fr 130px 1fr;gap:8px}.directory{padding:15px}.directory h3{font-size:15px}.file-state{font-size:13px}.loop-layout{grid-template-columns:150px 1fr;gap:15px}.agent-core{width:140px;height:140px}.loop-step{min-height:76px;padding:9px 4px}.loop-step strong{font-size:12px}.loop-step span{font-size:10px}.decision-layout{grid-template-columns:130px 170px 1fr;gap:9px}.rule-layout{grid-template-columns:160px 1fr;gap:14px}.rule-chip{font-size:11px}.source-card{width:220px}.experiment-row{grid-template-columns:120px 1fr 1fr}.mode-card,.tree-card,.result-card{padding:10px;font-size:12px}.summary-node{padding:12px 9px;font-size:12px}.summary-conclusion{font-size:15px}.preview-card{inset:30px 45px 10px}}
+</style>
+</head>
+<body>
+<div class="shell">
+  <header class="topbar">
+    <h1>Codex 核心概念速览 · 8 Scenes</h1>
+    <nav class="controls" aria-label="原型预览控制">
+      <button type="button" onclick="prevScene()">上一幕</button>
+      <button type="button" onclick="nextScene()">下一幕</button>
+      <button type="button" id="autoBtn" onclick="toggleAuto()">自动播放</button>
+    </nav>
+  </header>
+
+  <main class="stage">
+    <section class="scene active" data-scene="01">
+      <div class="eyebrow">Scene 01 · Opening Result</div>
+      <h2>同一个任务，为什么只完成了一半</h2>
+      <div class="split-result">
+        <div class="panel directory fade-in delay-1">
+          <h3>项目目录</h3>
+          <div class="file-state done"><span class="mono">draft.md → final.md</span><span class="status">已修改</span></div>
+        </div>
+        <div class="center-task">
+          <div class="panel task-card fade-in delay-2"><div class="label">任务</div><strong>统一重命名</strong></div>
+          <div class="flow-arrow">↔</div>
+        </div>
+        <div class="panel directory fade-in delay-3">
+          <h3>桌面目录</h3>
+          <div class="file-state stopped"><span class="mono">draft.md</span><span class="status">未修改</span></div>
+        </div>
+      </div>
+      <div class="caption fade-in delay-4">它漏做了吗？</div>
+    </section>
+
+    <section class="scene" data-scene="02">
+      <div class="eyebrow">Scene 02 · Agent Loop</div>
+      <h2>先确认谁在行动：Agent</h2>
+      <div class="loop-layout">
+        <div class="agent-core"><div><strong>Agent</strong><span>想 → 做 → 看 → 再决定</span></div></div>
+        <div>
+          <div class="loop-column">
+            <div class="loop-step"><strong>理解目标</strong><span>接收任务</span></div>
+            <div class="loop-step"><strong>读取</strong><span>进入环境</span></div>
+            <div class="loop-step"><strong>执行</strong><span>推进动作</span></div>
+            <div class="loop-step"><strong>查看结果</strong><span>确认状态</span></div>
+            <div class="loop-step"><strong>调整</strong><span>继续决定</span></div>
+          </div>
+          <div class="test-loop fade-in delay-4"><span class="test-step">运行测试</span><span class="flow-arrow">→</span><span class="test-step">读取报错</span><span class="flow-arrow">→</span><span class="test-step">修改代码</span><span class="flow-arrow">→</span><span class="test-step">再次测试</span></div>
+        </div>
+      </div>
+      <div class="caption">围绕目标持续推进</div>
+    </section>
+
+    <section class="scene" data-scene="03">
+      <div class="eyebrow">Scene 03 · Boundary Map</div>
+      <h2>Sandbox 画出行动边界</h2>
+      <div class="boundary-layout">
+        <div class="boundary-label mono">Sandbox · workspace-write</div>
+        <div class="boundary-inside fade-in delay-1">
+          <h3>工作区内：可写</h3>
+          <div class="file-state done"><span class="mono">项目目录 / final.md</span><span class="status green">已修改</span></div>
+        </div>
+        <div class="outside-file fade-in delay-2">
+          <div class="muted">边界之外</div>
+          <div class="file-state stopped"><span class="mono">桌面目录 / draft.md</span><span class="status">未修改</span></div>
+        </div>
+        <div class="write-route" aria-hidden="true"></div>
+      </div>
+      <div class="caption">边界之外：当前不可直接写入</div>
+    </section>
+
+    <section class="scene" data-scene="04">
+      <div class="eyebrow">Scene 04 · Decision Flow</div>
+      <h2>越过边界之前，还要经过 Approval</h2>
+      <div class="decision-layout">
+        <div class="panel decision-node fade-in delay-1"><h3>Sandbox</h3><div class="blue">能不能</div></div>
+        <div class="panel decision-node fade-in delay-2"><h3>在 Sandbox 内吗</h3><div class="muted">动作请求</div></div>
+        <div class="decision-path">
+          <div class="path success fade-in delay-3"><span class="path-label">是 → 执行</span><span class="line"></span><span class="green">继续</span></div>
+          <div class="path fade-in delay-4"><span class="path-label">否 → 请求 Approval</span><span class="line"></span><span class="yellow">等待</span></div>
+          <div class="path success fade-in delay-5"><span class="path-label">获得许可</span><span class="line"></span><span class="green">获准范围内继续</span></div>
+          <div class="path stop fade-in delay-5"><span class="path-label">未获许可</span><span class="line"></span><span class="red">停止</span></div>
+        </div>
+      </div>
+      <div class="caption">Sandbox：能不能　·　Approval：问不问</div>
+    </section>
+
+    <section class="scene" data-scene="05">
+      <div class="eyebrow">Scene 05 · Rule Injection</div>
+      <h2>有权限，还要先读项目规则</h2>
+      <div class="rule-layout">
+        <div class="panel rule-file fade-in delay-1"><div class="file-icon">⌁</div><strong class="mono">AGENTS.md</strong><div class="muted" style="margin-top:10px;text-align:center;font-size:13px">规则入口</div></div>
+        <div>
+          <div class="rule-stream">
+            <div class="rule-chip"><strong>构建命令</strong></div>
+            <div class="rule-chip"><strong>测试要求</strong></div>
+            <div class="rule-chip"><strong>审查规则</strong></div>
+            <div class="rule-chip"><strong>仓库约定</strong></div>
+          </div>
+          <div class="rule-feedback fade-in delay-4"><span class="feedback-chip">错误假设</span><span class="flow-arrow">→</span><span class="feedback-chip good">用户纠正</span><span class="flow-arrow">→</span><span class="feedback-chip good">规则复用</span></div>
+        </div>
+      </div>
+      <div class="caption">权限决定能做什么　·　规则决定应该怎样做</div>
+    </section>
+
+    <section class="scene" data-scene="06">
+      <div class="eyebrow">Scene 06 · Context Map</div>
+      <h2>规则负责确定，上下文负责补充</h2>
+      <div class="context-layout">
+        <div class="panel source-card source-rules fade-in delay-1"><strong class="mono">AGENTS.md</strong><span class="blue">稳定项目规则</span><b class="blue" style="float:right">确定性</b></div>
+        <div class="panel source-card source-memory fade-in delay-2"><strong>Memory</strong><span class="purple">过去会话的提炼信息</span><b class="purple" style="float:right">补充性</b></div>
+        <div class="panel source-card source-chronicle fade-in delay-3"><strong>Chronicle</strong><span class="yellow">近期屏幕活动上下文</span><b class="yellow" style="float:right">补充性</b></div>
+        <div class="context-agent fade-in delay-2"><strong>Agent</strong><div>信息汇入上下文</div></div>
+        <div class="reliability fade-in delay-4"><span>隐私</span><span>提示注入</span><span>资源限制</span></div>
+      </div>
+      <div class="caption">规则负责确定性　·　上下文负责补充性</div>
+    </section>
+
+    <section class="scene" data-scene="07">
+      <div class="eyebrow">Scene 07 · Controlled Experiment</div>
+      <h2>请求没变，边界变了，结果就变了</h2>
+      <div class="experiment-layout">
+        <div class="request-bar"><span class="muted">同一个请求</span><strong class="mono">在当前项目创建 hello.txt</strong><span class="blue">Agent</span></div>
+        <div class="experiment-rows">
+          <div class="experiment-row">
+            <div class="panel mode-card"><strong class="mono">read-only</strong><span class="muted">第一轮</span></div>
+            <div class="panel tree-card"><div class="tree-title mono">项目文件树</div><div class="mono">├── source.md<br>└── visual-script.md</div></div>
+            <div class="panel result-card stop">未写入</div>
+          </div>
+          <div class="experiment-row">
+            <div class="panel mode-card" style="border-color:#4d9673"><strong class="mono green">workspace-write</strong><span class="muted">第二轮</span></div>
+            <div class="panel tree-card"><div class="tree-title mono">项目文件树</div><div class="mono">├── source.md<br>├── visual-script.md<br>└── <span class="green">hello.txt</span></div></div>
+            <div class="panel result-card done">hello.txt 已创建</div>
+          </div>
+        </div>
+      </div>
+      <div class="caption">请求没有变　·　Agent 没有变　·　边界变了　·　结果就变了</div>
+    </section>
+
+    <section class="scene" data-scene="08">
+      <div class="eyebrow">Scene 08 · System Map + Preview Card</div>
+      <h2>把五个概念合成一套工作模型</h2>
+      <div class="summary-layout">
+        <div class="summary-map fade-in delay-1">
+          <div class="summary-node"><strong>任务目标</strong><span>进入</span></div><span class="flow-arrow">→</span>
+          <div class="summary-node"><strong>Agent</strong><span>持续行动</span></div><span class="flow-arrow">→</span>
+          <div class="summary-node"><strong>Sandbox</strong><span>行动边界</span></div><span class="flow-arrow">→</span>
+          <div class="summary-node"><strong>Approval</strong><span>越界授权</span></div>
+        </div>
+        <div class="summary-supports fade-in delay-2"><div class="support rules mono">AGENTS.md：稳定规则</div><div class="support context">Memory／Chronicle：补充上下文</div></div>
+        <div class="summary-conclusion">给清目标 · 画好边界 · 写下规则</div>
+        <div class="preview-card"><div class="episode">下一集</div><strong>03 · 安装与登录</strong><div class="platforms">Mac　·　Windows　·　Linux</div></div>
+      </div>
+      <div class="caption">桌面目录：未修改　·　下一集：03 · 安装与登录</div>
+    </section>
+  </main>
+
+  <div class="progress" id="progress" aria-label="Scene 进度"></div>
+  <div class="note">原型用于确认 16:9 横屏构图、信息密度和视觉事件顺序；预览控制与进度提示不属于最终画面。</div>
+</div>
+<script>
+const scenes=[...document.querySelectorAll('.scene')];
+const progress=document.getElementById('progress');
+const autoBtn=document.getElementById('autoBtn');
+let index=0;let timer=null;
+function renderProgress(){progress.innerHTML=scenes.map((_,i)=>'<span class="pill '+(i===index?'on':'')+'" title="Scene '+(i+1)+'"></span>').join('')}
+function showScene(next){scenes[index].classList.remove('active');index=(next+scenes.length)%scenes.length;scenes[index].classList.add('active');renderProgress()}
+function nextScene(){showScene(index+1)}
+function prevScene(){showScene(index-1)}
+function toggleAuto(){if(timer){clearInterval(timer);timer=null;autoBtn.textContent='自动播放'}else{timer=setInterval(nextScene,5200);autoBtn.textContent='暂停播放'}}
+document.addEventListener('keydown',event=>{if(event.key==='ArrowRight')nextScene();if(event.key==='ArrowLeft')prevScene()});
+renderProgress();
+</script>
+</body>
+</html>

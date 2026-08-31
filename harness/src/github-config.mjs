@@ -1,10 +1,14 @@
 const repositoryPattern = /^[^/\s]+\/[^/\s]+$/;
 
+function firstNonEmpty(...values) {
+  return values.find((value) => typeof value === "string" && value.trim()) ?? "";
+}
+
 export function readGitHubActionsConfig(environment = process.env) {
   return {
-    token: environment.GITHUB_TOKEN ?? environment.GH_TOKEN ?? "",
-    repository: environment.GITHUB_REPOSITORY ?? "",
-    ref: environment.GITHUB_REF_NAME ?? environment.HARNESS_GITHUB_REF ?? "",
+    token: firstNonEmpty(environment.GITHUB_TOKEN, environment.GH_TOKEN),
+    repository: firstNonEmpty(environment.GITHUB_REPOSITORY),
+    ref: firstNonEmpty(environment.HARNESS_GITHUB_REF, environment.GITHUB_REF_NAME),
   };
 }
 

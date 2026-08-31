@@ -1,0 +1,318 @@
+{
+  "schemaVersion": "1.0",
+  "videoId": "02-core-concepts",
+  "voice": {
+    "name": "zh-CN-XiaoxiaoNeural",
+    "rate": "+25%",
+    "pitch": "+0Hz",
+    "volume": "+0%"
+  },
+  "scenes": [
+    {
+      "sceneId": "01",
+      "segments": [
+        {
+          "id": "01-01",
+          "file": "audio/scene-01/01-01.mp3",
+          "text": "假设你让 Codex 同时重命名两个文件：一个在当前项目里，另一个在桌面上。",
+          "duration": 5.784
+        },
+        {
+          "id": "01-02",
+          "file": "audio/scene-01/01-02.mp3",
+          "text": "任务结束后，项目里的文件已经改名，桌面上的文件却没有变化。",
+          "duration": 4.92
+        },
+        {
+          "id": "01-03",
+          "file": "audio/scene-01/01-03.mp3",
+          "text": "它是漏做了，还是突然失灵了？",
+          "duration": 2.496
+        },
+        {
+          "id": "01-04",
+          "file": "audio/scene-01/01-04.mp3",
+          "text": "要解释这个反常结果，需要先认识五个核心概念：Agent、Sandbox、Approval、项目规则和上下文。",
+          "duration": 7.728
+        }
+      ],
+      "narrationDuration": 20.928
+    },
+    {
+      "sceneId": "02",
+      "segments": [
+        {
+          "id": "02-01",
+          "file": "audio/scene-02/02-01.mp3",
+          "text": "先看 Agent。",
+          "duration": 1.536
+        },
+        {
+          "id": "02-02",
+          "file": "audio/scene-02/02-02.mp3",
+          "text": "你给它的不是每一步操作，而是一个想要完成的目标。",
+          "duration": 4.008
+        },
+        {
+          "id": "02-03",
+          "file": "audio/scene-02/02-03.mp3",
+          "text": "它会理解目标、读取环境、决定下一步、执行动作，再查看结果。如果结果不对，它还会继续调整。",
+          "duration": 7.8
+        },
+        {
+          "id": "02-04",
+          "file": "audio/scene-02/02-04.mp3",
+          "text": "比如测试失败以后，它可以读取报错、修改代码，然后再次运行测试。",
+          "duration": 5.4
+        },
+        {
+          "id": "02-05",
+          "file": "audio/scene-02/02-05.mp3",
+          "text": "把这套循环压缩成四个字，就是：想、做、看、再决定。",
+          "duration": 4.968
+        },
+        {
+          "id": "02-06",
+          "file": "audio/scene-02/02-06.mp3",
+          "text": "所以 Agent 不只是给出建议，而是会围绕目标持续推进任务。",
+          "duration": 4.872
+        }
+      ],
+      "narrationDuration": 28.584
+    },
+    {
+      "sceneId": "03",
+      "segments": [
+        {
+          "id": "03-01",
+          "file": "audio/scene-03/03-01.mp3",
+          "text": "但 Agent 能行动，不代表它可以触碰电脑里的所有内容。",
+          "duration": 4.272
+        },
+        {
+          "id": "03-02",
+          "file": "audio/scene-03/03-02.mp3",
+          "text": "Sandbox，也就是沙箱，规定了它当前能够访问和修改哪些文件，能够运行哪些命令，以及能否使用网络等资源。",
+          "duration": 8.496
+        },
+        {
+          "id": "03-03",
+          "file": "audio/scene-03/03-03.mp3",
+          "text": "比如 `workspace-write` 表示工作区内可以写入，不代表整台电脑都可以写入。",
+          "duration": 5.424
+        },
+        {
+          "id": "03-04",
+          "file": "audio/scene-03/03-04.mp3",
+          "text": "这样再看开头的结果就清楚了：项目文件位于可写边界内，所以改名成功；桌面文件位于边界外，所以没有被直接修改。",
+          "duration": 8.76
+        },
+        {
+          "id": "03-05",
+          "file": "audio/scene-03/03-05.mp3",
+          "text": "这不是能力突然消失，而是行动遇到了明确边界。",
+          "duration": 3.864
+        }
+      ],
+      "narrationDuration": 30.816
+    },
+    {
+      "sceneId": "04",
+      "segments": [
+        {
+          "id": "04-01",
+          "file": "audio/scene-04/04-01.mp3",
+          "text": "边界外的动作是不是永远不能做？也不一定。",
+          "duration": 3.768
+        },
+        {
+          "id": "04-02",
+          "file": "audio/scene-04/04-02.mp3",
+          "text": "一个动作到来时，首先要判断它是否位于当前 Sandbox 之内。",
+          "duration": 4.704
+        },
+        {
+          "id": "04-03",
+          "file": "audio/scene-04/04-03.mp3",
+          "text": "边界内的动作，可以按照现有权限执行。边界外的动作，则可能进入 Approval，也就是授权流程。",
+          "duration": 7.416
+        },
+        {
+          "id": "04-04",
+          "file": "audio/scene-04/04-04.mp3",
+          "text": "只有你明确许可之后，Agent 才能在获准的范围内继续；没有获得许可，动作就会停止。",
+          "duration": 6.6
+        },
+        {
+          "id": "04-05",
+          "file": "audio/scene-04/04-05.mp3",
+          "text": "所以 Sandbox 回答的是“现在能不能做”，Approval 决定的是“越过边界前要不要问”。",
+          "duration": 5.904
+        },
+        {
+          "id": "04-06",
+          "file": "audio/scene-04/04-06.mp3",
+          "text": "两者连续工作，共同控制一次动作能否真正发生。",
+          "duration": 3.984
+        }
+      ],
+      "narrationDuration": 32.376
+    },
+    {
+      "sceneId": "05",
+      "segments": [
+        {
+          "id": "05-01",
+          "file": "audio/scene-05/05-01.mp3",
+          "text": "不过，能够执行，只解决了“能不能做”，还没有回答“应该怎样做”。",
+          "duration": 4.8
+        },
+        {
+          "id": "05-02",
+          "file": "audio/scene-05/05-02.mp3",
+          "text": "Agent 进入一个项目后，需要先读取 `AGENTS.md`，了解这个项目的构建命令、测试要求、审查规则和仓库约定。",
+          "duration": 8.76
+        },
+        {
+          "id": "05-03",
+          "file": "audio/scene-05/05-03.mp3",
+          "text": "同样是修改代码，不同项目可能有完全不同的做法。规则写得越明确，Agent 越不容易靠猜测行动。",
+          "duration": 7.728
+        },
+        {
+          "id": "05-04",
+          "file": "audio/scene-05/05-04.mp3",
+          "text": "如果一次纠正以后仍然需要长期遵守，也应该把它写回规则文件，而不是期待系统以后自动记住。",
+          "duration": 7.152
+        },
+        {
+          "id": "05-05",
+          "file": "audio/scene-05/05-05.mp3",
+          "text": "权限决定能做什么，项目规则决定应该怎样做。",
+          "duration": 3.792
+        }
+      ],
+      "narrationDuration": 32.232
+    },
+    {
+      "sceneId": "06",
+      "segments": [
+        {
+          "id": "06-01",
+          "file": "audio/scene-06/06-01.mp3",
+          "text": "除了项目规则，Agent 还可能获得另外两类信息：Memory 和 Chronicle。",
+          "duration": 5.208
+        },
+        {
+          "id": "06-02",
+          "file": "audio/scene-06/06-02.mp3",
+          "text": "Memory 会提炼过去会话里值得复用的信息，帮助后续任务延续已有背景。",
+          "duration": 5.544
+        },
+        {
+          "id": "06-03",
+          "file": "audio/scene-06/06-03.mp3",
+          "text": "Chronicle 则从近期的屏幕活动中补充工作上下文，让 Agent 更容易理解你刚刚在处理什么。使用这类信息时，也要注意隐私、提示注入和资源限制。",
+          "duration": 11.232
+        },
+        {
+          "id": "06-04",
+          "file": "audio/scene-06/06-04.mp3",
+          "text": "但它们都不能代替明确规则。",
+          "duration": 2.376
+        },
+        {
+          "id": "06-05",
+          "file": "audio/scene-06/06-05.mp3",
+          "text": "`AGENTS.md` 负责提供稳定、确定、需要持续遵守的约定；Memory 和 Chronicle 负责补充可能有帮助的上下文。",
+          "duration": 8.136
+        },
+        {
+          "id": "06-06",
+          "file": "audio/scene-06/06-06.mp3",
+          "text": "一个负责确定性，另外两个负责补充性。",
+          "duration": 3.192
+        }
+      ],
+      "narrationDuration": 35.688
+    },
+    {
+      "sceneId": "07",
+      "segments": [
+        {
+          "id": "07-01",
+          "file": "audio/scene-07/07-01.mp3",
+          "text": "现在用一个对照实验，把 Sandbox 的作用看得更清楚。",
+          "duration": 4.176
+        },
+        {
+          "id": "07-02",
+          "file": "audio/scene-07/07-02.mp3",
+          "text": "两轮实验都提出同一个请求：在当前项目创建 `hello.txt`。使用的 Agent 也没有变化，唯一改变的是 Sandbox 模式。",
+          "duration": 9.408
+        },
+        {
+          "id": "07-03",
+          "file": "audio/scene-07/07-03.mp3",
+          "text": "第一轮使用 `read-only`。Agent 可以读取内容，却不能写入，所以文件树保持不变。",
+          "duration": 6.528
+        },
+        {
+          "id": "07-04",
+          "file": "audio/scene-07/07-04.mp3",
+          "text": "第二轮改成 `workspace-write`。写入发生在工作区内，`hello.txt` 成功出现。",
+          "duration": 6.504
+        },
+        {
+          "id": "07-05",
+          "file": "audio/scene-07/07-05.mp3",
+          "text": "请求没有变，Agent 没有变，只是边界变了，结果就跟着改变。",
+          "duration": 4.848
+        },
+        {
+          "id": "07-06",
+          "file": "audio/scene-07/07-06.mp3",
+          "text": "这也解释了为什么受限环境里的某次失败，不等于 Agent 时灵时不灵。",
+          "duration": 5.28
+        }
+      ],
+      "narrationDuration": 36.744
+    },
+    {
+      "sceneId": "08",
+      "segments": [
+        {
+          "id": "08-01",
+          "file": "audio/scene-08/08-01.mp3",
+          "text": "最后，把这些概念合成一套完整的工作模型。",
+          "duration": 3.72
+        },
+        {
+          "id": "08-02",
+          "file": "audio/scene-08/08-02.mp3",
+          "text": "你先给出任务目标，Agent 围绕目标持续行动；Sandbox 划定当前边界，Approval 管理越界授权；`AGENTS.md` 提供稳定规则，Memory 和 Chronicle 补充上下文。",
+          "duration": 11.928
+        },
+        {
+          "id": "08-03",
+          "file": "audio/scene-08/08-03.mp3",
+          "text": "开头那个没有被改名的桌面文件，现在也有了答案：不是任务被忘记，而是动作停在了工作区边界之外。",
+          "duration": 7.392
+        },
+        {
+          "id": "08-04",
+          "file": "audio/scene-08/08-04.mp3",
+          "text": "想稳定地使用 Codex，可以先记住三件事：给清目标，画好边界，写下规则。",
+          "duration": 6.072
+        },
+        {
+          "id": "08-05",
+          "file": "audio/scene-08/08-05.mp3",
+          "text": "下一集，我们进入实际操作，完成 Codex 的安装与登录，并分别看看 Mac、Windows 和 Linux 应该怎样开始。",
+          "duration": 8.28
+        }
+      ],
+      "narrationDuration": 37.392
+    }
+  ]
+}

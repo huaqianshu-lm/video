@@ -128,6 +128,7 @@ export type SubtitleCue = {
 
 export type SeriesVideoConfig = {
   id: string;
+  style?: string;
   coverSrc?: string;
   coverDurationFrames: number;
 };
