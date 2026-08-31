@@ -7,21 +7,9 @@ import type {
   SummarySceneConfig,
   TerminalSceneConfig,
 } from '../../lib/videoTypes';
+import {codexPalette as palette} from '../../styles/codex';
 
 type Props = {scene: SceneConfig};
-
-const palette = {
-  app: '#39d7c2',
-  cli: '#78dd6b',
-  ide: '#ad88ff',
-  web: '#5da8ff',
-  warning: '#f2b85b',
-  danger: '#fb7185',
-  text: '#f4f9fb',
-  muted: '#9bb0bd',
-  line: 'rgba(155, 200, 220, 0.18)',
-  panel: 'rgba(14, 28, 39, 0.88)',
-};
 
 const fontFamily =
   'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif';

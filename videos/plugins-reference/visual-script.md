@@ -27,89 +27,100 @@
 
 - **画面结构**：左侧终端显示 `claude plugin details`，右侧是一个半透明插件盒。
 - **视觉动作**：先显示 `~180 token`，随后两个 skill 标签分别增加 `~2400`、`~1800`；插件盒拆成 `plugin.json` 和多个组件格。
-- **视觉重点**：数字不是装饰，而是引出“组件有边界、有成本”。
-- **幕内字幕**：`插件不是黑盒`。
+- **视觉目标**：数字不是装饰，而是引出“组件有边界、有成本”。
+- **屏幕文字**：`插件不是黑盒`。
 - **口播互补**：声音解释“会用”与“会造”的切换，画面只展示数字和结构发现。
+- **Visual Type**：`Terminal Simulation + Concept Diagram`
 
 ## Scene 02｜先把目录骨架摆正
 
 - **画面结构**：文件树从 `my-plugin/` 展开。
 - **视觉动作**：`.claude-plugin/` 内暂时出现 `plugin.json` 和 `skills/`，随后 `skills/`、`agents/`、`hooks/` 动画移动到根目录；错误位置变红，正确位置变绿。
-- **视觉重点**：`.claude-plugin/` 只保留 `plugin.json`。
-- **幕内字幕**：`只放 plugin.json`。
+- **视觉目标**：`.claude-plugin/` 只保留 `plugin.json`。
+- **屏幕文字**：`只放 plugin.json`。
 - **口播互补**：声音讲说明书与零件盒的类比，画面证明位置规则。
+- **Visual Type**：`File Tree + Process`
 
 ## Scene 03｜plugin.json 定身份和扫描规则
 
 - **画面结构**：左侧 JSON 编辑器，右侧扫描结果。
 - **视觉动作**：填入 `"name": "my-plugin"`，右侧生成 `/my-plugin:hello`；切换 `agents` 与 `skills` 字段时，扫描结果分别显示“替换默认”和“追加默认”。
-- **视觉重点**：name、namespace、路径行为三者连成一条关系。
-- **幕内字幕**：`替换默认` / `追加默认`。
+- **视觉目标**：name、namespace、路径行为三者连成一条关系。
+- **屏幕文字**：`替换默认` / `追加默认`。
 - **口播互补**：声音解释字段含义，画面用扫描结果表达“组件消失或保留”。
+- **Visual Type**：`JSON Simulation + Rule Comparison`
 
 ## Scene 04｜七类组件装进同一个盒子
 
 - **画面结构**：中央插件盒，外围七个组件槽位。
 - **视觉动作**：`Skills`、`Commands`、`Agents`、`Hooks`、`MCP`、`LSP`、`Monitors` 依次进入，并在下方显示标准位置。
-- **视觉重点**：七类组件的分类与位置，不展示过多描述。
-- **幕内字幕**：`七类组件`。
+- **视觉目标**：七类组件的分类与位置，不展示过多描述。
+- **屏幕文字**：`七类组件`。
 - **口播互补**：声音说作用和触发方式，画面建立组件地图。
+- **Visual Type**：`Component Map + Connection Diagram`
 
 ## Scene 05｜组件不是没有边界
 
 - **画面结构**：左侧 agent 配置卡，右侧 monitor 状态卡。
 - **视觉动作**：`hooks`、`mcpServers`、`permissionMode` 三个字段出现后被划掉；monitor 卡片显示 `Experimental` 和 `v2.1.105+`。
-- **视觉重点**：安全限制和实验性边界。
-- **幕内字幕**：`能力也有边界`。
+- **视觉目标**：安全限制和实验性边界。
+- **屏幕文字**：`能力也有边界`。
 - **口播互补**：声音解释“为什么受限”和“在哪些条件下运行”，画面只呈现限制状态。
+- **Visual Type**：`UI Simulation + Constraint Visualization`
 
 ## Scene 06｜路径变量让插件可迁移
 
 - **画面结构**：两台机器的插件缓存目录，中间是插件脚本引用。
 - **视觉动作**：写死的 `/Users/you/my-plugin/scripts/format.sh` 连接断开；替换为三个变量后，分别连到插件根目录、持久数据目录和项目根目录。
-- **视觉重点**：ROOT、DATA、PROJECT_DIR 的分工。
-- **幕内字幕**：`不要写死`。
+- **视觉目标**：ROOT、DATA、PROJECT_DIR 的分工。
+- **屏幕文字**：`不要写死`。
 - **口播互补**：声音解释缓存会变化和目录外引用会失效，画面展示错误到修复的迁移过程。
+- **Visual Type**：`Path Diagram + Error-to-Fix`
 
 ## Scene 07｜从零造一个能跑的插件
 
 - **画面结构**：终端和新生成的目录树分屏。
 - **视觉动作**：依次输入 `claude plugin init my-greeter --with skills`、写入 `SKILL.md`、启动 `claude --plugin-dir ~/.claude/skills/my-greeter`。
-- **视觉重点**：骨架、skill、加载入口形成连续生产链。
-- **幕内字幕**：`初始化 → 写组件 → 本地加载`。
+- **视觉目标**：骨架、skill、加载入口形成连续生产链。
+- **屏幕文字**：`初始化 → 写组件 → 本地加载`。
 - **口播互补**：声音解释每条命令的目的，画面展示产物如何逐步出现。
+- **Visual Type**：`Terminal Simulation + File Creation`
 
 ## Scene 08｜调用和热重载
 
 - **画面结构**：命名空间调用窗口、输出窗口、reload 状态条。
 - **视觉动作**：执行 `/my-greeter:hello Walter` 得到第一版回应；skill 内容变更后执行 `/reload-plugins`，再次调用并显示“改动已生效”。
-- **视觉重点**：调用、修改、重载、结果变化。
-- **幕内字幕**：`开发内循环`。
+- **视觉目标**：调用、修改、重载、结果变化。
+- **屏幕文字**：`开发内循环`。
 - **口播互补**：声音说明不同组件的 reload 时机，画面证明本地迭代闭环。
+- **Visual Type**：`Terminal Simulation + State Change`
 
 ## Scene 09｜市场源不等于插件源
 
 - **画面结构**：左侧 marketplace 目录，中央 `marketplace.json`，右侧两个插件供货地。
 - **视觉动作**：一条线标记 `marketplace source` 指向目录文件，另一条线从条目的 `source` 指向插件仓库；下方运行 `claude plugin validate`，结果变绿。
-- **视觉重点**：目录来源与插件本体来源是两条关系。
-- **幕内字幕**：`marketplace source ≠ plugin source`。
+- **视觉目标**：目录来源与插件本体来源是两条关系。
+- **屏幕文字**：`marketplace source ≠ plugin source`。
 - **口播互补**：声音解释类比和分发场景，画面解决概念混淆。
+- **Visual Type**：`Connection Diagram + Validation UI`
 
 ## Scene 10｜三条分发路和两个发布坑
 
 - **画面结构**：顶部三路选择：`自用`、`开发`、`团队／社区`；下方两个风险卡。
 - **视觉动作**：三路分别连到 `~/.claude/skills/`、`--plugin-dir`、`marketplace`；version 卡片从 `1.0.0` 更新为 `1.0.1`，dependencies 卡片连接 `helper-lib` 和 `secrets-vault ~2.1.0`。
-- **视觉重点**：路径选择、版本递增、依赖声明。
-- **幕内字幕**：`版本不变，缓存不更新`。
+- **视觉目标**：路径选择、版本递增、依赖声明。
+- **屏幕文字**：`版本不变，缓存不更新`。
 - **口播互补**：声音讲适用处境和发布坑，画面表现选择与状态变化。
+- **Visual Type**：`Decision Diagram + Version Flow`
 
 ## Scene 11｜从会用到会造、会发
 
 - **画面结构**：说明书、组件盒、路径变量、开发循环、市场和依赖六个节点汇聚到一个“可交付插件”包。
 - **视觉动作**：节点依次点亮，包上出现 `会造`、`会测`、`会发`；随后出现下一集预告卡。
-- **视觉重点**：把分散规则收束成可复用链路。
-- **幕内字幕**：`下一集：实战入门`。
+- **视觉目标**：把分散规则收束成可复用链路。
+- **屏幕文字**：`下一集：实战入门`。
 - **口播互补**：声音总结认知变化，画面提供记忆锚点并留出预告停留时间。
+- **Visual Type**：`Summary Diagram + Preview Card`
 
 ## 全片视觉类型／组件／动画标准
 
@@ -140,4 +151,3 @@
 ## 下一步
 
 本阶段停在横屏 Visual Prototype。完成原型检查后，等待后续人工确认；本资料不进入 TTS、字幕、Timeline 或 Remotion 正式实现。
-

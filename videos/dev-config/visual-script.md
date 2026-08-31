@@ -11,6 +11,10 @@
 
 ## Scene 01｜别再靠一只手按着 `Ctrl+C`
 
+### 视觉目标
+
+
+
 ### 画面结构
 
 左侧是客户私有仓库的终端窗口，文件树旁出现 `SSH 密钥`、`npm 凭据` 和 `一下午人工监控` 三个风险标签；右侧先显示主机边界，再出现半透明的 `隔离环境` 框。
@@ -34,6 +38,10 @@
 `OpeningScene / Risk-to-Isolation Transition`
 
 ## Scene 02｜开发配置其实只管五件事
+
+### 视觉目标
+
+
 
 ### 画面结构
 
@@ -59,6 +67,10 @@
 
 ## Scene 03｜沙箱给 Bash 圈一块试车场
 
+### 视觉目标
+
+
+
 ### 画面结构
 
 左侧为终端窗口，顶部显示 `/sandbox`；中央为 `自动允许` 面板，右侧为一块写着 `当前工作目录` 的沙箱区域，外侧是 `新网络域：需要批准` 的门。
@@ -82,6 +94,10 @@
 `TerminalScene / Sandbox Boundary`
 
 ## Scene 04｜沙箱不是整台 Claude 的防护罩
+
+### 视觉目标
+
+
 
 ### 画面结构
 
@@ -107,6 +123,10 @@
 
 ## Scene 05｜devcontainer 是一间团队共用的工作间
 
+### 视觉目标
+
+
+
 ### 画面结构
 
 左侧代码窗口显示 `.devcontainer/devcontainer.json` 和 `Claude Code Feature`；箭头指向中间的 `Docker` 容器；右侧分成 `命令在容器` 与 `改动落本地` 两张结果卡，底部放 `不要挂载 SSH 密钥` 安全提示。
@@ -130,6 +150,10 @@
 `ProcessScene / Devcontainer Setup`
 
 ## Scene 06｜代码越不熟，隔离就越往右
+
+### 视觉目标
+
+
 
 ### 画面结构
 
@@ -155,6 +179,10 @@
 
 ## Scene 07｜连不上，先查网络三段链路
 
+### 视觉目标
+
+
+
 ### 画面结构
 
 从 `Claude Code` 到服务端的三段网络路径：`代理总机`、`CA 安检章`、`域名白名单`。左下角显示 `HTTPS_PROXY`、`NO_PROXY` 和 `NODE_EXTRA_CA_CERTS`，旁边有 `不支持 SOCKS` 警示。
@@ -178,6 +206,10 @@
 `ProcessScene / Network Route`
 
 ## Scene 08｜终端只调三样：换行、通知、主题
+
+### 视觉目标
+
+
 
 ### 画面结构
 
@@ -207,6 +239,10 @@
 
 ## Scene 09｜模型像排班：硬活派 Opus，日常用 Sonnet
 
+### 视觉目标
+
+
+
 ### 画面结构
 
 四张模型卡按任务难度排成队列：`opus`—`复杂推理`、`sonnet`—`日常编程`、`haiku`—`简单任务`、`opusplan`—`规划：Opus／执行：Sonnet`。右下角显示“能力／成本”。
@@ -230,6 +266,10 @@
 `ComparisonScene / Model Dispatch`
 
 ## Scene 10｜同一个模型，也能调“用多少脑子”
+
+### 视觉目标
+
+
 
 ### 画面结构
 
@@ -255,6 +295,10 @@
 
 ## Scene 11｜改配置之后，回头验它真的生效
 
+### 视觉目标
+
+
+
 ### 画面结构
 
 横向终端流程：`/sandbox` → `sandbox-test.txt` → `/status` → `/model haiku` → `model: Haiku` → `settings.json`。每个节点带有完成状态，最后一个节点标记为可选固化。
@@ -279,6 +323,10 @@
 `TerminalScene / Verification Flow`
 
 ## Scene 12｜把工作环境调顺，再进入下一种输入方式
+
+### 视觉目标
+
+
 
 ### 画面结构
 

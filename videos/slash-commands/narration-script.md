@@ -58,7 +58,7 @@
 
 ## Scene 10｜五分钟刻出 /explain
 
-现在照着五步做一个带参数的 /explain。第一步，在项目里创建 .claude/commands/ 目录。第二步，新建 explain.md，写上 description，再在正文中放入 $ARGUMENTS 和解释要求。
+现在照着五步做一个带参数的 /explain。第一步，在项目里创建 .claude/commands/ 目录。第二步，新建 explain.md，写上 description，再把 $ARGUMENTS 和解释要求放进文件内容里。
 
 第三步启动 Claude，打一个 /，确认菜单里出现 /explain。第四步运行 /explain print(sum([1,2,3]) / len([1,2,3]))，它会把这段代码当作参数，用大白话解释平均值。
 

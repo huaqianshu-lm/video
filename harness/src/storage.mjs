@@ -9,6 +9,7 @@ import {
 } from "./stages.mjs";
 import { artifactManifestFor } from "./artifacts.mjs";
 import { fingerprintStageArtifacts } from "./fingerprints.mjs";
+import { resolveStyleId } from "./styles.mjs";
 
 const repositoryRoot = path.resolve(new URL("../..", import.meta.url).pathname);
 
@@ -53,7 +54,7 @@ export function initializeProject(slug) {
     slug,
     workflow: DEFAULT_WORKFLOW_ID,
     workflowVersion: WORKFLOW_DEFINITIONS[DEFAULT_WORKFLOW_ID].version,
-    style: "current",
+    style: resolveStyleId({}, slug),
     target: "gate-4",
     createdAt: now,
     updatedAt: now,
@@ -126,4 +127,39 @@ export function refreshProject(project) {
   project.state.currentStage = changedStage;
   saveState(project);
   return { changed: true, stage: changedStage };
+}
+
+export function reopenGate3ForSeriesCover(slug) {
+  const files = projectFiles(slug);
+  if (!fs.existsSync(files.config) || !fs.existsSync(files.state) || !fs.existsSync(files.artifacts)) return false;
+  const project = loadProject(slug, { refresh: false });
+  const gateIndex = STAGES.indexOf("gate-3");
+  const currentIndex = project.state.currentStage === "completed"
+    ? STAGES.length
+    : STAGES.indexOf(project.state.currentStage);
+  if (currentIndex < gateIndex) return false;
+
+  const now = new Date().toISOString();
+  const gate = project.state.stages["gate-3"];
+  gate.status = "waiting";
+  gate.outputs = [];
+  gate.review = null;
+  gate.error = null;
+  gate.invalidatedBy = "series-cover";
+  gate.outputFingerprint = null;
+  gate.updatedAt = now;
+
+  for (const stage of STAGES.slice(gateIndex + 1)) {
+    const item = project.state.stages[stage];
+    item.status = "invalidated";
+    item.outputs = [];
+    item.review = null;
+    item.error = null;
+    item.invalidatedBy = "series-cover";
+    item.outputFingerprint = null;
+    item.updatedAt = now;
+  }
+  project.state.currentStage = "gate-3";
+  saveState(project);
+  return true;
 }

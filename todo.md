@@ -884,20 +884,21 @@ Studio 中音频、字幕和画面同步
 
 # 远程渲染分支与产物预检 TODO
 
-> 记录日期：2026-08-31。已先完成显式 Harness 分支优先级修复；其余远端产物预检继续留作后续统一实现，不修改 GitHub Actions。
+> 记录日期：2026-08-31。已完成显式 Harness 分支优先级和当前 Git 分支自动回退；其余远端产物预检继续留作后续统一实现，不修改 GitHub Actions。
 
 ## 问题
 
 Web UI 能成功创建 GitHub Actions 远程渲染任务，但当前使用 `GITHUB_REF_NAME` 作为 dispatch ref。运行 Web UI 的环境如果残留旧分支值，任务会在旧分支执行；即使本地已经生成新视频代码、Manifest 和资产 ZIP，只要这些文件尚未提交并推送到目标分支，远程校验仍会失败。
 
-当前配置读取顺序为 `GITHUB_REF_NAME` 优先于 `HARNESS_GITHUB_REF`，因此显式的 Harness 配置可能被旧的 `GITHUB_REF_NAME` 覆盖。Web UI 提交前也没有确认目标远程分支是否真正包含本次渲染所需产物。
+旧配置依赖启动环境提供分支；即使显式 `HARNESS_GITHUB_REF` 已能覆盖 `GITHUB_REF_NAME`，普通启动未传显式值时仍会使用残留的 `GITHUB_REF_NAME`。Web UI 提交前也没有确认目标远程分支是否真正包含本次渲染所需产物。
 
 ## 待处理事项
 
 - [x] 显式 `HARNESS_GITHUB_REF` 优先于 `GITHUB_REF_NAME`，避免旧 GitHub 环境值覆盖本次 Harness 目标分支；当前 Git 上游自动回退仍属于下一项。
-- [ ] 优先使用显式 `HARNESS_GITHUB_REF`；未配置时再使用当前 Git 上游分支，并对无法确定分支的情况直接阻止提交。
+- [x] 优先使用显式 `HARNESS_GITHUB_REF`；未配置时使用当前 Git 工作区分支，无法解析当前分支时才回退到 `GITHUB_REF_NAME`。
 - [ ] 在 Web UI 中展示本次任务将使用的目标分支和 commit SHA。
 - [ ] 提交 Smoke Render 或完整 Render 前，校验目标远程分支存在且包含当前视频的 Remotion 代码、必需 Manifest 和 `assets/<video-slug>-assets.zip`。
+- [x] 提交远程任务前校验本地资产 ZIP 可完整解压、目录结构正确、VTT／SRT 齐全、每个 Manifest 音频路径存在、MP3 数量一致，并在失败时阻止创建 Remote Job。
 - [ ] 检查本地必需产物是否尚未提交或尚未推送；存在差异时禁用提交按钮，并列出缺失或未同步的文件。
 - [ ] Remote Job 持久化实际 `ref` 和 commit SHA，任务详情页明确展示，不允许后续轮询误关联其他分支的 Run 或 Artifact。
 - [ ] 修复后重新提交新的远程任务；旧分支上的失败 Run 只保留为历史记录，不尝试继续执行。

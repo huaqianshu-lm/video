@@ -5,6 +5,7 @@ import { diagnoseGitHubActions } from "../src/diagnostics.mjs";
 const environment = {
   GITHUB_TOKEN: "secret-token",
   GITHUB_REPOSITORY: "example/video",
+  HARNESS_GITHUB_REF: "main",
   GITHUB_REF_NAME: "main",
 };
 

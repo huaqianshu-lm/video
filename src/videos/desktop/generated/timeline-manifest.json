@@ -1,0 +1,170 @@
+{
+  "schemaVersion": "1.0",
+  "videoId": "desktop",
+  "sceneBuffer": 0.0,
+  "duration": 183.744,
+  "scenes": [
+    {
+      "sceneId": "01",
+      "offset": 0.0,
+      "narrationDuration": 18.768,
+      "buffer": 0.0,
+      "duration": 18.768,
+      "end": 18.768,
+      "segments": [
+        {
+          "segmentId": "01-01",
+          "offset": 0.0,
+          "duration": 18.768,
+          "end": 18.768,
+          "audioFile": "audio/scene-01/01-01.mp3",
+          "subtitleFile": "subtitles/scene-01.json"
+        }
+      ]
+    },
+    {
+      "sceneId": "02",
+      "offset": 18.768,
+      "narrationDuration": 16.368,
+      "buffer": 0.0,
+      "duration": 16.368,
+      "end": 35.136,
+      "segments": [
+        {
+          "segmentId": "02-01",
+          "offset": 0.0,
+          "duration": 16.368,
+          "end": 16.368,
+          "audioFile": "audio/scene-02/02-01.mp3",
+          "subtitleFile": "subtitles/scene-02.json"
+        }
+      ]
+    },
+    {
+      "sceneId": "03",
+      "offset": 35.136,
+      "narrationDuration": 21.72,
+      "buffer": 0.0,
+      "duration": 21.72,
+      "end": 56.856,
+      "segments": [
+        {
+          "segmentId": "03-01",
+          "offset": 0.0,
+          "duration": 21.72,
+          "end": 21.72,
+          "audioFile": "audio/scene-03/03-01.mp3",
+          "subtitleFile": "subtitles/scene-03.json"
+        }
+      ]
+    },
+    {
+      "sceneId": "04",
+      "offset": 56.856,
+      "narrationDuration": 19.896,
+      "buffer": 0.0,
+      "duration": 19.896,
+      "end": 76.752,
+      "segments": [
+        {
+          "segmentId": "04-01",
+          "offset": 0.0,
+          "duration": 19.896,
+          "end": 19.896,
+          "audioFile": "audio/scene-04/04-01.mp3",
+          "subtitleFile": "subtitles/scene-04.json"
+        }
+      ]
+    },
+    {
+      "sceneId": "05",
+      "offset": 76.752,
+      "narrationDuration": 21.432,
+      "buffer": 0.0,
+      "duration": 21.432,
+      "end": 98.184,
+      "segments": [
+        {
+          "segmentId": "05-01",
+          "offset": 0.0,
+          "duration": 21.432,
+          "end": 21.432,
+          "audioFile": "audio/scene-05/05-01.mp3",
+          "subtitleFile": "subtitles/scene-05.json"
+        }
+      ]
+    },
+    {
+      "sceneId": "06",
+      "offset": 98.184,
+      "narrationDuration": 19.296,
+      "buffer": 0.0,
+      "duration": 19.296,
+      "end": 117.48,
+      "segments": [
+        {
+          "segmentId": "06-01",
+          "offset": 0.0,
+          "duration": 19.296,
+          "end": 19.296,
+          "audioFile": "audio/scene-06/06-01.mp3",
+          "subtitleFile": "subtitles/scene-06.json"
+        }
+      ]
+    },
+    {
+      "sceneId": "07",
+      "offset": 117.48,
+      "narrationDuration": 21.768,
+      "buffer": 0.0,
+      "duration": 21.768,
+      "end": 139.248,
+      "segments": [
+        {
+          "segmentId": "07-01",
+          "offset": 0.0,
+          "duration": 21.768,
+          "end": 21.768,
+          "audioFile": "audio/scene-07/07-01.mp3",
+          "subtitleFile": "subtitles/scene-07.json"
+        }
+      ]
+    },
+    {
+      "sceneId": "08",
+      "offset": 139.248,
+      "narrationDuration": 23.808,
+      "buffer": 0.0,
+      "duration": 23.808,
+      "end": 163.056,
+      "segments": [
+        {
+          "segmentId": "08-01",
+          "offset": 0.0,
+          "duration": 23.808,
+          "end": 23.808,
+          "audioFile": "audio/scene-08/08-01.mp3",
+          "subtitleFile": "subtitles/scene-08.json"
+        }
+      ]
+    },
+    {
+      "sceneId": "09",
+      "offset": 163.056,
+      "narrationDuration": 20.688,
+      "buffer": 0.0,
+      "duration": 20.688,
+      "end": 183.744,
+      "segments": [
+        {
+          "segmentId": "09-01",
+          "offset": 0.0,
+          "duration": 20.688,
+          "end": 20.688,
+          "audioFile": "audio/scene-09/09-01.mp3",
+          "subtitleFile": "subtitles/scene-09.json"
+        }
+      ]
+    }
+  ]
+}

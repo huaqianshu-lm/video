@@ -1,4 +1,5 @@
 import { STAGE_DEFINITIONS, STAGES, getWorkflowDefinition } from "./stages.mjs";
+import { resolveStyleId } from "./styles.mjs";
 
 function commandFor(command, slug, stage = null) {
   const suffix = stage ? ` ${stage}` : "";
@@ -48,7 +49,7 @@ export function buildProjectPlan(project, targetOverride = null) {
       slug: state.slug,
       workflow: config.workflow,
       workflowVersion: config.workflowVersion,
-      style: config.style,
+      style: resolveStyleId(config, state.slug),
       configuredTarget: config.target,
       currentStage: state.currentStage,
     },

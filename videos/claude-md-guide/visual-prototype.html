@@ -62,54 +62,54 @@
     </header>
 
     <section class="stage" aria-label="CLAUDE.md 视频视觉原型">
-      <article class="scene active" data-title="三百行，零条被听见">
+      <section class="scene active" data-title="三百行，零条被听见">
         <div class="scene-head"><div><div class="scene-kicker">Scene 01 · Hook</div><h2>三百行，零条被听见</h2></div><div class="scene-note">长文档<br />规则被稀释</div></div>
         <div class="grid-2">
           <div class="window"><div class="window-bar"><i class="dot red"></i><i class="dot amber"></i><i class="dot green"></i><span class="mono">CLAUDE.md</span></div><div class="code-lines mono"><span class="faint"># 公司背景与产品愿景</span><br /><span class="faint">## 技术选型历史</span><br /><span class="faint">- 团队介绍与项目说明</span><br /><br /><span class="rule">依赖管理只用 pnpm</span><br /><span class="faint">- 更多背景说明……</span><br /><span class="faint">- 更多背景说明……</span></div></div>
           <div class="window task-panel"><div class="task-title">Task execution</div><div><div class="command mono">$ npm install</div><div class="status">规则未生效</div></div><div class="tiny">重要规则被长文档推到视野之外</div></div>
         </div><div class="caption">重要规则被埋没</div>
-      </article>
+      </section>
 
-      <article class="scene" data-title="CLAUDE.md 是入职手册，不是铁律">
+      <section class="scene" data-title="CLAUDE.md 是入职手册，不是铁律">
         <div class="scene-head"><div><div class="scene-kicker">Scene 02 · Concept</div><h2>CLAUDE.md 是入职手册，不是铁律</h2></div><div class="scene-note">每次会话<br />重新读取</div></div>
         <div class="process"><div class="node"><strong>Blank session</strong><small>从一张白纸开始</small></div><div class="arrow">→</div><div class="node" style="border-color:rgba(113,230,224,.6)"><strong>Read CLAUDE.md</strong><small>项目入职手册</small></div><div class="arrow">→</div><div class="node"><strong>Start task</strong><small>带着规则开工</small></div></div>
         <div class="badge-row"><div class="badge good">强烈建议</div><div class="badge limit">非铁律</div></div><div class="caption">影响行为，但不是硬性强制层</div>
-      </article>
+      </section>
 
-      <article class="scene" data-title="三层范围，从广到窄加载">
+      <section class="scene" data-title="三层范围，从广到窄加载">
         <div class="scene-head"><div><div class="scene-kicker">Scene 03 · Scope</div><h2>三层范围，从广到窄加载</h2></div><div class="scene-note">先读广范围<br />后读窄范围</div></div>
         <div class="scope-wrap"><div><div class="scope-stack"><div class="scope-card"><span class="mono">~/.claude/CLAUDE.md</span><small>用户级 · 所有项目</small></div><div class="scope-card"><span class="mono">./CLAUDE.md</span><small>项目级 · 团队共享</small></div><div class="scope-card"><span class="mono">subdir/CLAUDE.md</span><small>子目录级 · 模块细则</small></div></div><div class="concat">↓ 拼接，不是覆盖</div></div><div class="local"><strong>CLAUDE.local.md</strong><br />本地变体<br /><span class="tiny">只给当前用户</span></div></div><div class="caption">范围从广到窄，内容从先读到后读</div>
-      </article>
+      </section>
 
-      <article class="scene" data-title="该写什么，也该删什么">
+      <section class="scene" data-title="该写什么，也该删什么">
         <div class="scene-head"><div><div class="scene-kicker">Scene 04 · Edit</div><h2>该写什么，也该删什么</h2></div><div class="scene-note">只留下<br />长期事实</div></div>
         <div class="rule-layout"><div class="rule-list"><div class="rule-item"><span class="check">✓</span>项目概述</div><div class="rule-item"><span class="check">✓</span>技术栈</div><div class="rule-item"><span class="check">✓</span>常用命令</div><div class="rule-item"><span class="check">✓</span>代码约定</div><div class="rule-item"><span class="check">✓</span>不要做</div></div><div class="trim"><strong>&lt; 200</strong><span>lines · 留下真正需要的规则</span><div class="cut">公司背景 · 过时命令 · 可推断信息</div></div></div><div class="caption">短，不是为了好看，而是把上下文留给任务</div>
-      </article>
+      </section>
 
-      <article class="scene" data-title="@ 引用：整理，不省上下文">
+      <section class="scene" data-title="@ 引用：整理，不省上下文">
         <div class="scene-head"><div><div class="scene-kicker">Scene 05 · Reference</div><h2><span class="mono">@</span> 引用：整理，不省上下文</h2></div><div class="scene-note">结构更清楚<br />Context usage 不下降</div></div>
         <div class="ref-layout"><div class="window ref-file"><div class="window-bar"><span class="mono">CLAUDE.md</span></div><div class="ref-line mono">@README</div><div class="ref-line mono">@docs/git-instructions.md</div><div class="expand">→ 最多递归四跳</div></div><div class="window context-box"><div class="context-label"><span>Context usage</span><span>展开前 / 后</span></div><div class="meter"><i></i></div><div class="context-result">文件展开了，使用量没有下降</div></div></div><div class="caption">引用是整理，不是上下文减肥术</div>
-      </article>
+      </section>
 
-      <article class="scene" data-title="让记忆跟着项目一起收敛">
+      <section class="scene" data-title="让记忆跟着项目一起收敛">
         <div class="scene-head"><div><div class="scene-kicker">Scene 06 · Maintenance</div><h2>让记忆跟着项目一起收敛</h2></div><div class="scene-note">补入 → 检查<br />删除旧规则</div></div>
         <div class="maintain"><div class="window active-card"><h3>加进 CLAUDE.md</h3><p>一次纠正<br />变成长期规则</p></div><div class="window active-card"><h3 class="mono">/memory</h3><p>确认文件<br />真的被加载</p></div><div class="window"><h3>项目变化</h3><p>换包管理器<br />删除旧命令</p></div></div><div class="checks"><div class="check-pill on">文件是否加载</div><div class="check-pill">规则是否模糊</div><div class="check-pill">是否冲突</div></div><div class="caption">维护，就是让记忆持续收敛</div>
-      </article>
+      </section>
 
-      <article class="scene" data-title="好规则要一眼能验收">
+      <section class="scene" data-title="好规则要一眼能验收">
         <div class="scene-head"><div><div class="scene-kicker">Scene 07 · Rule quality</div><h2>好规则要一眼能验收</h2></div><div class="scene-note">像规则<br />不要像散文</div></div>
         <div class="compare"><div class="compare-col bad"><h3>模糊散文</h3><p>代码应该比较整洁</p><div class="label">无法一眼判断</div><p style="margin-top:18px">尽量写测试</p><div class="label">没有明确条件</div></div><div class="compare-col good"><h3>具体规则</h3><p>函数不超过 50 行</p><div class="label">可以直接检查</div><p style="margin-top:18px">每个新增函数必须有单元测试</p><div class="label">可以直接验收</div></div></div><div class="caption">具体到能一眼看出有没有违反</div>
-      </article>
+      </section>
 
-      <article class="scene" data-title="用最小项目验证它真的生效">
+      <section class="scene" data-title="用最小项目验证它真的生效">
         <div class="scene-head"><div><div class="scene-kicker">Scene 08 · Verify</div><h2>用最小项目验证它真的生效</h2></div><div class="scene-note">小文件<br />真实 diff</div></div>
         <div class="demo-layout"><div class="window tree"><div class="window-bar"><span class="mono">claude-md-demo</span></div><div class="tree-line mono">├─ main.py</div><div class="tree-line mono">└─ CLAUDE.md</div><div class="memory mono">/memory · loaded</div></div><div class="window demo-result"><div class="diff mono"><span class="tiny">CLAUDE.md · &lt; 15 lines</span><br /><span class="add">+ 函数必须有类型注解</span><span class="add">+ 不修改 add 函数签名</span></div><div class="pass">✓ 验证通过</div></div></div><div class="caption">让 Claude 做事，再看规则有没有影响结果</div>
-      </article>
+      </section>
 
-      <article class="scene" data-title="把 CLAUDE.md 变成项目护栏">
+      <section class="scene" data-title="把 CLAUDE.md 变成项目护栏">
         <div class="scene-head"><div><div class="scene-kicker">Scene 09 · Summary</div><h2>把 CLAUDE.md 变成项目护栏</h2></div><div class="scene-note">收束原则<br />下一篇预告</div></div>
         <div class="summary-rail"><div class="summary-step">范围</div><div class="summary-step">具体规则</div><div class="summary-step">引用</div><div class="summary-step">维护</div><div class="summary-step">验证</div></div><div class="summary-title">CLAUDE.md 不是百科全书</div><div class="teaser">下一篇：上下文管理</div><div class="caption">把项目规矩写成短小、具体、可验证的护栏</div>
-      </article>
+      </section>
     </section>
 
     <nav class="controls" aria-label="Scene controls"><button id="prev" type="button">上一幕</button><div id="progress" class="progress"></div><button id="next" type="button">下一幕</button><button id="auto" type="button">自动播放</button></nav>

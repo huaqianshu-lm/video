@@ -5,6 +5,7 @@ import { matchesArtifactPath } from "./artifact-paths.mjs";
 import { projectFiles, loadProject } from "./storage.mjs";
 import { buildNextAction, buildProjectReport } from "./reports.mjs";
 import { STAGES, STAGE_DEFINITIONS } from "./stages.mjs";
+import { resolveStyleId } from "./styles.mjs";
 
 const repositoryRoot = path.resolve(new URL("../..", import.meta.url).pathname);
 const videosRoot = path.join(repositoryRoot, "videos");
@@ -121,6 +122,7 @@ function buildUninitializedView(slug) {
     stageCount: STAGES.length,
     sourceDirectory: `videos/${slug}`,
     remotionDirectory: `src/videos/${slug}`,
+    style: resolveStyleId({}, slug),
     next: {
       action: "initialize",
       message: "先初始化 Harness 项目状态，才能使用阶段控制和 Gate 操作。",
@@ -153,6 +155,7 @@ function buildInitializedView(slug) {
     stageCount: STAGES.length,
     sourceDirectory: project.config.sourceDirectory,
     remotionDirectory: project.config.remotionDirectory,
+    style: resolveStyleId(project.config, slug),
     next: buildNextAction(project),
     stages,
   };

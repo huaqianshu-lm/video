@@ -32,7 +32,7 @@ settings.json 决定谁受影响、什么进 git
 8. 用 `BASH_DEFAULT_TIMEOUT_MS` 完成验证闭环。
 9. 总结先试、再按范围固化，并预告下一篇。
 
-## 3. Scene 结构
+## 3. 整体叙事结构与 Scene 结构
 
 ### Scene 01｜每次都要重新拨
 
@@ -99,4 +99,3 @@ settings.json 决定谁受影响、什么进 git
 - [x] Scene 数量冻结为 9 个。
 
 Gate 1 通过，进入口播、视觉和原型设计。
-

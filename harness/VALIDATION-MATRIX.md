@@ -33,6 +33,7 @@
 |  | `subtitle-timeline-alignment` | 自动 | 已实现 |
 | remotion | `remotion-config` | 自动 | 0.4 补齐 |
 |  | `resource-manifest` | 自动 | 0.4 补齐 |
+|  | `remotion-alignment` | 自动 | 已实现：冻结指纹、Scene 覆盖、布局／事件／文字字段、实现文件和 Composition 注册 |
 | gate-3 | `manual-gate` | 人工 | 保留人工确认 |
 |  | `clean-output-review` | 人工 | 只记录人工检查要求 |
 | smoke-render | `adapter-result` | 适配器 | 已实现 |
@@ -58,3 +59,10 @@
 - “0.4 补齐”表示实现确定性、可重复的结构和技术校验，不表示自动判断内容质量。
 - Gate 2、Gate 3 和 Gate 4 的画面、声音、节奏和最终清洁输出仍必须人工确认。
 - Legacy 只读回归允许历史资料产生警告，但新项目的严格口播和来源边界规则不放宽。
+
+## Agent Job 与原型对齐边界
+
+- Web UI 的 Agent 阶段先创建本地持久化 Job，再由 Server 调用配置的命令；浏览器只读取状态和有界日志。
+- 命令进程退出码为 0 仍不代表阶段完成；Harness 必须重新读取当前阶段产物并执行全部确定性校验。
+- Gate 2 冻结前已经存在 Remotion 实现的历史项目按兼容模式处理；新项目必须提供引用当前冻结指纹的 `remotion-alignment.json`。
+- 自动校验只检查契约完整性和指纹有效性，实际布局、动画和视觉质量仍在 Gate 3 人工对照。

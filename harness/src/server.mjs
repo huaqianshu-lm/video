@@ -10,14 +10,59 @@ import { findActiveJob, listAllJobs, listJobs } from "./jobs.mjs";
 import { requireGitHubActionsConfig } from "./github-config.mjs";
 import { diagnoseGitHubActions } from "./diagnostics.mjs";
 import { createRemoteJobMonitor } from "./remote-jobs.mjs";
+import { assertRemoteRenderInputs } from "./remote-executor.mjs";
 import { artifactManifestFor } from "./artifacts.mjs";
 import { approveGate, rejectGate, resumeProject, retryStage, runStage, validateStage } from "./runner.mjs";
 import { validateProjectStage } from "./validation.mjs";
 import { buildNextAction, buildProjectReport } from "./reports.mjs";
 import { buildTaskPacket } from "./context.mjs";
 import { buildProjectPlan } from "./plans.mjs";
-import { initializeProject, loadProject } from "./storage.mjs";
+import { initializeProject, loadProject, reopenGate3ForSeriesCover } from "./storage.mjs";
 import { HARNESS_VERSION } from "./stages.mjs";
+import { STAGE_DEFINITIONS } from "./stages.mjs";
+import { createAgentExecutorFromEnv } from "./agent-executor.mjs";
+import { createTtsExecutorFromEnv } from "./tts-executor.mjs";
+import { createRemotionExecutorFromEnv } from "./remotion-executor.mjs";
+import {
+  createAgentJob,
+  getAgentJob,
+  listAgentJobs,
+  recoverInterruptedAgentJobs,
+  retryAgentJob,
+  runAgentJob,
+} from "./agent-jobs.mjs";
+import { buildAlignmentView } from "./remotion-alignment.mjs";
+import {
+  approveTtsQc,
+  approveTtsQcForProject,
+  approveSmokeQc,
+  batchDefinitions,
+  createBatch,
+  getBatch,
+  getBatchForView,
+  listBatchesForView,
+  retryFailedBatchItems,
+  runBatch,
+} from "./batches.mjs";
+import {
+  completeRemotionTask,
+  blockRemotionTask,
+  ensureRemotionTask,
+  getRemotionTask,
+  listRemotionTasks,
+  retryRemotionTask,
+  runRemotionTask,
+  startRemotionTask,
+  recoverInterruptedRemotionTasks,
+} from "./remotion-tasks.mjs";
+import {
+  MAX_COVER_BYTES,
+  getSeries,
+  listSeries,
+  saveSeries,
+  saveSeriesCover,
+  seriesAssetPath,
+} from "./series-assets.mjs";
 
 const moduleDirectory = path.dirname(fileURLToPath(import.meta.url));
 const webDirectory = path.resolve(moduleDirectory, "../web");
@@ -27,7 +72,11 @@ const defaultPort = 4173;
 const contentTypes = Object.freeze({
   ".css": "text/css; charset=utf-8",
   ".html": "text/html; charset=utf-8",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
   ".js": "text/javascript; charset=utf-8",
+  ".png": "image/png",
+  ".webp": "image/webp",
 });
 
 function send(response, statusCode, body, contentType = "text/plain; charset=utf-8") {
@@ -74,7 +123,83 @@ function serveStatic(response, urlPath) {
   response.end(body);
 }
 
+function serveFile(response, filePath) {
+  const body = fs.readFileSync(filePath);
+  response.writeHead(200, {
+    "Content-Type": contentTypes[path.extname(filePath).toLowerCase()] ?? "application/octet-stream",
+    "Content-Length": body.length,
+    "Cache-Control": "no-store",
+  });
+  response.end(body);
+}
+
+function readBody(request, maximumBytes) {
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+    let size = 0;
+    request.on("data", (chunk) => {
+      size += chunk.length;
+      if (size > maximumBytes) {
+        reject(new Error("Request body is too large"));
+        request.destroy();
+        return;
+      }
+      chunks.push(chunk);
+    });
+    request.on("end", () => resolve(Buffer.concat(chunks)));
+    request.on("error", reject);
+  });
+}
+
+async function serveSeriesApi(response, request, pathname) {
+  if (request.method === "GET" && pathname === "/api/series") {
+    sendJson(response, 200, { series: listSeries() });
+    return true;
+  }
+
+  if (request.method === "POST" && pathname === "/api/series") {
+    const body = await readJsonBody(request);
+    const series = saveSeries({
+      id: body.id,
+      title: body.title,
+      coverDurationFrames: body.coverDurationFrames,
+      videos: body.videos,
+      confirmVideoRemoval: body.confirmVideoRemoval === true,
+    });
+    sendJson(response, 200, { series });
+    return true;
+  }
+
+  const coverMatch = pathname.match(/^\/api\/series\/([a-z0-9]+(?:-[a-z0-9]+)*)\/cover$/);
+  if (coverMatch && request.method === "PUT") {
+    const contentType = String(request.headers["content-type"] ?? "").split(";", 1)[0].trim().toLowerCase();
+    const body = await readBody(request, MAX_COVER_BYTES);
+    const result = saveSeriesCover(coverMatch[1], body, contentType);
+    const reopenedProjects = result.series.videos.filter((slug) => reopenGate3ForSeriesCover(slug));
+    sendJson(response, 200, { ...result, reopenedProjects });
+    return true;
+  }
+
+  const match = pathname.match(/^\/api\/series\/([a-z0-9]+(?:-[a-z0-9]+)*)$/);
+  if (match && request.method === "GET") {
+    const series = getSeries(match[1]);
+    if (!series) {
+      sendJson(response, 404, { error: "Series not found" });
+      return true;
+    }
+    sendJson(response, 200, { series });
+    return true;
+  }
+
+  return false;
+}
+
 async function serveApi(response, pathname, search, remoteJobMonitor, diagnose) {
+  if (pathname === "/api/agent-jobs") {
+    sendJson(response, 200, { jobs: listAgentJobs() });
+    return true;
+  }
+
   if (pathname === "/api/jobs") {
     sendJson(response, 200, { jobs: listAllJobs() });
     return true;
@@ -130,42 +255,186 @@ async function serveApi(response, pathname, search, remoteJobMonitor, diagnose) 
 
   const jobsMatch = pathname.match(/^\/api\/projects\/([a-z0-9]+(?:-[a-z0-9]+)*)\/jobs$/);
   if (jobsMatch) {
-    if (!getVideoProject(jobsMatch[1])) {
+    const project = getVideoProject(jobsMatch[1]);
+    if (!project) {
       sendJson(response, 404, { error: "Video project not found" });
       return true;
     }
-    sendJson(response, 200, { jobs: listJobs(jobsMatch[1]) });
+    sendJson(response, 200, {
+      jobs: listJobs(jobsMatch[1]),
+      activeJob: project.currentStage ? findActiveJob(jobsMatch[1], project.currentStage) : null,
+    });
+    return true;
+  }
+
+  const agentJobsMatch = pathname.match(/^\/api\/projects\/([a-z0-9]+(?:-[a-z0-9]+)*)\/agent-jobs$/);
+  if (agentJobsMatch) {
+    if (!getVideoProject(agentJobsMatch[1])) {
+      sendJson(response, 404, { error: "Video project not found" });
+      return true;
+    }
+    sendJson(response, 200, { jobs: listAgentJobs({ slug: agentJobsMatch[1] }) });
+    return true;
+  }
+
+  const alignmentMatch = pathname.match(/^\/api\/projects\/([a-z0-9]+(?:-[a-z0-9]+)*)\/alignment$/);
+  if (alignmentMatch) {
+    const projectView = getVideoProject(alignmentMatch[1]);
+    if (!projectView?.initialized) {
+      sendJson(response, 404, { error: "Initialized video project not found" });
+      return true;
+    }
+    sendJson(response, 200, { alignment: buildAlignmentView(loadProject(alignmentMatch[1], { refresh: false })) });
     return true;
   }
 
   return false;
 }
 
+async function serveBatchApi(response, request, pathname) {
+  if (request.method === "GET" && pathname === "/api/batches") {
+    sendJson(response, 200, { definitions: batchDefinitions(), batches: listBatchesForView() });
+    return true;
+  }
+
+  if (request.method === "POST" && pathname === "/api/batches") {
+    const body = await readJsonBody(request);
+    const batch = createBatch({ type: body.type, slugs: body.slugs });
+    void runBatch(batch.id).catch(() => {});
+    sendJson(response, 202, { batch: getBatchForView(batch.id) });
+    return true;
+  }
+
+  const match = pathname.match(/^\/api\/batches\/([a-f0-9-]+)$/);
+  if (match && request.method === "GET") {
+    const batch = getBatch(match[1]);
+    if (!batch) {
+      sendJson(response, 404, { error: "Batch not found" });
+      return true;
+    }
+    sendJson(response, 200, { batch: getBatchForView(match[1]) });
+    return true;
+  }
+
+  const actionMatch = pathname.match(/^\/api\/batches\/([a-f0-9-]+)\/action$/);
+  if (actionMatch && request.method === "POST") {
+    const id = actionMatch[1];
+    const body = await readJsonBody(request);
+    if (!getBatch(id)) {
+      sendJson(response, 404, { error: "Batch not found" });
+      return true;
+    }
+    if (body.action === "approve-tts-qc") approveTtsQc(id, body.slug);
+    if (body.action === "approve-smoke-qc") approveSmokeQc(id, body.slug);
+    if (body.action === "retry-failed") retryFailedBatchItems(id);
+    if (!["run", "resume", "approve-tts-qc", "approve-smoke-qc", "retry-failed"].includes(body.action)) {
+      sendJson(response, 400, { error: `Unknown batch action: ${body.action ?? "missing"}` });
+      return true;
+    }
+    void runBatch(id).catch(() => {});
+    sendJson(response, 202, { batch: getBatchForView(id) });
+    return true;
+  }
+
+  return false;
+}
+
+async function serveRemotionTaskApi(response, request, pathname) {
+  if (request.method === "GET" && pathname === "/api/remotion-tasks") {
+    sendJson(response, 200, { tasks: listRemotionTasks() });
+    return true;
+  }
+
+  const match = pathname.match(/^\/api\/remotion-tasks\/([a-f0-9-]+)$/);
+  if (match && request.method === "GET") {
+    const task = getRemotionTask(match[1]);
+    if (!task) {
+      sendJson(response, 404, { error: "Remotion task not found" });
+      return true;
+    }
+    sendJson(response, 200, { task });
+    return true;
+  }
+
+  const actionMatch = pathname.match(/^\/api\/remotion-tasks\/([a-f0-9-]+)\/action$/);
+  if (actionMatch && request.method === "POST") {
+    const body = await readJsonBody(request);
+    const id = actionMatch[1];
+    try {
+      let result;
+      if (body.action === "run") {
+        const task = getRemotionTask(id);
+        if (!task) throw new Error(`Remotion task not found: ${id}`);
+        if (task.status === "in-progress") {
+          sendJson(response, 202, { task });
+          return true;
+        }
+        if (!["ready", "blocked", "failed"].includes(task.status)) throw new Error(`Remotion task is not runnable: ${task.status}`);
+        if (["blocked", "failed"].includes(task.status)) retryRemotionTask(id);
+        request.queueRemotionTask(id);
+        sendJson(response, 202, { task: getRemotionTask(id) });
+        return true;
+      } else if (body.action === "start") result = { task: startRemotionTask(id) };
+      else if (body.action === "retry") result = { task: retryRemotionTask(id) };
+      else if (body.action === "complete") {
+        result = completeRemotionTask(id);
+        if (result.completed && result.task.batchId) {
+          result.batch = await runBatch(result.task.batchId);
+        }
+      } else {
+        sendJson(response, 400, { error: `Unknown Remotion task action: ${body.action ?? "missing"}` });
+        return true;
+      }
+      sendJson(response, 200, result);
+    } catch (error) {
+      sendJson(response, 400, {
+        error: error instanceof Error ? error.message : String(error),
+        issues: error.issues ?? [],
+      });
+    }
+    return true;
+  }
+
+  return false;
+}
+
+async function serveAgentJobApi(response, request, pathname) {
+  const match = pathname.match(/^\/api\/agent-jobs\/([a-f0-9-]+)$/);
+  if (match && request.method === "GET") {
+    const job = getAgentJob(match[1]);
+    if (!job) sendJson(response, 404, { error: "Agent Job not found" });
+    else sendJson(response, 200, { job });
+    return true;
+  }
+
+  const actionMatch = pathname.match(/^\/api\/agent-jobs\/([a-f0-9-]+)\/action$/);
+  if (actionMatch && request.method === "POST") {
+    const body = await readJsonBody(request);
+    const id = actionMatch[1];
+    try {
+      if (body.action !== "retry") {
+        sendJson(response, 400, { error: `Unknown Agent Job action: ${body.action ?? "missing"}` });
+        return true;
+      }
+      retryAgentJob(id);
+      request.queueAgentJob(id);
+      sendJson(response, 202, { job: getAgentJob(id) });
+    } catch (error) {
+      sendJson(response, 400, { error: error instanceof Error ? error.message : String(error) });
+    }
+    return true;
+  }
+  return false;
+}
+
 function readJsonBody(request) {
-  return new Promise((resolve, reject) => {
-    const chunks = [];
-    let size = 0;
-    request.on("data", (chunk) => {
-      size += chunk.length;
-      if (size > 1_000_000) {
-        reject(new Error("Request body is too large"));
-        request.destroy();
-        return;
-      }
-      chunks.push(chunk);
-    });
-    request.on("end", () => {
-      if (chunks.length === 0) {
-        resolve({});
-        return;
-      }
-      try {
-        resolve(JSON.parse(Buffer.concat(chunks).toString("utf8")));
-      } catch {
-        reject(new Error("Request body must be valid JSON"));
-      }
-    });
-    request.on("error", reject);
+  return readBody(request, 1_000_000).then((body) => {
+    if (body.length === 0) return {};
+    try {
+      return JSON.parse(body.toString("utf8"));
+    } catch {
+      throw new Error("Request body must be valid JSON");
+    }
   });
 }
 
@@ -278,9 +547,10 @@ async function serveAction(response, request, pathname) {
     }
     const activeJob = findActiveJob(slug, stage);
     if (activeJob) {
-      sendJson(response, 409, { error: "A remote job for this stage is already running", job: activeJob });
+      sendJson(response, 200, { result: { action, status: "already-running" }, job: activeJob });
       return true;
     }
+    assertRemoteRenderInputs(loadProject(slug, { refresh: true }));
     const job = request.remoteJobMonitor.submit({ slug, stage });
     sendJson(response, 202, { result: { action, status: "queued" }, job });
     return true;
@@ -305,11 +575,42 @@ async function serveAction(response, request, pathname) {
       if (!body.until) throw new Error("plan requires until");
       result = buildProjectPlan(project, body.until);
       break;
-    case "run":
-      result = await runStage(project, body.stage, { adapters: {} });
+    case "run": {
+      const stage = body.stage ?? project.state.currentStage;
+      if (STAGE_DEFINITIONS[stage]?.executor === "agent") {
+        if (stage === "remotion") {
+          const remotionIssues = validateStage(project, "remotion");
+          const requiresRebuild = project.state.stages.remotion.invalidatedBy === "gate-3-rejected";
+          if (remotionIssues.length === 0 && !requiresRebuild) {
+            const stageResult = runStage(project, "remotion", { adapters: {} });
+            const gateResult = runStage(loadProject(slug, { refresh: true }), "gate-3", { adapters: {} });
+            sendJson(response, 200, { result: { action, status: "succeeded", stageResult, gateResult }, project: getVideoProject(slug) });
+            return true;
+          }
+          const task = ensureRemotionTask({ slug, batchId: null });
+          request.queueRemotionTask(task.id);
+          sendJson(response, 202, { result: { action, status: "queued", taskId: task.id }, task });
+          return true;
+        }
+        const job = createAgentJob({ slug, stage });
+        request.queueAgentJob(job.id);
+        sendJson(response, 202, { result: { action, status: "queued", jobId: job.id }, job });
+        return true;
+      }
+      result = await runStage(project, stage, { adapters: {} });
       break;
+    }
     case "approve":
+      if ((body.gate ?? body.stage) === "gate-3") {
+        const latestRemotionTask = listRemotionTasks({ slug })[0];
+        if (latestRemotionTask && latestRemotionTask.status !== "completed") {
+          throw new Error("Gate 3 暂无可验证的新 Remotion 产物，请先执行或重试 Agent 并完成产物校验。");
+        }
+      }
       result = approveGate(project, body.gate ?? body.stage);
+      break;
+    case "approve-tts-qc":
+      result = await approveTtsQcForProject(slug);
       break;
     case "reject":
       result = rejectGate(project, body.gate ?? body.stage, body.returnTo, body.reason);
@@ -329,16 +630,33 @@ async function serveAction(response, request, pathname) {
   return true;
 }
 
-async function handleRequest(request, response, host, remoteJobMonitor, diagnose) {
+async function handleRequest(request, response, host, remoteJobMonitor, diagnose, queueAgentJob, queueRemotionTask) {
   const requestUrl = new URL(request.url ?? "/", `http://${host}`);
   const isAction = request.method === "POST" && requestUrl.pathname.endsWith("/action");
-  if (request.method !== "GET" && request.method !== "HEAD" && !isAction) {
+  const isBatchCreate = request.method === "POST" && requestUrl.pathname === "/api/batches";
+  const isSeriesWrite = (request.method === "POST" && requestUrl.pathname === "/api/series")
+    || (request.method === "PUT" && /^\/api\/series\/[a-z0-9]+(?:-[a-z0-9]+)*\/cover$/.test(requestUrl.pathname));
+  if (request.method !== "GET" && request.method !== "HEAD" && !isAction && !isBatchCreate && !isSeriesWrite) {
     send(response, 405, "Method not allowed\n");
     return;
   }
 
   request.remoteJobMonitor = remoteJobMonitor;
+  request.queueAgentJob = queueAgentJob;
+  request.queueRemotionTask = queueRemotionTask;
+  if (requestUrl.pathname.startsWith("/api/agent-jobs") && await serveAgentJobApi(response, request, requestUrl.pathname)) {
+    return;
+  }
+  if (requestUrl.pathname.startsWith("/api/remotion-tasks") && await serveRemotionTaskApi(response, request, requestUrl.pathname)) {
+    return;
+  }
+  if (requestUrl.pathname.startsWith("/api/batches") && await serveBatchApi(response, request, requestUrl.pathname)) {
+    return;
+  }
   if (isAction && await serveAction(response, request, requestUrl.pathname)) {
+    return;
+  }
+  if (requestUrl.pathname.startsWith("/api/series") && await serveSeriesApi(response, request, requestUrl.pathname)) {
     return;
   }
 
@@ -356,6 +674,14 @@ async function handleRequest(request, response, host, remoteJobMonitor, diagnose
   }
 
   if (requestUrl.pathname.startsWith("/preview/") && servePrototype(response, requestUrl.pathname)) {
+    return;
+  }
+
+  const seriesAssetMatch = requestUrl.pathname.match(/^\/series-assets\/([a-z0-9]+(?:-[a-z0-9]+)*)\/(cover\.(?:png|jpg|webp))$/);
+  if (seriesAssetMatch) {
+    const filePath = seriesAssetPath(seriesAssetMatch[1], seriesAssetMatch[2]);
+    if (!filePath) send(response, 404, "Series asset not found\n");
+    else serveFile(response, filePath);
     return;
   }
 
@@ -379,9 +705,48 @@ export function createWebServer({
   port = defaultPort,
   remoteJobMonitor = createRemoteJobMonitor(),
   diagnose = diagnoseGitHubActions,
+  agentExecutorFactory = (stage) => stage === "subtitle-timeline"
+    ? createTtsExecutorFromEnv()
+    : createAgentExecutorFromEnv(),
+  remotionExecutorFactory = () => createRemotionExecutorFromEnv(),
 } = {}) {
+  recoverInterruptedAgentJobs();
+  recoverInterruptedRemotionTasks();
+  const queueAgentJob = (id) => {
+    void (async () => {
+      let executor;
+      try {
+        const job = getAgentJob(id);
+        executor = agentExecutorFactory(job?.stage);
+      } catch {
+        await runAgentJob(id);
+        return;
+      }
+      await runAgentJob(id, { executor });
+    })().catch(() => {});
+  };
+  const queueRemotionTask = (id) => {
+    void (async () => {
+      let executor;
+      try {
+        executor = remotionExecutorFactory();
+      } catch (error) {
+        blockRemotionTask(id, error);
+        return;
+      }
+      const taskResult = await runRemotionTask(id, { executor });
+      if (!taskResult.completed) return;
+      const task = taskResult.task;
+      const project = loadProject(task.slug, { refresh: true });
+      if (project.state.currentStage === "remotion" && project.state.stages.remotion.status === "ready") {
+        await runStage(project, "remotion", { adapters: {} });
+        await runStage(loadProject(task.slug, { refresh: true }), "gate-3", { adapters: {} });
+      }
+      if (task.batchId) await runBatch(task.batchId);
+    })().catch(() => {});
+  };
   const server = http.createServer((request, response) => {
-    handleRequest(request, response, host, remoteJobMonitor, diagnose).catch((error) => {
+    handleRequest(request, response, host, remoteJobMonitor, diagnose, queueAgentJob, queueRemotionTask).catch((error) => {
       if (response.headersSent) {
         response.destroy(error);
         return;

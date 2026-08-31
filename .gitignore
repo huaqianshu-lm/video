@@ -3,7 +3,14 @@ node_modules/
 .playwright-mcp/
 local/
 public/local-assets/
+build/
 harness/projects/
+harness/.cache/
+harness/batches/
+harness/remotion-tasks/
+harness/agent-jobs/
+src/videos/*/generated/audio/
+src/videos/*/generated/subtitles/
 *.local
 *.local.*
 doc/

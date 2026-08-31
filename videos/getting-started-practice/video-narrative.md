@@ -8,7 +8,7 @@
 
 随后把观众带进一个足够小、却包含全部环节的 `wordcount-demo` 任务。观众先看到全景，再跟着六步依次执行，最后用“改岔了怎么办”和“老手 vs 新手”把一次练习提升为通用方法。
 
-## 2. 叙事主线
+## 2. 整体叙事结构与叙事主线
 
 ```text
 一句话等结果会失控
@@ -109,4 +109,3 @@
 ## 8. 下一步
 
 将 11 个叙事节点展开为 Scene Script，逐项补齐 `sceneId`、`title`、`purpose`、`narrativeRole`、`narrationIntent`、`visualIntent`、`visualType`、`keyOnScreenText` 和 `videoValue`。
-

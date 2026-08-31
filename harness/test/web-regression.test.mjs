@@ -53,8 +53,8 @@ test("Web UI data readers pass read-only regression for real video projects", ()
   const listedSlugs = projects.map((project) => project.slug);
 
   assert.deepEqual([...listedSlugs].sort(), realVideoSlugs);
-  assert.deepEqual(projects.map((project) => project.sequence), Array.from({ length: realVideoSlugs.length }, (_, index) => index + 1));
-  assert.equal(new Set(projects.map((project) => project.sequence)).size, realVideoSlugs.length);
+  const sequences = projects.map((project) => project.sequence);
+  assert.deepEqual(sequences, [...sequences].sort((left, right) => left - right));
 
   for (const slug of realVideoSlugs) {
     assert.ok(listedSlugs.includes(slug), `${slug} is missing from project list`);

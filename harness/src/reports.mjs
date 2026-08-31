@@ -6,6 +6,21 @@ function commandFor(project, command, stage = null) {
   return `node harness/src/cli.mjs ${command} ${project.state.slug}${suffix}`;
 }
 
+function executeCommandFor(stage) {
+  return stage === "smoke-render" || stage === "render" ? "remote-run" : "run";
+}
+
+function isBlockingPreExecutionIssue(stage, issue) {
+  if (issue.severity === "warning") return false;
+  if (STAGE_DEFINITIONS[stage]?.executor === "agent" && issue.code === "missing-artifact") {
+    return false;
+  }
+  if (stage === "remotion" && STAGE_DEFINITIONS[stage]?.executor === "agent" && issue.code === "missing-remotion-alignment") {
+    return false;
+  }
+  return true;
+}
+
 export function buildNextAction(project) {
   if (project.state.currentStage === "completed") {
     return {
@@ -22,7 +37,7 @@ export function buildNextAction(project) {
   const stage = project.state.currentStage;
   const item = project.state.stages[stage];
   const issues = item.status === "ready" ? validateStage(project, stage) : [];
-  const blockingIssues = issues.filter((item) => item.severity !== "warning");
+  const blockingIssues = issues.filter((issue) => isBlockingPreExecutionIssue(stage, issue));
   if (item.status === "waiting" && isGateStage(stage)) {
     return {
       currentStage: stage,
@@ -60,13 +75,24 @@ export function buildNextAction(project) {
     };
   }
   if (item.status === "ready") {
+    if (stage === "remotion" && item.invalidatedBy === "gate-3-rejected") {
+      return {
+        currentStage: stage,
+        status: item.status,
+        action: "run-stage",
+        message: "Gate 3 已驳回 Remotion，必须重新制作并产生变化后才能再次验证 Gate 3。",
+        requiresUser: false,
+        commands: [commandFor(project, "run", stage)],
+        issues: [],
+      };
+    }
     return {
       currentStage: stage,
       status: item.status,
       action: "run-stage",
       message: `可以执行 ${stage}。`,
       requiresUser: false,
-      commands: [commandFor(project, "run", stage)],
+      commands: [commandFor(project, executeCommandFor(stage), stage)],
       issues: [],
     };
   }

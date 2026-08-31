@@ -110,7 +110,7 @@ steps：调用哪个 Claude Code Action，并传入密钥
 - 不凭空补充 GitHub 权限、计费、Action 版本或供应商行为的外部结论。
 - 不执行文章中的命令，不连接 GitHub，不创建 workflow，不生成真实 PR。
 
-## 4. 可视化机会
+## 4. 可视觉化内容与机会
 
 - 「人在场」到「云端运行」：本地终端与 GitHub runner 的空间迁移。
 - `@claude` 与 `/claude`：符号差异直接造成触发／不触发。

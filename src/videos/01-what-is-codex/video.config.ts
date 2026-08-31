@@ -341,6 +341,7 @@ export const videoConfig: VideoConfig = {
   fps,
   series: {
     id: seriesConfig.id,
+    style: seriesConfig.style,
     coverSrc: seriesConfig.cover ?? undefined,
     coverDurationFrames: seriesConfig.coverDurationFrames,
   },

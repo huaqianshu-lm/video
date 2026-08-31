@@ -3,6 +3,7 @@ import { validateProjectStage } from "./validation.mjs";
 import { writeJson } from "./storage.mjs";
 import { fingerprintStageArtifacts } from "./fingerprints.mjs";
 import { ensureTtsScript } from "./tts-script.mjs";
+import { freezePrototypeBaseline } from "./remotion-alignment.mjs";
 
 function saveState(project) {
   project.state.updatedAt = new Date().toISOString();
@@ -43,6 +44,7 @@ function completeStage(project, stage, outputs = []) {
   item.status = "succeeded";
   item.error = null;
   item.invalidatedBy = null;
+  item.rebuildBaselineFingerprint = null;
   item.outputs = outputs;
   item.remote = null;
   item.outputFingerprint = STAGE_DEFINITIONS[stage].remoteOutput
@@ -68,7 +70,9 @@ export function markAdapterStageFailed(project, stage, error) {
   const item = project.state.stages[stage];
   item.status = "failed";
   item.error = failure;
-  item.invalidatedBy = null;
+  if (!(stage === "remotion" && item.invalidatedBy === "gate-3-rejected")) {
+    item.invalidatedBy = null;
+  }
   item.remote = null;
   item.updatedAt = new Date().toISOString();
   saveState(project);
@@ -78,6 +82,34 @@ export function markAdapterStageFailed(project, stage, error) {
 function failAdapterStage(project, stage, error) {
   const failure = markAdapterStageFailed(project, stage, error);
   throw new Error(failure.message);
+}
+
+function markExecutorStageFailed(project, stage, error) {
+  const failure = {
+    code: error?.code ?? "executor-failed",
+    stage,
+    message: error instanceof Error ? error.message : String(error),
+    ...(error?.issues ? { issues: error.issues } : {}),
+  };
+  const item = project.state.stages[stage];
+  item.status = "failed";
+  item.error = failure;
+  item.invalidatedBy = null;
+  item.updatedAt = new Date().toISOString();
+  saveState(project);
+  return failure;
+}
+
+function completeExecutorStage(project, stage, result) {
+  const issues = validateStage(project, stage);
+  if (issues.length > 0) {
+    const error = new Error(`${issues.length} artifact validation issue(s) in ${stage}`);
+    error.code = "validation-failed";
+    error.issues = issues;
+    markExecutorStageFailed(project, stage, error);
+    throw error;
+  }
+  return completeStage(project, stage, result?.outputs ?? []);
 }
 
 export function completeAdapterStage(project, stage, result) {
@@ -95,7 +127,7 @@ export function validateStage(project, requestedStage, options = {}) {
   return validateProjectStage(project, stage, { ...defaultOptions, ...options });
 }
 
-export function runStage(project, requestedStage, { adapters = {}, deferAdapters = false } = {}) {
+export function runStage(project, requestedStage, { adapters = {}, executors = {}, deferAdapters = false } = {}) {
   const stage = requireCurrentStage(project, requestedStage);
   requireReady(project, stage);
   requirePreviousSucceeded(project, stage);
@@ -166,6 +198,33 @@ export function runStage(project, requestedStage, { adapters = {}, deferAdapters
     }
   }
 
+  const executor = executors[stage];
+  if (executor) {
+    if (typeof executor.run !== "function") {
+      const error = new Error(`Executor for ${stage} must expose run()`);
+      error.code = "executor-invalid";
+      markExecutorStageFailed(project, stage, error);
+      throw error;
+    }
+
+    try {
+      const result = executor.run({ stage, project });
+      if (result && typeof result.then === "function") {
+        return result.then(
+          (resolved) => completeExecutorStage(project, stage, resolved),
+          (error) => {
+            markExecutorStageFailed(project, stage, error);
+            throw error;
+          },
+        );
+      }
+      return completeExecutorStage(project, stage, result);
+    } catch (error) {
+      markExecutorStageFailed(project, stage, error);
+      throw error;
+    }
+  }
+
   const errors = validateStage(project, stage);
   if (errors.length > 0) {
     const error = { code: "validation-failed", stage, issues: errors };
@@ -196,6 +255,7 @@ export function approveGate(project, gate) {
     if (issues.length > 0) {
       throw new Error(`Gate 2 通过后无法进入 TTS：${issues.map((item) => item.message).join("；")}`);
     }
+    freezePrototypeBaseline(project);
   }
 
   completeStage(project, gate);
@@ -229,6 +289,10 @@ export function rejectGate(project, gate, returnTo, reason) {
   }
 
   const rejection = { code: "gate-rejected", gate, returnTo, message: reason };
+  const returnStageItem = project.state.stages[returnTo];
+  const rebuildBaselineFingerprint = gate === "gate-3" && returnTo === "remotion"
+    ? returnStageItem.outputFingerprint
+    : null;
   for (let index = stageIndex(returnTo); index <= stageIndex(gate); index += 1) {
     const stage = STAGES[index];
     project.state.stages[stage].status = stage === returnTo ? "ready" : "pending";
@@ -236,8 +300,13 @@ export function rejectGate(project, gate, returnTo, reason) {
     project.state.stages[stage].outputs = [];
     project.state.stages[stage].review = null;
     project.state.stages[stage].invalidatedBy = null;
+    project.state.stages[stage].rebuildBaselineFingerprint = null;
     project.state.stages[stage].outputFingerprint = null;
     project.state.stages[stage].updatedAt = new Date().toISOString();
+  }
+  if (rebuildBaselineFingerprint !== null || (gate === "gate-3" && returnTo === "remotion")) {
+    returnStageItem.invalidatedBy = "gate-3-rejected";
+    returnStageItem.rebuildBaselineFingerprint = rebuildBaselineFingerprint;
   }
   project.state.stages[gate].review = {
     decision: "rejected",
@@ -258,7 +327,9 @@ export function retryStage(project, requestedStage) {
   }
   project.state.stages[stage].status = "ready";
   project.state.stages[stage].error = null;
-  project.state.stages[stage].invalidatedBy = null;
+  if (!(stage === "remotion" && project.state.stages[stage].invalidatedBy === "gate-3-rejected")) {
+    project.state.stages[stage].invalidatedBy = null;
+  }
   project.state.currentStage = stage;
   project.state.stages[stage].updatedAt = new Date().toISOString();
   saveState(project);

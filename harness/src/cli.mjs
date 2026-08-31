@@ -5,20 +5,47 @@ import { STAGES } from "./stages.mjs";
 import { approveGate, rejectGate, resumeProject, retryStage, runStage, validateStage } from "./runner.mjs";
 import { createGitHubActionsAdapterFromEnv } from "./adapters.mjs";
 import { requireGitHubActionsConfig } from "./github-config.mjs";
+import { createTtsExecutorFromEnv } from "./tts-executor.mjs";
+import { createRemotionExecutorFromEnv } from "./remotion-executor.mjs";
+import { createRemoteRenderExecutor } from "./remote-executor.mjs";
+import { runSingleStage } from "./single-runner.mjs";
 import { buildNextAction, buildProjectReport } from "./reports.mjs";
 import { buildTaskPacket } from "./context.mjs";
 import { buildProjectPlan } from "./plans.mjs";
 import { listAllJobs, listJobs } from "./jobs.mjs";
+import { createRemoteJobMonitor } from "./remote-jobs.mjs";
 import { diagnoseGitHubActions } from "./diagnostics.mjs";
+import { adoptExistingProjectToGate2, markHistoricalProjectCompleted } from "./adoption.mjs";
+import {
+  approveTtsQc,
+  approveSmokeQc,
+  batchDefinitions,
+  createBatch,
+  getBatchForView,
+  listBatchesForView,
+  retryFailedBatchItems,
+  runBatch,
+} from "./batches.mjs";
+import {
+  completeRemotionTask,
+  getRemotionTask,
+  listRemotionTasks,
+  retryRemotionTask,
+  runRemotionTask,
+  startRemotionTask,
+} from "./remotion-tasks.mjs";
 
 function usage() {
   console.log(`Usage:
   node harness/src/cli.mjs init <slug>
+  node harness/src/cli.mjs adopt <slug> --to gate-2 [--json]
+  node harness/src/cli.mjs adopt <slug> --to completed --historical [--json]
   node harness/src/cli.mjs status <slug> [--json]
   node harness/src/cli.mjs jobs <slug> [--json]
   node harness/src/cli.mjs jobs --all [--json]
   node harness/src/cli.mjs validate <slug> [stage]
   node harness/src/cli.mjs run <slug> [stage]
+  node harness/src/cli.mjs remote-run <slug> <smoke-render|render> [--json]
   node harness/src/cli.mjs approve <slug> <gate>
   node harness/src/cli.mjs reject <slug> <gate> --return-to <stage> --reason <text>
   node harness/src/cli.mjs retry <slug> [stage]
@@ -27,9 +54,23 @@ function usage() {
   node harness/src/cli.mjs report <slug> [--json]
   node harness/src/cli.mjs context <slug>
   node harness/src/cli.mjs plan <slug> --until <stage> [--json]
+  node harness/src/cli.mjs batch types [--json]
+  node harness/src/cli.mjs batch create <to-gate-2|to-tts|to-remotion|to-render> <slug>... [--json]
+  node harness/src/cli.mjs batch list [--json]
+  node harness/src/cli.mjs batch status <batch-id> [--json]
+  node harness/src/cli.mjs batch run <batch-id> [--json]
+  node harness/src/cli.mjs batch resume <batch-id> [--retry-failed] [--json]
+  node harness/src/cli.mjs batch approve-tts-qc <batch-id> <slug> [--json]
+  node harness/src/cli.mjs batch approve-smoke-qc <batch-id> <slug> [--json]
+  node harness/src/cli.mjs remotion-task list [--json]
+  node harness/src/cli.mjs remotion-task show <task-id> [--json]
+  node harness/src/cli.mjs remotion-task start <task-id> [--json]
+  node harness/src/cli.mjs remotion-task run <task-id> [--json]
+  node harness/src/cli.mjs remotion-task complete <task-id> [--json]
+  node harness/src/cli.mjs remotion-task retry <task-id> [--json]
   node harness/src/cli.mjs doctor [--json]
 
-GitHub Actions adapter environment:
+  GitHub Actions adapter environment:
   GITHUB_TOKEN or GH_TOKEN, GITHUB_REPOSITORY, and GITHUB_REF_NAME (or HARNESS_GITHUB_REF)`);
 }
 
@@ -139,10 +180,43 @@ function printDiagnostics(result) {
   }
 }
 
+function printBatch(batch, asJson = false) {
+  if (asJson) {
+    console.log(JSON.stringify(batch, null, 2));
+    return;
+  }
+  console.log(`Batch: ${batch.id}`);
+  console.log(`Type: ${batch.label}`);
+  console.log(`Status: ${batch.status}`);
+  console.log(`Target: ${batch.targetStage}`);
+  for (const item of batch.items) {
+    const error = item.error?.message ? ` · ${item.error.message}` : "";
+    console.log(`  ${item.slug}: ${item.status}${item.phase ? ` · ${item.phase}` : ""}${error}`);
+  }
+}
+
+function printRemotionTask(result, asJson = false) {
+  if (asJson) {
+    console.log(JSON.stringify(result, null, 2));
+    return;
+  }
+  const task = result.task ?? result;
+  console.log(`Remotion task: ${task.id}`);
+  console.log(`Video: ${task.slug}`);
+  console.log(`Status: ${task.status}`);
+  if (task.batchId) console.log(`Batch: ${task.batchId}`);
+  if (task.error?.message) console.log(`Error: ${task.error.message}`);
+  if (result.batch) printBatch(result.batch);
+}
+
 function configuredAdapters() {
   requireGitHubActionsConfig();
   const adapter = createGitHubActionsAdapterFromEnv();
   return { "smoke-render": adapter, render: adapter };
+}
+
+function configuredExecutors() {
+  return { "subtitle-timeline": createTtsExecutorFromEnv() };
 }
 
 async function main(args) {
@@ -159,11 +233,119 @@ async function main(args) {
     return result.ok ? 0 : 1;
   }
 
+  if (command === "batch") {
+    const batchCommand = slug;
+    const asJson = options.includes("--json");
+    if (batchCommand === "types") {
+      const definitions = batchDefinitions();
+      if (asJson) console.log(JSON.stringify(definitions, null, 2));
+      else definitions.forEach((definition) => console.log(`${definition.type}: ${definition.label} · ${definition.description}`));
+      return 0;
+    }
+    if (batchCommand === "list") {
+      const batches = listBatchesForView();
+      if (asJson) console.log(JSON.stringify(batches, null, 2));
+      else batches.forEach((batch) => console.log(`${batch.id} · ${batch.label} · ${batch.status} · ${batch.summary?.total ?? batch.items.length} 个视频`));
+      return 0;
+    }
+    if (batchCommand === "create") {
+      const type = options[0];
+      const slugs = options.slice(1).filter((value) => value !== "--json");
+      printBatch(createBatch({ type, slugs }), asJson);
+      return 0;
+    }
+    if (batchCommand === "status" || batchCommand === "run" || batchCommand === "resume") {
+      const batchId = options.find((value) => value !== "--json" && value !== "--retry-failed");
+      if (!batchId) throw new Error(`batch ${batchCommand} requires <batch-id>`);
+      if (batchCommand === "status") {
+        const batch = getBatchForView(batchId);
+        if (!batch) throw new Error(`Batch not found: ${batchId}`);
+        printBatch(batch, asJson);
+        return 0;
+      }
+      if (batchCommand === "resume" && options.includes("--retry-failed")) retryFailedBatchItems(batchId);
+      await runBatch(batchId);
+      printBatch(getBatchForView(batchId), asJson);
+      return 0;
+    }
+    if (batchCommand === "approve-tts-qc" || batchCommand === "approve-smoke-qc") {
+      const batchId = options.find((value) => value !== "--json");
+      const videoSlug = options.filter((value) => value !== "--json").at(1);
+      if (!batchId || !videoSlug) throw new Error("batch approve-tts-qc requires <batch-id> <slug>");
+      if (batchCommand === "approve-tts-qc") approveTtsQc(batchId, videoSlug);
+      else approveSmokeQc(batchId, videoSlug);
+      await runBatch(batchId);
+      printBatch(getBatchForView(batchId), asJson);
+      return 0;
+    }
+    usage();
+    return 1;
+  }
+
+  if (command === "remotion-task") {
+    const taskCommand = slug;
+    const asJson = options.includes("--json");
+    if (taskCommand === "list") {
+      const tasks = listRemotionTasks();
+      if (asJson) console.log(JSON.stringify(tasks, null, 2));
+      else tasks.forEach((task) => console.log(`${task.id} · ${task.slug} · ${task.status}`));
+      return 0;
+    }
+    const taskId = options.find((value) => value !== "--json");
+    if (!taskId) throw new Error(`remotion-task ${taskCommand} requires <task-id>`);
+    if (taskCommand === "show") {
+      const task = getRemotionTask(taskId);
+      if (!task) throw new Error(`Remotion task not found: ${taskId}`);
+      printRemotionTask(task, asJson);
+      return 0;
+    }
+    if (taskCommand === "start") {
+      printRemotionTask(startRemotionTask(taskId), asJson);
+      return 0;
+    }
+    if (taskCommand === "run") {
+      const result = await runRemotionTask(taskId, { executor: createRemotionExecutorFromEnv() });
+      if (result.completed && result.task.batchId) result.batch = await runBatch(result.task.batchId);
+      printRemotionTask(result, asJson);
+      return result.completed ? 0 : 1;
+    }
+    if (taskCommand === "retry") {
+      printRemotionTask(retryRemotionTask(taskId), asJson);
+      return 0;
+    }
+    if (taskCommand === "complete") {
+      const result = completeRemotionTask(taskId);
+      if (result.completed && result.task.batchId) result.batch = await runBatch(result.task.batchId);
+      printRemotionTask(result, asJson);
+      return result.completed ? 0 : 1;
+    }
+    usage();
+    return 1;
+  }
+
   if (command === "init") {
     validateSlug(slug);
     const files = initializeProject(slug);
     console.log(`Initialized Harness project: ${slug}`);
     console.log(`State: ${files.state}`);
+    return 0;
+  }
+
+  if (command === "adopt") {
+    validateSlug(slug);
+    const targetIndex = options.indexOf("--to");
+    const target = targetIndex >= 0 ? options[targetIndex + 1] : undefined;
+    if (target === "completed") {
+      if (!options.includes("--historical")) throw new Error("adopt --to completed requires --historical");
+      const result = markHistoricalProjectCompleted(slug);
+      if (options.includes("--json")) console.log(JSON.stringify(result, null, 2));
+      else console.log(`Marked historical project as completed: ${slug}`);
+      return 0;
+    }
+    if (target !== "gate-2") throw new Error("adopt currently supports only --to gate-2 or --to completed --historical");
+    const result = adoptExistingProjectToGate2(slug);
+    if (options.includes("--json")) console.log(JSON.stringify(result, null, 2));
+    else console.log(`Adopted existing artifacts to Gate 2: ${slug}`);
     return 0;
   }
 
@@ -180,6 +362,22 @@ async function main(args) {
     }
     validateSlug(slug);
     printJobs(slug, options.includes("--json"));
+    return 0;
+  }
+
+  if (command === "remote-run") {
+    validateSlug(slug);
+    const stage = options.find((value) => value !== "--json");
+    if (stage !== "smoke-render" && stage !== "render") {
+      throw new Error("remote-run requires <smoke-render|render>");
+    }
+    requireGitHubActionsConfig();
+    const project = loadProject(slug, { refresh: true });
+    const monitor = createRemoteJobMonitor();
+    const executor = createRemoteRenderExecutor({ monitor });
+    const result = await runSingleStage(project, stage, { remoteExecutor: executor });
+    if (options.includes("--json")) console.log(JSON.stringify(result, null, 2));
+    else console.log(`Queued remote ${stage} job for ${slug}: ${result.job.id}`);
     return 0;
   }
 
@@ -225,7 +423,17 @@ async function main(args) {
     if (command === "run") {
       const stage = options[0] ?? project.state.currentStage;
       const adapters = stage === "smoke-render" || stage === "render" ? configuredAdapters() : {};
-      console.log(JSON.stringify(await runStage(project, stage, { adapters }), null, 2));
+      const ttsExecutor = stage === "subtitle-timeline" ? configuredExecutors()["subtitle-timeline"] : null;
+      const remotionExecutor = stage === "remotion" ? createRemotionExecutorFromEnv() : null;
+      const remoteExecutor = stage === "smoke-render" || stage === "render"
+        ? createRemoteRenderExecutor({ monitor: createRemoteJobMonitor() })
+        : null;
+      console.log(JSON.stringify(await runSingleStage(project, stage, {
+        adapters,
+        ttsExecutor,
+        remotionExecutor,
+        remoteExecutor,
+      }), null, 2));
       return 0;
     }
 

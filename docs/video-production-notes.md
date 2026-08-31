@@ -1,6 +1,186 @@
 # 视频制作问题与流程沉淀
 
+## 2026-08-31：系列风格必须进入配置和实现校验
+
+### 问题现象
+
+Codex 系列的 01 使用了青绿色、多入口卡片和近黑网格基线，但 02 沿用了共享的蓝紫深色教程样式，导致同一系列的视频视觉风格漂移。
+
+### 根因与处理方式
+
+系列配置原先只记录封面和视频清单，Harness 只有一个默认风格，Remotion 的系列信息也没有风格字段；Codex 01 的配色还内嵌在单个组件中，无法被后续视频继承。现在新增 `codex` 与 `claude-code` 风格定义，系列配置声明 `style`，Harness 初始化和任务上下文按系列解析风格；Codex 令牌抽到 `src/styles/codex.ts`，Codex 01 和 02 共享同一套背景、面板和颜色基线。校验会在 Visual Prototype／Remotion 阶段检查系列风格标识与 Codex 令牌是否存在。
+
+### 以后流程
+
+新系列先在 `series/<series-id>/series.json` 声明风格，再在对应视频配置中继承系列风格。新增视频不能只复用通用 `current` 样式；进入 Gate 2 和 Remotion 前，必须检查原型与正式实现是否仍使用该系列的风格令牌。
+
 本文档记录 Remotion AI Video MVP 制作过程中遇到的问题、根因、解决方案和可复用流程。后续制作新视频、排查问题或写教程文章时，先看这里。
+
+## 2026-08-30：TTS Harness 需要桥接既有三个 Python 入口
+
+### 问题现象
+
+Web UI 能创建 `subtitle-timeline` 任务，但没有可执行的命令；直接把 `/绝对路径/tts-harness-adapter.py` 当成配置会因文件不存在而失败。
+
+### 根因与处理方式
+
+Harness 的执行器协议通过 stdin 发送一个结构化 JSON，而既有 TTS 工程提供的是 `generate_audio.py`、`generate_subtitles.py` 和 `generate_timeline.py` 三个 CLI。新增 `harness/src/tts-harness-adapter.mjs` 作为桥接层：校验冻结 `tts-script.json` 和工作区内路径，使用 `tts/.venv/bin/python` 按顺序调用三个脚本，按脚本文本哈希缓存中间产物，清理空文件，并在所有 Manifest 和引用资源完整后一次性同步到 `src/videos/<slug>/generated/`；音频同时镜像到 `public/local-assets/<slug>/audio/` 供 Remotion 使用。
+
+### 以后流程
+
+配置 Web UI 时使用真实存在的 Node 适配器路径，并在重启 Web Server 后再执行阶段。适配器只消费 Gate 2 冻结的 `tts-script.json`，不重新解析 Markdown；失败时保留可恢复缓存，成功后仍由 Harness 重新校验输出。
+
+## 2026-08-30：Remotion 待生成的对齐清单不能阻塞制作任务创建
+
+### 问题现象
+
+TTS 完成后，Remotion 阶段尚未生成 `video.config.ts`、主组件和 `remotion-alignment.json`，Web UI 却提示存在阻塞性校验问题，无法进入 Remotion 制作任务。
+
+### 根因与处理方式
+
+`remotion-alignment.json` 是 Remotion Agent 的正式输出，不是执行前输入。报告层现在把缺少该文件视为待生成输出，与缺少 `video.config.ts` 和 `*Video.tsx` 一样允许创建任务；任务完成时以及进入 Gate 3 前仍由 Harness 严格校验对齐清单、Scene 和 Composition。
+
+## 2026-08-30：Web UI 阶段按钮需要即时暴露后台 Job 失败
+
+### 问题现象
+
+点击“执行当前阶段”后，页面没有明显变化，实际后台已经创建了 Agent Job；当 TTS 执行器未配置时，Job 会立即失败，但按钮仍显示为可执行。
+
+### 根因与处理方式
+
+Web UI 的执行接口是异步队列，原前端收到 202 后直接刷新详情，没有检查刚创建的 Job 是否已进入失败终态。现在提交期间会禁用按钮并显示“提交中”，并在短暂检查窗口内发现后台 Job 立即失败时直接提示失败原因；Job 记录和可重试语义保持不变。未配置 `HARNESS_TTS_EXECUTOR_COMMAND` 或其他执行器时，仍需先配置对应命令，不能把排队当成执行成功。
+
+### 以后流程
+
+排查“按钮无反应”时先查看详情页的 Agent Job 和 `/api/agent-jobs`，区分请求未发出、任务排队、执行器失败和产物校验失败。启动 Web UI 后若修改了 Harness 服务端代码，应重启已有 Web Server，避免旧进程继续使用旧规则。
+
+## 2026-08-30：阶段执行错误不能只依赖浏览器弹窗
+
+### 问题现象
+
+Remotion 阶段接口可以正常创建任务，但浏览器没有显示弹窗时，用户点击“执行当前阶段”仍会感觉没有任何反应。
+
+### 根因与处理方式
+
+执行请求本身是异步的，失败原因原先只通过 `window.alert` 呈现；弹窗被浏览器拦截、隐藏或失去焦点时，按钮状态不足以说明请求已经返回。详情页的“下一步动作”区域现在增加可读的页面内状态：提交时显示“正在提交当前阶段请求”，任务阻塞或失败时显示具体错误，同时保留原有弹窗和按钮恢复逻辑。最近进一步把最近一次 Remotion 任务的失败原因持久显示在项目详情和任务列表中，即使刷新页面也能看到执行器错误；执行器 stderr 只展示有界的末尾信息，避免整段日志淹没操作提示。Remotion 任务失败时，Gate 3 不能继续显示“通过”入口；详情页必须提供与任务 API 对应的“重试 Agent”按钮，重试成功并完成新产物校验后才恢复 Gate 3 审批。
+
+### 以后流程
+
+先看页面内反馈和 Remotion 制作任务列表，再判断执行器是启动失败、进程失败还是产物校验失败。Web UI 通过普通 `npm run harness:web` 启动时会自动加载项目内 `remotion-harness-adapter.mjs`，不再要求每次重启手工配置 `HARNESS_REMOTION_EXECUTOR_COMMAND`；环境变量仍可显式覆盖默认执行器。历史失败消息会保留到下一次重试产生新结果，这不是 Remotion 产物已生成，也不会推进 Gate 3。
+
+默认适配器调用当前 Codex CLI 时使用 `--approve-for-me`，不要再同时显式传入 `--sandbox workspace-write`，两者在当前版本互斥。Remotion 运行／重试接口对已处于 `in-progress` 的同一任务必须幂等返回 202；前端提交后立即禁用所有同任务按钮，避免快速重复点击把正常运行误报为不可执行。
+
+## 2026-08-30：Remotion 后台任务需要处理中断和未配置执行器
+
+### 问题现象
+
+Web Server 重启后，Remotion 任务可能永久停在 `in-progress`；再次点击“执行当前阶段”只会复用这条任务，页面看起来没有任何变化。未配置 Remotion 执行器时，异步任务也可能在后台结束而不被前端提示。
+
+### 根因与处理方式
+
+Remotion 任务原先没有像 Agent Job 一样的启动恢复逻辑，且前端只轮询 Agent Job。现在 Web Server 启动时会把遗留的 `in-progress` Remotion 任务标记为 `blocked` 并保留可重试原因；缺少执行器时任务同样保持 `blocked`，前端会在提交窗口内读取任务状态并提示具体原因。真实 Remotion 产物仍必须由执行器生成，再由 Harness 校验后推进阶段。
+
+## 2026-08-30：Visual Script 的一级 Scene 标题不能被 Gate 2 误判为缺失
+
+### 问题现象
+
+`02-core-concepts` 的 Visual Script 与 Visual Prototype 都包含按顺序排列的 8 个 Scene，但通过 Gate 2 时提示“Visual Script 与 Visual Prototype 的 Scene 不一致”。
+
+### 根因与处理方式
+
+Gate 2 冻结逻辑只匹配 `## Scene`，而 Visual Script 的基线格式允许使用 `# Scene`、`## Scene` 或 `### Scene`。因此实际存在的 Scene 被解析为空。现在 Scene 识别统一支持 Markdown 标题层级 1～6，并让阶段对齐校验使用同一规则；没有修改任何视频生产资料内容。
+
+### 以后流程
+
+Visual Script、Scene Script 和 Narration Script 的 Scene 标题可以使用不同的合法 Markdown 层级，但 Scene 编号必须保持一致。Gate 2 冻结前应同时校验标题解析结果和 Prototype 的 Scene 容器顺序，并为每种基线标题层级保留回归测试。
+
+## 2026-08-30：Web UI 阶段按钮必须对应真实后台 Agent Job
+
+### 问题现象
+
+Web UI 的“执行当前阶段”直接调用 Harness `runStage`，但没有向 Agent 阶段传入执行器。只要目标文件已经存在并通过校验，阶段就会被推进；页面实际上只管理状态，没有执行 Agent，也无法记录执行日志和失败恢复。
+
+### 处理方式
+
+Agent 阶段改为先创建持久化 Job，再由本地 Server 调用配置命令。任务包通过 stdin 传入当前阶段、输入产物、允许输出路径、校验规则和约束；任务记录保存 queued／running／succeeded／failed、尝试次数和有界 stdout／stderr。进程退出后必须重新读取真实产物并校验，只有校验通过才推进阶段；Web Server 重启时把遗留 running 任务标记为可重试失败。
+
+### 以后流程
+
+新增阶段执行入口时，必须区分“创建任务”“执行副作用”“产物校验”“推进状态”四步。不能把校验已有文件等同于执行 Agent，也不能让浏览器直接持有执行器凭据。未配置命令、进程失败和产物不完整都应留下可恢复任务记录。
+
+## 2026-08-30：Gate 2 冻结原型必须形成可校验的 Remotion 对齐契约
+
+### 问题现象
+
+Visual Prototype 已经由用户确认，但 Remotion 任务包只要求配置、主组件和资源 Manifest 存在。Agent 可以重新设计布局或只复用通用卡片组件，类型检查仍会通过，直到 Gate 3 人工查看时才发现正式视频没有参照原型。
+
+### 处理方式
+
+Gate 2 通过时在 Harness 项目状态目录冻结 Visual Script 与 Visual Prototype 的 SHA-256 指纹和 Scene 清单。新视频进入 Remotion 后必须生成 `videos/<slug>/remotion-alignment.json`，逐 Scene 记录布局、视觉事件、屏幕文字和实现文件，并引用冻结指纹。Harness 阻止过期指纹、Scene 缺失、必填对齐信息缺失、实现文件不存在或 Composition 未注册的结果进入 Gate 3；任务包同时声明同视频 `.tsx`、`video.config.ts`、对齐清单和 `src/Root.tsx` 为允许输出路径。
+
+### 以后流程
+
+自动校验负责证明“实现明确对应了当前确认版本”，Gate 3 仍由用户并排查看冻结原型、Remotion Studio 和对齐清单，判断实际画面是否兑现。不要使用 HTML 与动态视频的像素相似度作为质量门槛；历史上在契约启用前已存在 Remotion 实现的视频保持兼容，不强制回填虚假清单。
+
+## 2026-08-30：系列封面必须作为统一的正文前置时间段
+
+### 问题现象
+
+同一张系列封面需要用于多条视频。如果把图片复制进每条视频资源目录，替换时容易遗漏；如果分别修改音频、字幕和各 Scene 的时间，正文又容易产生不同步。
+
+### 处理方式
+
+系列元数据统一保存在 `series/<series-id>/series.json`，共享封面保存在提交到 Git 的 `public/series-assets/<series-id>/`。Remotion 只有在封面资源存在时才启用片头，并用同一个 `contentStartFrame` 将音频、字幕和所有 Scene 整体后移45帧；原始 TTS、字幕和 Timeline Manifest 不做改写。Web UI 上传时同时校验格式和10 MB大小限制；图片与16:9的相对偏差不超过1%时，先按 `cover` 规则居中裁切并标准化为1920×1080，超过1%则拒绝，避免主体被大幅自动裁掉。替换封面后让已进入后续阶段的关联视频回到 Gate 3。
+
+### 以后流程
+
+系列公共视觉资源只保存一份，不放进被 Git 忽略的单视频 `public/local-assets/`。近似16:9的输入不得拉伸；上传前应检查居中裁切预览，确认标题和主体没有贴边或被切掉。新增或替换封面后，应重新检查第0帧、正文切入点、音画同步和清洁输出，不重做 Gate 2 或 TTS。
+
+## 2026-08-31：系列视频关联不能静默覆盖
+
+### 问题现象
+
+在系列中加入新视频时，保存表单可能只提交新视频的 slug，导致 `series.json` 的 `videos` 列表从已有成员被覆盖成单个新成员。既有视频文件不会消失，但 Web UI 会错误地显示它已不属于该系列。
+
+### 根因与处理方式
+
+系列保存接口把勾选框列表当作完整替换，没有检测既有成员是否被移除。现在服务端会拒绝未经确认的成员移除，Web UI 在移除前展示二次确认；只有显式确认才允许解除关联。恢复既有系列时应先核对 `series.json` 的完整成员列表，再保存封面或继续后续阶段。
+
+### 以后流程
+
+新增系列视频后，保存前确认所有既有成员仍被勾选；如果确实要解除关联，必须在二次确认中明确同意。提交前检查 `git diff -- series/<series-id>/series.json`，确认没有未经授权的成员消失。
+
+## 2026-08-25：TTS 质检需要同时支持批次和单视频入口
+
+### 问题现象
+
+TTS 质检确认按钮原先只存在于批次记录中。用户从单视频详情页查看项目时，即使字幕和 Timeline 已完成，也无法直接完成该视频的质检确认。
+
+### 处理方式
+
+单视频详情页现在会在 `subtitle-timeline` 已完成且尚未写入 `tts-qc` 审查记录时显示“确认 TTS 质检”。按钮调用项目级 Harness 接口，复用同一份阶段审查契约；如果该视频属于等待中的 `to-tts` 批次，同时更新批次项目并恢复批次执行。
+
+### 以后流程
+
+批量页面和单视频详情页都可以完成 TTS 质检确认，但二者必须写入同一个项目阶段审查记录。单视频入口不能绕过音频、字幕和 Timeline 的完成校验，也不能把确认扩展为自动听感判断。
+
+## 2026-08-25：批次中的视频状态必须以项目状态为准
+
+### 问题现象
+
+同一批视频同时出现在“批量完成 TTS”和旧的“批量制作到 Gate 3”记录中。TTS 批次已经完成自己的目标，但旧批次仍保留着等待 TTS 质检或失败的历史项目状态，Web UI 因此对同一条视频显示不同状态。
+
+### 根因
+
+批次项目状态是某个批次执行过程的历史记录，视频项目状态则是 Harness 当前真实阶段。此前 Web UI 直接把前者当成视频当前状态，批次之间的执行进度不同就造成了展示冲突。
+
+### 处理方式
+
+批次记录继续保存自身的任务状态，用于追踪该批次是否完成；批次 API 额外为每条视频计算 `currentProject` 状态，取项目当前阶段、下一步动作和 TTS 质检审查结果。Web UI 展示 `currentProject`，因此不同批次中的同一视频始终显示同一个 Harness 当前状态；已完成 TTS 质检的旧批次也不会继续显示过期的确认按钮。
+
+### 以后流程
+
+批次的“目标已完成”只表示该批次任务完成，不表示视频项目已经完成。凡是面向用户展示视频阶段、下一步动作或人工确认入口的地方，都必须读取项目状态；批次历史状态只能作为辅助信息，不能覆盖项目状态。
 
 ## 记录规则
 
@@ -11,6 +191,94 @@
 - 解决方案：这次怎么解决。
 - 以后流程：下次如何提前避免。
 - 教程素材：可以写进文章的经验总结。
+
+## 2026-08-25：批量生产必须拆成四个目标批次
+
+### 处理方式
+
+批量生产分为四个明确目标：“到 Gate 2”“完成 TTS”“完成 Remotion”“批量渲染”。“到 Gate 2”完成内容资料和 Visual Prototype 后等待人工确认；“完成 TTS”只接收 Gate 2 已通过的项目，必须先有音频、字幕和 Timeline Manifest，再暂停等待 TTS 质检；“完成 Remotion”只接收 TTS 质检已通过的项目，完成 Remotion 资料后等待 Gate 3；“批量渲染”只接收 Gate 3 已通过的项目，先暂停等待 Smoke Render 检查，再执行完整渲染并停在 Gate 4。
+
+批量入口只编排已配置的 Agent、TTS、Remotion 和 GitHub Actions 执行器。对于 Remotion，若自动执行器未配置但确实需要 Agent 生成代码，批次应创建可恢复的 Remotion 制作任务并明确等待，不能把等待制作伪装成成功或失败；仍不能把 `tts-script.json` 或阶段校验通过当作真实 TTS／Remotion 产物完成。
+
+### 以后流程
+
+批次只负责串行编排独立视频、记录结果、失败重试和中断恢复；每个视频仍使用自己的 Harness 状态文件，已完成视频默认不纳入批次。TTS 质检和 Smoke Render 检查需要保留逐视频确认记录；批次执行器不得在前端复制阶段契约，也不得自动通过人工 Gate。
+
+## 2026-08-25：TTS 质检后需要独立的 Remotion 制作任务层
+
+### 问题现象
+
+四个视频完成 TTS、字幕和 Timeline 后，批量进入 Remotion 时因为 `video.config.ts` 和 `*Video.tsx` 尚未生成而直接失败。批次虽然知道当前阶段是 Remotion，却没有记录“等待 Agent 制作”的中间任务，也无法在产物完成后恢复批次。
+
+### 根因
+
+Remotion 阶段的产物生成属于 Agent 实现工作，不是 Harness 阶段校验本身。原批量逻辑把“执行 Remotion 阶段”直接等同于“已有 Remotion 文件并运行校验”，没有区分制作任务和确定性校验。
+
+### 处理方式
+
+新增 Remotion 制作任务记录：批量任务发现 Remotion 产物缺失时，创建带有输入产物、输出路径、校验命令和批次关联的任务，并将批次项目置为 `waiting-remotion-task`。Agent 生成配置和主组件后，任务完成动作重新执行 Remotion 校验；校验通过后批次恢复，执行阶段并进入 Gate 3。任务支持 ready、in-progress、blocked、completed 和 failed 状态，并通过 CLI、Web API 和 Web UI 查询。
+
+### 以后流程
+
+TTS 质检通过后，先进入 Remotion 制作任务，不把缺少代码误报为批次失败。任务完成必须由 Harness 校验实际文件后才能继续；Gate 3 仍保留人工预览确认。该任务层负责编排和恢复，不自动生成未经审查的 Remotion 代码，也不替代人工 Gate。
+
+## 2026-08-25：批量 TTS 必须以真实音频产物进入质检
+
+### 问题现象
+
+旧的 `to-gate-3` 批次把 `tts-script.json` 的生成和校验当作 TTS 已完成，导致 `jetbrains` 在 `subtitle-timeline` 因三个 Manifest 缺失失败，其他视频则错误地停在 TTS 质检前。
+
+### 处理方式
+
+对 `jetbrains`、`desktop`、`web-and-cloud`、`project-init` 使用 Gate 2 后冻结的 `tts-script.json`，通过既定 Edge TTS 服务、`zh-CN-XiaoxiaoNeural` 和显式 `+25%` 生成真实音频及 Word Boundary，再由同一批产物派生字幕和 Timeline。四个项目分别生成 34、9、10、10 个音频 Segment，全部通过 Harness `subtitle-timeline` 校验，批次 `b16cceae-8ebc-4619-ba21-b472653e8fb4` 停在逐视频 TTS 质检。
+
+### 以后流程
+
+批量 TTS 只有在音频文件非空、Word Boundary 存在、音频／字幕／Timeline 的 Scene 和 Segment ID 对齐、Manifest 显式记录 `+25%` 后，才能显示 TTS 质检入口。缺少真实 TTS 执行器或外部网络授权时，应明确失败，不生成占位产物。
+
+## 2026-08-25：TTS 自动质检与听感质检必须分开
+
+### 问题现象
+
+四个视频的音频、字幕和 Timeline 结构已经通过 Harness 校验，但字幕展示文本仍保留了句末标点，且自动检查无法判断发音自然度和停顿听感。
+
+### 处理方式
+
+只清理字幕展示层的句末 `。！？.!?`，同步更新本地字幕副本、Remotion 静态资源和字幕 Manifest；不修改 `tts-script.json`、音频文件、Word Boundary 或 Timeline。随后重新检查所有音频引用、Manifest 时长、字幕 Cue 顺序和阶段校验。
+
+### 以后流程
+
+自动质检只能确认文件存在、音频时长、ID 对齐、字幕时间范围和展示文本规则，不能替代发音、自然度、语速和停顿的实际听感确认。没有可试听界面时，批次必须继续停在 `waiting-tts-qc`，不能仅凭结构校验自动通过 TTS 质检。
+
+## 2026-08-24：已有原型接管必须以产物和下游边界为准
+
+### 处理方式
+
+历史视频不能直接执行普通 `init`，否则 Harness 会从 `source` 重新表示项目进度。接管到 Gate 2 前，必须确认七层前置资料和 Visual Prototype 通过现有校验，并确认 TTS、字幕／Timeline、Remotion 和渲染产物均不存在；通过后将前 7 个阶段标记为已完成，Gate 2 保持等待人工确认，并保存各阶段文件指纹。
+
+### 以后流程
+
+接管动作只写 `harness/projects/<slug>/` 状态、配置和产物清单，不回写 `videos/` 或 `src/videos/`。如果已经发现下游产物，或旧资料不满足当前校验，应单独判断真实阶段，不能批量回填到 Gate 2。
+
+如果项目已经被普通 `init` 建立了 Harness 文件，但实际已有完整原型，不能删除状态文件后重新初始化，也不能保留 Source 起始状态；应确认其没有 adoption／historical 标记、没有下游产物和既有阶段进展，再通过“初始化后已有原型接管”操作将前 7 个阶段标记为已完成并进入 Gate 2 `waiting`。该分支专门用于恢复误初始化，避免覆盖真实进度。
+
+## 2026-08-25：结构校验缺口要修复最早资料，不要重复处理下游提示
+
+### 问题现象
+
+一批已有七层生产资料的视频在 Harness 中反复显示 `missing-structure`，同一个缺口会从最早缺失的 Content Analysis 或 Video Narrative 一直重复报到后续阶段，看起来像有很多独立错误。
+
+### 根因
+
+旧资料的内容结构实际存在，但部分 Markdown 标题使用了“叙事命题”“叙事路径”“Scene 结构”“可视化机会”等历史命名，没有命中当前 Harness 的结构契约关键词。Harness 的重复提示来自阶段依赖传播，不代表每个后续阶段都需要单独修改。
+
+### 处理方式
+
+先按最早受影响的文件和缺失结构归并，再保留正文内容，只把已有标题明确为当前契约可识别的结构标题。例如将“叙事命题”明确为“叙事目标与命题”，将“叙事路径”明确为“整体叙事结构与路径”，将“可视化机会”明确为“可视觉化内容与机会”。修复后对每条视频逐条运行全阶段只读校验，确认 `missing-structure` 清零。
+
+### 以后流程
+
+遇到批量结构错误时，先定位最早阶段和实际文件，不要按 Harness 报出的后续阶段逐条重复改动；结构标题可以统一修复，口播语义、Scene 字段和原型问题仍必须单独判断。
 
 ## 2026-08-21：口播中的空间指代必须有画面定位锚点
 
@@ -49,6 +317,8 @@
 ### 以后流程
 
 Visual Prototype 通过后，进入 Remotion 时必须先建立“原型视觉事件 → Remotion 组件／状态变量”的逐 Scene 对照；只完成淡入、卡片和标题，不算完成原型兑现。至少要验证一级信息动画已经存在：状态顺序、节点连接、工具切换、回路返回和命令逐行出现。
+
+进入 Gate 3 前还要逐幕核对布局指纹：卡片行列关系、核心节点位置、连接或分区关系、标题层级、字幕容器和每幕独有的状态组件。通用场景组件无法保持这些指纹时，应在目标视频目录使用专用场景实现；类型检查、资源校验和 Composition 注册成功不能替代这项视觉对照。
 
 ### 以后流程
 
@@ -966,3 +1236,141 @@ GitHub Actions 的完整渲染可能已经被 dispatch，但 Harness 第一次�
 2. 未确认的任务恢复时，先按原 workflow、分支和时间查找既有 Run；找不到时才重新 dispatch。这样既能恢复首次授权失败，也能避免已经成功提交的任务重复提交。
 3. 已确认但尚未出现 Run 的任务只进入等待和轮询，不重新 dispatch。
 4. 旧分支的成功 Render 不自动跨分支认领；Web UI 提供“查找历史 Artifact”和确认认领操作，必须同时匹配 workflow、成功 Run、目标 slug Artifact、Artifact 非空且未过期。
+
+## 2026-08-25：Scene 字段缺失要按语义对齐，并保持字段在对应 Scene 内
+
+### 问题现象
+
+部分历史视频的 Scene Script 使用了 `叙事作用`、`口播方向`、`画面方向`、`Scene Type`、`屏幕重点`、`Video Value` 等旧字段名；部分 Visual Script 使用了 `视觉重点`、`幕内字幕`、`主要画面`，或只在全片标准中声明视觉类型。Harness 会把这些情况报告为大量重复的 `missing-scene-field`，因为同一份最早资料会在多个下游阶段重复校验。
+
+### 根因与固定规则
+
+1. 先判断字段是否已有等义内容，再决定是改字段名还是补字段；不要把重复的下游提示当成多个独立内容问题。
+2. 等义字段只做契约名称对齐，保留原正文；确实缺少的字段，从同一视频已有 Scene Script 或 Visual Script 中补齐，不跨视频借用业务文案。
+3. `视觉目标`、`屏幕文字` 和 `Visual Type` 必须放在对应的 Scene 内；全片视觉类型列表不能替代逐 Scene 字段。
+4. 批量处理后必须按视频、按全阶段重新校验，并抽查最后一个 Scene，避免把新增字段放到全片规范或“下一步”之后。
+
+## 2026-08-25：Visual Prototype 的 Scene 容器要遵循基线结构
+
+### 问题现象
+
+`claude-md-guide` 的 Visual Prototype 已有 9 个 `.scene` 容器、上一幕／下一幕／自动播放按钮和进度提示，但 Harness 仍报告 `missing-prototype-scenes`。
+
+### 根因与固定规则
+
+1. 校验契约按基线匹配 `<section class="scene">`，仅有相同 class 的 `<article class="scene">` 不会被识别为有效 Scene 容器。
+2. Visual Prototype 应沿用 `videos/claude-code-what-is/visual-prototype.html` 的 Scene 容器标签和控制结构；语义标签差异不能自行视为兼容。
+3. 修复此类问题时只对齐容器标签，不改 Scene 内容、交互逻辑或下游生产资料；修复后必须重新执行目标阶段和全阶段校验。
+
+## 2026-08-25：来源指代检查要区分语义问题和跨词误匹配
+
+### 问题现象
+
+口播校验会拦截“本文”“上文”“文中”等来源指代。中文连续文本中，`文本文件` 可能跨词命中“本文”，`补上文件名` 也可能跨词命中“上文”；这类命中不是来源叙事，但仍会阻塞 Harness 校验。
+
+### 固定规则
+
+1. 先读取命中位置的完整 Scene 口播，确认它是在把原始材料当作叙事对象，还是普通词语连接造成的误匹配。
+2. 真正的来源指代要改成直接面向观众的表达；跨词误匹配则只做最小自然改写，例如把“文本文件”改为“输入文件”、把“补上文件名”改为“补充文件名”。
+3. 修改后只重新扫描口播和依赖它的 TTS 输入边界；不要为了修复来源指代提前生成或重做下游音频、字幕和 Remotion 产物。
+
+## 2026-08-25：口播文档末尾不要保留内部检查清单
+
+### 问题现象
+
+`narration-script.md` 的 Scene 解析会把最后一个 Scene 标题之后直到文件结尾的内容都视为该 Scene 的口播正文。因此，放在文件末尾的 Gate 检查清单、制作说明或“下一步”会被误判为口播内部制作文字。
+
+### 固定规则
+
+1. `narration-script.md` 只保留标题和实际需要朗读的 Scene 内容，不在末尾追加 Gate 检查清单、制作备注或后续工作说明。
+2. Gate 结论和制作流程记录放在审查记录、Roadmap 或经验文档中，不与口播稿混放。
+3. 清理此类问题时只删除内部元信息，不改最后一个 Scene 的实际口播；然后重新执行 Narration Script 校验。
+## 2026-08-25：单条执行器必须先产生产物，再由 Harness 验收
+
+Harness 的阶段校验不能代替 TTS、Agent 或渲染工具本身。单条执行器接入时，外部命令只负责执行副作用并返回结果，项目阶段状态仍由 Harness 在重新校验产物后推进。TTS 执行器的输入固定为 Gate 2 后冻结的 `tts-script.json`，并显式传入 `+25%`、语音和音频／字幕／Timeline 输出契约。
+
+执行器没有配置、外部服务失败或输出不完整时，必须记录明确错误并保持阶段失败；不能把任务创建、TTS Script 校验通过或 Remotion 任务启动误认为真实生产完成。批量执行器应在单条执行器稳定后复用同一条路径。
+
+单条 TTS、Remotion 和远程渲染应统一通过一个单条阶段入口调用。Remotion 任务成功后继续由 Harness 完成阶段校验并打开 Gate 3；远程渲染只创建可恢复的持久化任务，后续由 GitHub Actions 监控器更新状态。这样批量层只需要管理视频列表和检查点，不再复制单条生产逻辑。
+
+批量接入完成后的关键边界是：批量层只负责逐视频调度、状态隔离和人工检查点，不直接执行第二套 TTS／Remotion／远程渲染逻辑。每条视频都经由单条入口；TTS 和 Remotion 执行器先产生实际文件，再由 Harness 重新校验，远程 Smoke／Render 则保存远程任务 ID 并等待监控器回写。批量恢复时，已完成的 Remotion 任务按原任务 ID 继续，远程任务按持久化任务状态恢复；任务仍在运行或等待配置时不能再次提交。
+
+## 2026-08-26：总结场景的下一集预告要绑定真实口播锚点
+
+### 问题现象
+
+总结场景按固定时长百分比显示预告时，长口播视频中的下一集卡片可能晚于对应口播出现，无法保持声音与最后一个视觉事件同步。
+
+### 解决方案
+
+1. `SummaryScene` 保留原有百分比作为默认行为，同时允许单条视频提供 `teaserStartSeconds`。
+2. `teaserStartSeconds` 取自 Timeline Manifest 中承载下一集预告的 Segment 起点，不按总时长猜测。
+3. 预告仍需位于字幕安全区上方，并在 Gate 3 检查实际停留时间和遮挡情况。
+
+## 2026-08-30：Agent 阶段启动前不能要求自身输出已经存在
+
+Agent 阶段的目标就是生成当前阶段产物。Web UI 判断阶段是否可启动时，应忽略当前 Agent 阶段自身的 `missing-artifact`，否则会形成“必须先有输出，才能启动生成输出的 Agent”这一循环阻塞；已有但结构错误的产物仍应在启动前显示为阻塞问题。
+
+Agent 进程退出后必须重新执行完整阶段校验。目标产物仍缺失、结构不合格或内容契约不通过时，Agent Job 和阶段都保持失败并允许重试，不能因为启动前放行而降低最终验收标准。
+
+## 2026-08-30：Gate 3 驳回后不能用旧 Remotion 产物直接回到 Gate 3
+
+Gate 3 驳回并回退到 Remotion 时，即使旧的 `video.config.ts`、主组件和对齐清单仍能通过静态校验，也不能把“执行 Remotion”降级为重新校验旧文件。回退会记录 Remotion 产物的旧指纹并标记 `gate-3-rejected`，Web UI 必须创建可恢复的 Remotion 制作任务；任务完成时要求产物指纹发生变化，未修改时保持阻塞并明确提示原因。这样才能确保用户的白屏、同步或画面表达反馈真正经过 Remotion 修改后才重新进入 Gate 3。
+
+## 2026-08-31：动态详情页的阶段按钮要使用稳定事件入口
+
+Web UI 的项目详情会反复用 `innerHTML` 重建按钮。如果只在某一次渲染后给按钮逐个绑定监听，旧页面模块实例或重建时序可能让用户看到按钮却点不出反馈。阶段按钮现在由详情容器统一事件委托处理，并给入口脚本加版本查询参数，刷新页面即可强制加载最新模块。接口仍保持原有 Harness 契约：点击后先显示提交中，Remotion 未配置执行器时显示可恢复阻塞原因，不伪造成功，也不修改视频产物。
+
+如果 Remotion 执行器已经启动，任务可能在 `ready` 或 `in-progress` 停留较长时间。前端不能在短轮询结束后直接调用 `openProject`，否则会把任务反馈清掉并看起来像“恢复原样”。现在会保留任务 ID 和状态并继续有界轮询，直到完成、阻塞或失败；超过轮询上限时明确提示用户手动刷新。
+
+项目级阶段执行接口把任务标识放在 `result.taskId`，不能按独立任务接口的返回结构去读取顶层 `taskId`。前端收到排队响应后应立即使用这个任务 ID 进入轮询，并把最新 Remotion 任务状态投影回操作区：`ready` 提供执行入口，`in-progress` 显示制作中并禁止重复提交，`blocked / failed` 显示原因和重试入口，只有任务完成且 Harness 重新校验通过后才展示 Gate 3 操作。页面重新打开时也要根据最新任务自动续轮询，不能只依赖本次点击保存的临时状态。
+
+## 2026-08-31：远程任务运行中必须把不可重复提交状态直接显示在操作区
+
+Smoke Render 或完整 Render 已经存在活跃远程 Job 时，后端虽然能拒绝第二次提交，但如果 Web UI 仍显示可点击的“提交远程任务”，用户只能在点击后看到错误，会误以为按钮或功能失效。
+
+异步远程任务需要三层一致保护：提交瞬间禁用当前按钮；页面刷新后由服务端返回当前阶段的活跃 Job，继续显示禁用按钮、任务状态、任务 ID 和查看位置；旧页面或请求竞态仍然打到接口时，服务端幂等返回已有 Job，不创建第二条任务，也不把正常运行状态作为操作失败。详情页在活跃任务期间低频同步，任务进入终态后再恢复下一步可用操作。
+
+Remotion 任务列表同时包含当前任务和历史任务，不能仅凭“同一 slug 的最新一条记录”就认定它属于当前阶段。`completed` 任务只能作为历史产物证据；项目重新回到 `remotion / ready` 且下一步为 `run-stage` 时，已完成的历史任务不得遮蔽“执行当前阶段”。前端必须只把未完成任务用于当前操作判断，并用回归测试锁定这个状态组合。
+
+## 2026-08-31：Gate 2 重冻结后必须同步 Remotion 对齐清单指纹
+
+### 问题现象
+
+Visual Prototype 按系列风格调整后重新通过 Gate 2，Remotion 代码已切换到新风格，但已有 `remotion-alignment.json` 仍保留旧的 Visual Prototype 指纹，Remotion 阶段因此被阻塞。
+
+### 根因与固定规则
+
+1. Gate 2 冻结会以当前 Visual Script／Visual Prototype 写入新的基线指纹；它不会自动改写 Remotion Agent 已生成的对齐清单。
+2. Remotion 对齐清单是对实际实现逐 Scene 对照结果的声明，不能由 Gate 2 自动复制指纹冒充重新制作；原型或视觉脚本变化后，必须重新核对实现并同步清单中的两个指纹。
+3. 修复后先校验 `visual-script`、`visual-prototype`、`tts`、`subtitle-timeline` 和 `remotion`，再扫描其他项目；没有 `prototype-baseline.json` 或 `remotion-alignment.json` 的历史项目不属于当前对齐契约，不应批量伪造对齐文件。
+
+## 2026-08-31：远程渲染前必须同时校验资产包和 dispatch 分支
+
+### 问题现象
+
+`02-core-concepts` 的 Smoke Render 在 `Validate workflow inputs` 阶段退出；slug 和 Composition ID 合法，Audio／Timeline Manifest 也存在，但远程检出的分支中没有 `assets/02-core-concepts-assets.zip`。
+
+### 根因
+
+1. TTS 产物已写入本地 `public/local-assets/<video-slug>/`，但进入远程渲染前没有把该目录打包为可提交的 `assets/<video-slug>-assets.zip`。
+2. Harness 任务 dispatch 到 `feat/video-harness-v0.5`，而当前视频代码和本地产物在另一分支；即使本地临时补齐 ZIP，旧分支 Runner 仍然不可见。
+
+### 固定检查
+
+1. 提交 Smoke Render 前，确认 `assets/<video-slug>-assets.zip`、Audio Manifest 和 Timeline Manifest 均在即将 dispatch 的 ref 中。
+2. ZIP 顶层目录必须是 `<video-slug>/`；解压到 `public/local-assets/` 后应得到 `public/local-assets/<video-slug>/audio/` 和 `subtitles/captions.vtt`。
+3. ZIP 中 MP3 数量必须与 Audio Manifest 的 Segment 总数一致；本次 `02-core-concepts` 两者均为 43。
+4. dispatch 前显式对比 Harness 使用的 ref 与产物所在分支；不一致时应在本地阻止提交，而不是等 GitHub Actions 检出后失败。
+
+### 2026-08-31 补充：本地 Web UI 不能把残留的 GitHub 环境分支当默认值
+
+仅让 `HARNESS_GITHUB_REF` 优先于 `GITHUB_REF_NAME` 仍不够。若 Web UI 普通重启时没有再次传入显式覆盖值，进程会重新读取机器中残留的 `GITHUB_REF_NAME`，导致同一问题复发。
+
+本地 Harness 的稳定顺序应为：显式 `HARNESS_GITHUB_REF` → 当前 Git 工作区分支 → `GITHUB_REF_NAME`。最后一项只用于 detached HEAD 或不在 Git 工作区等无法解析当前分支的环境。分支解析必须在配置层统一完成，不能依赖某一次 Server 启动命令临时注入。
+
+### 2026-08-31 补充：ZIP 存在不等于渲染资产完整
+
+正确分支上的 Smoke Run `33398493488` 已成功找到并解压 `02-core-concepts-assets.zip`，但随后仍在 `Verify render inputs` 失败。检查发现 ZIP 只包含 43 个 MP3，没有 `subtitles/captions.vtt` 和 `subtitles/captions.srt`；此前的本地检查只验证 ZIP 文件存在，因此错误放行。
+
+固定处理方式：TTS 适配器必须把音频和字幕一起同步到 `public/local-assets/<video-slug>/`；远程任务提交前必须先校验 ZIP CRC、唯一顶层目录、VTT／SRT、Audio Manifest 引用的每个 MP3 路径、MP3 精确数量，以及 Audio／Subtitle／Timeline 三份 Manifest 的 `videoId` 和 Scene 顺序。任一项不满足时由 Harness 在本地阻止提交并显示具体缺失项，不能等 GitHub Actions 再发现。

@@ -30,7 +30,7 @@
 
 先让错误命令看起来“像是能跑”，再展示参数被错误分配，最后用正确命令得到连接状态。
 
-### 主要画面
+### 画面结构
 
 深色 Terminal window，分为错误尝试和修正后的两段状态。错误命令中把 `--transport stdio` 放在 `--` 后并标红；正确命令把它移除，终端出现 `✓ Connected`。
 
@@ -59,7 +59,7 @@
 
 把“本地够得着、外部够不着、MCP 接通”变成一张可读的连接图。
 
-### 主要画面
+### 画面结构
 
 中间是 MCP hub，左侧是 Claude Code 与本地文件、命令行，右侧是 Jira、PostgreSQL、Figma。初始右侧节点灰暗断开，随后两侧连线同时点亮。
 
@@ -89,7 +89,7 @@ Jira · PostgreSQL · Figma
 
 用运行位置而不是术语记忆区分三种 server 形态。
 
-### 主要画面
+### 画面结构
 
 三列连接卡：本地机器中的 stdio 子进程、远程 URL 的 HTTP server、带灰色 Deprecated 标签的 SSE server。每列只保留一条示例命令。
 
@@ -117,7 +117,7 @@ SSE · 远程 · 已弃用
 
 让观众直接看到命令的解析边界。
 
-### 主要画面
+### 画面结构
 
 一条横向命令轨道分成四色区段：`[Claude Code options] [server name] [--] [server command]`。下方同时给出 HTTP 和 stdio 的正确示例。
 
@@ -146,7 +146,7 @@ airtable -- npx -y airtable-mcp-server
 
 用范围覆盖和文件位置展示 local、project、user 的差异。
 
-### 主要画面
+### 画面结构
 
 左侧是当前项目，右侧是多个项目。local 只覆盖当前项目；project 的配置从 `.mcp.json` 进入 Git 团队节点；user 的连接线覆盖多个项目但带个人锁。
 
@@ -174,7 +174,7 @@ user · 所有项目 · 个人私有
 
 把“注册、连接、批准、调用”按顺序展示，避免观众以为 add 后就能无条件使用。
 
-### 主要画面
+### 画面结构
 
 左侧为 `claude mcp list` 状态面板，中间为 MCP server 工具列表，右侧为两道批准闸。初始状态是 `⏸ Pending approval`，批准后变为 `✓ Connected`，工具调用闸再单独亮起。
 
@@ -206,7 +206,7 @@ claude mcp list · /mcp
 
 把信任验证和最小权限从口号变成选择路径。
 
-### 主要画面
+### 画面结构
 
 四级信任梯度：官方目录、大厂官方 server、来源不明的第三方 server、生产数据库写权限。前两级为绿色，第三方为黄色警告，写权限为红色；最后将数据库凭据切换到 `readonly`。
 
@@ -235,7 +235,7 @@ claude mcp list · /mcp
 
 模拟从配置写入到连接确认的前两步，不把“Added”误当成“Connected”。
 
-### 主要画面
+### 画面结构
 
 左侧 Terminal 输入 HTTP add 命令，右侧状态面板先显示 Added，再切换到 `claude mcp list` 和 `✓ Connected`。
 
@@ -265,7 +265,7 @@ claude-code-docs   ✓ Connected
 
 展示从点名 server 到工具调用和清理的后两步。
 
-### 主要画面
+### 画面结构
 
 一个简化 Claude 会话窗口显示提问和批准弹窗；工具结果旁有 `claude-code-docs` 标签；底部列表中的 server 最后被 remove。
 
@@ -296,7 +296,7 @@ claude mcp remove claude-code-docs
 
 用少量映射卡收束全片，并把下一集预告作为最后一个独立视觉事件。
 
-### 主要画面
+### 画面结构
 
 四张窄卡依次显示：本地工具 → stdio、云服务 → HTTP、作用域 → local/project/user、安全 → 先检查再批准再调用。随后右下方出现独立预告卡，避开底部字幕胶囊。
 

@@ -424,6 +424,8 @@ Prototype 用于验证：
 
 Prototype 不是最终实现。
 
+Gate 2 通过时必须冻结 Visual Script 与 Visual Prototype 的内容指纹和 Scene 清单。冻结结果是 Remotion 的实现基线；原型或视觉脚本随后发生变化时，旧的 Remotion 对齐记录必须失效并重新制作。
+
 ---
 
 # 11. Remotion 的职责
@@ -456,6 +458,16 @@ Visual Prototype
 +
 外部提供的音频 / 字幕数据
 ```
+
+每条新视频进入 Remotion 后必须生成 `videos/<video-slug>/remotion-alignment.json`，逐 Scene 记录：
+
+- 对应的原型指纹
+- 关键布局关系
+- 视觉事件
+- 屏幕文字
+- Remotion 实现文件
+
+Harness 负责检查指纹是否仍然有效、Scene 是否完整覆盖、实现文件是否存在；Gate 3 负责人工判断画面是否真正兑现原型，不使用像素相似度代替视觉判断。
 
 ---
 

@@ -1,0 +1,678 @@
+{
+  "schemaVersion": "1.0",
+  "videoId": "web-and-cloud",
+  "scenes": [
+    {
+      "sceneId": "01",
+      "file": "subtitles/scene-01.json",
+      "segments": [
+        {
+          "segmentId": "01-01",
+          "audioFile": "audio/scene-01/01-01.mp3",
+          "cues": [
+            {
+              "id": "01-01-a",
+              "text": "我前阵子在高铁上，",
+              "start": 0.09,
+              "end": 1.58
+            },
+            {
+              "id": "01-01-b",
+              "text": "手边只有一台手机，",
+              "start": 1.58,
+              "end": 3.03
+            },
+            {
+              "id": "01-01-c",
+              "text": "临时发现一个仓库的 README 把安装命令写错了",
+              "start": 3.03,
+              "end": 6.53
+            },
+            {
+              "id": "01-01-d",
+              "text": "打开 claude.ai/code，",
+              "start": 6.53,
+              "end": 8.59
+            },
+            {
+              "id": "01-01-e",
+              "text": "选中仓库，发出修改请求，",
+              "start": 8.59,
+              "end": 10.67
+            },
+            {
+              "id": "01-01-f",
+              "text": "等出站时，一个改好的分支已经在 GitHub 上等我提 PR ",
+              "start": 10.67,
+              "end": 14.51
+            },
+            {
+              "id": "01-01-g",
+              "text": "了，电脑从头到尾都没开",
+              "start": 14.51,
+              "end": 16.86
+            },
+            {
+              "id": "01-01-h",
+              "text": "今天我们就用这个场景，",
+              "start": 16.86,
+              "end": 18.63
+            },
+            {
+              "id": "01-01-i",
+              "text": "拆开 Claude Code 的网页版和 Remote Control",
+              "start": 18.63,
+              "end": 21.672
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sceneId": "02",
+      "file": "subtitles/scene-02.json",
+      "segments": [
+        {
+          "segmentId": "02-01",
+          "audioFile": "audio/scene-02/02-01.mp3",
+          "cues": [
+            {
+              "id": "02-01-a",
+              "text": "先把三个入口分清楚",
+              "start": 0.09,
+              "end": 1.96
+            },
+            {
+              "id": "02-01-b",
+              "text": "本地 CLI 或桌面 app，",
+              "start": 1.96,
+              "end": 4.14
+            },
+            {
+              "id": "02-01-c",
+              "text": "是代码跑在你自己的机器上；",
+              "start": 4.14,
+              "end": 6.25
+            },
+            {
+              "id": "02-01-d",
+              "text": "网页版，是你派一个远程同事，",
+              "start": 6.25,
+              "end": 8.37
+            },
+            {
+              "id": "02-01-e",
+              "text": "让它在 Anthropic 的云 VM 里干活；",
+              "start": 8.37,
+              "end": 10.81
+            },
+            {
+              "id": "02-01-f",
+              "text": "Remote Control，则是代码还在你的电脑上跑，",
+              "start": 10.81,
+              "end": 13.72
+            },
+            {
+              "id": "02-01-g",
+              "text": "只是你用手机或另一台浏览器去遥控它",
+              "start": 13.72,
+              "end": 16.69
+            },
+            {
+              "id": "02-01-h",
+              "text": "后面所有取舍，先问一句：",
+              "start": 16.69,
+              "end": 18.79
+            },
+            {
+              "id": "02-01-i",
+              "text": "代码到底在哪台机器上跑",
+              "start": 18.79,
+              "end": 21
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sceneId": "03",
+      "file": "subtitles/scene-03.json",
+      "segments": [
+        {
+          "segmentId": "03-01",
+          "audioFile": "audio/scene-03/03-01.mp3",
+          "cues": [
+            {
+              "id": "03-01-a",
+              "text": "网页版就是打开 claude.ai/code，",
+              "start": 0.09,
+              "end": 3.12
+            },
+            {
+              "id": "03-01-b",
+              "text": "不用在当前电脑安装环境",
+              "start": 3.12,
+              "end": 5.24
+            },
+            {
+              "id": "03-01-c",
+              "text": "它会把 GitHub 仓库克隆到一台一次性的隔离云 VM 里，",
+              "start": 5.24,
+              "end": 8.88
+            },
+            {
+              "id": "03-01-d",
+              "text": "Claude 在里面读代码、",
+              "start": 8.88,
+              "end": 10.41
+            },
+            {
+              "id": "03-01-e",
+              "text": "改文件、跑测试，",
+              "start": 10.41,
+              "end": 11.92
+            },
+            {
+              "id": "03-01-f",
+              "text": "最后把结果放到一个 GitHub 分支上",
+              "start": 11.92,
+              "end": 14.77
+            },
+            {
+              "id": "03-01-g",
+              "text": "它特别适合并行跑几个独立任务、",
+              "start": 14.77,
+              "end": 17.1
+            },
+            {
+              "id": "03-01-h",
+              "text": "改一个本地还没 clone 的仓库，",
+              "start": 17.1,
+              "end": 19.06
+            },
+            {
+              "id": "03-01-i",
+              "text": "或者你根本不想先配环境",
+              "start": 19.06,
+              "end": 21.216
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sceneId": "04",
+      "file": "subtitles/scene-04.json",
+      "segments": [
+        {
+          "segmentId": "04-01",
+          "audioFile": "audio/scene-04/04-01.mp3",
+          "cues": [
+            {
+              "id": "04-01-a",
+              "text": "但网页版不是本地 CLI 的替代品",
+              "start": 0.09,
+              "end": 2.99
+            },
+            {
+              "id": "04-01-b",
+              "text": "如果任务必须碰你电脑上的文件、",
+              "start": 2.99,
+              "end": 5.13
+            },
+            {
+              "id": "04-01-c",
+              "text": "本地工具、MCP server 或全局配置，",
+              "start": 5.13,
+              "end": 8.05
+            },
+            {
+              "id": "04-01-d",
+              "text": "就应该在本地跑",
+              "start": 8.05,
+              "end": 9.57
+            },
+            {
+              "id": "04-01-e",
+              "text": "网页版需要 GitHub，",
+              "start": 9.57,
+              "end": 11.07
+            },
+            {
+              "id": "04-01-f",
+              "text": "而且云端默认只有自动接受编辑和 Plan 两种模式，",
+              "start": 11.07,
+              "end": 14.72
+            },
+            {
+              "id": "04-01-g",
+              "text": "所以任务描述要写清楚文件、",
+              "start": 14.72,
+              "end": 16.96
+            },
+            {
+              "id": "04-01-h",
+              "text": "改什么，以及预期行为",
+              "start": 16.96,
+              "end": 19.06
+            },
+            {
+              "id": "04-01-i",
+              "text": "需要本地东西用本地 CLI，",
+              "start": 19.06,
+              "end": 21.13
+            },
+            {
+              "id": "04-01-j",
+              "text": "不需要本地环境、想并行或想随处发起任务，",
+              "start": 21.13,
+              "end": 24.39
+            },
+            {
+              "id": "04-01-k",
+              "text": "再选网页版",
+              "start": 24.39,
+              "end": 25.656
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sceneId": "05",
+      "file": "subtitles/scene-05.json",
+      "segments": [
+        {
+          "segmentId": "05-01",
+          "audioFile": "audio/scene-05/05-01.mp3",
+          "cues": [
+            {
+              "id": "05-01-a",
+              "text": "Remote Control 走的是另一条路",
+              "start": 0.09,
+              "end": 2.35
+            },
+            {
+              "id": "05-01-b",
+              "text": "你在电脑上启动一个本地会话，",
+              "start": 2.35,
+              "end": 4.41
+            },
+            {
+              "id": "05-01-c",
+              "text": "代码、文件、本地 MCP 和项目配置都留在原地，",
+              "start": 4.41,
+              "end": 8.3
+            },
+            {
+              "id": "05-01-d",
+              "text": "然后从手机或任意浏览器接着聊",
+              "start": 8.3,
+              "end": 11.04
+            },
+            {
+              "id": "05-01-e",
+              "text": "手机只是这次本地会话的遥控器窗口，",
+              "start": 11.04,
+              "end": 13.86
+            },
+            {
+              "id": "05-01-f",
+              "text": "不是执行代码的地方",
+              "start": 13.86,
+              "end": 15.63
+            },
+            {
+              "id": "05-01-g",
+              "text": "它最适合本地任务跑到一半，",
+              "start": 15.63,
+              "end": 17.62
+            },
+            {
+              "id": "05-01-h",
+              "text": "人要离开电脑，但还想继续查看和指挥",
+              "start": 17.62,
+              "end": 20.856
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sceneId": "06",
+      "file": "subtitles/scene-06.json",
+      "segments": [
+        {
+          "segmentId": "06-01",
+          "audioFile": "audio/scene-06/06-01.mp3",
+          "cues": [
+            {
+              "id": "06-01-a",
+              "text": "这三个命令很容易混。`claude --remote` 是从本地发起",
+              "start": 0.09,
+              "end": 3.76
+            },
+            {
+              "id": "06-01-b",
+              "text": "一个新的云会话；`claude --teleport` 是把云会话拉",
+              "start": 3.76,
+              "end": 6.73
+            },
+            {
+              "id": "06-01-c",
+              "text": "回本地继续；`claude --remote-control` 则和云端无关，",
+              "start": 6.73,
+              "end": 10.13
+            },
+            {
+              "id": "06-01-d",
+              "text": "只是把本地会话开放给手机或网页控制",
+              "start": 10.13,
+              "end": 13.32
+            },
+            {
+              "id": "06-01-e",
+              "text": "记方向就不会混：",
+              "start": 13.32,
+              "end": 14.68
+            },
+            {
+              "id": "06-01-f",
+              "text": "本地到云、云到本地，",
+              "start": 14.68,
+              "end": 16.41
+            },
+            {
+              "id": "06-01-g",
+              "text": "以及本地到远程控制窗口",
+              "start": 16.41,
+              "end": 18.528
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sceneId": "07",
+      "file": "subtitles/scene-07.json",
+      "segments": [
+        {
+          "segmentId": "07-01",
+          "audioFile": "audio/scene-07/07-01.mp3",
+          "cues": [
+            {
+              "id": "07-01-a",
+              "text": "deep-links 是另一个方便的小功能",
+              "start": 0.09,
+              "end": 2.57
+            },
+            {
+              "id": "07-01-b",
+              "text": "一个 `claude-cli:",
+              "start": 2.57,
+              "end": 4.16
+            },
+            {
+              "id": "07-01-c",
+              "text": "//` 链接可以帮你选好本地仓库，",
+              "start": 4.16,
+              "end": 6.82
+            },
+            {
+              "id": "07-01-d",
+              "text": "再把提示词填进输入框，",
+              "start": 6.82,
+              "end": 8.56
+            },
+            {
+              "id": "07-01-e",
+              "text": "比如直接打开某个仓库去 review open PRs",
+              "start": 8.56,
+              "end": 11.86
+            },
+            {
+              "id": "07-01-f",
+              "text": "但它只负责选目录和填文字，",
+              "start": 11.86,
+              "end": 14.05
+            },
+            {
+              "id": "07-01-g",
+              "text": "在你亲手按下回车之前，",
+              "start": 14.05,
+              "end": 15.84
+            },
+            {
+              "id": "07-01-h",
+              "text": "不会把任何操作发给模型",
+              "start": 15.84,
+              "end": 18
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sceneId": "08",
+      "file": "subtitles/scene-08.json",
+      "segments": [
+        {
+          "segmentId": "08-01",
+          "audioFile": "audio/scene-08/08-01.mp3",
+          "cues": [
+            {
+              "id": "08-01-a",
+              "text": "最小练习可以这样走",
+              "start": 0.09,
+              "end": 1.89
+            },
+            {
+              "id": "08-01-b",
+              "text": "先用 `claude --version` 确认版本，",
+              "start": 1.89,
+              "end": 3.8
+            },
+            {
+              "id": "08-01-c",
+              "text": "再运行 `claude remote-control`，",
+              "start": 3.8,
+              "end": 5.62
+            },
+            {
+              "id": "08-01-d",
+              "text": "按空格显示会话二维码，",
+              "start": 5.62,
+              "end": 7.44
+            },
+            {
+              "id": "08-01-e",
+              "text": "用手机扫码连接，",
+              "start": 7.44,
+              "end": 8.78
+            },
+            {
+              "id": "08-01-f",
+              "text": "然后在手机上发一句“列出当前目录下有哪些文件”",
+              "start": 8.78,
+              "end": 12.72
+            },
+            {
+              "id": "08-01-g",
+              "text": "如果结果来自你电脑的目录，",
+              "start": 12.72,
+              "end": 14.68
+            },
+            {
+              "id": "08-01-h",
+              "text": "并且电脑终端同步显示连接状态，",
+              "start": 14.68,
+              "end": 17.14
+            },
+            {
+              "id": "08-01-i",
+              "text": "就说明手机接管的是本地会话",
+              "start": 17.14,
+              "end": 19.95
+            },
+            {
+              "id": "08-01-j",
+              "text": "最后回到电脑按 `Ctrl+C`，",
+              "start": 19.95,
+              "end": 22.22
+            },
+            {
+              "id": "08-01-k",
+              "text": "服务器模式退出，",
+              "start": 22.22,
+              "end": 23.47
+            },
+            {
+              "id": "08-01-l",
+              "text": "远程会话也随之结束",
+              "start": 23.47,
+              "end": 25.512
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sceneId": "09",
+      "file": "subtitles/scene-09.json",
+      "segments": [
+        {
+          "segmentId": "09-01",
+          "audioFile": "audio/scene-09/09-01.mp3",
+          "cues": [
+            {
+              "id": "09-01-a",
+              "text": "还有一个访问边界要记住",
+              "start": 0.09,
+              "end": 2.12
+            },
+            {
+              "id": "09-01-b",
+              "text": "网页版、Remote Control 和手机 app 都要连接 ",
+              "start": 2.12,
+              "end": 5.09
+            },
+            {
+              "id": "09-01-c",
+              "text": "claude.ai，所以国内使用前，",
+              "start": 5.09,
+              "end": 7.4
+            },
+            {
+              "id": "09-01-d",
+              "text": "浏览器和手机需要先具备正常访问条件",
+              "start": 7.4,
+              "end": 10.56
+            },
+            {
+              "id": "09-01-e",
+              "text": "但云端会话里的 Claude 拉 GitHub 仓库、",
+              "start": 10.56,
+              "end": 13.25
+            },
+            {
+              "id": "09-01-f",
+              "text": "安装 npm 包，",
+              "start": 13.25,
+              "end": 14.61
+            },
+            {
+              "id": "09-01-g",
+              "text": "走的是 Anthropic 自己的云基础设施",
+              "start": 14.61,
+              "end": 17.41
+            },
+            {
+              "id": "09-01-h",
+              "text": "你需要解决的，是设备怎样连上 claude.ai，",
+              "start": 17.41,
+              "end": 20.59
+            },
+            {
+              "id": "09-01-i",
+              "text": "不是替云 VM 配一条本地网络",
+              "start": 20.59,
+              "end": 23.184
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sceneId": "10",
+      "file": "subtitles/scene-10.json",
+      "segments": [
+        {
+          "segmentId": "10-01",
+          "audioFile": "audio/scene-10/10-01.mp3",
+          "cues": [
+            {
+              "id": "10-01-a",
+              "text": "把这一篇记成四个判断：",
+              "start": 0.09,
+              "end": 1.8
+            },
+            {
+              "id": "10-01-b",
+              "text": "不想装环境、想并行或处理本地没 clone 的仓库，",
+              "start": 1.8,
+              "end": 5.27
+            },
+            {
+              "id": "10-01-c",
+              "text": "用网页版；需要本机文件和工具，",
+              "start": 5.27,
+              "end": 7.61
+            },
+            {
+              "id": "10-01-d",
+              "text": "用本地 CLI；",
+              "start": 7.61,
+              "end": 9.02
+            },
+            {
+              "id": "10-01-e",
+              "text": "本地任务想换手机接着指挥，",
+              "start": 9.02,
+              "end": 11.06
+            },
+            {
+              "id": "10-01-f",
+              "text": "用 Remote Control；想准备一个仓库和提示词，",
+              "start": 11.06,
+              "end": 14.04
+            },
+            {
+              "id": "10-01-g",
+              "text": "用 deep-links，但按回车前它不会执行",
+              "start": 14.04,
+              "end": 17.24
+            },
+            {
+              "id": "10-01-h",
+              "text": "下一篇我们看项目初始化，",
+              "start": 17.24,
+              "end": 19.2
+            },
+            {
+              "id": "10-01-i",
+              "text": "用 `/init` 生成 CLAUDE.md，",
+              "start": 19.2,
+              "end": 21.21
+            },
+            {
+              "id": "10-01-j",
+              "text": "让 Claude 更快理解一个项目",
+              "start": 21.21,
+              "end": 23.4
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

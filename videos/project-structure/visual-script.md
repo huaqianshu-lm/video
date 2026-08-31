@@ -37,13 +37,21 @@
 3. 最后一张卡变成红色风险线，短暂显示 database password → git push。
 4. 中央文件夹打开，切入下一幕的两棵树。
 
-### 视觉重点
+### 视觉目标
 
 让观众知道本片要解决的是“看懂结构并安全判断”，不是介绍某一个单独文件。
 
 ### 与口播互补
 
 旁白负责讲困惑和真实事故，画面只展示问题关系与抽象风险，不显示真实密码。
+
+### 屏幕文字
+
+.claude/；权限不生效？；队友没有命令？；秘密进了仓库？
+
+### Visual Type
+
+OpeningScene + Risk Workflow
 
 ## Scene 02｜Claude Code 有两个家
 
@@ -58,13 +66,21 @@
 3. 一条用户连线从个人卡片延伸到两个不同项目。
 4. 底部出现“跟着项目走”与“跟着你走”。
 
-### 视觉重点
+### 视觉目标
 
 用影响范围而不是文件数量区分两种作用域。
 
 ### 与口播互补
 
 旁白解释档案柜与工位抽屉的类比，画面证明两种配置的作用对象不同。
+
+### 屏幕文字
+
+./.claude/；~/.claude/；Project；User
+
+### Visual Type
+
+ComparisonScene
 
 ## Scene 03｜打开项目级 .claude/
 
@@ -79,13 +95,21 @@
 3. commands/、rules/、skills/、agents/ 四个目录依次点亮。
 4. 右侧出现“项目级／团队共享”的状态标签。
 
-### 视觉重点
+### 视觉目标
 
 保留完整的结构地图，让观众看到项目级配置不是只有 settings.json。
 
 ### 与口播互补
 
 旁白讲“共同使用的结构”，画面承担层级关系和文件名记忆。
+
+### 屏幕文字
+
+.claude/；settings.json；settings.local.json；commands/；rules/；skills/；agents/
+
+### Visual Type
+
+ConceptScene + File Tree
 
 ## Scene 04｜用户级目录如何跟着你走
 
@@ -100,13 +124,21 @@
 3. ~/.claude.json、~/.claude/projects/ 和自动记忆在用户侧出现。
 4. 项目级卡片淡出，留下用户侧的个人范围边界。
 
-### 视觉重点
+### 视觉目标
 
 显示用户级是个人范围的上层空间，不把它误画成另一个仓库。
 
 ### 与口播互补
 
 旁白解释用户级状态和自动记忆，画面通过跨项目连线展示作用范围。
+
+### 屏幕文字
+
+跨项目生效；~/.claude.json；~/.claude/projects/；自动记忆
+
+### Visual Type
+
+ComparisonScene + Scope Diagram
 
 ## Scene 05｜文件职责分组
 
@@ -121,13 +153,21 @@
 3. commands/、skills/、agents/ 依次进入“扩展”。
 4. .mcp.json 进入“连接”，settings.local.json 显示黄色个人覆盖标记。
 
-### 视觉重点
+### 视觉目标
 
 用职责分组建立索引，而不是逐个解释所有高级配置细节。
 
 ### 与口播互补
 
 旁白解释每类文件“管什么”，画面把文件名归类，避免声音和文字重复。
+
+### 屏幕文字
+
+指导；配置；扩展；连接；个人覆盖
+
+### Visual Type
+
+StepListScene + Document Map
 
 ## Scene 06｜Git 边界与泄密风险
 
@@ -142,13 +182,21 @@
 3. 一个抽象 password 标签错误地进入 settings.json。
 4. git push、仓库历史和 rewrite history 依次亮起，随后红线回收为“不提交秘密”。
 
-### 视觉重点
+### 视觉目标
 
 强调任何密钥、token、密码都是红线，不展示实际秘密。
 
 ### 与口播互补
 
 旁白讲作者踩坑和环境变量建议，画面展示共享、个人和秘密三种不同处理路径。
+
+### 屏幕文字
+
+提交 Git；.gitignore；不提交；密钥／token／密码
+
+### Visual Type
+
+ComparisonScene + Risk Workflow
 
 ## Scene 07｜配置冲突听谁的
 
@@ -163,13 +211,21 @@
 3. permissions.allow 标签沿数组轨道与多个来源汇合。
 4. 两条轨道同时停留，形成“顺序相同，行为不同”的对照。
 
-### 视觉重点
+### 视觉目标
 
 让覆盖与合并产生不同的动态结果，而不只是显示两个术语。
 
 ### 与口播互补
 
 旁白负责解释规则，画面用替换和叠加证明两种行为。
+
+### 屏幕文字
+
+Managed → CLI → Local → Project → User；标量：覆盖；数组：合并
+
+### Visual Type
+
+ConceptScene + Priority Diagram
 
 ## Scene 08｜四条只读命令看清现场
 
@@ -184,13 +240,21 @@
 3. 输入 git check-ignore .claude/settings.local.json，显示被忽略的路径。
 4. 输入 cat CLAUDE.md，显示项目说明书的开头；旁边短暂提示“非 Git 仓库会报错”。
 
-### 视觉重点
+### 视觉目标
 
 命令是只读的，且每条命令都对应一个明确判断。
 
 ### 与口播互补
 
 旁白解释检查目的和 Git 仓库边界，画面展示终端反馈，不替观众执行修改操作。
+
+### 屏幕文字
+
+ls -a ~/.claude；ls -a .claude；git check-ignore；只读检查
+
+### Visual Type
+
+TerminalScene
 
 ## Scene 09｜两棵树的判断法
 
@@ -205,13 +269,21 @@
 3. “优先级”节点接入 Managed 到 User 的小阶梯。
 4. 预告卡最后出现，并与主链路保持距离。
 
-### 视觉重点
+### 视觉目标
 
 用判断顺序收束，而不是再重复文件清单；预告卡留出 2～3 秒可读停留。
 
 ### 与口播互补
 
 旁白复述判断链并预告下一篇，画面负责留下可复用的排查方法。
+
+### 屏幕文字
+
+路径 → 归属 → 共享 → Git → 优先级；下一篇：交互界面与快捷键
+
+### Visual Type
+
+SummaryScene + Next Episode Preview
 
 ## 全片视觉类型／组件／动画标准
 
@@ -247,4 +319,3 @@
 ## 下一步
 
 完成 Gate 2 后，才可冻结口播并由 Agent 派生 tts-script.json。本任务按用户要求在此停止，不创建 TTS 输入、音频、字幕、Timeline 或 Remotion 配置。
-

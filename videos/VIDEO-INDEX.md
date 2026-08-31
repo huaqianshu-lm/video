@@ -1,11 +1,12 @@
 # 视频项目索引
 
-这里按原始教程文件的序号排列所有视频项目，方便从原文件序号定位到项目目录。
+这里按原始教程文件的序号排列所有视频项目，方便从原文件序号定位到项目目录。序号是系列内编号，不同教程系列可以重复；项目以完整 slug 唯一标识。
 
 项目目录仍使用现有 slug，不改目录名；Web UI 也按同一序号排序和展示。
 
 | 原文件序号 | 视频项目目录 | 生产资料 | Remotion 实现 |
 | ---: | --- | --- | --- |
+| 01 | `01-what-is-codex` | [`videos/01-what-is-codex/`](./01-what-is-codex/) | — |
 | 01 | `claude-code-what-is` | [`videos/claude-code-what-is/`](./claude-code-what-is/) | [`src/videos/claude-code-what-is/`](../src/videos/claude-code-what-is/) |
 | 02 | `claude-code-install` | [`videos/claude-code-install/`](./claude-code-install/) | [`src/videos/claude-code-install/`](../src/videos/claude-code-install/) |
 | 03 | `claude-code-how-it-works` | [`videos/claude-code-how-it-works/`](./claude-code-how-it-works/) | [`src/videos/claude-code-how-it-works/`](../src/videos/claude-code-how-it-works/) |
