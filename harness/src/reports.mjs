@@ -1,5 +1,8 @@
 import { isGateStage, previousStage, returnToStages, STAGE_DEFINITIONS, STAGES } from "./stages.mjs";
 import { validateStage } from "./runner.mjs";
+import { hasAssetSource } from "./asset-bundler.mjs";
+import { validateRemoteRenderInputs } from "./remote-executor.mjs";
+import { isGitWorkspace, validateGitRenderDelivery } from "./git-delivery.mjs";
 
 function commandFor(project, command, stage = null) {
   const suffix = stage ? ` ${stage}` : "";
@@ -21,6 +24,26 @@ function isBlockingPreExecutionIssue(stage, issue) {
   return true;
 }
 
+function remoteDeliveryIssues(project, stage) {
+  if (!(["smoke-render", "render"].includes(stage) && isGitWorkspace(project.config.workspaceRoot))) return [];
+  return [
+    ...validateRemoteRenderInputs(project).map((message) => ({
+      code: "remote-render-inputs-invalid",
+      stage,
+      path: null,
+      message,
+      severity: "error",
+    })),
+    ...validateGitRenderDelivery(project).map((message) => ({
+      code: "git-render-delivery-invalid",
+      stage,
+      path: null,
+      message,
+      severity: "error",
+    })),
+  ];
+}
+
 export function buildNextAction(project) {
   if (project.state.currentStage === "completed") {
     return {
@@ -36,7 +59,9 @@ export function buildNextAction(project) {
 
   const stage = project.state.currentStage;
   const item = project.state.stages[stage];
-  const issues = item.status === "ready" ? validateStage(project, stage) : [];
+  const issues = item.status === "ready"
+    ? [...validateStage(project, stage), ...remoteDeliveryIssues(project, stage)]
+    : [];
   const blockingIssues = issues.filter((issue) => isBlockingPreExecutionIssue(stage, issue));
   if (item.status === "waiting" && isGateStage(stage)) {
     return {
@@ -72,6 +97,12 @@ export function buildNextAction(project) {
       requiresUser: false,
       commands: [commandFor(project, "validate", stage)],
       issues,
+        preparation: ["smoke-render", "render"].includes(stage) && hasAssetSource(project)
+        ? {
+          action: "prepare-remote-render",
+          message: "本地资源已存在，可以先自动生成或更新资源包；随后仍需 commit/push 才能提交远程任务。",
+        }
+        : null,
     };
   }
   if (item.status === "ready") {

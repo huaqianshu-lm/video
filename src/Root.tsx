@@ -22,6 +22,8 @@ import {WhatIsCodexVideo} from './videos/01-what-is-codex/WhatIsCodexVideo';
 import {videoConfig as whatIsCodexConfig} from './videos/01-what-is-codex/video.config';
 import {CoreConceptsVideo} from './videos/02-core-concepts/CoreConceptsVideo';
 import {videoConfig as coreConceptsConfig} from './videos/02-core-concepts/video.config';
+import {ProjectInitVideo} from './videos/project-init/ProjectInitVideo';
+import {videoConfig as projectInitConfig} from './videos/project-init/video.config';
 
 export const Root = () => {
   return (
@@ -113,6 +115,14 @@ export const Root = () => {
         fps={coreConceptsConfig.fps}
         width={coreConceptsConfig.width}
         height={coreConceptsConfig.height}
+      />
+      <Composition
+        id={projectInitConfig.slug}
+        component={ProjectInitVideo}
+        durationInFrames={getTotalDurationFrames(projectInitConfig)}
+        fps={projectInitConfig.fps}
+        width={projectInitConfig.width}
+        height={projectInitConfig.height}
       />
     </>
   );

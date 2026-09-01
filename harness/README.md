@@ -189,6 +189,7 @@ http://127.0.0.1:4173
 - Gate 2 通过时冻结 Visual Script／Visual Prototype 指纹，Remotion 阶段校验逐 Scene `remotion-alignment.json`，Gate 3 并排对照原型与 Remotion Studio；
 - 执行校验、阶段推进、Gate 通过／驳回、重试和断点续做；
 - 发起远程 Smoke Render／Render 后查看任务状态和 Artifact 元数据；
+- 在远程渲染阶段提供“准备远程渲染资源”动作：从 `public/local-assets/<video-slug>/` 幂等生成资源包，并在提交前检查资源包、Manifest、Remotion 代码、Git 跟踪状态和 dispatch 分支；不自动 commit 或 push；
 - 查看后台任务的 Run 链接、Run ID、Artifact 名称、最近检查时间和失败原因；
 - 在首页查看所有视频项目的远程任务，并手动执行 GitHub 配置诊断；
 - 对未初始化的旧视频执行 Legacy 只读检查。
@@ -207,7 +208,7 @@ Harness 通过 stdin 发送结构化阶段任务包。`subtitle-timeline` 和 `r
 
 ### TTS 执行器
 
-当前项目已提供可直接接入既有 TTS 工程的 Harness 适配器。它会读取冻结的 `videos/<video-slug>/tts-script.json`，按 `+25%` 调用 TTS 工程中的三个脚本，再把音频、字幕和 Timeline Manifest 同步到当前视频目录。默认假设 TTS 工程与本仓库同级，目录为 `../tts`；如果目录不同，显式设置：
+当前项目已提供可直接接入既有 TTS 工程的 Harness 适配器。它会读取冻结的 `videos/<video-slug>/tts-script.json`，按 `+25%` 调用 TTS 工程中的三个脚本，再把音频、字幕和 Timeline Manifest 同步到当前视频目录，并自动生成 `assets/<video-slug>-assets.zip`。默认假设 TTS 工程与本仓库同级，目录为 `../tts`；如果目录不同，显式设置：
 
 ```bash
 export HARNESS_TTS_EXECUTOR_COMMAND="node"
@@ -237,6 +238,7 @@ node harness/src/cli.mjs plan <video-slug> --until visual-prototype
 node harness/src/cli.mjs next <video-slug> --json
 node harness/src/cli.mjs report <video-slug> --json
 node harness/src/cli.mjs doctor --json
+node harness/src/cli.mjs assets package <video-slug> --json
 ```
 
 阶段执行遵守当前阶段顺序；Gate 阶段会进入等待状态：
@@ -260,5 +262,7 @@ node harness/src/cli.mjs run <video-slug> render
 ```
 
 `HARNESS_GITHUB_REF` 是显式覆盖项；未设置时，本地 Harness 默认使用当前 Git 工作区分支。只有无法从当前工作区解析分支时，才回退到 `GITHUB_REF_NAME`。
+
+远程渲染提交前，Web UI 会要求资源包和渲染相关代码已提交，并确认 dispatch 分支包含当前提交。已有视频可以先点击“准备远程渲染资源”；命令行等价操作为 `node harness/src/cli.mjs assets package <video-slug>`。如果资源包或代码随后变为未提交状态，提交按钮会继续保持阻塞，直到用户完成 commit 和 push。
 
 真实渲染使用 GitHub Actions，不使用本机 Remotion 渲染；Web UI 后台监控器会持续查询对应 Run，完成后检查 Artifact 并推进 Harness 阶段。CLI 的 `run` 保留一次性等待模式；`jobs` 可查看已经持久化的远程任务。

@@ -39,6 +39,8 @@ test("serves the Web UI shell and health endpoint on localhost", async () => {
     assert.match(app.body, /jobsPayload\.activeJob/);
     assert.match(app.body, /远程任务执行中/);
     assert.match(app.body, /请等待完成或在下方查看任务状态/);
+    assert.match(app.body, /准备远程渲染资源/);
+    assert.match(app.body, /prepare-remote-render/);
     assert.match(
       app.body,
       /const currentRemotionTask = project\.currentStage === "remotion"[\s\S]*?latestRemotionTask\.status !== "completed"/,
@@ -491,7 +493,7 @@ test("blocks a new remote job when the render asset archive is incomplete", asyn
       body: JSON.stringify({ action: "remote-run", stage: "smoke-render" }),
     });
     assert.equal(response.status, 400);
-    assert.match(JSON.parse(response.body).error, /远程渲染输入预检失败/);
+    assert.match(JSON.parse(response.body).error, /远程渲染(输入|交付)预检失败/);
     assert.equal(submitCount, 0);
   } finally {
     await webServer.close();

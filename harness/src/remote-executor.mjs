@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
-import { execFileSync } from "node:child_process";
+import { archiveEntries, archiveMatchesAssetDirectory, assetArchivePath, assetArchiveRelativePath, assetSourcePath, ensureAssetArchive } from "./asset-bundler.mjs";
+import { validateGitRenderDelivery } from "./git-delivery.mjs";
 
 const REMOTE_STAGES = new Set(["smoke-render", "render"]);
 
@@ -12,16 +13,12 @@ function readJson(filePath, label) {
   }
 }
 
-function defaultArchiveEntries(archivePath) {
-  execFileSync("unzip", ["-tqq", archivePath], { stdio: "pipe" });
-  return execFileSync("unzip", ["-Z1", archivePath], { encoding: "utf8" })
-    .split(/\r?\n/)
-    .filter(Boolean);
-}
-
-export function validateRemoteRenderInputs(project, { listArchiveEntries = defaultArchiveEntries } = {}) {
+export function validateRemoteRenderInputs(project, { listArchiveEntries = archiveEntries, compareLocalAssets = true } = {}) {
   const slug = project.config.slug;
   const workspaceRoot = project.config.workspaceRoot;
+  if (typeof workspaceRoot !== "string" || !workspaceRoot.trim()) {
+    return ["缺少视频工作区路径，无法检查远程渲染输入"];
+  }
   const archiveRelativePath = `assets/${slug}-assets.zip`;
   const archivePath = path.join(workspaceRoot, archiveRelativePath);
   const audioManifestPath = path.join(workspaceRoot, `src/videos/${slug}/generated/audio-manifest.json`);
@@ -95,6 +92,13 @@ export function validateRemoteRenderInputs(project, { listArchiveEntries = defau
     issues.push(`ZIP 音频数量为 ${actualAudioPaths.length}，Audio Manifest 需要 ${expectedAudioPaths.length}`);
   }
 
+  if (compareLocalAssets && fs.existsSync(assetSourcePath(project))) {
+    const matches = archiveMatchesAssetDirectory(project, { entries, listArchiveEntries });
+    if (matches === false) {
+      issues.push(`ZIP 与 public/local-assets/${slug} 不一致，请重新准备远程渲染资源`);
+    }
+  }
+
   const audioSceneIds = audioManifest.scenes.map((scene) => String(scene.sceneId));
   const subtitleSceneIds = subtitleManifest.scenes.map((scene) => String(scene.sceneId));
   const timelineSceneIds = timelineManifest.scenes.map((scene) => String(scene.sceneId));
@@ -117,7 +121,33 @@ export function assertRemoteRenderInputs(project, options) {
   throw error;
 }
 
-export function createRemoteRenderExecutor({ monitor, validateInputs = assertRemoteRenderInputs } = {}) {
+export function assertRemoteRenderDeliveryInputs(project, options = {}) {
+  const issues = [
+    ...validateRemoteRenderInputs(project, options),
+    ...validateGitRenderDelivery(project, { requireRepository: options.requireRepository ?? true }),
+  ];
+  if (issues.length === 0) return;
+  const error = new Error(`远程渲染交付预检失败：${issues.join("；")}`);
+  error.code = "remote-render-delivery-invalid";
+  error.issues = issues;
+  throw error;
+}
+
+export function prepareRemoteRenderInputs(project, options = {}) {
+  if (typeof project?.config?.workspaceRoot !== "string" || !project.config.workspaceRoot.trim()) {
+    return { status: "skipped", sourceIssues: [], archivePath: null, archiveRelativePath: null, sourcePath: null };
+  }
+  const result = ensureAssetArchive(project, options);
+  return {
+    ...result,
+    sourceIssues: result.status === "source-missing" ? [`缺少 public/local-assets/${project.config.slug}`] : [],
+    archivePath: result.archivePath ?? assetArchivePath(project),
+    archiveRelativePath: result.archiveRelativePath ?? assetArchiveRelativePath(project),
+    sourcePath: result.sourcePath ?? path.relative(project.config.workspaceRoot, assetSourcePath(project)),
+  };
+}
+
+export function createRemoteRenderExecutor({ monitor, validateInputs = assertRemoteRenderDeliveryInputs, prepareInputs = prepareRemoteRenderInputs } = {}) {
   if (!monitor || typeof monitor.submit !== "function") {
     throw new Error("Remote render executor requires a remote job monitor");
   }
@@ -130,6 +160,7 @@ export function createRemoteRenderExecutor({ monitor, validateInputs = assertRem
       if (project.state.currentStage !== stage || project.state.stages[stage]?.status !== "ready") {
         throw new Error(`${project.config.slug} 当前不在可执行的 ${stage} 阶段`);
       }
+      prepareInputs(project);
       validateInputs(project);
       const job = monitor.submit({ slug: project.config.slug, stage });
       return {

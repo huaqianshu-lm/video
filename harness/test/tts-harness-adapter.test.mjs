@@ -4,6 +4,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { runTtsHarnessAdapter } from "../src/tts-harness-adapter.mjs";
+import { archiveMatchesAssetDirectory } from "../src/asset-bundler.mjs";
 
 function write(filePath, content, mode) {
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
@@ -82,6 +83,8 @@ test("bridges the frozen TTS script into generated assets and complete Remotion 
     assert.equal(fs.existsSync(path.join(workspaceRoot, "public/local-assets", slug, "audio/scene-01/01-01.mp3")), true);
     assert.equal(fs.existsSync(path.join(workspaceRoot, "public/local-assets", slug, "subtitles/captions.vtt")), true);
     assert.equal(fs.existsSync(path.join(workspaceRoot, "public/local-assets", slug, "subtitles/captions.srt")), true);
+    assert.equal(result.assetBundle, `assets/${slug}-assets.zip`);
+    assert.equal(archiveMatchesAssetDirectory({ config: { slug, workspaceRoot } }), true);
     const timeline = JSON.parse(fs.readFileSync(path.join(workspaceRoot, "src/videos", slug, "generated/timeline-manifest.json"), "utf8"));
     assert.equal(timeline.videoId, slug);
   } finally {
@@ -89,5 +92,7 @@ test("bridges the frozen TTS script into generated assets and complete Remotion 
       if (value === undefined) delete process.env[key];
       else process.env[key] = value;
     }
+    fs.rmSync(workspaceRoot, { recursive: true, force: true });
+    fs.rmSync(ttsProjectDir, { recursive: true, force: true });
   }
 });

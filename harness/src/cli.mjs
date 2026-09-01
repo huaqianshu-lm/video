@@ -8,6 +8,7 @@ import { requireGitHubActionsConfig } from "./github-config.mjs";
 import { createTtsExecutorFromEnv } from "./tts-executor.mjs";
 import { createRemotionExecutorFromEnv } from "./remotion-executor.mjs";
 import { createRemoteRenderExecutor } from "./remote-executor.mjs";
+import { packageVideoAssets } from "./asset-bundler.mjs";
 import { runSingleStage } from "./single-runner.mjs";
 import { buildNextAction, buildProjectReport } from "./reports.mjs";
 import { buildTaskPacket } from "./context.mjs";
@@ -46,6 +47,7 @@ function usage() {
   node harness/src/cli.mjs validate <slug> [stage]
   node harness/src/cli.mjs run <slug> [stage]
   node harness/src/cli.mjs remote-run <slug> <smoke-render|render> [--json]
+  node harness/src/cli.mjs assets package <slug> [--json]
   node harness/src/cli.mjs approve <slug> <gate>
   node harness/src/cli.mjs reject <slug> <gate> --return-to <stage> --reason <text>
   node harness/src/cli.mjs retry <slug> [stage]
@@ -378,6 +380,19 @@ async function main(args) {
     const result = await runSingleStage(project, stage, { remoteExecutor: executor });
     if (options.includes("--json")) console.log(JSON.stringify(result, null, 2));
     else console.log(`Queued remote ${stage} job for ${slug}: ${result.job.id}`);
+    return 0;
+  }
+
+  if (command === "assets") {
+    if (slug !== "package") {
+      usage();
+      return 1;
+    }
+    const assetSlug = options.find((value) => value !== "--json");
+    validateSlug(assetSlug);
+    const result = packageVideoAssets(loadProject(assetSlug, { refresh: true }));
+    if (options.includes("--json")) console.log(JSON.stringify(result, null, 2));
+    else console.log(`Packaged ${result.archiveRelativePath} (${result.fileCount} files)`);
     return 0;
   }
 
