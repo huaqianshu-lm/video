@@ -1374,3 +1374,21 @@ Visual Prototype 按系列风格调整后重新通过 Gate 2，Remotion 代码�
 正确分支上的 Smoke Run `33398493488` 已成功找到并解压 `02-core-concepts-assets.zip`，但随后仍在 `Verify render inputs` 失败。检查发现 ZIP 只包含 43 个 MP3，没有 `subtitles/captions.vtt` 和 `subtitles/captions.srt`；此前的本地检查只验证 ZIP 文件存在，因此错误放行。
 
 固定处理方式：TTS 适配器必须把音频和字幕一起同步到 `public/local-assets/<video-slug>/`；远程任务提交前必须先校验 ZIP CRC、唯一顶层目录、VTT／SRT、Audio Manifest 引用的每个 MP3 路径、MP3 精确数量，以及 Audio／Subtitle／Timeline 三份 Manifest 的 `videoId` 和 Scene 顺序。任一项不满足时由 Harness 在本地阻止提交并显示具体缺失项，不能等 GitHub Actions 再发现。
+
+## 2026-09-01：远程渲染必须建立资源包和代码交付闭环
+
+### 问题现象
+
+本地 `public/local-assets/<video-slug>/` 已有音频和字幕，但远程渲染仍因缺少 `assets/<video-slug>-assets.zip` 失败；补齐 ZIP 后，未提交的 Remotion 配置或错误 dispatch 分支还可能让远程 Runner 继续看不到最新代码。
+
+### 根因
+
+资源生成、资源打包、Git 提交和远程 dispatch 原先是四个松散动作。TTS 适配器只同步本地播放资源，远程工作流却只读取 Git checkout 中的资源包；本地文件存在不代表远程分支可见。
+
+### 固定处理方式
+
+1. TTS 适配器完成输出后自动从 `public/local-assets/<video-slug>/` 生成资源包。
+2. Harness 在提交 Smoke Render／Render 前校验资源包完整性，并在本地资源存在时比较资源包与本地目录，发现变化就重新准备资源包。
+3. 交付预检同时检查资源包、Manifest、`src/Root.tsx`、视频配置、主组件和渲染相关 Git 路径；未跟踪、未提交或 dispatch 分支不包含当前提交时阻止提交。
+4. Web UI 的“准备远程渲染资源”只负责打包和预检，不自动 commit、push 或绕过人工 Gate。用户完成提交和推送后，页面才允许提交远程任务。
+5. GitHub Actions 继续保留同等输入检查，作为远程 checkout 后的最后一道防线。

@@ -10,7 +10,7 @@ import { findActiveJob, listAllJobs, listJobs } from "./jobs.mjs";
 import { requireGitHubActionsConfig } from "./github-config.mjs";
 import { diagnoseGitHubActions } from "./diagnostics.mjs";
 import { createRemoteJobMonitor } from "./remote-jobs.mjs";
-import { assertRemoteRenderInputs } from "./remote-executor.mjs";
+import { assertRemoteRenderDeliveryInputs, prepareRemoteRenderInputs } from "./remote-executor.mjs";
 import { artifactManifestFor } from "./artifacts.mjs";
 import { approveGate, rejectGate, resumeProject, retryStage, runStage, validateStage } from "./runner.mjs";
 import { validateProjectStage } from "./validation.mjs";
@@ -550,9 +550,54 @@ async function serveAction(response, request, pathname) {
       sendJson(response, 200, { result: { action, status: "already-running" }, job: activeJob });
       return true;
     }
-    assertRemoteRenderInputs(loadProject(slug, { refresh: true }));
-    const job = request.remoteJobMonitor.submit({ slug, stage });
-    sendJson(response, 202, { result: { action, status: "queued" }, job });
+    try {
+      const renderProject = loadProject(slug, { refresh: true });
+      prepareRemoteRenderInputs(renderProject);
+      assertRemoteRenderDeliveryInputs(renderProject);
+      const job = request.remoteJobMonitor.submit({ slug, stage });
+      sendJson(response, 202, { result: { action, status: "queued" }, job });
+    } catch (error) {
+      sendJson(response, 400, {
+        error: error instanceof Error ? error.message : String(error),
+        code: error.code ?? "remote-render-submit-failed",
+        issues: error.issues ?? [],
+      });
+    }
+    return true;
+  }
+
+  if (action === "prepare-remote-render") {
+    const stage = body.stage ?? projectView.currentStage;
+    if (stage !== "smoke-render" && stage !== "render") {
+      sendJson(response, 400, { error: "prepare-remote-render only supports smoke-render and render" });
+      return true;
+    }
+    const renderProject = loadProject(slug, { refresh: true });
+    try {
+      const preparation = prepareRemoteRenderInputs(renderProject);
+      assertRemoteRenderDeliveryInputs(renderProject);
+      sendJson(response, 200, {
+        result: { action, status: "ready", preparation },
+        project: getVideoProject(slug),
+      });
+    } catch (error) {
+      if (error?.code === "remote-render-delivery-invalid") {
+        sendJson(response, 200, {
+          result: { action, status: "blocked" },
+          error: error.message,
+          code: error.code,
+          issues: error.issues ?? [],
+          project: getVideoProject(slug),
+        });
+        return true;
+      }
+      sendJson(response, 400, {
+        error: error instanceof Error ? error.message : String(error),
+        code: error.code ?? "remote-render-preparation-failed",
+        issues: error.issues ?? [],
+        project: getVideoProject(slug),
+      });
+    }
     return true;
   }
 

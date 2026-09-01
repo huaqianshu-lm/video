@@ -31,6 +31,9 @@ Harness Web UI 第一版建立在 Harness 0.4 之上，只提供本地管理界�
 - 通过后台任务触发并查看 GitHub Actions Smoke Render、完整 Render 和 Artifact；浏览器不得接触 GitHub Token。
 - 本地 Web UI 提交 GitHub Actions 任务时，目标分支优先使用显式 `HARNESS_GITHUB_REF`；未配置时必须从当前 Git 工作区解析分支，只有不在 Git 工作区或处于 detached HEAD 时才允许回退到 `GITHUB_REF_NAME`。不得把本机残留的 `GITHUB_REF_NAME` 当作普通启动时的默认分支。
 - 提交 Smoke Render 或完整 Render 前，必须校验 `assets/<video-slug>-assets.zip` 本身可完整解压、顶层目录为 `<video-slug>/`、包含 `subtitles/captions.vtt` 和 `subtitles/captions.srt`，并逐项确认 ZIP 内 MP3 路径和数量与 Audio Manifest 一致；不得只检查 ZIP 文件存在。
+- TTS 适配器完成音频、字幕和 Timeline 同步后，必须自动生成或更新 `assets/<video-slug>-assets.zip`；资源包必须从 `public/local-assets/<video-slug>/` 打包，资源目录变化后旧资源包不得继续用于远程渲染。
+- 远程渲染交付预检除资源和 Manifest 外，必须检查渲染所需代码、配置和资源包已被 Git 跟踪、没有未提交修改，并且 dispatch 分支包含当前工作区对应的提交；不满足时 Web UI 必须阻止提交并显示具体文件和修复动作。
+- 对已有视频或资源包缺失的视频，Web UI 必须提供幂等的“准备远程渲染资源”动作，完成资源打包和交付预检，但不得替用户 commit、push 或绕过人工 Gate。
 - Web UI 只绑定 `127.0.0.1`，第一版不引入数据库、登录、多用户或公网部署；批量编排使用本地批次文件，不引入数据库。
 - Agent 阶段仍由既定生产流程和 Agent 完成；批量入口只编排已配置的 Agent／TTS／Remotion／GitHub Actions 执行器，不复制生产逻辑、不自动通过 Gate。Remotion 没有配置自动执行器时，必须创建可恢复的 Remotion 制作任务并明确等待 Agent 产出，不能把“等待制作”伪装成失败或把校验通过伪装成真实产物完成。
 - Web UI 执行 Agent 阶段时，必须创建持久化后台 Agent Job，由本地 Server 调用已配置的 Agent 执行器；浏览器只提交任务、轮询状态和查看有界日志。Agent 进程退出后，Harness 必须重新读取并校验真实产物，校验通过才推进阶段；未配置执行器、进程失败或产物校验失败都必须保留为可重试任务，不得退化为“只校验已有文件”。

@@ -23,6 +23,7 @@ const WORKFLOWS_BY_STAGE = Object.freeze({
 });
 
 import { requireGitHubActionsConfig } from "./github-config.mjs";
+import { localGitCommit } from "./git-delivery.mjs";
 
 const DEFAULT_API_URL = "https://api.github.com";
 const DEFAULT_DISCOVERY_TIMEOUT_MS = 120_000;
@@ -155,6 +156,32 @@ export function createGitHubActionsAdapter({
       dispatchState: "confirmed",
       dispatchConfirmedAt: now().toISOString(),
     };
+  }
+
+  async function verifyDispatchRef({ project, dispatch }) {
+    const localSha = localGitCommit(project.config.workspaceRoot, dispatch.ref);
+    if (!localSha) {
+      const error = new Error(`无法在本地解析 dispatch 分支：${dispatch.ref}`);
+      error.code = "remote-ref-local-missing";
+      throw error;
+    }
+    const payload = await request(
+      `/repos/${repository}/git/ref/heads/${encodeURIComponent(dispatch.ref)}`,
+    );
+    const remoteSha = payload?.object?.sha;
+    if (!remoteSha) {
+      const error = new Error(`GitHub 未返回 dispatch 分支的提交：${dispatch.ref}`);
+      error.code = "remote-ref-invalid";
+      throw error;
+    }
+    if (remoteSha !== localSha) {
+      const error = new Error(`dispatch 分支 ${dispatch.ref} 尚未包含当前本地提交，请先 push 后再提交渲染`);
+      error.code = "remote-ref-out-of-sync";
+      error.localSha = localSha;
+      error.remoteSha = remoteSha;
+      throw error;
+    }
+    return { ref: dispatch.ref, localSha, remoteSha };
   }
 
   async function listRuns({ workflow, ref: runRef = null }) {
@@ -305,6 +332,7 @@ export function createGitHubActionsAdapter({
   }
 
   return {
+    requiresRenderPreflight: true,
     async run({ stage, project, defer = false }) {
       const dispatch = await dispatchWorkflow({ stage, project });
       if (defer) {
@@ -317,6 +345,7 @@ export function createGitHubActionsAdapter({
       };
     },
     dispatchWorkflow,
+    verifyDispatchRef,
     createDispatch,
     findDispatchedRun,
     findDispatchedRunOnce,

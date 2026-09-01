@@ -877,6 +877,13 @@ function projectActions(project, latestRemotionTask = null, activeRemoteJob = nu
       buttons.push(`<button class="button button-primary" type="button" data-action="remote-run">提交远程任务</button>`);
     }
   }
+  if (project.next.action === "fix-validation-issues"
+    && (project.currentStage === "smoke-render" || project.currentStage === "render")) {
+    if (project.next.preparation?.action === "prepare-remote-render") {
+      buttons.push(`<button class="button button-primary" type="button" data-action="prepare-remote-render">准备远程渲染资源</button>`);
+    }
+    buttons.push(`<span class="action-note action-note-error">${escapeHtml(project.next.message)} 请先准备资源并完成 commit/push；交付预检通过后才能提交远程任务。</span>`);
+  }
   if (["smoke-render", "render"].includes(project.currentStage)) {
     buttons.push(`<button class="button button-secondary" type="button" data-action="find-historical">查找历史 Artifact</button>`);
   }
@@ -902,7 +909,7 @@ function projectActions(project, latestRemotionTask = null, activeRemoteJob = nu
 async function performAction(project, action, runId = null, rejectInput = null) {
   if (action === "initialize" && !window.confirm(`初始化 ${project.slug} 的 Harness 状态吗？`)) return;
   const body = { action };
-  if (["validate", "run", "retry", "remote-run", "find-historical", "adopt-historical"].includes(action)) body.stage = project.currentStage;
+  if (["validate", "run", "retry", "remote-run", "prepare-remote-render", "find-historical", "adopt-historical"].includes(action)) body.stage = project.currentStage;
   if (action === "adopt-historical") body.runId = runId;
   if (action === "approve") body.gate = project.currentStage;
   if (action === "reject") {

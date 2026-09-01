@@ -4,6 +4,7 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { spawn } from "node:child_process";
+import { packageVideoAssets } from "./asset-bundler.mjs";
 
 const DEFAULT_VOICE = "zh-CN-XiaoxiaoNeural";
 const DEFAULT_RATE = "+25%";
@@ -201,12 +202,14 @@ export async function runTtsHarnessAdapter(payload, { spawnProcess = runProcess 
   const publicAssets = path.join(workspaceRoot, "public", "local-assets", slug);
   copyTree(path.join(assetsRoot, "audio"), path.join(publicAssets, "audio"));
   copyTree(path.join(assetsRoot, "subtitles"), path.join(publicAssets, "subtitles"));
+  const assetBundle = packageVideoAssets({ config: { slug, workspaceRoot } });
   return {
     executor: "tts-harness-adapter",
     videoId: slug,
     rate,
     voice,
     cacheDirectory: path.relative(workspaceRoot, runRoot),
+    assetBundle: assetBundle.archiveRelativePath,
     scenes: manifests.timeline.scenes.length,
     duration: manifests.timeline.duration,
     outputs: [

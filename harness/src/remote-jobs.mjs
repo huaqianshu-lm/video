@@ -8,6 +8,7 @@ import {
 } from "./remote-status.mjs";
 import { isGateStage } from "./stages.mjs";
 import { loadProject } from "./storage.mjs";
+import { assertRemoteRenderDeliveryInputs, prepareRemoteRenderInputs } from "./remote-executor.mjs";
 
 const DEFAULT_POLL_INTERVAL_MS = 20 * 60 * 1_000;
 const DEFAULT_JOB_TIMEOUT_MS = 45 * 60 * 1_000;
@@ -129,6 +130,10 @@ export function createRemoteJobMonitor({
         let remote = job.remote ?? null;
 
         if (!remote?.workflow || (!remote.runId && remote.dispatchState !== "confirmed")) {
+          if (adapter.requiresRenderPreflight) {
+            prepareRemoteRenderInputs(project);
+            assertRemoteRenderDeliveryInputs(project);
+          }
           const dispatchingAt = remote?.dispatchState === "pending"
             ? remote.dispatchedAt
             : job.dispatchingAt ?? job.createdAt;
@@ -142,6 +147,9 @@ export function createRemoteJobMonitor({
             : remote ?? null;
           if (!candidate?.workflow) {
             throw new Error(`Remote adapter cannot create a dispatch for ${job.stage}`);
+          }
+          if (typeof adapter.verifyDispatchRef === "function") {
+            await adapter.verifyDispatchRef({ project, dispatch: candidate });
           }
           const pendingDispatch = { ...candidate, dispatchState: "pending" };
           updateJob(job.slug, job.id, { remote: pendingDispatch });
