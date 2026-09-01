@@ -8,6 +8,7 @@
 ## 当前阶段
 
 - `02-core-concepts` 已完成 Smoke Run `33403378772`、完整 Render `33403831520` 和 Gate 4 人工验收；两个 Artifact 均存在且未过期，当前视频流程完成。
+- `project-init` 已完成 Smoke Run `33479568851`、完整 Render `33480194796` 和 Gate 4 人工验收；两个 Artifact 均存在且未过期，Harness 当前状态为 `completed`。
 - Web UI 已对运行中的 Smoke／完整 Render 远程任务锁定重复提交入口：按钮显示“远程任务执行中”并说明任务状态和 ID，详情页每 5 秒同步状态；旧页面或竞态产生的重复请求由服务端幂等返回已有任务，不再报错或创建第二条任务。
 - Codex 系列风格已配置为独立 `codex` 基线；01、02 共享 Codex 令牌，Harness 会解析系列风格并在原型／Remotion 校验阶段阻止风格漂移。
 - `codex-guide` 系列清单已恢复为同时关联 `01-what-is-codex` 和 `02-core-concepts`；系列关联保存现在禁止未经确认的成员移除，Web UI 会在移除前二次确认。
@@ -33,7 +34,7 @@
 - 批量 TTS、Remotion 和远程渲染已改为复用统一单条入口；批量任务支持执行器产物验收、Remotion 任务关联、远程任务等待、Smoke 质检暂停和避免重复提交，均未触发真实外部执行器。
 - Web UI 单视频详情页已增加 TTS 质检确认入口；确认后复用 Harness 审核逻辑，并同步当前等待中的 TTS 批次。
 - 批量页面的每条视频现在统一展示 Harness 项目当前状态；批次自身的历史执行记录与视频当前状态分开保存，避免同一视频在不同批次中显示过期状态。
-- `jetbrains`、`desktop`、`web-and-cloud`、`project-init` 已使用冻结的 `tts-script.json` 完成真实 `+25%` TTS、字幕和 Timeline 生成；批次 `b16cceae-8ebc-4619-ba21-b472653e8fb4` 当前等待 TTS 质检。
+- `jetbrains`、`desktop`、`web-and-cloud` 已使用冻结的 `tts-script.json` 完成真实 `+25%` TTS、字幕和 Timeline 生成；批次 `b16cceae-8ebc-4619-ba21-b472653e8fb4` 当前等待 TTS 质检。
 - 11 个已有 Visual Prototype 且未进入下游生产的视频已接管到 Harness Gate 2 等待确认，保留文件指纹，未修改视频资料。
 - 其余 33 个视频已按已有原型接管到 Harness Gate 2 等待确认；当前 53 个视频均已纳入 Harness 管理，未修改视频资料。
 - 7 个已有完整下游产物且用户确认已渲染完成的历史视频已标记为 Harness `completed`；保留历史标记，不再按当前严格资料规则回溯处理。
@@ -45,6 +46,7 @@
 
 ## 已完成（最近 10 条）
 
+- 2026-09-01：`project-init` 完成 Smoke Render（Run `33479568851`）、完整 Render（Run `33480194796`）和 Gate 4 人工验收；两个 Artifact 均存在且未过期，Harness 项目状态进入 `completed`。
 - 2026-09-01：建立远程渲染资源与代码交付闭环；TTS 适配器自动生成资源 ZIP，Web UI／单条入口／批量监控统一执行资源、Manifest、Remotion 代码、Git 跟踪和 dispatch 分支预检，GitHub Actions 增加 checkout 后输入检查。
 - 2026-08-31：修复 Web UI 普通重启后再次回退到残留 `GITHUB_REF_NAME` 的问题；本地 Harness 未显式指定分支时改为读取当前 Git 工作区分支，专项与 Web Server 回归 17/17、TypeScript 和实时诊断通过，并将 `02-core-concepts` 新 Smoke 任务提交到正确分支。
 - 2026-08-31：将 `02-core-concepts` 的 Remotion 代码、三份 Manifest、生产资料和资产 ZIP 随提交 `53cda64` 推送到 `feat/harness-batch-to-prototype-gate3`；Web UI 已用显式目标分支重启，GitHub 仓库、分支和两个渲染工作流诊断全部通过，项目保持 `smoke-render / ready`。
@@ -126,14 +128,13 @@
 
 ## 下一步
 
-1. 对当前待渲染项目完成资源包生成、commit/push 和 Web UI 交付预检；未通过预检时不得提交远程任务。
-2. 由用户确认新增 33 个视频的 Gate 2；通过后按四类批次逐段推进，历史完成视频不再回溯。
-3. 后续按 `todo.md` 统一改造 Web UI 的 32 类异步／业务按钮：补齐提交中、持久禁用、原因说明、多入口同步和服务端幂等；远程渲染按钮已先完成交付阻塞提示。
+1. 由用户确认新增 33 个视频的 Gate 2；通过后按四类批次逐段推进，历史完成视频不再回溯。
+2. 后续按 `todo.md` 统一改造 Web UI 的 32 类异步／业务按钮：补齐提交中、持久禁用、原因说明、多入口同步和服务端幂等；远程渲染按钮已先完成交付阻塞提示。
 
 ## 阻塞
 
 - 当前无 `01-what-is-codex` 的 Harness 阻塞；其余阻塞以各批次和人工 Gate 的实时状态为准。
-- `project-init` 当前停在 `smoke-render / ready`，资源和输入预检已通过，但本地渲染代码、工作流和新资源包尚未 commit/push；交付预检会持续阻止远程任务，直到目标 dispatch 分支包含当前提交。
+- `project-init` 已进入 `completed`，当前无该视频的 Harness 阻塞；其余阻塞以各批次和人工 Gate 的实时状态为准。
 
 ## 关键避坑
 
