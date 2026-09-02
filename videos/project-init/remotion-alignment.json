@@ -1,18 +1,1377 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "slug": "project-init",
   "visualScriptFingerprint": "04d73734480ac3a4424b76877401e99a9fa052dfe8843cf6c655b5bb5ad5f0e2",
   "prototypeFingerprint": "0d5e1eeb290d94373e6300775dda4fb2f0f8fdbebe7dc9102cb1df7612ce27b4",
   "scenes": [
-    {"sceneId": "01", "layout": "左侧 project/ 文件树，右侧纵向三个新会话卡片。", "visualEvents": ["第一张会话卡出现并显示扫描 package.json", "卡片淡出后第二张会话卡重复相同问题", "第三张卡出现并将问题计数推进到 3"], "screenText": ["测试怎么跑？", "npm 还是 pnpm？", "每次都从零摸索"], "implementationFiles": ["src/videos/project-init/ProjectInitVideo.tsx", "src/videos/project-init/video.config.ts"]},
-    {"sceneId": "02", "layout": "左侧虚线空白上下文，右侧 CLAUDE.md 项目说明书，中间连接从断开到接通。", "visualEvents": ["空白上下文显示从零摸索", "CLAUDE.md 轮廓和三个区块依次出现", "连接线接通并收束为项目说明书"], "screenText": ["从零摸索", "CLAUDE.md", "项目说明书"], "implementationFiles": ["src/videos/project-init/ProjectInitVideo.tsx", "src/videos/project-init/video.config.ts"]},
-    {"sceneId": "03", "layout": "左侧终端窗口突出 /init，右侧项目文件树与 CLAUDE.md 草稿卡片形成扫描到落盘的流程。", "visualEvents": ["光标和 /init 输入出现", "项目文件树与扫描状态依次显示", "CLAUDE.md 卡片变为草稿已生成"], "screenText": ["/init", "Scanning project structure...", "CLAUDE.md · draft", "草稿已生成"], "implementationFiles": ["src/videos/project-init/ProjectInitVideo.tsx", "src/videos/project-init/video.config.ts"]},
-    {"sceneId": "04", "layout": "上方终端命令窗口，下方横向三段步骤：项目根目录、claude、/init。", "visualEvents": ["项目根目录命令先出现", "claude 命令随后出现", "/init 和分析状态最后出现"], "screenText": ["cd /path/to/your-project", "claude", "/init", "Analyzing project..."], "implementationFiles": ["src/videos/project-init/ProjectInitVideo.tsx", "src/videos/project-init/video.config.ts"]},
-    {"sceneId": "05", "layout": "左侧四格来源文件，右侧 CLAUDE.md 草稿与技术栈、项目用途、目录、入口四个结果节点。", "visualEvents": ["package.json、README、config 和 src 依次亮起", "来源类别逐项标注", "信息汇聚到 CLAUDE.md 草稿及四个结果节点"], "screenText": ["Dependencies", "README", "Config + Code Structure", "CLAUDE.md · draft", "技术栈", "项目用途", "目录", "入口"], "implementationFiles": ["src/videos/project-init/ProjectInitVideo.tsx", "src/videos/project-init/video.config.ts"]},
-    {"sceneId": "06", "layout": "左侧已有 CLAUDE.md 文件状态，右侧两张建议改进卡片；原文件保持 unchanged。", "visualEvents": ["已有文件显示 unchanged", "补充命令和补充约定逐张出现", "原文件与建议同时保留"], "screenText": ["CLAUDE.md · unchanged", "unchanged", "补充命令", "补充约定", "建议改进"], "implementationFiles": ["src/videos/project-init/ProjectInitVideo.tsx", "src/videos/project-init/video.config.ts"]},
-    {"sceneId": "07", "layout": "左侧 CLAUDE.md 文档五区块逐项展开，右侧问题标签连接到对应信息。", "visualEvents": ["文档标题先出现", "项目概述、技术栈、目录结构、常用命令、开发规范依次展开", "问题标签最后出现并收束重复问题"], "screenText": ["CLAUDE.md", "项目概述", "技术栈", "目录结构", "常用命令", "开发规范", "项目是做什么的？", "测试怎么跑？", "文件在哪里？"], "implementationFiles": ["src/videos/project-init/ProjectInitVideo.tsx", "src/videos/project-init/video.config.ts"]},
-    {"sceneId": "08", "layout": "左侧 init-demo/ 文件树和终端，右侧 CLAUDE.md 摘要，构成输入、生成、再次提问闭环。", "visualEvents": ["package.json 和 index.js 出现", "终端提交 /init 并显示 CLAUDE.md generated", "摘要依次高亮项目名、技术栈和测试命令", "再次提问最后出现"], "screenText": ["init-demo/", "package.json", "index.js", "/init", "CLAUDE.md", "Node.js / JavaScript", "echo test ok", "这个项目的测试命令是什么？"], "implementationFiles": ["src/videos/project-init/ProjectInitVideo.tsx", "src/videos/project-init/video.config.ts"]},
-    {"sceneId": "09", "layout": "左右两列对比客观事实与团队约定，底部通过箭头合并为持续迭代的 CLAUDE.md。", "visualEvents": ["客观事实列自动填入", "团队约定列逐项补充", "两列合并为可用 CLAUDE.md 并标记持续迭代"], "screenText": ["客观事实：自动打底", "团队约定：人工补充", "客观事实", "团队约定", "分支命名", "部署流程", "Review 与业务背景", "可用 CLAUDE.md"], "implementationFiles": ["src/videos/project-init/ProjectInitVideo.tsx", "src/videos/project-init/video.config.ts"]},
-    {"sceneId": "10", "layout": "中央横向完整路径，底部复述扫描、草稿、审阅、迭代，右下角独立下一篇预告卡。", "visualEvents": ["根目录到迭代的路径节点从左到右亮起", "审阅和迭代使用成功色停留", "扫描到迭代的压缩链路出现", "下一篇项目结构预告卡独立出现"], "screenText": ["根目录", "claude", "/init", "扫描", "CLAUDE.md 草稿", "审阅", "迭代", "扫描 → 草稿 → 审阅 → 迭代", "下一篇", "项目结构"], "implementationFiles": ["src/videos/project-init/ProjectInitVideo.tsx", "src/videos/project-init/video.config.ts"]}
-  ]
+    {
+      "sceneId": "01",
+      "layout": "左侧 project/ 文件树，右侧纵向三个新会话卡片。",
+      "visualEvents": [
+        "第一张会话卡出现并显示扫描 package.json",
+        "卡片淡出后第二张会话卡重复相同问题",
+        "第三张卡出现并将问题计数推进到 3"
+      ],
+      "screenText": [
+        "测试怎么跑？",
+        "npm 还是 pnpm？",
+        "每次都从零摸索"
+      ],
+      "implementationFiles": [
+        "src/videos/project-init/ProjectInitVideo.tsx",
+        "src/videos/project-init/video.config.ts"
+      ],
+      "timing": {
+        "timelineSource": "src/videos/project-init/generated/timeline-manifest.json",
+        "startSeconds": 0,
+        "endSeconds": 19.728,
+        "durationSeconds": 19.728,
+        "startFrame": 0,
+        "endFrame": 592,
+        "durationFrames": 592
+      },
+      "audioSegments": [
+        {
+          "segmentId": "01-01",
+          "file": "audio/scene-01/01-01.mp3",
+          "startSeconds": 0,
+          "endSeconds": 19.728,
+          "durationSeconds": 19.728,
+          "startFrame": 0,
+          "endFrame": 592
+        }
+      ],
+      "subtitleCues": [
+        {
+          "cueId": "01-01-a",
+          "segmentId": "01-01",
+          "startSeconds": 0.09,
+          "endSeconds": 2.74,
+          "startFrame": 3,
+          "endFrame": 82
+        },
+        {
+          "cueId": "01-01-b",
+          "segmentId": "01-01",
+          "startSeconds": 2.74,
+          "endSeconds": 4.95,
+          "startFrame": 82,
+          "endFrame": 149
+        },
+        {
+          "cueId": "01-01-c",
+          "segmentId": "01-01",
+          "startSeconds": 4.95,
+          "endSeconds": 6.41,
+          "startFrame": 149,
+          "endFrame": 192
+        },
+        {
+          "cueId": "01-01-d",
+          "segmentId": "01-01",
+          "startSeconds": 6.41,
+          "endSeconds": 7.82,
+          "startFrame": 192,
+          "endFrame": 235
+        },
+        {
+          "cueId": "01-01-e",
+          "segmentId": "01-01",
+          "startSeconds": 7.82,
+          "endSeconds": 9.77,
+          "startFrame": 235,
+          "endFrame": 293
+        },
+        {
+          "cueId": "01-01-f",
+          "segmentId": "01-01",
+          "startSeconds": 9.77,
+          "endSeconds": 11.78,
+          "startFrame": 293,
+          "endFrame": 353
+        },
+        {
+          "cueId": "01-01-g",
+          "segmentId": "01-01",
+          "startSeconds": 11.78,
+          "endSeconds": 14.14,
+          "startFrame": 353,
+          "endFrame": 424
+        },
+        {
+          "cueId": "01-01-h",
+          "segmentId": "01-01",
+          "startSeconds": 14.14,
+          "endSeconds": 16.37,
+          "startFrame": 424,
+          "endFrame": 491
+        },
+        {
+          "cueId": "01-01-i",
+          "segmentId": "01-01",
+          "startSeconds": 16.37,
+          "endSeconds": 19.728,
+          "startFrame": 491,
+          "endFrame": 592
+        }
+      ],
+      "animationEvents": [
+        {
+          "event": "第一张会话卡出现并显示扫描 package.json",
+          "source": {
+            "type": "segment",
+            "id": "01-01"
+          },
+          "atSeconds": 0,
+          "atFrame": 0
+        },
+        {
+          "event": "卡片淡出后第二张会话卡重复相同问题",
+          "source": {
+            "type": "segment",
+            "id": "01-01"
+          },
+          "atSeconds": 0,
+          "atFrame": 0
+        },
+        {
+          "event": "第三张卡出现并将问题计数推进到 3",
+          "source": {
+            "type": "segment",
+            "id": "01-01"
+          },
+          "atSeconds": 0,
+          "atFrame": 0
+        }
+      ]
+    },
+    {
+      "sceneId": "02",
+      "layout": "左侧虚线空白上下文，右侧 CLAUDE.md 项目说明书，中间连接从断开到接通。",
+      "visualEvents": [
+        "空白上下文显示从零摸索",
+        "CLAUDE.md 轮廓和三个区块依次出现",
+        "连接线接通并收束为项目说明书"
+      ],
+      "screenText": [
+        "从零摸索",
+        "CLAUDE.md",
+        "项目说明书"
+      ],
+      "implementationFiles": [
+        "src/videos/project-init/ProjectInitVideo.tsx",
+        "src/videos/project-init/video.config.ts"
+      ],
+      "timing": {
+        "timelineSource": "src/videos/project-init/generated/timeline-manifest.json",
+        "startSeconds": 19.728,
+        "endSeconds": 35.736,
+        "durationSeconds": 16.008,
+        "startFrame": 592,
+        "endFrame": 1072,
+        "durationFrames": 480
+      },
+      "audioSegments": [
+        {
+          "segmentId": "02-01",
+          "file": "audio/scene-02/02-01.mp3",
+          "startSeconds": 19.728,
+          "endSeconds": 35.736000000000004,
+          "durationSeconds": 16.008,
+          "startFrame": 592,
+          "endFrame": 1072
+        }
+      ],
+      "subtitleCues": [
+        {
+          "cueId": "02-01-a",
+          "segmentId": "02-01",
+          "startSeconds": 19.818,
+          "endSeconds": 21.768,
+          "startFrame": 595,
+          "endFrame": 653
+        },
+        {
+          "cueId": "02-01-b",
+          "segmentId": "02-01",
+          "startSeconds": 21.768,
+          "endSeconds": 24.868000000000002,
+          "startFrame": 653,
+          "endFrame": 746
+        },
+        {
+          "cueId": "02-01-c",
+          "segmentId": "02-01",
+          "startSeconds": 24.868000000000002,
+          "endSeconds": 27.198,
+          "startFrame": 746,
+          "endFrame": 816
+        },
+        {
+          "cueId": "02-01-d",
+          "segmentId": "02-01",
+          "startSeconds": 27.198,
+          "endSeconds": 29.048000000000002,
+          "startFrame": 816,
+          "endFrame": 871
+        },
+        {
+          "cueId": "02-01-e",
+          "segmentId": "02-01",
+          "startSeconds": 29.048000000000002,
+          "endSeconds": 32.288000000000004,
+          "startFrame": 871,
+          "endFrame": 969
+        },
+        {
+          "cueId": "02-01-f",
+          "segmentId": "02-01",
+          "startSeconds": 32.288000000000004,
+          "endSeconds": 35.736000000000004,
+          "startFrame": 969,
+          "endFrame": 1072
+        }
+      ],
+      "animationEvents": [
+        {
+          "event": "空白上下文显示从零摸索",
+          "source": {
+            "type": "segment",
+            "id": "02-01"
+          },
+          "atSeconds": 19.728,
+          "atFrame": 592
+        },
+        {
+          "event": "CLAUDE.md 轮廓和三个区块依次出现",
+          "source": {
+            "type": "segment",
+            "id": "02-01"
+          },
+          "atSeconds": 19.728,
+          "atFrame": 592
+        },
+        {
+          "event": "连接线接通并收束为项目说明书",
+          "source": {
+            "type": "segment",
+            "id": "02-01"
+          },
+          "atSeconds": 19.728,
+          "atFrame": 592
+        }
+      ]
+    },
+    {
+      "sceneId": "03",
+      "layout": "左侧终端窗口突出 /init，右侧项目文件树与 CLAUDE.md 草稿卡片形成扫描到落盘的流程。",
+      "visualEvents": [
+        "光标和 /init 输入出现",
+        "项目文件树与扫描状态依次显示",
+        "CLAUDE.md 卡片变为草稿已生成"
+      ],
+      "screenText": [
+        "/init",
+        "Scanning project structure...",
+        "CLAUDE.md · draft",
+        "草稿已生成"
+      ],
+      "implementationFiles": [
+        "src/videos/project-init/ProjectInitVideo.tsx",
+        "src/videos/project-init/video.config.ts"
+      ],
+      "timing": {
+        "timelineSource": "src/videos/project-init/generated/timeline-manifest.json",
+        "startSeconds": 35.736,
+        "endSeconds": 51.288,
+        "durationSeconds": 15.552,
+        "startFrame": 1072,
+        "endFrame": 1539,
+        "durationFrames": 467
+      },
+      "audioSegments": [
+        {
+          "segmentId": "03-01",
+          "file": "audio/scene-03/03-01.mp3",
+          "startSeconds": 35.736,
+          "endSeconds": 51.288,
+          "durationSeconds": 15.552,
+          "startFrame": 1072,
+          "endFrame": 1539
+        }
+      ],
+      "subtitleCues": [
+        {
+          "cueId": "03-01-a",
+          "segmentId": "03-01",
+          "startSeconds": 35.826,
+          "endSeconds": 39.156,
+          "startFrame": 1075,
+          "endFrame": 1175
+        },
+        {
+          "cueId": "03-01-b",
+          "segmentId": "03-01",
+          "startSeconds": 39.156,
+          "endSeconds": 40.946,
+          "startFrame": 1175,
+          "endFrame": 1228
+        },
+        {
+          "cueId": "03-01-c",
+          "segmentId": "03-01",
+          "startSeconds": 40.946,
+          "endSeconds": 43.406,
+          "startFrame": 1228,
+          "endFrame": 1302
+        },
+        {
+          "cueId": "03-01-d",
+          "segmentId": "03-01",
+          "startSeconds": 43.406,
+          "endSeconds": 45.675999999999995,
+          "startFrame": 1302,
+          "endFrame": 1370
+        },
+        {
+          "cueId": "03-01-e",
+          "segmentId": "03-01",
+          "startSeconds": 45.675999999999995,
+          "endSeconds": 48.205999999999996,
+          "startFrame": 1370,
+          "endFrame": 1446
+        },
+        {
+          "cueId": "03-01-f",
+          "segmentId": "03-01",
+          "startSeconds": 48.205999999999996,
+          "endSeconds": 51.288,
+          "startFrame": 1446,
+          "endFrame": 1539
+        }
+      ],
+      "animationEvents": [
+        {
+          "event": "光标和 /init 输入出现",
+          "source": {
+            "type": "segment",
+            "id": "03-01"
+          },
+          "atSeconds": 35.736,
+          "atFrame": 1072
+        },
+        {
+          "event": "项目文件树与扫描状态依次显示",
+          "source": {
+            "type": "segment",
+            "id": "03-01"
+          },
+          "atSeconds": 35.736,
+          "atFrame": 1072
+        },
+        {
+          "event": "CLAUDE.md 卡片变为草稿已生成",
+          "source": {
+            "type": "segment",
+            "id": "03-01"
+          },
+          "atSeconds": 35.736,
+          "atFrame": 1072
+        }
+      ]
+    },
+    {
+      "sceneId": "04",
+      "layout": "上方终端命令窗口，下方横向三段步骤：项目根目录、claude、/init。",
+      "visualEvents": [
+        "项目根目录命令先出现",
+        "claude 命令随后出现",
+        "/init 和分析状态最后出现"
+      ],
+      "screenText": [
+        "cd /path/to/your-project",
+        "claude",
+        "/init",
+        "Analyzing project..."
+      ],
+      "implementationFiles": [
+        "src/videos/project-init/ProjectInitVideo.tsx",
+        "src/videos/project-init/video.config.ts"
+      ],
+      "timing": {
+        "timelineSource": "src/videos/project-init/generated/timeline-manifest.json",
+        "startSeconds": 51.288,
+        "endSeconds": 65.352,
+        "durationSeconds": 14.064,
+        "startFrame": 1539,
+        "endFrame": 1961,
+        "durationFrames": 422
+      },
+      "audioSegments": [
+        {
+          "segmentId": "04-01",
+          "file": "audio/scene-04/04-01.mp3",
+          "startSeconds": 51.288,
+          "endSeconds": 65.352,
+          "durationSeconds": 14.064,
+          "startFrame": 1539,
+          "endFrame": 1961
+        }
+      ],
+      "subtitleCues": [
+        {
+          "cueId": "04-01-a",
+          "segmentId": "04-01",
+          "startSeconds": 51.378,
+          "endSeconds": 52.678,
+          "startFrame": 1541,
+          "endFrame": 1580
+        },
+        {
+          "cueId": "04-01-b",
+          "segmentId": "04-01",
+          "startSeconds": 52.678,
+          "endSeconds": 54.528,
+          "startFrame": 1580,
+          "endFrame": 1636
+        },
+        {
+          "cueId": "04-01-c",
+          "segmentId": "04-01",
+          "startSeconds": 54.528,
+          "endSeconds": 57.268,
+          "startFrame": 1636,
+          "endFrame": 1718
+        },
+        {
+          "cueId": "04-01-d",
+          "segmentId": "04-01",
+          "startSeconds": 57.268,
+          "endSeconds": 59.068,
+          "startFrame": 1718,
+          "endFrame": 1772
+        },
+        {
+          "cueId": "04-01-e",
+          "segmentId": "04-01",
+          "startSeconds": 59.068,
+          "endSeconds": 61.288,
+          "startFrame": 1772,
+          "endFrame": 1839
+        },
+        {
+          "cueId": "04-01-f",
+          "segmentId": "04-01",
+          "startSeconds": 61.288,
+          "endSeconds": 64.118,
+          "startFrame": 1839,
+          "endFrame": 1924
+        },
+        {
+          "cueId": "04-01-g",
+          "segmentId": "04-01",
+          "startSeconds": 64.118,
+          "endSeconds": 65.352,
+          "startFrame": 1924,
+          "endFrame": 1961
+        }
+      ],
+      "animationEvents": [
+        {
+          "event": "项目根目录命令先出现",
+          "source": {
+            "type": "segment",
+            "id": "04-01"
+          },
+          "atSeconds": 51.288,
+          "atFrame": 1539
+        },
+        {
+          "event": "claude 命令随后出现",
+          "source": {
+            "type": "segment",
+            "id": "04-01"
+          },
+          "atSeconds": 51.288,
+          "atFrame": 1539
+        },
+        {
+          "event": "/init 和分析状态最后出现",
+          "source": {
+            "type": "segment",
+            "id": "04-01"
+          },
+          "atSeconds": 51.288,
+          "atFrame": 1539
+        }
+      ]
+    },
+    {
+      "sceneId": "05",
+      "layout": "左侧四格来源文件，右侧 CLAUDE.md 草稿与技术栈、项目用途、目录、入口四个结果节点。",
+      "visualEvents": [
+        "package.json、README、config 和 src 依次亮起",
+        "来源类别逐项标注",
+        "信息汇聚到 CLAUDE.md 草稿及四个结果节点"
+      ],
+      "screenText": [
+        "Dependencies",
+        "README",
+        "Config + Code Structure",
+        "CLAUDE.md · draft",
+        "技术栈",
+        "项目用途",
+        "目录",
+        "入口"
+      ],
+      "implementationFiles": [
+        "src/videos/project-init/ProjectInitVideo.tsx",
+        "src/videos/project-init/video.config.ts"
+      ],
+      "timing": {
+        "timelineSource": "src/videos/project-init/generated/timeline-manifest.json",
+        "startSeconds": 65.352,
+        "endSeconds": 81.456,
+        "durationSeconds": 16.104,
+        "startFrame": 1961,
+        "endFrame": 2444,
+        "durationFrames": 483
+      },
+      "audioSegments": [
+        {
+          "segmentId": "05-01",
+          "file": "audio/scene-05/05-01.mp3",
+          "startSeconds": 65.352,
+          "endSeconds": 81.456,
+          "durationSeconds": 16.104,
+          "startFrame": 1961,
+          "endFrame": 2444
+        }
+      ],
+      "subtitleCues": [
+        {
+          "cueId": "05-01-a",
+          "segmentId": "05-01",
+          "startSeconds": 65.44200000000001,
+          "endSeconds": 67.412,
+          "startFrame": 1963,
+          "endFrame": 2022
+        },
+        {
+          "cueId": "05-01-b",
+          "segmentId": "05-01",
+          "startSeconds": 67.412,
+          "endSeconds": 70.912,
+          "startFrame": 2022,
+          "endFrame": 2127
+        },
+        {
+          "cueId": "05-01-c",
+          "segmentId": "05-01",
+          "startSeconds": 70.912,
+          "endSeconds": 73.842,
+          "startFrame": 2127,
+          "endFrame": 2215
+        },
+        {
+          "cueId": "05-01-d",
+          "segmentId": "05-01",
+          "startSeconds": 73.842,
+          "endSeconds": 77.302,
+          "startFrame": 2215,
+          "endFrame": 2319
+        },
+        {
+          "cueId": "05-01-e",
+          "segmentId": "05-01",
+          "startSeconds": 77.302,
+          "endSeconds": 78.552,
+          "startFrame": 2319,
+          "endFrame": 2357
+        },
+        {
+          "cueId": "05-01-f",
+          "segmentId": "05-01",
+          "startSeconds": 78.552,
+          "endSeconds": 81.456,
+          "startFrame": 2357,
+          "endFrame": 2444
+        }
+      ],
+      "animationEvents": [
+        {
+          "event": "package.json、README、config 和 src 依次亮起",
+          "source": {
+            "type": "segment",
+            "id": "05-01"
+          },
+          "atSeconds": 65.352,
+          "atFrame": 1961
+        },
+        {
+          "event": "来源类别逐项标注",
+          "source": {
+            "type": "segment",
+            "id": "05-01"
+          },
+          "atSeconds": 65.352,
+          "atFrame": 1961
+        },
+        {
+          "event": "信息汇聚到 CLAUDE.md 草稿及四个结果节点",
+          "source": {
+            "type": "segment",
+            "id": "05-01"
+          },
+          "atSeconds": 65.352,
+          "atFrame": 1961
+        }
+      ]
+    },
+    {
+      "sceneId": "06",
+      "layout": "左侧已有 CLAUDE.md 文件状态，右侧两张建议改进卡片；原文件保持 unchanged。",
+      "visualEvents": [
+        "已有文件显示 unchanged",
+        "补充命令和补充约定逐张出现",
+        "原文件与建议同时保留"
+      ],
+      "screenText": [
+        "CLAUDE.md · unchanged",
+        "unchanged",
+        "补充命令",
+        "补充约定",
+        "建议改进"
+      ],
+      "implementationFiles": [
+        "src/videos/project-init/ProjectInitVideo.tsx",
+        "src/videos/project-init/video.config.ts"
+      ],
+      "timing": {
+        "timelineSource": "src/videos/project-init/generated/timeline-manifest.json",
+        "startSeconds": 81.456,
+        "endSeconds": 97.416,
+        "durationSeconds": 15.96,
+        "startFrame": 2444,
+        "endFrame": 2922,
+        "durationFrames": 479
+      },
+      "audioSegments": [
+        {
+          "segmentId": "06-01",
+          "file": "audio/scene-06/06-01.mp3",
+          "startSeconds": 81.456,
+          "endSeconds": 97.416,
+          "durationSeconds": 15.96,
+          "startFrame": 2444,
+          "endFrame": 2922
+        }
+      ],
+      "subtitleCues": [
+        {
+          "cueId": "06-01-a",
+          "segmentId": "06-01",
+          "startSeconds": 81.546,
+          "endSeconds": 83.256,
+          "startFrame": 2446,
+          "endFrame": 2498
+        },
+        {
+          "cueId": "06-01-b",
+          "segmentId": "06-01",
+          "startSeconds": 83.256,
+          "endSeconds": 85.426,
+          "startFrame": 2498,
+          "endFrame": 2563
+        },
+        {
+          "cueId": "06-01-c",
+          "segmentId": "06-01",
+          "startSeconds": 85.426,
+          "endSeconds": 88.236,
+          "startFrame": 2563,
+          "endFrame": 2647
+        },
+        {
+          "cueId": "06-01-d",
+          "segmentId": "06-01",
+          "startSeconds": 88.236,
+          "endSeconds": 90.186,
+          "startFrame": 2647,
+          "endFrame": 2706
+        },
+        {
+          "cueId": "06-01-e",
+          "segmentId": "06-01",
+          "startSeconds": 90.186,
+          "endSeconds": 92.056,
+          "startFrame": 2706,
+          "endFrame": 2762
+        },
+        {
+          "cueId": "06-01-f",
+          "segmentId": "06-01",
+          "startSeconds": 92.056,
+          "endSeconds": 94.786,
+          "startFrame": 2762,
+          "endFrame": 2844
+        },
+        {
+          "cueId": "06-01-g",
+          "segmentId": "06-01",
+          "startSeconds": 94.786,
+          "endSeconds": 97.416,
+          "startFrame": 2844,
+          "endFrame": 2922
+        }
+      ],
+      "animationEvents": [
+        {
+          "event": "已有文件显示 unchanged",
+          "source": {
+            "type": "segment",
+            "id": "06-01"
+          },
+          "atSeconds": 81.456,
+          "atFrame": 2444
+        },
+        {
+          "event": "补充命令和补充约定逐张出现",
+          "source": {
+            "type": "segment",
+            "id": "06-01"
+          },
+          "atSeconds": 81.456,
+          "atFrame": 2444
+        },
+        {
+          "event": "原文件与建议同时保留",
+          "source": {
+            "type": "segment",
+            "id": "06-01"
+          },
+          "atSeconds": 81.456,
+          "atFrame": 2444
+        }
+      ]
+    },
+    {
+      "sceneId": "07",
+      "layout": "左侧 CLAUDE.md 文档五区块逐项展开，右侧问题标签连接到对应信息。",
+      "visualEvents": [
+        "文档标题先出现",
+        "项目概述、技术栈、目录结构、常用命令、开发规范依次展开",
+        "问题标签最后出现并收束重复问题"
+      ],
+      "screenText": [
+        "CLAUDE.md",
+        "项目概述",
+        "技术栈",
+        "目录结构",
+        "常用命令",
+        "开发规范",
+        "项目是做什么的？",
+        "测试怎么跑？",
+        "文件在哪里？"
+      ],
+      "implementationFiles": [
+        "src/videos/project-init/ProjectInitVideo.tsx",
+        "src/videos/project-init/video.config.ts"
+      ],
+      "timing": {
+        "timelineSource": "src/videos/project-init/generated/timeline-manifest.json",
+        "startSeconds": 97.416,
+        "endSeconds": 116.496,
+        "durationSeconds": 19.08,
+        "startFrame": 2922,
+        "endFrame": 3495,
+        "durationFrames": 572
+      },
+      "audioSegments": [
+        {
+          "segmentId": "07-01",
+          "file": "audio/scene-07/07-01.mp3",
+          "startSeconds": 97.416,
+          "endSeconds": 116.496,
+          "durationSeconds": 19.08,
+          "startFrame": 2922,
+          "endFrame": 3495
+        }
+      ],
+      "subtitleCues": [
+        {
+          "cueId": "07-01-a",
+          "segmentId": "07-01",
+          "startSeconds": 97.506,
+          "endSeconds": 99.526,
+          "startFrame": 2925,
+          "endFrame": 2986
+        },
+        {
+          "cueId": "07-01-b",
+          "segmentId": "07-01",
+          "startSeconds": 99.526,
+          "endSeconds": 101.386,
+          "startFrame": 2986,
+          "endFrame": 3042
+        },
+        {
+          "cueId": "07-01-c",
+          "segmentId": "07-01",
+          "startSeconds": 101.386,
+          "endSeconds": 104.026,
+          "startFrame": 3042,
+          "endFrame": 3121
+        },
+        {
+          "cueId": "07-01-d",
+          "segmentId": "07-01",
+          "startSeconds": 104.026,
+          "endSeconds": 105.446,
+          "startFrame": 3121,
+          "endFrame": 3163
+        },
+        {
+          "cueId": "07-01-e",
+          "segmentId": "07-01",
+          "startSeconds": 105.446,
+          "endSeconds": 107.836,
+          "startFrame": 3163,
+          "endFrame": 3235
+        },
+        {
+          "cueId": "07-01-f",
+          "segmentId": "07-01",
+          "startSeconds": 107.836,
+          "endSeconds": 109.65599999999999,
+          "startFrame": 3235,
+          "endFrame": 3290
+        },
+        {
+          "cueId": "07-01-g",
+          "segmentId": "07-01",
+          "startSeconds": 109.65599999999999,
+          "endSeconds": 113.506,
+          "startFrame": 3290,
+          "endFrame": 3405
+        },
+        {
+          "cueId": "07-01-h",
+          "segmentId": "07-01",
+          "startSeconds": 113.506,
+          "endSeconds": 116.496,
+          "startFrame": 3405,
+          "endFrame": 3495
+        }
+      ],
+      "animationEvents": [
+        {
+          "event": "文档标题先出现",
+          "source": {
+            "type": "segment",
+            "id": "07-01"
+          },
+          "atSeconds": 97.416,
+          "atFrame": 2922
+        },
+        {
+          "event": "项目概述、技术栈、目录结构、常用命令、开发规范依次展开",
+          "source": {
+            "type": "segment",
+            "id": "07-01"
+          },
+          "atSeconds": 97.416,
+          "atFrame": 2922
+        },
+        {
+          "event": "问题标签最后出现并收束重复问题",
+          "source": {
+            "type": "segment",
+            "id": "07-01"
+          },
+          "atSeconds": 97.416,
+          "atFrame": 2922
+        }
+      ]
+    },
+    {
+      "sceneId": "08",
+      "layout": "左侧 init-demo/ 文件树和终端，右侧 CLAUDE.md 摘要，构成输入、生成、再次提问闭环。",
+      "visualEvents": [
+        "package.json 和 index.js 出现",
+        "终端提交 /init 并显示 CLAUDE.md generated",
+        "摘要依次高亮项目名、技术栈和测试命令",
+        "再次提问最后出现"
+      ],
+      "screenText": [
+        "init-demo/",
+        "package.json",
+        "index.js",
+        "/init",
+        "CLAUDE.md",
+        "Node.js / JavaScript",
+        "echo test ok",
+        "这个项目的测试命令是什么？"
+      ],
+      "implementationFiles": [
+        "src/videos/project-init/ProjectInitVideo.tsx",
+        "src/videos/project-init/video.config.ts"
+      ],
+      "timing": {
+        "timelineSource": "src/videos/project-init/generated/timeline-manifest.json",
+        "startSeconds": 116.496,
+        "endSeconds": 144.336,
+        "durationSeconds": 27.84,
+        "startFrame": 3495,
+        "endFrame": 4330,
+        "durationFrames": 835
+      },
+      "audioSegments": [
+        {
+          "segmentId": "08-01",
+          "file": "audio/scene-08/08-01.mp3",
+          "startSeconds": 116.496,
+          "endSeconds": 144.33599999999998,
+          "durationSeconds": 27.84,
+          "startFrame": 3495,
+          "endFrame": 4330
+        }
+      ],
+      "subtitleCues": [
+        {
+          "cueId": "08-01-a",
+          "segmentId": "08-01",
+          "startSeconds": 116.586,
+          "endSeconds": 118.81599999999999,
+          "startFrame": 3498,
+          "endFrame": 3564
+        },
+        {
+          "cueId": "08-01-b",
+          "segmentId": "08-01",
+          "startSeconds": 118.81599999999999,
+          "endSeconds": 120.696,
+          "startFrame": 3564,
+          "endFrame": 3621
+        },
+        {
+          "cueId": "08-01-c",
+          "segmentId": "08-01",
+          "startSeconds": 120.696,
+          "endSeconds": 123.26599999999999,
+          "startFrame": 3621,
+          "endFrame": 3698
+        },
+        {
+          "cueId": "08-01-d",
+          "segmentId": "08-01",
+          "startSeconds": 123.26599999999999,
+          "endSeconds": 126.066,
+          "startFrame": 3698,
+          "endFrame": 3782
+        },
+        {
+          "cueId": "08-01-e",
+          "segmentId": "08-01",
+          "startSeconds": 126.066,
+          "endSeconds": 129.136,
+          "startFrame": 3782,
+          "endFrame": 3874
+        },
+        {
+          "cueId": "08-01-f",
+          "segmentId": "08-01",
+          "startSeconds": 129.136,
+          "endSeconds": 130.736,
+          "startFrame": 3874,
+          "endFrame": 3922
+        },
+        {
+          "cueId": "08-01-g",
+          "segmentId": "08-01",
+          "startSeconds": 130.736,
+          "endSeconds": 132.80599999999998,
+          "startFrame": 3922,
+          "endFrame": 3984
+        },
+        {
+          "cueId": "08-01-h",
+          "segmentId": "08-01",
+          "startSeconds": 132.80599999999998,
+          "endSeconds": 135.30599999999998,
+          "startFrame": 3984,
+          "endFrame": 4059
+        },
+        {
+          "cueId": "08-01-i",
+          "segmentId": "08-01",
+          "startSeconds": 135.30599999999998,
+          "endSeconds": 138.80599999999998,
+          "startFrame": 4059,
+          "endFrame": 4164
+        },
+        {
+          "cueId": "08-01-j",
+          "segmentId": "08-01",
+          "startSeconds": 138.80599999999998,
+          "endSeconds": 140.016,
+          "startFrame": 4164,
+          "endFrame": 4200
+        },
+        {
+          "cueId": "08-01-k",
+          "segmentId": "08-01",
+          "startSeconds": 140.016,
+          "endSeconds": 141.426,
+          "startFrame": 4200,
+          "endFrame": 4243
+        },
+        {
+          "cueId": "08-01-l",
+          "segmentId": "08-01",
+          "startSeconds": 141.426,
+          "endSeconds": 144.33599999999998,
+          "startFrame": 4243,
+          "endFrame": 4330
+        }
+      ],
+      "animationEvents": [
+        {
+          "event": "package.json 和 index.js 出现",
+          "source": {
+            "type": "segment",
+            "id": "08-01"
+          },
+          "atSeconds": 116.496,
+          "atFrame": 3495
+        },
+        {
+          "event": "终端提交 /init 并显示 CLAUDE.md generated",
+          "source": {
+            "type": "segment",
+            "id": "08-01"
+          },
+          "atSeconds": 116.496,
+          "atFrame": 3495
+        },
+        {
+          "event": "摘要依次高亮项目名、技术栈和测试命令",
+          "source": {
+            "type": "segment",
+            "id": "08-01"
+          },
+          "atSeconds": 116.496,
+          "atFrame": 3495
+        },
+        {
+          "event": "再次提问最后出现",
+          "source": {
+            "type": "segment",
+            "id": "08-01"
+          },
+          "atSeconds": 116.496,
+          "atFrame": 3495
+        }
+      ]
+    },
+    {
+      "sceneId": "09",
+      "layout": "左右两列对比客观事实与团队约定，底部通过箭头合并为持续迭代的 CLAUDE.md。",
+      "visualEvents": [
+        "客观事实列自动填入",
+        "团队约定列逐项补充",
+        "两列合并为可用 CLAUDE.md 并标记持续迭代"
+      ],
+      "screenText": [
+        "客观事实：自动打底",
+        "团队约定：人工补充",
+        "客观事实",
+        "团队约定",
+        "分支命名",
+        "部署流程",
+        "Review 与业务背景",
+        "可用 CLAUDE.md"
+      ],
+      "implementationFiles": [
+        "src/videos/project-init/ProjectInitVideo.tsx",
+        "src/videos/project-init/video.config.ts"
+      ],
+      "timing": {
+        "timelineSource": "src/videos/project-init/generated/timeline-manifest.json",
+        "startSeconds": 144.336,
+        "endSeconds": 162.912,
+        "durationSeconds": 18.576,
+        "startFrame": 4330,
+        "endFrame": 4887,
+        "durationFrames": 557
+      },
+      "audioSegments": [
+        {
+          "segmentId": "09-01",
+          "file": "audio/scene-09/09-01.mp3",
+          "startSeconds": 144.336,
+          "endSeconds": 162.912,
+          "durationSeconds": 18.576,
+          "startFrame": 4330,
+          "endFrame": 4887
+        }
+      ],
+      "subtitleCues": [
+        {
+          "cueId": "09-01-a",
+          "segmentId": "09-01",
+          "startSeconds": 144.42600000000002,
+          "endSeconds": 147.17600000000002,
+          "startFrame": 4333,
+          "endFrame": 4415
+        },
+        {
+          "cueId": "09-01-b",
+          "segmentId": "09-01",
+          "startSeconds": 147.17600000000002,
+          "endSeconds": 149.336,
+          "startFrame": 4415,
+          "endFrame": 4480
+        },
+        {
+          "cueId": "09-01-c",
+          "segmentId": "09-01",
+          "startSeconds": 149.336,
+          "endSeconds": 151.73600000000002,
+          "startFrame": 4480,
+          "endFrame": 4552
+        },
+        {
+          "cueId": "09-01-d",
+          "segmentId": "09-01",
+          "startSeconds": 151.73600000000002,
+          "endSeconds": 153.906,
+          "startFrame": 4552,
+          "endFrame": 4617
+        },
+        {
+          "cueId": "09-01-e",
+          "segmentId": "09-01",
+          "startSeconds": 153.906,
+          "endSeconds": 156.38600000000002,
+          "startFrame": 4617,
+          "endFrame": 4692
+        },
+        {
+          "cueId": "09-01-f",
+          "segmentId": "09-01",
+          "startSeconds": 156.38600000000002,
+          "endSeconds": 158.846,
+          "startFrame": 4692,
+          "endFrame": 4765
+        },
+        {
+          "cueId": "09-01-g",
+          "segmentId": "09-01",
+          "startSeconds": 158.846,
+          "endSeconds": 160.64600000000002,
+          "startFrame": 4765,
+          "endFrame": 4819
+        },
+        {
+          "cueId": "09-01-h",
+          "segmentId": "09-01",
+          "startSeconds": 160.64600000000002,
+          "endSeconds": 162.912,
+          "startFrame": 4819,
+          "endFrame": 4887
+        }
+      ],
+      "animationEvents": [
+        {
+          "event": "客观事实列自动填入",
+          "source": {
+            "type": "segment",
+            "id": "09-01"
+          },
+          "atSeconds": 144.336,
+          "atFrame": 4330
+        },
+        {
+          "event": "团队约定列逐项补充",
+          "source": {
+            "type": "segment",
+            "id": "09-01"
+          },
+          "atSeconds": 144.336,
+          "atFrame": 4330
+        },
+        {
+          "event": "两列合并为可用 CLAUDE.md 并标记持续迭代",
+          "source": {
+            "type": "segment",
+            "id": "09-01"
+          },
+          "atSeconds": 144.336,
+          "atFrame": 4330
+        }
+      ]
+    },
+    {
+      "sceneId": "10",
+      "layout": "中央横向完整路径，底部复述扫描、草稿、审阅、迭代，右下角独立下一篇预告卡。",
+      "visualEvents": [
+        "根目录到迭代的路径节点从左到右亮起",
+        "审阅和迭代使用成功色停留",
+        "扫描到迭代的压缩链路出现",
+        "下一篇项目结构预告卡独立出现"
+      ],
+      "screenText": [
+        "根目录",
+        "claude",
+        "/init",
+        "扫描",
+        "CLAUDE.md 草稿",
+        "审阅",
+        "迭代",
+        "扫描 → 草稿 → 审阅 → 迭代",
+        "下一篇",
+        "项目结构"
+      ],
+      "implementationFiles": [
+        "src/videos/project-init/ProjectInitVideo.tsx",
+        "src/videos/project-init/video.config.ts"
+      ],
+      "timing": {
+        "timelineSource": "src/videos/project-init/generated/timeline-manifest.json",
+        "startSeconds": 162.912,
+        "endSeconds": 182.232,
+        "durationSeconds": 19.32,
+        "startFrame": 4887,
+        "endFrame": 5467,
+        "durationFrames": 580
+      },
+      "audioSegments": [
+        {
+          "segmentId": "10-01",
+          "file": "audio/scene-10/10-01.mp3",
+          "startSeconds": 162.912,
+          "endSeconds": 182.232,
+          "durationSeconds": 19.32,
+          "startFrame": 4887,
+          "endFrame": 5467
+        }
+      ],
+      "subtitleCues": [
+        {
+          "cueId": "10-01-a",
+          "segmentId": "10-01",
+          "startSeconds": 163.002,
+          "endSeconds": 165.282,
+          "startFrame": 4890,
+          "endFrame": 4958
+        },
+        {
+          "cueId": "10-01-b",
+          "segmentId": "10-01",
+          "startSeconds": 165.282,
+          "endSeconds": 167.232,
+          "startFrame": 4958,
+          "endFrame": 5017
+        },
+        {
+          "cueId": "10-01-c",
+          "segmentId": "10-01",
+          "startSeconds": 167.232,
+          "endSeconds": 170.062,
+          "startFrame": 5017,
+          "endFrame": 5102
+        },
+        {
+          "cueId": "10-01-d",
+          "segmentId": "10-01",
+          "startSeconds": 170.062,
+          "endSeconds": 171.832,
+          "startFrame": 5102,
+          "endFrame": 5155
+        },
+        {
+          "cueId": "10-01-e",
+          "segmentId": "10-01",
+          "startSeconds": 171.832,
+          "endSeconds": 174.132,
+          "startFrame": 5155,
+          "endFrame": 5224
+        },
+        {
+          "cueId": "10-01-f",
+          "segmentId": "10-01",
+          "startSeconds": 174.132,
+          "endSeconds": 177.032,
+          "startFrame": 5224,
+          "endFrame": 5311
+        },
+        {
+          "cueId": "10-01-g",
+          "segmentId": "10-01",
+          "startSeconds": 177.032,
+          "endSeconds": 180.422,
+          "startFrame": 5311,
+          "endFrame": 5413
+        },
+        {
+          "cueId": "10-01-h",
+          "segmentId": "10-01",
+          "startSeconds": 180.422,
+          "endSeconds": 182.232,
+          "startFrame": 5413,
+          "endFrame": 5467
+        }
+      ],
+      "animationEvents": [
+        {
+          "event": "根目录到迭代的路径节点从左到右亮起",
+          "source": {
+            "type": "segment",
+            "id": "10-01"
+          },
+          "atSeconds": 162.912,
+          "atFrame": 4887
+        },
+        {
+          "event": "审阅和迭代使用成功色停留",
+          "source": {
+            "type": "segment",
+            "id": "10-01"
+          },
+          "atSeconds": 162.912,
+          "atFrame": 4887
+        },
+        {
+          "event": "扫描到迭代的压缩链路出现",
+          "source": {
+            "type": "segment",
+            "id": "10-01"
+          },
+          "atSeconds": 162.912,
+          "atFrame": 4887
+        },
+        {
+          "event": "下一篇项目结构预告卡独立出现",
+          "source": {
+            "type": "segment",
+            "id": "10-01"
+          },
+          "atSeconds": 162.912,
+          "atFrame": 4887
+        }
+      ]
+    }
+  ],
+  "timing": {
+    "fps": 30,
+    "totalDurationSeconds": 182.232,
+    "totalDurationFrames": 5467,
+    "sources": {
+      "ttsScript": "videos/project-init/tts-script.json",
+      "audioManifest": "src/videos/project-init/generated/audio-manifest.json",
+      "subtitleManifest": "src/videos/project-init/generated/subtitle-manifest.json",
+      "timelineManifest": "src/videos/project-init/generated/timeline-manifest.json"
+    }
+  }
 }

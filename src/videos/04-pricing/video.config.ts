@@ -1,9 +1,19 @@
-import type {AudioTrackConfig, SceneConfig, SubtitleCue, VideoConfig} from '../../lib/videoTypes';
+import type {SceneConfig, VideoConfig} from '../../lib/videoTypes';
+import audioManifest from './generated/audio-manifest.json';
 import subtitleManifest from './generated/subtitle-manifest.json';
 import timelineManifest from './generated/timeline-manifest.json';
 import seriesConfig from '../../../series/codex-guide/series.json';
+import {createNarratedTiming} from '../../lib/timing';
 
 const fps = 30;
+
+const narratedTiming = createNarratedTiming({
+  fps,
+  audioSrcPrefix: 'local-assets/04-pricing',
+  audioManifest,
+  subtitleManifest,
+  timelineManifest,
+});
 
 const sceneDefinitions: SceneConfig[] = [
   {
@@ -66,37 +76,6 @@ if (timelineManifest.scenes.length !== sceneDefinitions.length) {
   throw new Error(`Expected ${sceneDefinitions.length} scenes, received ${timelineManifest.scenes.length}`);
 }
 
-const audioTracks: AudioTrackConfig[] = timelineManifest.scenes.flatMap((scene) =>
-  scene.segments.map((segment) => ({
-    id: segment.segmentId,
-    src: `local-assets/04-pricing/${segment.audioFile}`,
-    startSeconds: scene.offset + segment.offset,
-    durationSeconds: segment.duration,
-  })),
-);
-
-const subtitleCues: SubtitleCue[] = subtitleManifest.scenes.flatMap((scene) => {
-  const sceneTiming = timelineManifest.scenes.find((item) => item.sceneId === scene.sceneId);
-  if (!sceneTiming) throw new Error(`Missing timeline for scene ${scene.sceneId}`);
-
-  return scene.segments.flatMap((segment) => {
-    const segmentTiming = sceneTiming.segments.find((item) => item.segmentId === segment.segmentId);
-    if (!segmentTiming) throw new Error(`Missing timeline for segment ${segment.segmentId}`);
-
-    return segment.cues.map((cue) => ({
-      startSeconds: sceneTiming.offset + segmentTiming.offset + cue.start,
-      endSeconds: sceneTiming.offset + segmentTiming.offset + cue.end,
-      text: cue.text,
-    }));
-  });
-});
-
-const sceneDuration = (index: number) => {
-  const scene = timelineManifest.scenes[index];
-  if (!scene) throw new Error(`Missing timeline for scene index ${index}`);
-  return (Math.round(scene.end * fps) - Math.round(scene.offset * fps)) / fps;
-};
-
 export const videoConfig: VideoConfig = {
   slug: '04-pricing',
   title: 'Codex 订阅与计费',
@@ -110,11 +89,11 @@ export const videoConfig: VideoConfig = {
     coverSrc: seriesConfig.cover ?? undefined,
     coverDurationFrames: seriesConfig.coverDurationFrames,
   },
-  audioTracks,
-  subtitleCues,
+  audioTracks: narratedTiming.audioTracks,
+  subtitleCues: narratedTiming.subtitleCues,
   scenes: sceneDefinitions.map((scene, index) => ({
     ...scene,
-    durationSeconds: sceneDuration(index),
+    durationSeconds: narratedTiming.scenes[index].durationSeconds,
     showCaption: false,
   })),
 };

@@ -116,7 +116,7 @@ const rawStageDefinitions = [
     label: "Remotion 实现",
     artifacts: ["src/videos/{slug}/video.config.ts", "src/videos/{slug}/*Video.tsx"],
     objective: "把已确认的内容、视觉和时间资料接入 Remotion Composition。",
-    inputStages: ["subtitle-timeline", "visual-prototype"],
+    inputStages: ["tts", "subtitle-timeline", "visual-prototype"],
     executor: "agent",
     validation: ["required-artifacts", "remotion-config", "resource-manifest", "remotion-alignment"],
     fallbackStage: "subtitle-timeline",

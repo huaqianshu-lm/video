@@ -1,8 +1,18 @@
-import type {AudioTrackConfig, SceneConfig, SubtitleCue, VideoConfig, VisualBeat} from '../../lib/videoTypes';
+import type {SceneConfig, VideoConfig, VisualBeat} from '../../lib/videoTypes';
+import audioManifest from './generated/audio-manifest.json';
 import subtitleManifest from './generated/subtitle-manifest.json';
 import timelineManifest from './generated/timeline-manifest.json';
+import {createNarratedTiming} from '../../lib/timing';
 
 const fps = 30;
+
+const narratedTiming = createNarratedTiming({
+  fps,
+  audioSrcPrefix: 'local-assets/claude-code-how-it-works',
+  audioManifest,
+  subtitleManifest,
+  timelineManifest,
+});
 
 const beat = (title: string, description: string, items: string[] = [], tone: VisualBeat['tone'] = 'accent'): VisualBeat => ({
   title,
@@ -97,29 +107,11 @@ if (timelineManifest.scenes.length !== sceneDefinitions.length) {
   throw new Error(`Expected ${sceneDefinitions.length} scenes, received ${timelineManifest.scenes.length}`);
 }
 
-const audioTracks: AudioTrackConfig[] = timelineManifest.scenes.flatMap((scene) => scene.segments.map((segment) => ({
-  id: segment.segmentId,
-  src: `local-assets/claude-code-how-it-works/${segment.audioFile}`,
-  startSeconds: scene.offset + segment.offset,
-  durationSeconds: segment.duration,
-})));
-
-const subtitleCues: SubtitleCue[] = subtitleManifest.scenes.flatMap((scene) => {
-  const sceneTiming = timelineManifest.scenes.find((item) => item.sceneId === scene.sceneId);
-  if (!sceneTiming) throw new Error(`Missing timeline for scene ${scene.sceneId}`);
-  return scene.segments.flatMap((segment) => {
-    const segmentTiming = sceneTiming.segments.find((item) => item.segmentId === segment.segmentId);
-    if (!segmentTiming) throw new Error(`Missing timeline for segment ${segment.segmentId}`);
-    return segment.cues.map((cue) => ({
-      startSeconds: sceneTiming.offset + segmentTiming.offset + cue.start,
-      endSeconds: sceneTiming.offset + segmentTiming.offset + cue.end,
-      text: cue.text,
-    }));
-  });
-});
+const audioTracks = narratedTiming.audioTracks;
+const subtitleCues = narratedTiming.subtitleCues;
 
 export const videoConfig: VideoConfig = {
   slug: 'claude-code-how-it-works', title: 'Claude Code 如何工作', format: 'horizontal', width: 1920, height: 1080, fps,
   audioTracks, subtitleCues,
-  scenes: sceneDefinitions.map((scene, index) => ({...scene, durationSeconds: timelineManifest.scenes[index].duration, showCaption: false})),
+  scenes: sceneDefinitions.map((scene, index) => ({...scene, durationSeconds: narratedTiming.scenes[index].durationSeconds, showCaption: false})),
 };

@@ -1,9 +1,18 @@
-import type {AudioTrackConfig, SceneConfig, SubtitleCue, VideoConfig} from '../../lib/videoTypes';
+import type {SceneConfig, VideoConfig} from '../../lib/videoTypes';
 import audioManifest from './generated/audio-manifest.json';
 import subtitleManifest from './generated/subtitle-manifest.json';
 import timelineManifest from './generated/timeline-manifest.json';
+import {createNarratedTiming} from '../../lib/timing';
 
 const fps = 30;
+
+const narratedTiming = createNarratedTiming({
+  fps,
+  audioSrcPrefix: 'local-assets/project-init',
+  audioManifest,
+  subtitleManifest,
+  timelineManifest,
+});
 
 const sceneDefinitions: SceneConfig[] = [
   {
@@ -66,39 +75,6 @@ if (timelineManifest.scenes.length !== sceneDefinitions.length || audioManifest.
   throw new Error(`Expected ${sceneDefinitions.length} scenes in audio and timeline manifests`);
 }
 
-const audioTracks: AudioTrackConfig[] = audioManifest.scenes.flatMap((scene) => {
-  const sceneTiming = timelineManifest.scenes.find((item) => item.sceneId === scene.sceneId);
-  if (!sceneTiming) throw new Error(`Missing timeline for scene ${scene.sceneId}`);
-
-  return scene.segments.map((segment) => {
-    const segmentTiming = sceneTiming.segments.find((item) => item.segmentId === segment.id);
-    if (!segmentTiming) throw new Error(`Missing timeline for segment ${segment.id}`);
-
-    return {
-      id: segment.id,
-      src: `local-assets/project-init/${segment.file}`,
-      startSeconds: sceneTiming.offset + segmentTiming.offset,
-      durationSeconds: segment.duration,
-    };
-  });
-});
-
-const subtitleCues: SubtitleCue[] = subtitleManifest.scenes.flatMap((scene) => {
-  const sceneTiming = timelineManifest.scenes.find((item) => item.sceneId === scene.sceneId);
-  if (!sceneTiming) throw new Error(`Missing timeline for scene ${scene.sceneId}`);
-
-  return scene.segments.flatMap((segment) => {
-    const segmentTiming = sceneTiming.segments.find((item) => item.segmentId === segment.segmentId);
-    if (!segmentTiming) throw new Error(`Missing timeline for segment ${segment.segmentId}`);
-
-    return segment.cues.map((cue) => ({
-      startSeconds: sceneTiming.offset + segmentTiming.offset + cue.start,
-      endSeconds: sceneTiming.offset + segmentTiming.offset + cue.end,
-      text: cue.text,
-    }));
-  });
-});
-
 export const videoConfig: VideoConfig = {
   slug: 'project-init',
   title: '项目初始化：用 /init 生成 CLAUDE.md',
@@ -106,11 +82,11 @@ export const videoConfig: VideoConfig = {
   width: 1920,
   height: 1080,
   fps,
-  audioTracks,
-  subtitleCues,
+  audioTracks: narratedTiming.audioTracks,
+  subtitleCues: narratedTiming.subtitleCues,
   scenes: sceneDefinitions.map((scene, index) => ({
     ...scene,
-    durationSeconds: timelineManifest.scenes[index].duration,
+    durationSeconds: narratedTiming.scenes[index].durationSeconds,
     showCaption: false,
   })),
 };

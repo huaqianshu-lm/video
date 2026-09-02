@@ -7,7 +7,9 @@
   "coverDurationFrames": 45,
   "videos": [
     "01-what-is-codex",
-    "02-core-concepts"
+    "02-core-concepts",
+    "03-install",
+    "04-pricing"
   ],
-  "updatedAt": "2026-08-31T08:22:53.300Z"
+  "updatedAt": "2026-09-01T14:18:56.560Z"
 }

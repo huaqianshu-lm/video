@@ -1,6 +1,11 @@
+import { execFileSync } from "node:child_process";
+import crypto from "node:crypto";
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { writeJson } from "./storage.mjs";
+
+const repositoryRoot = path.resolve(new URL("../..", import.meta.url).pathname);
 
 function narrationPathFor(project) {
   return `videos/${project.config.slug}/narration-script.md`;
@@ -10,74 +15,94 @@ function ttsPathFor(project) {
   return `videos/${project.config.slug}/tts-script.json`;
 }
 
-function sceneBodiesFromNarration(text) {
-  const matches = [...text.matchAll(/^##\s+Scene\s+(\d+).*$/gim)];
-  return matches.map((match, index) => {
-    const start = match.index + match[0].length;
-    const end = matches[index + 1]?.index ?? text.length;
-    return {
-      sceneId: match[1].padStart(2, "0"),
-      body: text.slice(start, end).trim(),
-    };
-  });
+function resolveTtsTool(workspaceRoot) {
+  const defaultProjectDir = path.resolve(workspaceRoot, "..", "tts");
+  const projectDir = path.resolve(process.env.HARNESS_TTS_PROJECT_DIR || defaultProjectDir);
+  const scriptsDir = path.resolve(process.env.HARNESS_TTS_SCRIPTS_DIR || path.join(projectDir, "scripts"));
+  const python = process.env.HARNESS_TTS_PYTHON || path.join(projectDir, ".venv", "bin", "python");
+  const builder = process.env.HARNESS_TTS_SCRIPT_BUILDER || path.join(scriptsDir, "build_tts_script.py");
+  return { projectDir, python, builder };
 }
 
-function segmentsFromScene(scene) {
-  const paragraphs = scene.body
-    .split(/\n\s*\n/)
-    .map((paragraph) => paragraph.replace(/\s+/g, " ").trim())
-    .filter(Boolean);
-
-  if (paragraphs.length === 0) {
-    throw new Error(`Scene ${scene.sceneId} 没有可派生的口播段落`);
+function ensureFile(filePath, label) {
+  if (!fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) {
+    throw new Error(`无法调用既有 TTS 规则：缺少${label} ${filePath}`);
   }
+}
 
-  return paragraphs.map((text, index) => ({
-    id: `${scene.sceneId}-${String(index + 1).padStart(2, "0")}`,
-    text,
-  }));
+function fingerprint(text) {
+  return crypto.createHash("sha256").update(text, "utf8").digest("hex");
+}
+
+function runCanonicalBuilder({ videoId, narrationText, inputPath, outputPath, workspaceRoot }) {
+  const tool = resolveTtsTool(workspaceRoot);
+  ensureFile(tool.python, "TTS Python 执行器");
+  ensureFile(tool.builder, "标准 TTS Script 生成器");
+
+  const temporaryRoot = inputPath ? null : fs.mkdtempSync(path.join(os.tmpdir(), "video-harness-tts-script-"));
+  const sourcePath = inputPath || path.join(temporaryRoot, "narration-script.md");
+  const targetPath = outputPath || path.join(temporaryRoot, "tts-script.json");
+  if (!inputPath) fs.writeFileSync(sourcePath, narrationText, "utf8");
+
+  try {
+    execFileSync(tool.python, [
+      tool.builder,
+      "--project-dir", tool.projectDir,
+      "--input", sourcePath,
+      "--output", targetPath,
+      "--video-id", videoId,
+    ], {
+      cwd: tool.projectDir,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    ensureFile(targetPath, "标准 TTS Script 输出");
+    return JSON.parse(fs.readFileSync(targetPath, "utf8"));
+  } catch (error) {
+    if (error instanceof SyntaxError) {
+      throw new Error(`标准 TTS Script 输出不是有效 JSON：${error.message}`);
+    }
+    const details = [error.message, error.stderr?.toString().trim()].filter(Boolean).join("：");
+    throw new Error(`标准 TTS Script 生成失败：${details}`);
+  } finally {
+    if (temporaryRoot) fs.rmSync(temporaryRoot, { recursive: true, force: true });
+  }
 }
 
 export function buildTtsScript(videoId, narrationText) {
-  const scenes = sceneBodiesFromNarration(narrationText);
-  if (scenes.length === 0) {
-    throw new Error("Narration Script 没有可识别的 Scene 标题");
-  }
-
-  const sceneIds = new Set();
-  return {
-    schemaVersion: "1.0",
+  return runCanonicalBuilder({
     videoId,
-    scenes: scenes.map((scene) => {
-      if (sceneIds.has(scene.sceneId)) {
-        throw new Error(`Narration Script 存在重复的 Scene ID：${scene.sceneId}`);
-      }
-      sceneIds.add(scene.sceneId);
-      return {
-        sceneId: scene.sceneId,
-        segments: segmentsFromScene(scene),
-      };
-    }),
-  };
+    narrationText,
+    workspaceRoot: repositoryRoot,
+  });
 }
 
 export function ensureTtsScript(project) {
   const relativePath = ttsPathFor(project);
   const absolutePath = path.join(project.config.workspaceRoot, relativePath);
-  if (fs.existsSync(absolutePath)) {
-    return { created: false, path: relativePath };
-  }
-
   const narrationPath = narrationPathFor(project);
   const narrationAbsolutePath = path.join(project.config.workspaceRoot, narrationPath);
-  if (!fs.existsSync(narrationAbsolutePath)) {
-    throw new Error(`无法派生 TTS Script：缺少 ${narrationPath}`);
-  }
+  const existed = fs.existsSync(absolutePath);
+  ensureFile(narrationAbsolutePath, `口播稿 ${narrationPath}`);
+  const narrationText = fs.readFileSync(narrationAbsolutePath, "utf8");
 
-  const script = buildTtsScript(
-    project.config.slug,
-    fs.readFileSync(narrationAbsolutePath, "utf8"),
-  );
+  const generatedScript = runCanonicalBuilder({
+    videoId: project.config.slug,
+    inputPath: narrationAbsolutePath,
+    outputPath: absolutePath,
+    workspaceRoot: project.config.workspaceRoot,
+  });
+  const script = {
+    ...generatedScript,
+    source: {
+      generator: "tts/scripts/build_tts_script.py",
+      narrationFingerprint: fingerprint(narrationText),
+    },
+  };
   writeJson(absolutePath, script);
-  return { created: true, path: relativePath, sceneCount: script.scenes.length };
+  return {
+    created: !existed,
+    path: relativePath,
+    sceneCount: script.scenes.length,
+  };
 }

@@ -1,8 +1,18 @@
-import type {AudioTrackConfig, SceneConfig, SubtitleCue, VideoConfig} from '../../lib/videoTypes';
+import type {SceneConfig, VideoConfig} from '../../lib/videoTypes';
+import audioManifest from './generated/audio-manifest.json';
 import subtitleManifest from './generated/subtitle-manifest.json';
 import timelineManifest from './generated/timeline-manifest.json';
+import {createNarratedTiming} from '../../lib/timing';
 
 const fps = 30;
+
+const narratedTiming = createNarratedTiming({
+  fps,
+  audioSrcPrefix: 'local-assets/claude-code-install',
+  audioManifest,
+  subtitleManifest,
+  timelineManifest,
+});
 
 const sceneDefinitions: SceneConfig[] = [
   {
@@ -416,61 +426,18 @@ if (visualRevealSegments.length !== sceneDefinitions.length) {
 }
 
 const getSegmentStartSeconds = (sceneIndex: number, segmentId: string) => {
-  const scene = timelineManifest.scenes[sceneIndex];
+  const scene = narratedTiming.scenes[sceneIndex];
   const segment = scene?.segments.find((item) => item.segmentId === segmentId);
 
   if (!scene || !segment) {
     throw new Error(`Missing visual timing for scene index ${sceneIndex}, segment ${segmentId}`);
   }
 
-  return segment.offset;
+  return segment.startSeconds - scene.startSeconds;
 };
 
-const getFrameAlignedSceneDurationSeconds = (sceneIndex: number) => {
-  const timing = timelineManifest.scenes[sceneIndex];
-
-  if (!timing) {
-    throw new Error(`Missing timeline for scene index ${sceneIndex}`);
-  }
-
-  const startInFrames = Math.round(timing.offset * fps);
-  const endInFrames = Math.round(timing.end * fps);
-
-  return (endInFrames - startInFrames) / fps;
-};
-
-export const audioTracks: AudioTrackConfig[] = timelineManifest.scenes.flatMap((scene) =>
-  scene.segments.map((segment) => ({
-    id: segment.segmentId,
-    src: `local-assets/claude-code-install/${segment.audioFile}`,
-    startSeconds: scene.offset + segment.offset,
-    durationSeconds: segment.duration,
-  })),
-);
-
-export const subtitleCues: SubtitleCue[] = subtitleManifest.scenes.flatMap((scene) => {
-  const sceneTiming = timelineManifest.scenes.find((item) => item.sceneId === scene.sceneId);
-
-  if (!sceneTiming) {
-    throw new Error(`Missing timeline for scene ${scene.sceneId}`);
-  }
-
-  return scene.segments.flatMap((segment) => {
-    const segmentTiming = sceneTiming.segments.find((item) => item.segmentId === segment.segmentId);
-
-    if (!segmentTiming) {
-      throw new Error(`Missing timeline for segment ${segment.segmentId}`);
-    }
-
-    return segment.cues.map((cue, cueIndex) => ({
-      // The source timing reserves the first 100ms for audio startup. Start the
-      // first cue at the Segment boundary so short MP3s do not create gaps.
-      startSeconds: sceneTiming.offset + segmentTiming.offset + (cueIndex === 0 ? 0 : cue.start),
-      endSeconds: sceneTiming.offset + segmentTiming.offset + cue.end,
-      text: cue.text,
-    }));
-  });
-});
+export const audioTracks = narratedTiming.audioTracks;
+export const subtitleCues = narratedTiming.subtitleCues;
 
 export const videoConfig: VideoConfig = {
   slug: 'claude-code-install',
@@ -483,7 +450,7 @@ export const videoConfig: VideoConfig = {
   subtitleCues,
   scenes: sceneDefinitions.map((scene, index) => ({
     ...scene,
-    durationSeconds: getFrameAlignedSceneDurationSeconds(index),
+    durationSeconds: narratedTiming.scenes[index].durationSeconds,
     showCaption: false,
     visualRevealSeconds: visualRevealSegments[index].map((segmentId) => {
       const advanceSeconds = visualRevealAdvanceSecondsBySceneId[scene.id] ?? 0;

@@ -1,8 +1,18 @@
-import type {AudioTrackConfig, SceneConfig, SubtitleCue, VideoConfig, VisualBeat} from '../../lib/videoTypes';
+import type {SceneConfig, VideoConfig, VisualBeat} from '../../lib/videoTypes';
+import audioManifest from './generated/audio-manifest.json';
 import subtitleManifest from './generated/subtitle-manifest.json';
 import timelineManifest from './generated/timeline-manifest.json';
+import {createNarratedTiming} from '../../lib/timing';
 
 const fps = 30;
+
+const narratedTiming = createNarratedTiming({
+  fps,
+  audioSrcPrefix: 'local-assets/claude-code-third-party-models',
+  audioManifest,
+  subtitleManifest,
+  timelineManifest,
+});
 
 const beat = (
   title: string,
@@ -186,19 +196,6 @@ if (timelineManifest.scenes.length !== sceneDefinitions.length) {
   throw new Error(`Expected ${sceneDefinitions.length} scenes, received ${timelineManifest.scenes.length}`);
 }
 
-const getFrameAlignedSceneDurationSeconds = (sceneIndex: number) => {
-  const timing = timelineManifest.scenes[sceneIndex];
-
-  if (!timing) {
-    throw new Error(`Missing timeline for scene index ${sceneIndex}`);
-  }
-
-  const startInFrames = Math.round(timing.offset * fps);
-  const endInFrames = Math.round(timing.end * fps);
-
-  return (endInFrames - startInFrames) / fps;
-};
-
 type VisualRevealAnchor = {
   segmentId: string;
   offsetSeconds?: number;
@@ -219,7 +216,7 @@ const visualRevealAnchors: VisualRevealAnchor[][] = [
 ];
 
 const getVisualRevealSeconds = (sceneIndex: number, anchor: VisualRevealAnchor) => {
-  const scene = timelineManifest.scenes[sceneIndex];
+  const scene = narratedTiming.scenes[sceneIndex];
   const segment = scene?.segments.find((item) => item.segmentId === anchor.segmentId);
 
   if (!scene || !segment) {
@@ -228,47 +225,19 @@ const getVisualRevealSeconds = (sceneIndex: number, anchor: VisualRevealAnchor) 
 
   const offsetSeconds = anchor.offsetSeconds ?? 0;
 
-  if (offsetSeconds < 0 || offsetSeconds > segment.duration) {
+  if (offsetSeconds < 0 || offsetSeconds > segment.durationSeconds) {
     throw new Error(`Invalid visual offset ${offsetSeconds} for segment ${anchor.segmentId}`);
   }
 
-  return segment.offset + offsetSeconds;
+  return segment.startSeconds - scene.startSeconds + offsetSeconds;
 };
 
 if (visualRevealAnchors.length !== sceneDefinitions.length) {
   throw new Error(`Expected reveal mapping for ${sceneDefinitions.length} scenes, received ${visualRevealAnchors.length}`);
 }
 
-export const audioTracks: AudioTrackConfig[] = timelineManifest.scenes.flatMap((scene) =>
-  scene.segments.map((segment) => ({
-    id: segment.segmentId,
-    src: `local-assets/claude-code-third-party-models/${segment.audioFile}`,
-    startSeconds: scene.offset + segment.offset,
-    durationSeconds: segment.duration,
-  })),
-);
-
-export const subtitleCues: SubtitleCue[] = subtitleManifest.scenes.flatMap((scene) => {
-  const sceneTiming = timelineManifest.scenes.find((item) => item.sceneId === scene.sceneId);
-
-  if (!sceneTiming) {
-    throw new Error(`Missing timeline for scene ${scene.sceneId}`);
-  }
-
-  return scene.segments.flatMap((segment) => {
-    const segmentTiming = sceneTiming.segments.find((item) => item.segmentId === segment.segmentId);
-
-    if (!segmentTiming) {
-      throw new Error(`Missing timeline for segment ${segment.segmentId}`);
-    }
-
-    return segment.cues.map((cue, cueIndex) => ({
-      startSeconds: sceneTiming.offset + segmentTiming.offset + (cueIndex === 0 ? 0 : cue.start),
-      endSeconds: sceneTiming.offset + segmentTiming.offset + cue.end,
-      text: cue.text,
-    }));
-  });
-});
+export const audioTracks = narratedTiming.audioTracks;
+export const subtitleCues = narratedTiming.subtitleCues;
 
 export const videoConfig: VideoConfig = {
   slug: 'claude-code-third-party-models',
@@ -281,7 +250,7 @@ export const videoConfig: VideoConfig = {
   subtitleCues,
   scenes: sceneDefinitions.map((scene, index) => ({
     ...scene,
-    durationSeconds: getFrameAlignedSceneDurationSeconds(index),
+    durationSeconds: narratedTiming.scenes[index].durationSeconds,
     showCaption: false,
     visualRevealSeconds: visualRevealAnchors[index].map((anchor) => getVisualRevealSeconds(index, anchor)),
   })),

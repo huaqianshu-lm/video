@@ -182,6 +182,7 @@ http://127.0.0.1:4173
 当前 Web UI 支持：
 
 - 查看视频项目列表、15 个生产阶段和下一步动作；
+- 在首页导入 Markdown 或纯文本原文件；系统按文件名或手工填写的 slug 创建新项目，保存为 `videos/<slug>/source.md`，已存在项目不会被覆盖；
 - 查看生产资料、TTS／字幕／Timeline Manifest 和 Remotion 文件；
 - 预览 Visual Prototype；
 - 初始化 Harness 项目状态；
@@ -194,9 +195,9 @@ http://127.0.0.1:4173
 - 在首页查看所有视频项目的远程任务，并手动执行 GitHub 配置诊断；
 - 对未初始化的旧视频执行 Legacy 只读检查。
 
-Web UI 只监听 `127.0.0.1`，运行状态写入被 Git 忽略的 `harness/projects/`。Agent 任务会按当前阶段声明的输出路径修改视频生产资料，但仍不自动通过人工 Gate。
+Web UI 只监听 `127.0.0.1`，运行状态写入被 Git 忽略的 `harness/projects/`。导入原文件时先选择系列；项目会锁定系列 Style，并在视觉原型阶段读取该 Style 对应的已验证原型基线。Agent 任务会按当前阶段声明的输出路径修改视频生产资料，但仍不自动通过人工 Gate。普通 Agent 阶段默认使用项目内适配器调用本机 `codex` CLI；TTS 阶段默认使用项目内 TTS 适配器；Remotion 阶段使用独立的 Remotion 适配器。环境变量只用于显式覆盖默认执行器。
 
-要让 Web UI 的“执行当前阶段”真正调用 Agent，需要配置本地命令及 JSON 参数数组：
+如果需要替换普通 Agent 的执行器，可配置本地命令及 JSON 参数数组：
 
 ```bash
 export HARNESS_AGENT_EXECUTOR_COMMAND="<agent-command>"
@@ -208,7 +209,7 @@ Harness 通过 stdin 发送结构化阶段任务包。`subtitle-timeline` 和 `r
 
 ### TTS 执行器
 
-当前项目已提供可直接接入既有 TTS 工程的 Harness 适配器。它会读取冻结的 `videos/<video-slug>/tts-script.json`，按 `+25%` 调用 TTS 工程中的三个脚本，再把音频、字幕和 Timeline Manifest 同步到当前视频目录，并自动生成 `assets/<video-slug>-assets.zip`。默认假设 TTS 工程与本仓库同级，目录为 `../tts`；如果目录不同，显式设置：
+当前项目已提供可直接接入既有 TTS 工程的 Harness 适配器。Gate 2 通过时，Harness 会调用既有 TTS 工程的 `scripts/build_tts_script.py`，从冻结的 `narration-script.md` 生成 `tts-script.json`；CLI、WebUI 不各自实现 Markdown 解析规则。普通 `npm run harness:web` 会自动使用该适配器；它读取生成并校验过的 `videos/<video-slug>/tts-script.json`，按 `+25%` 调用 TTS 工程中的三个脚本，再把音频、字幕和 Timeline Manifest 同步到当前视频目录，并自动生成 `assets/<video-slug>-assets.zip`。默认假设 TTS 工程与本仓库同级，目录为 `../tts`；如果目录不同，或需要替换适配器，显式设置：
 
 ```bash
 export HARNESS_TTS_EXECUTOR_COMMAND="node"
@@ -216,6 +217,7 @@ export HARNESS_TTS_EXECUTOR_ARGS='["/Users/limiao/personal/2-topic/4-AI/project/
 export HARNESS_TTS_EXECUTOR_CWD="/Users/limiao/personal/2-topic/4-AI/project/video"
 export HARNESS_TTS_PROJECT_DIR="/Users/limiao/personal/2-topic/4-AI/project/tts"
 export HARNESS_TTS_PYTHON="/Users/limiao/personal/2-topic/4-AI/project/tts/.venv/bin/python"
+export HARNESS_TTS_SCRIPT_BUILDER="/Users/limiao/personal/2-topic/4-AI/project/tts/scripts/build_tts_script.py"
 ```
 
 适配器会在 `harness/.cache/tts/` 保留按 TTS Script 内容哈希区分的可恢复中间结果；这个目录已加入 Git 忽略。启动 Web UI 的终端必须继承上述环境变量，修改后需要重启 Web Server。

@@ -5,6 +5,10 @@ import { getVideoProject } from "./project-view.mjs";
 
 const repositoryRoot = path.resolve(new URL("../..", import.meta.url).pathname);
 
+function workspaceRoot() {
+  return path.resolve(process.env.HARNESS_WORKSPACE_ROOT ?? repositoryRoot);
+}
+
 const documentFiles = Object.freeze([
   ["source.md", "source", "原始内容"],
   ["content-analysis.md", "content-analysis", "内容分析"],
@@ -24,7 +28,7 @@ const generatedFiles = Object.freeze([
 ]);
 
 function pathEntry(relativePath, stage, label, kind = "document") {
-  const absolutePath = path.resolve(repositoryRoot, relativePath);
+  const absolutePath = path.resolve(workspaceRoot(), relativePath);
   return {
     path: relativePath,
     stage,
@@ -43,7 +47,7 @@ export function listProjectFiles(slug) {
     pathEntry(`src/videos/${slug}/video.config.ts`, "remotion", "Remotion 配置", "remotion"),
   ];
 
-  const remotionDirectory = path.resolve(repositoryRoot, "src", "videos", slug);
+  const remotionDirectory = path.resolve(workspaceRoot(), "src", "videos", slug);
   if (fs.existsSync(remotionDirectory) && fs.statSync(remotionDirectory).isDirectory()) {
     for (const entry of fs.readdirSync(remotionDirectory)) {
       if (!entry.endsWith("Video.tsx")) continue;
@@ -58,7 +62,7 @@ export function getProjectFile(slug, relativePath) {
   const entry = listProjectFiles(slug)?.find((item) => item.path === relativePath);
   if (!entry || !entry.present) return null;
 
-  const absolutePath = path.resolve(repositoryRoot, entry.path);
+  const absolutePath = path.resolve(workspaceRoot(), entry.path);
   return {
     ...entry,
     content: fs.readFileSync(absolutePath, "utf8"),

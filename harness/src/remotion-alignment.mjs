@@ -2,8 +2,9 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { readJson, writeJson } from "./storage.mjs";
+import { buildRemotionTimingPlan } from "./remotion-timing.mjs";
 
-export const REMOTION_ALIGNMENT_SCHEMA_VERSION = 1;
+export const REMOTION_ALIGNMENT_SCHEMA_VERSION = 2;
 
 export function remotionAlignmentPath(project) {
   return `videos/${project.config.slug}/remotion-alignment.json`;
@@ -90,6 +91,96 @@ function alignmentIssue(code, message, issuePath = null, severity = "error") {
   return { code, stage: "remotion", path: issuePath, message, severity };
 }
 
+function timingNumberIssue(issues, label, actual, expected, relativePath) {
+  if (typeof actual !== "number" || !Number.isFinite(actual) || Math.abs(actual - expected) > 0.02) {
+    issues.push(alignmentIssue("remotion-alignment-timing-mismatch", `${label} 时间映射不一致：${actual} ≠ ${expected}。`, relativePath));
+  }
+}
+
+function timingFrameIssue(issues, label, actual, expected, relativePath) {
+  if (actual !== expected) {
+    issues.push(alignmentIssue("remotion-alignment-frame-mismatch", `${label} 帧映射不一致：${actual} ≠ ${expected}。`, relativePath));
+  }
+}
+
+function validateSceneTiming(scene, expected, relativePath, issues) {
+  const timing = scene.timing;
+  if (!timing || timing.timelineSource !== expected.timelineSource) {
+    issues.push(alignmentIssue("remotion-alignment-timeline-source-missing", `Scene ${expected.sceneId} 缺少正确的 Timeline 来源。`, relativePath));
+    return;
+  }
+  timingNumberIssue(issues, `Scene ${expected.sceneId} 起点`, timing.startSeconds, expected.startSeconds, relativePath);
+  timingNumberIssue(issues, `Scene ${expected.sceneId} 终点`, timing.endSeconds, expected.endSeconds, relativePath);
+  timingNumberIssue(issues, `Scene ${expected.sceneId} 时长`, timing.durationSeconds, expected.durationSeconds, relativePath);
+  timingFrameIssue(issues, `Scene ${expected.sceneId} 起始帧`, timing.startFrame, expected.startFrame, relativePath);
+  timingFrameIssue(issues, `Scene ${expected.sceneId} 结束帧`, timing.endFrame, expected.endFrame, relativePath);
+  timingFrameIssue(issues, `Scene ${expected.sceneId} 时长帧`, timing.durationFrames, expected.durationFrames, relativePath);
+
+  const audioSegments = Array.isArray(scene.audioSegments) ? scene.audioSegments : [];
+  if (audioSegments.length !== expected.segments.length) {
+    issues.push(alignmentIssue("remotion-alignment-audio-segments-missing", `Scene ${expected.sceneId} 的 Audio Segment 映射不完整。`, relativePath));
+  }
+  for (const expectedSegment of expected.segments) {
+    const actual = audioSegments.find((segment) => segment.segmentId === expectedSegment.segmentId);
+    if (!actual) {
+      issues.push(alignmentIssue("remotion-alignment-audio-segment-missing", `Scene ${expected.sceneId} 缺少 Audio Segment ${expectedSegment.segmentId}。`, relativePath));
+      continue;
+    }
+    if (actual.file !== expectedSegment.audioFile) {
+      issues.push(alignmentIssue("remotion-alignment-audio-file-mismatch", `Scene ${expected.sceneId}／Segment ${expectedSegment.segmentId} 的音频文件不一致。`, relativePath));
+    }
+    timingNumberIssue(issues, `Segment ${expectedSegment.segmentId} 起点`, actual.startSeconds, expectedSegment.startSeconds, relativePath);
+    timingNumberIssue(issues, `Segment ${expectedSegment.segmentId} 终点`, actual.endSeconds, expectedSegment.endSeconds, relativePath);
+    timingNumberIssue(issues, `Segment ${expectedSegment.segmentId} 时长`, actual.durationSeconds, expectedSegment.durationSeconds, relativePath);
+    timingFrameIssue(issues, `Segment ${expectedSegment.segmentId} 起始帧`, actual.startFrame, expectedSegment.startFrame, relativePath);
+    timingFrameIssue(issues, `Segment ${expectedSegment.segmentId} 结束帧`, actual.endFrame, expectedSegment.endFrame, relativePath);
+  }
+
+  const expectedCues = expected.segments.flatMap((segment) => segment.cues);
+  const subtitleCues = Array.isArray(scene.subtitleCues) ? scene.subtitleCues : [];
+  if (subtitleCues.length !== expectedCues.length) {
+    issues.push(alignmentIssue("remotion-alignment-subtitle-cues-missing", `Scene ${expected.sceneId} 的 Subtitle Cue 映射不完整。`, relativePath));
+  }
+  for (const expectedCue of expectedCues) {
+    const actual = subtitleCues.find((cue) => cue.cueId === expectedCue.id);
+    if (!actual) {
+      issues.push(alignmentIssue("remotion-alignment-subtitle-cue-missing", `Scene ${expected.sceneId} 缺少 Subtitle Cue ${expectedCue.id}。`, relativePath));
+      continue;
+    }
+    if (actual.segmentId !== expectedCue.segmentId) {
+      issues.push(alignmentIssue("remotion-alignment-subtitle-segment-mismatch", `Subtitle Cue ${expectedCue.id} 未关联正确的 Segment。`, relativePath));
+    }
+    timingNumberIssue(issues, `Cue ${expectedCue.id} 起点`, actual.startSeconds, expectedCue.startSeconds, relativePath);
+    timingNumberIssue(issues, `Cue ${expectedCue.id} 终点`, actual.endSeconds, expectedCue.endSeconds, relativePath);
+    timingFrameIssue(issues, `Cue ${expectedCue.id} 起始帧`, actual.startFrame, expectedCue.startFrame, relativePath);
+    timingFrameIssue(issues, `Cue ${expectedCue.id} 结束帧`, actual.endFrame, expectedCue.endFrame, relativePath);
+  }
+
+  const animationEvents = Array.isArray(scene.animationEvents) ? scene.animationEvents : [];
+  if (animationEvents.length !== scene.visualEvents.length) {
+    issues.push(alignmentIssue("remotion-alignment-animation-events-missing", `Scene ${expected.sceneId} 的动画事件没有逐项绑定到 Cue 或 Segment。`, relativePath));
+  }
+  const segmentById = new Map(expected.segments.map((segment) => [segment.segmentId, segment]));
+  const cueById = new Map(expectedCues.map((cue) => [cue.id, cue]));
+  animationEvents.forEach((animation, index) => {
+    const source = animation?.source;
+    const sourceTiming = source?.type === "segment"
+      ? segmentById.get(source.id)
+      : source?.type === "cue" ? cueById.get(source.id) : null;
+    if (!sourceTiming || typeof animation.event !== "string" || animation.event !== scene.visualEvents[index]) {
+      issues.push(alignmentIssue("remotion-alignment-animation-source-invalid", `Scene ${expected.sceneId} 的动画事件 ${index + 1} 未绑定有效 Cue／Segment。`, relativePath));
+      return;
+    }
+    const start = sourceTiming.startSeconds;
+    const end = sourceTiming.endSeconds;
+    if (typeof animation.atSeconds !== "number" || animation.atSeconds < start - 0.02 || animation.atSeconds > end + 0.02) {
+      issues.push(alignmentIssue("remotion-alignment-animation-time-invalid", `Scene ${expected.sceneId} 的动画事件 ${index + 1} 不在来源时间范围内。`, relativePath));
+    }
+    const expectedFrame = Math.round((animation.atSeconds ?? 0) * expected.fps);
+    timingFrameIssue(issues, `Scene ${expected.sceneId} 动画事件 ${index + 1}`, animation.atFrame, expectedFrame, relativePath);
+  });
+}
+
 export function validateRemotionAlignment(project) {
   const baseline = getPrototypeBaseline(project);
   const relativePath = remotionAlignmentPath(project);
@@ -127,6 +218,31 @@ export function validateRemotionAlignment(project) {
     issues.push(alignmentIssue("remotion-alignment-fingerprint-mismatch", "Remotion 对齐清单未引用当前 Gate 2 冻结指纹。", relativePath));
   }
 
+  let timingPlan;
+  try {
+    timingPlan = buildRemotionTimingPlan({
+      workspaceRoot: project.config.workspaceRoot,
+      slug: project.config.slug,
+      fps: 30,
+    });
+  } catch (error) {
+    issues.push(alignmentIssue("remotion-alignment-timing-source-invalid", error instanceof Error ? error.message : String(error), relativePath));
+    timingPlan = null;
+  }
+  if (alignment.timing) {
+    if (alignment.timing.fps !== timingPlan?.fps
+      || alignment.timing.totalDurationSeconds !== timingPlan?.durationSeconds
+      || alignment.timing.totalDurationFrames !== timingPlan?.durationFrames
+      || alignment.timing.sources?.ttsScript !== `videos/${project.config.slug}/tts-script.json`
+      || alignment.timing.sources?.audioManifest !== `src/videos/${project.config.slug}/generated/audio-manifest.json`
+      || alignment.timing.sources?.subtitleManifest !== `src/videos/${project.config.slug}/generated/subtitle-manifest.json`
+      || alignment.timing.sources?.timelineManifest !== `src/videos/${project.config.slug}/generated/timeline-manifest.json`) {
+      issues.push(alignmentIssue("remotion-alignment-timing-summary-mismatch", "Remotion 对齐清单的全局时间来源或总时长不一致。", relativePath));
+    }
+  } else {
+    issues.push(alignmentIssue("remotion-alignment-timing-missing", "Remotion 对齐清单缺少全局时间来源和总时长。", relativePath));
+  }
+
   const rootPath = "src/Root.tsx";
   const rootSource = readWorkspaceText(project, rootPath);
   if (rootSource === null || !rootSource.includes(project.config.slug)) {
@@ -152,6 +268,18 @@ export function validateRemotionAlignment(project) {
     if (!Array.isArray(scene.implementationFiles) || scene.implementationFiles.length === 0) {
       issues.push(alignmentIssue("remotion-alignment-files-missing", `Scene ${sceneId} 缺少实现文件。`, relativePath));
       continue;
+    }
+    if (timingPlan) {
+      const expectedScene = timingPlan.scenes.find((item) => item.sceneId === sceneId);
+      if (!expectedScene) {
+        issues.push(alignmentIssue("remotion-alignment-timing-scene-missing", `Scene ${sceneId} 缺少对应的 Timeline Scene。`, relativePath));
+      } else {
+        validateSceneTiming(scene, {
+          ...expectedScene,
+          fps: timingPlan.fps,
+          timelineSource: `src/videos/${project.config.slug}/generated/timeline-manifest.json`,
+        }, relativePath, issues);
+      }
     }
     for (const implementationFile of scene.implementationFiles) {
       if (typeof implementationFile !== "string"

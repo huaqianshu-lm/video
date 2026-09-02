@@ -26,6 +26,21 @@ function taskMatches(task, { slug, batchId } = {}) {
   return (!slug || task.slug === slug) && (!batchId || task.batchId === batchId);
 }
 
+function refreshTaskPacket(task) {
+  const project = loadProject(task.slug, { refresh: true });
+  const packet = buildTaskPacket(project);
+  return {
+    ...task,
+    inputStages: packet.task.inputStages,
+    inputArtifacts: packet.task.inputArtifacts,
+    outputArtifacts: packet.task.outputArtifacts,
+    validation: packet.task.validation,
+    manualChecks: packet.task.manualChecks,
+    context: packet.context,
+    commands: packet.task.commands,
+  };
+}
+
 export function listRemotionTasks(filters = {}) {
   const root = tasksRoot();
   if (!fs.existsSync(root)) return [];
@@ -207,6 +222,8 @@ export function retryRemotionTask(id) {
   if (!["blocked", "failed"].includes(task.status)) {
     throw new Error(`Remotion task is not retryable: ${task.status}`);
   }
+  const refreshed = refreshTaskPacket(task);
+  Object.assign(task, refreshed);
   task.status = "ready";
   task.error = null;
   task.completedAt = null;

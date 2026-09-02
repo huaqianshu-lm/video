@@ -1,16 +1,1907 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "slug": "02-core-concepts",
   "visualScriptFingerprint": "37d7374988daf3e621700c470a7c84959a6a83b873c921e8744ef53933ca654b",
   "prototypeFingerprint": "5b7287b8bf5280f56a58a2b0eb4265c0820385e7bcddbb2a56cb644a3b464883",
   "scenes": [
-    {"sceneId": "01", "layout": "左右项目目录／桌面目录，中间统一重命名任务卡和双向连接。", "visualEvents": ["任务卡出现并分向两侧", "项目文件改名并变为已修改", "桌面文件保持原名并停在未修改", "问题文字最后出现"], "screenText": ["统一重命名", "项目目录", "桌面目录", "已修改", "未修改", "它漏做了吗？"], "implementationFiles": ["src/videos/02-core-concepts/CoreConceptsVideo.tsx", "src/videos/02-core-concepts/video.config.ts"]},
-    {"sceneId": "02", "layout": "左侧 Agent 核心节点，右侧五步动作链，下方测试失败后的四步闭环。", "visualEvents": ["五步动作依次点亮", "动作链进入查看结果和调整", "运行测试到再次测试的闭环依次出现"], "screenText": ["Agent", "想 → 做 → 看 → 再决定", "理解目标", "读取", "执行", "查看结果", "调整", "运行测试", "读取报错", "修改代码", "再次测试"], "implementationFiles": ["src/videos/02-core-concepts/CoreConceptsVideo.tsx", "src/videos/02-core-concepts/video.config.ts"]},
-    {"sceneId": "03", "layout": "带标签的 Sandbox 工作区边界，边界内项目文件，边界外桌面文件，写入箭头在边界处停止。", "visualEvents": ["workspace-write 边界出现", "工作区内文件显示已修改", "边界外文件显示未修改", "写入箭头从通过转为在边界处停止"], "screenText": ["Sandbox", "workspace-write", "工作区内：可写", "边界之外", "项目目录 / final.md", "桌面目录 / draft.md", "已修改", "未修改"], "implementationFiles": ["src/videos/02-core-concepts/CoreConceptsVideo.tsx", "src/videos/02-core-concepts/video.config.ts"]},
-    {"sceneId": "04", "layout": "从 Sandbox 到动作判断节点，再分出边界内执行、Approval 等待、获准继续和未获许可停止四条路径。", "visualEvents": ["Sandbox 和动作判断节点依次出现", "是路径进入执行", "否路径进入 Approval 并等待", "获准与未获许可终态分别显示"], "screenText": ["Sandbox", "能不能", "在 Sandbox 内吗", "动作请求", "是 → 执行", "否 → 请求 Approval", "获得许可", "未获许可", "继续", "等待", "停止"], "implementationFiles": ["src/videos/02-core-concepts/CoreConceptsVideo.tsx", "src/videos/02-core-concepts/video.config.ts"]},
-    {"sceneId": "05", "layout": "左侧 AGENTS.md 规则入口，右侧四类规则依次注入，底部形成错误假设到规则复用的反馈回路。", "visualEvents": ["AGENTS.md 出现", "四类规则依次点亮", "错误假设、用户纠正和规则复用依次出现"], "screenText": ["AGENTS.md", "规则入口", "构建命令", "测试要求", "审查规则", "仓库约定", "错误假设", "用户纠正", "规则复用"], "implementationFiles": ["src/videos/02-core-concepts/CoreConceptsVideo.tsx", "src/videos/02-core-concepts/video.config.ts"]},
-    {"sceneId": "06", "layout": "中心 Agent，上下文来源从左上、左下和右上汇入；AGENTS.md 标为确定性，Memory／Chronicle 标为补充性。", "visualEvents": ["AGENTS.md 稳定规则先出现", "Memory 和 Chronicle 依次汇入", "隐私、提示注入和资源限制警示最后出现", "规则负责确定性与上下文负责补充性最后收束"], "screenText": ["AGENTS.md", "稳定项目规则", "确定性", "Memory", "过去会话的提炼信息", "补充性", "Chronicle", "近期屏幕活动上下文", "隐私", "提示注入", "资源限制", "规则负责确定性", "上下文负责补充性"], "implementationFiles": ["src/videos/02-core-concepts/CoreConceptsVideo.tsx", "src/videos/02-core-concepts/video.config.ts"]},
-    {"sceneId": "07", "layout": "固定顶部请求栏，下方上下两轮实验；read-only 文件树不变，workspace-write 文件树新增 hello.txt。", "visualEvents": ["同一个请求和 Agent 标记固定", "read-only 轮显示未写入", "workspace-write 轮显示 hello.txt 已创建", "两轮结果同时定格"], "screenText": ["同一个请求", "在当前项目创建 hello.txt", "Agent", "read-only", "第一轮", "未写入", "workspace-write", "第二轮", "hello.txt", "hello.txt 已创建", "请求没有变", "边界变了", "结果就变了"], "implementationFiles": ["src/videos/02-core-concepts/CoreConceptsVideo.tsx", "src/videos/02-core-concepts/video.config.ts"]},
-    {"sceneId": "08", "layout": "任务目标、Agent、Sandbox、Approval 从左到右组装，规则和补充上下文从下方支撑，后段切换为独立预告卡。", "visualEvents": ["主关系图逐节点组装", "AGENTS.md 与 Memory／Chronicle 支撑关系图", "结论卡出现", "关系图淡化后显示下一集预告卡并独立停留"], "screenText": ["任务目标", "Agent", "Sandbox", "Approval", "AGENTS.md：稳定规则", "Memory／Chronicle：补充上下文", "给清目标 · 画好边界 · 写下规则", "下一集", "03 · 安装与登录", "Mac · Windows · Linux"], "implementationFiles": ["src/videos/02-core-concepts/CoreConceptsVideo.tsx", "src/videos/02-core-concepts/video.config.ts"]}
-  ]
+    {
+      "sceneId": "01",
+      "layout": "左右项目目录／桌面目录，中间统一重命名任务卡和双向连接。",
+      "visualEvents": [
+        "任务卡出现并分向两侧",
+        "项目文件改名并变为已修改",
+        "桌面文件保持原名并停在未修改",
+        "问题文字最后出现"
+      ],
+      "screenText": [
+        "统一重命名",
+        "项目目录",
+        "桌面目录",
+        "已修改",
+        "未修改",
+        "它漏做了吗？"
+      ],
+      "implementationFiles": [
+        "src/videos/02-core-concepts/CoreConceptsVideo.tsx",
+        "src/videos/02-core-concepts/video.config.ts"
+      ],
+      "timing": {
+        "timelineSource": "src/videos/02-core-concepts/generated/timeline-manifest.json",
+        "startSeconds": 0,
+        "endSeconds": 20.928,
+        "durationSeconds": 20.928,
+        "startFrame": 0,
+        "endFrame": 628,
+        "durationFrames": 628
+      },
+      "audioSegments": [
+        {
+          "segmentId": "01-01",
+          "file": "audio/scene-01/01-01.mp3",
+          "startSeconds": 0,
+          "endSeconds": 5.784,
+          "durationSeconds": 5.784,
+          "startFrame": 0,
+          "endFrame": 174
+        },
+        {
+          "segmentId": "01-02",
+          "file": "audio/scene-01/01-02.mp3",
+          "startSeconds": 5.784,
+          "endSeconds": 10.704,
+          "durationSeconds": 4.92,
+          "startFrame": 174,
+          "endFrame": 321
+        },
+        {
+          "segmentId": "01-03",
+          "file": "audio/scene-01/01-03.mp3",
+          "startSeconds": 10.704,
+          "endSeconds": 13.200000000000001,
+          "durationSeconds": 2.496,
+          "startFrame": 321,
+          "endFrame": 396
+        },
+        {
+          "segmentId": "01-04",
+          "file": "audio/scene-01/01-04.mp3",
+          "startSeconds": 13.2,
+          "endSeconds": 20.927999999999997,
+          "durationSeconds": 7.728,
+          "startFrame": 396,
+          "endFrame": 628
+        }
+      ],
+      "subtitleCues": [
+        {
+          "cueId": "01-01-a",
+          "segmentId": "01-01",
+          "startSeconds": 0.09,
+          "endSeconds": 2.98,
+          "startFrame": 3,
+          "endFrame": 89
+        },
+        {
+          "cueId": "01-01-b",
+          "segmentId": "01-01",
+          "startSeconds": 2.98,
+          "endSeconds": 4.33,
+          "startFrame": 89,
+          "endFrame": 130
+        },
+        {
+          "cueId": "01-01-c",
+          "segmentId": "01-01",
+          "startSeconds": 4.33,
+          "endSeconds": 5.784,
+          "startFrame": 130,
+          "endFrame": 174
+        },
+        {
+          "cueId": "01-02-a",
+          "segmentId": "01-02",
+          "startSeconds": 5.874,
+          "endSeconds": 8.443999999999999,
+          "startFrame": 176,
+          "endFrame": 253
+        },
+        {
+          "cueId": "01-02-b",
+          "segmentId": "01-02",
+          "startSeconds": 8.443999999999999,
+          "endSeconds": 10.704,
+          "startFrame": 253,
+          "endFrame": 321
+        },
+        {
+          "cueId": "01-03-a",
+          "segmentId": "01-03",
+          "startSeconds": 10.794,
+          "endSeconds": 13.200000000000001,
+          "startFrame": 324,
+          "endFrame": 396
+        },
+        {
+          "cueId": "01-04-a",
+          "segmentId": "01-04",
+          "startSeconds": 13.29,
+          "endSeconds": 14.86,
+          "startFrame": 399,
+          "endFrame": 446
+        },
+        {
+          "cueId": "01-04-b",
+          "segmentId": "01-04",
+          "startSeconds": 14.86,
+          "endSeconds": 16.89,
+          "startFrame": 446,
+          "endFrame": 507
+        },
+        {
+          "cueId": "01-04-c",
+          "segmentId": "01-04",
+          "startSeconds": 16.89,
+          "endSeconds": 18.299999999999997,
+          "startFrame": 507,
+          "endFrame": 549
+        },
+        {
+          "cueId": "01-04-d",
+          "segmentId": "01-04",
+          "startSeconds": 18.299999999999997,
+          "endSeconds": 20.927999999999997,
+          "startFrame": 549,
+          "endFrame": 628
+        }
+      ],
+      "animationEvents": [
+        {
+          "event": "任务卡出现并分向两侧",
+          "source": {
+            "type": "segment",
+            "id": "01-01"
+          },
+          "atSeconds": 0,
+          "atFrame": 0
+        },
+        {
+          "event": "项目文件改名并变为已修改",
+          "source": {
+            "type": "segment",
+            "id": "01-02"
+          },
+          "atSeconds": 5.784,
+          "atFrame": 174
+        },
+        {
+          "event": "桌面文件保持原名并停在未修改",
+          "source": {
+            "type": "segment",
+            "id": "01-03"
+          },
+          "atSeconds": 10.704,
+          "atFrame": 321
+        },
+        {
+          "event": "问题文字最后出现",
+          "source": {
+            "type": "segment",
+            "id": "01-04"
+          },
+          "atSeconds": 13.2,
+          "atFrame": 396
+        }
+      ]
+    },
+    {
+      "sceneId": "02",
+      "layout": "左侧 Agent 核心节点，右侧五步动作链，下方测试失败后的四步闭环。",
+      "visualEvents": [
+        "五步动作依次点亮",
+        "动作链进入查看结果和调整",
+        "运行测试到再次测试的闭环依次出现"
+      ],
+      "screenText": [
+        "Agent",
+        "想 → 做 → 看 → 再决定",
+        "理解目标",
+        "读取",
+        "执行",
+        "查看结果",
+        "调整",
+        "运行测试",
+        "读取报错",
+        "修改代码",
+        "再次测试"
+      ],
+      "implementationFiles": [
+        "src/videos/02-core-concepts/CoreConceptsVideo.tsx",
+        "src/videos/02-core-concepts/video.config.ts"
+      ],
+      "timing": {
+        "timelineSource": "src/videos/02-core-concepts/generated/timeline-manifest.json",
+        "startSeconds": 20.928,
+        "endSeconds": 49.512,
+        "durationSeconds": 28.584,
+        "startFrame": 628,
+        "endFrame": 1485,
+        "durationFrames": 858
+      },
+      "audioSegments": [
+        {
+          "segmentId": "02-01",
+          "file": "audio/scene-02/02-01.mp3",
+          "startSeconds": 20.928,
+          "endSeconds": 22.464000000000002,
+          "durationSeconds": 1.536,
+          "startFrame": 628,
+          "endFrame": 674
+        },
+        {
+          "segmentId": "02-02",
+          "file": "audio/scene-02/02-02.mp3",
+          "startSeconds": 22.464000000000002,
+          "endSeconds": 26.472,
+          "durationSeconds": 4.008,
+          "startFrame": 674,
+          "endFrame": 794
+        },
+        {
+          "segmentId": "02-03",
+          "file": "audio/scene-02/02-03.mp3",
+          "startSeconds": 26.472,
+          "endSeconds": 34.272,
+          "durationSeconds": 7.8,
+          "startFrame": 794,
+          "endFrame": 1028
+        },
+        {
+          "segmentId": "02-04",
+          "file": "audio/scene-02/02-04.mp3",
+          "startSeconds": 34.272,
+          "endSeconds": 39.672,
+          "durationSeconds": 5.4,
+          "startFrame": 1028,
+          "endFrame": 1190
+        },
+        {
+          "segmentId": "02-05",
+          "file": "audio/scene-02/02-05.mp3",
+          "startSeconds": 39.672,
+          "endSeconds": 44.64,
+          "durationSeconds": 4.968,
+          "startFrame": 1190,
+          "endFrame": 1339
+        },
+        {
+          "segmentId": "02-06",
+          "file": "audio/scene-02/02-06.mp3",
+          "startSeconds": 44.64,
+          "endSeconds": 49.512,
+          "durationSeconds": 4.872,
+          "startFrame": 1339,
+          "endFrame": 1485
+        }
+      ],
+      "subtitleCues": [
+        {
+          "cueId": "02-01-a",
+          "segmentId": "02-01",
+          "startSeconds": 21.018,
+          "endSeconds": 22.464000000000002,
+          "startFrame": 631,
+          "endFrame": 674
+        },
+        {
+          "cueId": "02-02-a",
+          "segmentId": "02-02",
+          "startSeconds": 22.554000000000002,
+          "endSeconds": 24.564000000000004,
+          "startFrame": 677,
+          "endFrame": 737
+        },
+        {
+          "cueId": "02-02-b",
+          "segmentId": "02-02",
+          "startSeconds": 24.564000000000004,
+          "endSeconds": 26.472,
+          "startFrame": 737,
+          "endFrame": 794
+        },
+        {
+          "cueId": "02-03-a",
+          "segmentId": "02-03",
+          "startSeconds": 26.562,
+          "endSeconds": 28.542,
+          "startFrame": 797,
+          "endFrame": 856
+        },
+        {
+          "cueId": "02-03-b",
+          "segmentId": "02-03",
+          "startSeconds": 28.542,
+          "endSeconds": 30.372,
+          "startFrame": 856,
+          "endFrame": 911
+        },
+        {
+          "cueId": "02-03-c",
+          "segmentId": "02-03",
+          "startSeconds": 30.372,
+          "endSeconds": 31.712000000000003,
+          "startFrame": 911,
+          "endFrame": 951
+        },
+        {
+          "cueId": "02-03-d",
+          "segmentId": "02-03",
+          "startSeconds": 31.712000000000003,
+          "endSeconds": 34.272,
+          "startFrame": 951,
+          "endFrame": 1028
+        },
+        {
+          "cueId": "02-04-a",
+          "segmentId": "02-04",
+          "startSeconds": 34.362,
+          "endSeconds": 35.812,
+          "startFrame": 1031,
+          "endFrame": 1074
+        },
+        {
+          "cueId": "02-04-b",
+          "segmentId": "02-04",
+          "startSeconds": 35.812,
+          "endSeconds": 37.861999999999995,
+          "startFrame": 1074,
+          "endFrame": 1136
+        },
+        {
+          "cueId": "02-04-c",
+          "segmentId": "02-04",
+          "startSeconds": 37.861999999999995,
+          "endSeconds": 39.672,
+          "startFrame": 1136,
+          "endFrame": 1190
+        },
+        {
+          "cueId": "02-05-a",
+          "segmentId": "02-05",
+          "startSeconds": 39.762,
+          "endSeconds": 41.751999999999995,
+          "startFrame": 1193,
+          "endFrame": 1253
+        },
+        {
+          "cueId": "02-05-b",
+          "segmentId": "02-05",
+          "startSeconds": 41.751999999999995,
+          "endSeconds": 43.262,
+          "startFrame": 1253,
+          "endFrame": 1298
+        },
+        {
+          "cueId": "02-05-c",
+          "segmentId": "02-05",
+          "startSeconds": 43.262,
+          "endSeconds": 44.64,
+          "startFrame": 1298,
+          "endFrame": 1339
+        },
+        {
+          "cueId": "02-06-a",
+          "segmentId": "02-06",
+          "startSeconds": 44.730000000000004,
+          "endSeconds": 47.05,
+          "startFrame": 1342,
+          "endFrame": 1412
+        },
+        {
+          "cueId": "02-06-b",
+          "segmentId": "02-06",
+          "startSeconds": 47.05,
+          "endSeconds": 49.512,
+          "startFrame": 1412,
+          "endFrame": 1485
+        }
+      ],
+      "animationEvents": [
+        {
+          "event": "五步动作依次点亮",
+          "source": {
+            "type": "segment",
+            "id": "02-01"
+          },
+          "atSeconds": 20.928,
+          "atFrame": 628
+        },
+        {
+          "event": "动作链进入查看结果和调整",
+          "source": {
+            "type": "segment",
+            "id": "02-02"
+          },
+          "atSeconds": 22.464000000000002,
+          "atFrame": 674
+        },
+        {
+          "event": "运行测试到再次测试的闭环依次出现",
+          "source": {
+            "type": "segment",
+            "id": "02-03"
+          },
+          "atSeconds": 26.472,
+          "atFrame": 794
+        }
+      ]
+    },
+    {
+      "sceneId": "03",
+      "layout": "带标签的 Sandbox 工作区边界，边界内项目文件，边界外桌面文件，写入箭头在边界处停止。",
+      "visualEvents": [
+        "workspace-write 边界出现",
+        "工作区内文件显示已修改",
+        "边界外文件显示未修改",
+        "写入箭头从通过转为在边界处停止"
+      ],
+      "screenText": [
+        "Sandbox",
+        "workspace-write",
+        "工作区内：可写",
+        "边界之外",
+        "项目目录 / final.md",
+        "桌面目录 / draft.md",
+        "已修改",
+        "未修改"
+      ],
+      "implementationFiles": [
+        "src/videos/02-core-concepts/CoreConceptsVideo.tsx",
+        "src/videos/02-core-concepts/video.config.ts"
+      ],
+      "timing": {
+        "timelineSource": "src/videos/02-core-concepts/generated/timeline-manifest.json",
+        "startSeconds": 49.512,
+        "endSeconds": 80.328,
+        "durationSeconds": 30.816,
+        "startFrame": 1485,
+        "endFrame": 2410,
+        "durationFrames": 924
+      },
+      "audioSegments": [
+        {
+          "segmentId": "03-01",
+          "file": "audio/scene-03/03-01.mp3",
+          "startSeconds": 49.512,
+          "endSeconds": 53.784,
+          "durationSeconds": 4.272,
+          "startFrame": 1485,
+          "endFrame": 1614
+        },
+        {
+          "segmentId": "03-02",
+          "file": "audio/scene-03/03-02.mp3",
+          "startSeconds": 53.784,
+          "endSeconds": 62.28,
+          "durationSeconds": 8.496,
+          "startFrame": 1614,
+          "endFrame": 1868
+        },
+        {
+          "segmentId": "03-03",
+          "file": "audio/scene-03/03-03.mp3",
+          "startSeconds": 62.28,
+          "endSeconds": 67.70400000000001,
+          "durationSeconds": 5.424,
+          "startFrame": 1868,
+          "endFrame": 2031
+        },
+        {
+          "segmentId": "03-04",
+          "file": "audio/scene-03/03-04.mp3",
+          "startSeconds": 67.70400000000001,
+          "endSeconds": 76.46400000000001,
+          "durationSeconds": 8.76,
+          "startFrame": 2031,
+          "endFrame": 2294
+        },
+        {
+          "segmentId": "03-05",
+          "file": "audio/scene-03/03-05.mp3",
+          "startSeconds": 76.464,
+          "endSeconds": 80.328,
+          "durationSeconds": 3.864,
+          "startFrame": 2294,
+          "endFrame": 2410
+        }
+      ],
+      "subtitleCues": [
+        {
+          "cueId": "03-01-a",
+          "segmentId": "03-01",
+          "startSeconds": 49.602000000000004,
+          "endSeconds": 51.042,
+          "startFrame": 1488,
+          "endFrame": 1531
+        },
+        {
+          "cueId": "03-01-b",
+          "segmentId": "03-01",
+          "startSeconds": 51.042,
+          "endSeconds": 53.784,
+          "startFrame": 1531,
+          "endFrame": 1614
+        },
+        {
+          "cueId": "03-02-a",
+          "segmentId": "03-02",
+          "startSeconds": 53.874,
+          "endSeconds": 55.693999999999996,
+          "startFrame": 1616,
+          "endFrame": 1671
+        },
+        {
+          "cueId": "03-02-b",
+          "segmentId": "03-02",
+          "startSeconds": 55.693999999999996,
+          "endSeconds": 58.744,
+          "startFrame": 1671,
+          "endFrame": 1762
+        },
+        {
+          "cueId": "03-02-c",
+          "segmentId": "03-02",
+          "startSeconds": 58.744,
+          "endSeconds": 60.064,
+          "startFrame": 1762,
+          "endFrame": 1802
+        },
+        {
+          "cueId": "03-02-d",
+          "segmentId": "03-02",
+          "startSeconds": 60.064,
+          "endSeconds": 62.28,
+          "startFrame": 1802,
+          "endFrame": 1868
+        },
+        {
+          "cueId": "03-03-a",
+          "segmentId": "03-03",
+          "startSeconds": 62.370000000000005,
+          "endSeconds": 65.38,
+          "startFrame": 1871,
+          "endFrame": 1961
+        },
+        {
+          "cueId": "03-03-b",
+          "segmentId": "03-03",
+          "startSeconds": 65.38,
+          "endSeconds": 67.70400000000001,
+          "startFrame": 1961,
+          "endFrame": 2031
+        },
+        {
+          "cueId": "03-04-a",
+          "segmentId": "03-04",
+          "startSeconds": 67.79400000000001,
+          "endSeconds": 69.95400000000001,
+          "startFrame": 2034,
+          "endFrame": 2099
+        },
+        {
+          "cueId": "03-04-b",
+          "segmentId": "03-04",
+          "startSeconds": 69.95400000000001,
+          "endSeconds": 71.944,
+          "startFrame": 2099,
+          "endFrame": 2158
+        },
+        {
+          "cueId": "03-04-c",
+          "segmentId": "03-04",
+          "startSeconds": 71.944,
+          "endSeconds": 74.70400000000001,
+          "startFrame": 2158,
+          "endFrame": 2241
+        },
+        {
+          "cueId": "03-04-d",
+          "segmentId": "03-04",
+          "startSeconds": 74.70400000000001,
+          "endSeconds": 76.46400000000001,
+          "startFrame": 2241,
+          "endFrame": 2294
+        },
+        {
+          "cueId": "03-05-a",
+          "segmentId": "03-05",
+          "startSeconds": 76.554,
+          "endSeconds": 78.114,
+          "startFrame": 2297,
+          "endFrame": 2343
+        },
+        {
+          "cueId": "03-05-b",
+          "segmentId": "03-05",
+          "startSeconds": 78.114,
+          "endSeconds": 80.328,
+          "startFrame": 2343,
+          "endFrame": 2410
+        }
+      ],
+      "animationEvents": [
+        {
+          "event": "workspace-write 边界出现",
+          "source": {
+            "type": "segment",
+            "id": "03-01"
+          },
+          "atSeconds": 49.512,
+          "atFrame": 1485
+        },
+        {
+          "event": "工作区内文件显示已修改",
+          "source": {
+            "type": "segment",
+            "id": "03-02"
+          },
+          "atSeconds": 53.784,
+          "atFrame": 1614
+        },
+        {
+          "event": "边界外文件显示未修改",
+          "source": {
+            "type": "segment",
+            "id": "03-03"
+          },
+          "atSeconds": 62.28,
+          "atFrame": 1868
+        },
+        {
+          "event": "写入箭头从通过转为在边界处停止",
+          "source": {
+            "type": "segment",
+            "id": "03-04"
+          },
+          "atSeconds": 67.70400000000001,
+          "atFrame": 2031
+        }
+      ]
+    },
+    {
+      "sceneId": "04",
+      "layout": "从 Sandbox 到动作判断节点，再分出边界内执行、Approval 等待、获准继续和未获许可停止四条路径。",
+      "visualEvents": [
+        "Sandbox 和动作判断节点依次出现",
+        "是路径进入执行",
+        "否路径进入 Approval 并等待",
+        "获准与未获许可终态分别显示"
+      ],
+      "screenText": [
+        "Sandbox",
+        "能不能",
+        "在 Sandbox 内吗",
+        "动作请求",
+        "是 → 执行",
+        "否 → 请求 Approval",
+        "获得许可",
+        "未获许可",
+        "继续",
+        "等待",
+        "停止"
+      ],
+      "implementationFiles": [
+        "src/videos/02-core-concepts/CoreConceptsVideo.tsx",
+        "src/videos/02-core-concepts/video.config.ts"
+      ],
+      "timing": {
+        "timelineSource": "src/videos/02-core-concepts/generated/timeline-manifest.json",
+        "startSeconds": 80.328,
+        "endSeconds": 112.704,
+        "durationSeconds": 32.376,
+        "startFrame": 2410,
+        "endFrame": 3381,
+        "durationFrames": 971
+      },
+      "audioSegments": [
+        {
+          "segmentId": "04-01",
+          "file": "audio/scene-04/04-01.mp3",
+          "startSeconds": 80.328,
+          "endSeconds": 84.096,
+          "durationSeconds": 3.768,
+          "startFrame": 2410,
+          "endFrame": 2523
+        },
+        {
+          "segmentId": "04-02",
+          "file": "audio/scene-04/04-02.mp3",
+          "startSeconds": 84.096,
+          "endSeconds": 88.8,
+          "durationSeconds": 4.704,
+          "startFrame": 2523,
+          "endFrame": 2664
+        },
+        {
+          "segmentId": "04-03",
+          "file": "audio/scene-04/04-03.mp3",
+          "startSeconds": 88.8,
+          "endSeconds": 96.216,
+          "durationSeconds": 7.416,
+          "startFrame": 2664,
+          "endFrame": 2886
+        },
+        {
+          "segmentId": "04-04",
+          "file": "audio/scene-04/04-04.mp3",
+          "startSeconds": 96.21600000000001,
+          "endSeconds": 102.816,
+          "durationSeconds": 6.6,
+          "startFrame": 2886,
+          "endFrame": 3084
+        },
+        {
+          "segmentId": "04-05",
+          "file": "audio/scene-04/04-05.mp3",
+          "startSeconds": 102.816,
+          "endSeconds": 108.72,
+          "durationSeconds": 5.904,
+          "startFrame": 3084,
+          "endFrame": 3262
+        },
+        {
+          "segmentId": "04-06",
+          "file": "audio/scene-04/04-06.mp3",
+          "startSeconds": 108.72,
+          "endSeconds": 112.704,
+          "durationSeconds": 3.984,
+          "startFrame": 3262,
+          "endFrame": 3381
+        }
+      ],
+      "subtitleCues": [
+        {
+          "cueId": "04-01-a",
+          "segmentId": "04-01",
+          "startSeconds": 80.418,
+          "endSeconds": 84.096,
+          "startFrame": 2413,
+          "endFrame": 2523
+        },
+        {
+          "cueId": "04-02-a",
+          "segmentId": "04-02",
+          "startSeconds": 84.186,
+          "endSeconds": 85.406,
+          "startFrame": 2526,
+          "endFrame": 2562
+        },
+        {
+          "cueId": "04-02-b",
+          "segmentId": "04-02",
+          "startSeconds": 85.406,
+          "endSeconds": 88.8,
+          "startFrame": 2562,
+          "endFrame": 2664
+        },
+        {
+          "cueId": "04-03-a",
+          "segmentId": "04-03",
+          "startSeconds": 88.89,
+          "endSeconds": 92.02,
+          "startFrame": 2667,
+          "endFrame": 2761
+        },
+        {
+          "cueId": "04-03-b",
+          "segmentId": "04-03",
+          "startSeconds": 92.02,
+          "endSeconds": 94.63,
+          "startFrame": 2761,
+          "endFrame": 2839
+        },
+        {
+          "cueId": "04-03-c",
+          "segmentId": "04-03",
+          "startSeconds": 94.63,
+          "endSeconds": 96.216,
+          "startFrame": 2839,
+          "endFrame": 2886
+        },
+        {
+          "cueId": "04-04-a",
+          "segmentId": "04-04",
+          "startSeconds": 96.30600000000001,
+          "endSeconds": 97.85600000000001,
+          "startFrame": 2889,
+          "endFrame": 2936
+        },
+        {
+          "cueId": "04-04-b",
+          "segmentId": "04-04",
+          "startSeconds": 97.85600000000001,
+          "endSeconds": 100.24600000000001,
+          "startFrame": 2936,
+          "endFrame": 3007
+        },
+        {
+          "cueId": "04-04-c",
+          "segmentId": "04-04",
+          "startSeconds": 100.24600000000001,
+          "endSeconds": 102.816,
+          "startFrame": 3007,
+          "endFrame": 3084
+        },
+        {
+          "cueId": "04-05-a",
+          "segmentId": "04-05",
+          "startSeconds": 102.906,
+          "endSeconds": 105.74600000000001,
+          "startFrame": 3087,
+          "endFrame": 3172
+        },
+        {
+          "cueId": "04-05-b",
+          "segmentId": "04-05",
+          "startSeconds": 105.74600000000001,
+          "endSeconds": 108.72,
+          "startFrame": 3172,
+          "endFrame": 3262
+        },
+        {
+          "cueId": "04-06-a",
+          "segmentId": "04-06",
+          "startSeconds": 108.81,
+          "endSeconds": 112.704,
+          "startFrame": 3264,
+          "endFrame": 3381
+        }
+      ],
+      "animationEvents": [
+        {
+          "event": "Sandbox 和动作判断节点依次出现",
+          "source": {
+            "type": "segment",
+            "id": "04-01"
+          },
+          "atSeconds": 80.328,
+          "atFrame": 2410
+        },
+        {
+          "event": "是路径进入执行",
+          "source": {
+            "type": "segment",
+            "id": "04-02"
+          },
+          "atSeconds": 84.096,
+          "atFrame": 2523
+        },
+        {
+          "event": "否路径进入 Approval 并等待",
+          "source": {
+            "type": "segment",
+            "id": "04-03"
+          },
+          "atSeconds": 88.8,
+          "atFrame": 2664
+        },
+        {
+          "event": "获准与未获许可终态分别显示",
+          "source": {
+            "type": "segment",
+            "id": "04-04"
+          },
+          "atSeconds": 96.21600000000001,
+          "atFrame": 2886
+        }
+      ]
+    },
+    {
+      "sceneId": "05",
+      "layout": "左侧 AGENTS.md 规则入口，右侧四类规则依次注入，底部形成错误假设到规则复用的反馈回路。",
+      "visualEvents": [
+        "AGENTS.md 出现",
+        "四类规则依次点亮",
+        "错误假设、用户纠正和规则复用依次出现"
+      ],
+      "screenText": [
+        "AGENTS.md",
+        "规则入口",
+        "构建命令",
+        "测试要求",
+        "审查规则",
+        "仓库约定",
+        "错误假设",
+        "用户纠正",
+        "规则复用"
+      ],
+      "implementationFiles": [
+        "src/videos/02-core-concepts/CoreConceptsVideo.tsx",
+        "src/videos/02-core-concepts/video.config.ts"
+      ],
+      "timing": {
+        "timelineSource": "src/videos/02-core-concepts/generated/timeline-manifest.json",
+        "startSeconds": 112.704,
+        "endSeconds": 144.936,
+        "durationSeconds": 32.232,
+        "startFrame": 3381,
+        "endFrame": 4348,
+        "durationFrames": 967
+      },
+      "audioSegments": [
+        {
+          "segmentId": "05-01",
+          "file": "audio/scene-05/05-01.mp3",
+          "startSeconds": 112.704,
+          "endSeconds": 117.50399999999999,
+          "durationSeconds": 4.8,
+          "startFrame": 3381,
+          "endFrame": 3525
+        },
+        {
+          "segmentId": "05-02",
+          "file": "audio/scene-05/05-02.mp3",
+          "startSeconds": 117.50399999999999,
+          "endSeconds": 126.264,
+          "durationSeconds": 8.76,
+          "startFrame": 3525,
+          "endFrame": 3788
+        },
+        {
+          "segmentId": "05-03",
+          "file": "audio/scene-05/05-03.mp3",
+          "startSeconds": 126.264,
+          "endSeconds": 133.992,
+          "durationSeconds": 7.728,
+          "startFrame": 3788,
+          "endFrame": 4020
+        },
+        {
+          "segmentId": "05-04",
+          "file": "audio/scene-05/05-04.mp3",
+          "startSeconds": 133.992,
+          "endSeconds": 141.14399999999998,
+          "durationSeconds": 7.152,
+          "startFrame": 4020,
+          "endFrame": 4234
+        },
+        {
+          "segmentId": "05-05",
+          "file": "audio/scene-05/05-05.mp3",
+          "startSeconds": 141.144,
+          "endSeconds": 144.936,
+          "durationSeconds": 3.792,
+          "startFrame": 4234,
+          "endFrame": 4348
+        }
+      ],
+      "subtitleCues": [
+        {
+          "cueId": "05-01-a",
+          "segmentId": "05-01",
+          "startSeconds": 112.794,
+          "endSeconds": 114.264,
+          "startFrame": 3384,
+          "endFrame": 3428
+        },
+        {
+          "cueId": "05-01-b",
+          "segmentId": "05-01",
+          "startSeconds": 114.264,
+          "endSeconds": 115.624,
+          "startFrame": 3428,
+          "endFrame": 3469
+        },
+        {
+          "cueId": "05-01-c",
+          "segmentId": "05-01",
+          "startSeconds": 115.624,
+          "endSeconds": 117.50399999999999,
+          "startFrame": 3469,
+          "endFrame": 3525
+        },
+        {
+          "cueId": "05-02-a",
+          "segmentId": "05-02",
+          "startSeconds": 117.594,
+          "endSeconds": 119.28399999999999,
+          "startFrame": 3528,
+          "endFrame": 3579
+        },
+        {
+          "cueId": "05-02-b",
+          "segmentId": "05-02",
+          "startSeconds": 119.28399999999999,
+          "endSeconds": 121.49399999999999,
+          "startFrame": 3579,
+          "endFrame": 3645
+        },
+        {
+          "cueId": "05-02-c",
+          "segmentId": "05-02",
+          "startSeconds": 121.49399999999999,
+          "endSeconds": 123.124,
+          "startFrame": 3645,
+          "endFrame": 3694
+        },
+        {
+          "cueId": "05-02-d",
+          "segmentId": "05-02",
+          "startSeconds": 123.124,
+          "endSeconds": 126.264,
+          "startFrame": 3694,
+          "endFrame": 3788
+        },
+        {
+          "cueId": "05-03-a",
+          "segmentId": "05-03",
+          "startSeconds": 126.354,
+          "endSeconds": 127.664,
+          "startFrame": 3791,
+          "endFrame": 3830
+        },
+        {
+          "cueId": "05-03-b",
+          "segmentId": "05-03",
+          "startSeconds": 127.664,
+          "endSeconds": 130.304,
+          "startFrame": 3830,
+          "endFrame": 3909
+        },
+        {
+          "cueId": "05-03-c",
+          "segmentId": "05-03",
+          "startSeconds": 130.304,
+          "endSeconds": 131.654,
+          "startFrame": 3909,
+          "endFrame": 3950
+        },
+        {
+          "cueId": "05-03-d",
+          "segmentId": "05-03",
+          "startSeconds": 131.654,
+          "endSeconds": 133.992,
+          "startFrame": 3950,
+          "endFrame": 4020
+        },
+        {
+          "cueId": "05-04-a",
+          "segmentId": "05-04",
+          "startSeconds": 134.082,
+          "endSeconds": 136.81199999999998,
+          "startFrame": 4022,
+          "endFrame": 4104
+        },
+        {
+          "cueId": "05-04-b",
+          "segmentId": "05-04",
+          "startSeconds": 136.81199999999998,
+          "endSeconds": 138.59199999999998,
+          "startFrame": 4104,
+          "endFrame": 4158
+        },
+        {
+          "cueId": "05-04-c",
+          "segmentId": "05-04",
+          "startSeconds": 138.59199999999998,
+          "endSeconds": 141.14399999999998,
+          "startFrame": 4158,
+          "endFrame": 4234
+        },
+        {
+          "cueId": "05-05-a",
+          "segmentId": "05-05",
+          "startSeconds": 141.234,
+          "endSeconds": 142.714,
+          "startFrame": 4237,
+          "endFrame": 4281
+        },
+        {
+          "cueId": "05-05-b",
+          "segmentId": "05-05",
+          "startSeconds": 142.714,
+          "endSeconds": 144.936,
+          "startFrame": 4281,
+          "endFrame": 4348
+        }
+      ],
+      "animationEvents": [
+        {
+          "event": "AGENTS.md 出现",
+          "source": {
+            "type": "segment",
+            "id": "05-01"
+          },
+          "atSeconds": 112.704,
+          "atFrame": 3381
+        },
+        {
+          "event": "四类规则依次点亮",
+          "source": {
+            "type": "segment",
+            "id": "05-02"
+          },
+          "atSeconds": 117.50399999999999,
+          "atFrame": 3525
+        },
+        {
+          "event": "错误假设、用户纠正和规则复用依次出现",
+          "source": {
+            "type": "segment",
+            "id": "05-03"
+          },
+          "atSeconds": 126.264,
+          "atFrame": 3788
+        }
+      ]
+    },
+    {
+      "sceneId": "06",
+      "layout": "中心 Agent，上下文来源从左上、左下和右上汇入；AGENTS.md 标为确定性，Memory／Chronicle 标为补充性。",
+      "visualEvents": [
+        "AGENTS.md 稳定规则先出现",
+        "Memory 和 Chronicle 依次汇入",
+        "隐私、提示注入和资源限制警示最后出现",
+        "规则负责确定性与上下文负责补充性最后收束"
+      ],
+      "screenText": [
+        "AGENTS.md",
+        "稳定项目规则",
+        "确定性",
+        "Memory",
+        "过去会话的提炼信息",
+        "补充性",
+        "Chronicle",
+        "近期屏幕活动上下文",
+        "隐私",
+        "提示注入",
+        "资源限制",
+        "规则负责确定性",
+        "上下文负责补充性"
+      ],
+      "implementationFiles": [
+        "src/videos/02-core-concepts/CoreConceptsVideo.tsx",
+        "src/videos/02-core-concepts/video.config.ts"
+      ],
+      "timing": {
+        "timelineSource": "src/videos/02-core-concepts/generated/timeline-manifest.json",
+        "startSeconds": 144.936,
+        "endSeconds": 180.624,
+        "durationSeconds": 35.688,
+        "startFrame": 4348,
+        "endFrame": 5419,
+        "durationFrames": 1071
+      },
+      "audioSegments": [
+        {
+          "segmentId": "06-01",
+          "file": "audio/scene-06/06-01.mp3",
+          "startSeconds": 144.936,
+          "endSeconds": 150.144,
+          "durationSeconds": 5.208,
+          "startFrame": 4348,
+          "endFrame": 4504
+        },
+        {
+          "segmentId": "06-02",
+          "file": "audio/scene-06/06-02.mp3",
+          "startSeconds": 150.144,
+          "endSeconds": 155.68800000000002,
+          "durationSeconds": 5.544,
+          "startFrame": 4504,
+          "endFrame": 4671
+        },
+        {
+          "segmentId": "06-03",
+          "file": "audio/scene-06/06-03.mp3",
+          "startSeconds": 155.68800000000002,
+          "endSeconds": 166.92000000000002,
+          "durationSeconds": 11.232,
+          "startFrame": 4671,
+          "endFrame": 5008
+        },
+        {
+          "segmentId": "06-04",
+          "file": "audio/scene-06/06-04.mp3",
+          "startSeconds": 166.92000000000002,
+          "endSeconds": 169.29600000000002,
+          "durationSeconds": 2.376,
+          "startFrame": 5008,
+          "endFrame": 5079
+        },
+        {
+          "segmentId": "06-05",
+          "file": "audio/scene-06/06-05.mp3",
+          "startSeconds": 169.296,
+          "endSeconds": 177.432,
+          "durationSeconds": 8.136,
+          "startFrame": 5079,
+          "endFrame": 5323
+        },
+        {
+          "segmentId": "06-06",
+          "file": "audio/scene-06/06-06.mp3",
+          "startSeconds": 177.43200000000002,
+          "endSeconds": 180.62400000000002,
+          "durationSeconds": 3.192,
+          "startFrame": 5323,
+          "endFrame": 5419
+        }
+      ],
+      "subtitleCues": [
+        {
+          "cueId": "06-01-a",
+          "segmentId": "06-01",
+          "startSeconds": 145.026,
+          "endSeconds": 148.51600000000002,
+          "startFrame": 4351,
+          "endFrame": 4455
+        },
+        {
+          "cueId": "06-01-b",
+          "segmentId": "06-01",
+          "startSeconds": 148.51600000000002,
+          "endSeconds": 150.144,
+          "startFrame": 4455,
+          "endFrame": 4504
+        },
+        {
+          "cueId": "06-02-a",
+          "segmentId": "06-02",
+          "startSeconds": 150.234,
+          "endSeconds": 153.274,
+          "startFrame": 4507,
+          "endFrame": 4598
+        },
+        {
+          "cueId": "06-02-b",
+          "segmentId": "06-02",
+          "startSeconds": 153.274,
+          "endSeconds": 155.68800000000002,
+          "startFrame": 4598,
+          "endFrame": 4671
+        },
+        {
+          "cueId": "06-03-a",
+          "segmentId": "06-03",
+          "startSeconds": 155.77800000000002,
+          "endSeconds": 159.328,
+          "startFrame": 4673,
+          "endFrame": 4780
+        },
+        {
+          "cueId": "06-03-b",
+          "segmentId": "06-03",
+          "startSeconds": 159.328,
+          "endSeconds": 162.418,
+          "startFrame": 4780,
+          "endFrame": 4873
+        },
+        {
+          "cueId": "06-03-c",
+          "segmentId": "06-03",
+          "startSeconds": 162.418,
+          "endSeconds": 163.71800000000002,
+          "startFrame": 4873,
+          "endFrame": 4912
+        },
+        {
+          "cueId": "06-03-d",
+          "segmentId": "06-03",
+          "startSeconds": 163.71800000000002,
+          "endSeconds": 166.92000000000002,
+          "startFrame": 4912,
+          "endFrame": 5008
+        },
+        {
+          "cueId": "06-04-a",
+          "segmentId": "06-04",
+          "startSeconds": 167.01000000000002,
+          "endSeconds": 169.29600000000002,
+          "startFrame": 5010,
+          "endFrame": 5079
+        },
+        {
+          "cueId": "06-05-a",
+          "segmentId": "06-05",
+          "startSeconds": 169.386,
+          "endSeconds": 171.646,
+          "startFrame": 5082,
+          "endFrame": 5149
+        },
+        {
+          "cueId": "06-05-b",
+          "segmentId": "06-05",
+          "startSeconds": 171.646,
+          "endSeconds": 173.68599999999998,
+          "startFrame": 5149,
+          "endFrame": 5211
+        },
+        {
+          "cueId": "06-05-c",
+          "segmentId": "06-05",
+          "startSeconds": 173.68599999999998,
+          "endSeconds": 177.432,
+          "startFrame": 5211,
+          "endFrame": 5323
+        },
+        {
+          "cueId": "06-06-a",
+          "segmentId": "06-06",
+          "startSeconds": 177.52200000000002,
+          "endSeconds": 178.83200000000002,
+          "startFrame": 5326,
+          "endFrame": 5365
+        },
+        {
+          "cueId": "06-06-b",
+          "segmentId": "06-06",
+          "startSeconds": 178.83200000000002,
+          "endSeconds": 180.62400000000002,
+          "startFrame": 5365,
+          "endFrame": 5419
+        }
+      ],
+      "animationEvents": [
+        {
+          "event": "AGENTS.md 稳定规则先出现",
+          "source": {
+            "type": "segment",
+            "id": "06-01"
+          },
+          "atSeconds": 144.936,
+          "atFrame": 4348
+        },
+        {
+          "event": "Memory 和 Chronicle 依次汇入",
+          "source": {
+            "type": "segment",
+            "id": "06-02"
+          },
+          "atSeconds": 150.144,
+          "atFrame": 4504
+        },
+        {
+          "event": "隐私、提示注入和资源限制警示最后出现",
+          "source": {
+            "type": "segment",
+            "id": "06-03"
+          },
+          "atSeconds": 155.68800000000002,
+          "atFrame": 4671
+        },
+        {
+          "event": "规则负责确定性与上下文负责补充性最后收束",
+          "source": {
+            "type": "segment",
+            "id": "06-04"
+          },
+          "atSeconds": 166.92000000000002,
+          "atFrame": 5008
+        }
+      ]
+    },
+    {
+      "sceneId": "07",
+      "layout": "固定顶部请求栏，下方上下两轮实验；read-only 文件树不变，workspace-write 文件树新增 hello.txt。",
+      "visualEvents": [
+        "同一个请求和 Agent 标记固定",
+        "read-only 轮显示未写入",
+        "workspace-write 轮显示 hello.txt 已创建",
+        "两轮结果同时定格"
+      ],
+      "screenText": [
+        "同一个请求",
+        "在当前项目创建 hello.txt",
+        "Agent",
+        "read-only",
+        "第一轮",
+        "未写入",
+        "workspace-write",
+        "第二轮",
+        "hello.txt",
+        "hello.txt 已创建",
+        "请求没有变",
+        "边界变了",
+        "结果就变了"
+      ],
+      "implementationFiles": [
+        "src/videos/02-core-concepts/CoreConceptsVideo.tsx",
+        "src/videos/02-core-concepts/video.config.ts"
+      ],
+      "timing": {
+        "timelineSource": "src/videos/02-core-concepts/generated/timeline-manifest.json",
+        "startSeconds": 180.624,
+        "endSeconds": 217.368,
+        "durationSeconds": 36.744,
+        "startFrame": 5419,
+        "endFrame": 6521,
+        "durationFrames": 1102
+      },
+      "audioSegments": [
+        {
+          "segmentId": "07-01",
+          "file": "audio/scene-07/07-01.mp3",
+          "startSeconds": 180.624,
+          "endSeconds": 184.79999999999998,
+          "durationSeconds": 4.176,
+          "startFrame": 5419,
+          "endFrame": 5544
+        },
+        {
+          "segmentId": "07-02",
+          "file": "audio/scene-07/07-02.mp3",
+          "startSeconds": 184.79999999999998,
+          "endSeconds": 194.20799999999997,
+          "durationSeconds": 9.408,
+          "startFrame": 5544,
+          "endFrame": 5826
+        },
+        {
+          "segmentId": "07-03",
+          "file": "audio/scene-07/07-03.mp3",
+          "startSeconds": 194.208,
+          "endSeconds": 200.736,
+          "durationSeconds": 6.528,
+          "startFrame": 5826,
+          "endFrame": 6022
+        },
+        {
+          "segmentId": "07-04",
+          "file": "audio/scene-07/07-04.mp3",
+          "startSeconds": 200.736,
+          "endSeconds": 207.23999999999998,
+          "durationSeconds": 6.504,
+          "startFrame": 6022,
+          "endFrame": 6217
+        },
+        {
+          "segmentId": "07-05",
+          "file": "audio/scene-07/07-05.mp3",
+          "startSeconds": 207.24,
+          "endSeconds": 212.08800000000002,
+          "durationSeconds": 4.848,
+          "startFrame": 6217,
+          "endFrame": 6363
+        },
+        {
+          "segmentId": "07-06",
+          "file": "audio/scene-07/07-06.mp3",
+          "startSeconds": 212.088,
+          "endSeconds": 217.368,
+          "durationSeconds": 5.28,
+          "startFrame": 6363,
+          "endFrame": 6521
+        }
+      ],
+      "subtitleCues": [
+        {
+          "cueId": "07-01-a",
+          "segmentId": "07-01",
+          "startSeconds": 180.714,
+          "endSeconds": 182.304,
+          "startFrame": 5421,
+          "endFrame": 5469
+        },
+        {
+          "cueId": "07-01-b",
+          "segmentId": "07-01",
+          "startSeconds": 182.304,
+          "endSeconds": 184.79999999999998,
+          "startFrame": 5469,
+          "endFrame": 5544
+        },
+        {
+          "cueId": "07-02-a",
+          "segmentId": "07-02",
+          "startSeconds": 184.89,
+          "endSeconds": 187.14,
+          "startFrame": 5547,
+          "endFrame": 5614
+        },
+        {
+          "cueId": "07-02-b",
+          "segmentId": "07-02",
+          "startSeconds": 187.14,
+          "endSeconds": 189.95999999999998,
+          "startFrame": 5614,
+          "endFrame": 5699
+        },
+        {
+          "cueId": "07-02-c",
+          "segmentId": "07-02",
+          "startSeconds": 189.95999999999998,
+          "endSeconds": 191.89,
+          "startFrame": 5699,
+          "endFrame": 5757
+        },
+        {
+          "cueId": "07-02-d",
+          "segmentId": "07-02",
+          "startSeconds": 191.89,
+          "endSeconds": 194.20799999999997,
+          "startFrame": 5757,
+          "endFrame": 5826
+        },
+        {
+          "cueId": "07-03-a",
+          "segmentId": "07-03",
+          "startSeconds": 194.298,
+          "endSeconds": 196.128,
+          "startFrame": 5829,
+          "endFrame": 5884
+        },
+        {
+          "cueId": "07-03-b",
+          "segmentId": "07-03",
+          "startSeconds": 196.128,
+          "endSeconds": 197.688,
+          "startFrame": 5884,
+          "endFrame": 5931
+        },
+        {
+          "cueId": "07-03-c",
+          "segmentId": "07-03",
+          "startSeconds": 197.688,
+          "endSeconds": 200.736,
+          "startFrame": 5931,
+          "endFrame": 6022
+        },
+        {
+          "cueId": "07-04-a",
+          "segmentId": "07-04",
+          "startSeconds": 200.826,
+          "endSeconds": 203.05599999999998,
+          "startFrame": 6025,
+          "endFrame": 6092
+        },
+        {
+          "cueId": "07-04-b",
+          "segmentId": "07-04",
+          "startSeconds": 203.05599999999998,
+          "endSeconds": 206.02599999999998,
+          "startFrame": 6092,
+          "endFrame": 6181
+        },
+        {
+          "cueId": "07-04-c",
+          "segmentId": "07-04",
+          "startSeconds": 206.02599999999998,
+          "endSeconds": 207.23999999999998,
+          "startFrame": 6181,
+          "endFrame": 6217
+        },
+        {
+          "cueId": "07-05-a",
+          "segmentId": "07-05",
+          "startSeconds": 207.33,
+          "endSeconds": 209.4,
+          "startFrame": 6220,
+          "endFrame": 6282
+        },
+        {
+          "cueId": "07-05-b",
+          "segmentId": "07-05",
+          "startSeconds": 209.4,
+          "endSeconds": 212.08800000000002,
+          "startFrame": 6282,
+          "endFrame": 6363
+        },
+        {
+          "cueId": "07-06-a",
+          "segmentId": "07-06",
+          "startSeconds": 212.178,
+          "endSeconds": 215.09799999999998,
+          "startFrame": 6365,
+          "endFrame": 6453
+        },
+        {
+          "cueId": "07-06-b",
+          "segmentId": "07-06",
+          "startSeconds": 215.09799999999998,
+          "endSeconds": 217.368,
+          "startFrame": 6453,
+          "endFrame": 6521
+        }
+      ],
+      "animationEvents": [
+        {
+          "event": "同一个请求和 Agent 标记固定",
+          "source": {
+            "type": "segment",
+            "id": "07-01"
+          },
+          "atSeconds": 180.624,
+          "atFrame": 5419
+        },
+        {
+          "event": "read-only 轮显示未写入",
+          "source": {
+            "type": "segment",
+            "id": "07-02"
+          },
+          "atSeconds": 184.79999999999998,
+          "atFrame": 5544
+        },
+        {
+          "event": "workspace-write 轮显示 hello.txt 已创建",
+          "source": {
+            "type": "segment",
+            "id": "07-03"
+          },
+          "atSeconds": 194.208,
+          "atFrame": 5826
+        },
+        {
+          "event": "两轮结果同时定格",
+          "source": {
+            "type": "segment",
+            "id": "07-04"
+          },
+          "atSeconds": 200.736,
+          "atFrame": 6022
+        }
+      ]
+    },
+    {
+      "sceneId": "08",
+      "layout": "任务目标、Agent、Sandbox、Approval 从左到右组装，规则和补充上下文从下方支撑，后段切换为独立预告卡。",
+      "visualEvents": [
+        "主关系图逐节点组装",
+        "AGENTS.md 与 Memory／Chronicle 支撑关系图",
+        "结论卡出现",
+        "关系图淡化后显示下一集预告卡并独立停留"
+      ],
+      "screenText": [
+        "任务目标",
+        "Agent",
+        "Sandbox",
+        "Approval",
+        "AGENTS.md：稳定规则",
+        "Memory／Chronicle：补充上下文",
+        "给清目标 · 画好边界 · 写下规则",
+        "下一集",
+        "03 · 安装与登录",
+        "Mac · Windows · Linux"
+      ],
+      "implementationFiles": [
+        "src/videos/02-core-concepts/CoreConceptsVideo.tsx",
+        "src/videos/02-core-concepts/video.config.ts"
+      ],
+      "timing": {
+        "timelineSource": "src/videos/02-core-concepts/generated/timeline-manifest.json",
+        "startSeconds": 217.368,
+        "endSeconds": 254.76,
+        "durationSeconds": 37.392,
+        "startFrame": 6521,
+        "endFrame": 7643,
+        "durationFrames": 1122
+      },
+      "audioSegments": [
+        {
+          "segmentId": "08-01",
+          "file": "audio/scene-08/08-01.mp3",
+          "startSeconds": 217.368,
+          "endSeconds": 221.088,
+          "durationSeconds": 3.72,
+          "startFrame": 6521,
+          "endFrame": 6633
+        },
+        {
+          "segmentId": "08-02",
+          "file": "audio/scene-08/08-02.mp3",
+          "startSeconds": 221.088,
+          "endSeconds": 233.016,
+          "durationSeconds": 11.928,
+          "startFrame": 6633,
+          "endFrame": 6990
+        },
+        {
+          "segmentId": "08-03",
+          "file": "audio/scene-08/08-03.mp3",
+          "startSeconds": 233.016,
+          "endSeconds": 240.408,
+          "durationSeconds": 7.392,
+          "startFrame": 6990,
+          "endFrame": 7212
+        },
+        {
+          "segmentId": "08-04",
+          "file": "audio/scene-08/08-04.mp3",
+          "startSeconds": 240.408,
+          "endSeconds": 246.48,
+          "durationSeconds": 6.072,
+          "startFrame": 7212,
+          "endFrame": 7394
+        },
+        {
+          "segmentId": "08-05",
+          "file": "audio/scene-08/08-05.mp3",
+          "startSeconds": 246.48,
+          "endSeconds": 254.76,
+          "durationSeconds": 8.28,
+          "startFrame": 7394,
+          "endFrame": 7643
+        }
+      ],
+      "subtitleCues": [
+        {
+          "cueId": "08-01-a",
+          "segmentId": "08-01",
+          "startSeconds": 217.458,
+          "endSeconds": 221.088,
+          "startFrame": 6524,
+          "endFrame": 6633
+        },
+        {
+          "cueId": "08-02-a",
+          "segmentId": "08-02",
+          "startSeconds": 221.178,
+          "endSeconds": 222.498,
+          "startFrame": 6635,
+          "endFrame": 6675
+        },
+        {
+          "cueId": "08-02-b",
+          "segmentId": "08-02",
+          "startSeconds": 222.498,
+          "endSeconds": 224.498,
+          "startFrame": 6675,
+          "endFrame": 6735
+        },
+        {
+          "cueId": "08-02-c",
+          "segmentId": "08-02",
+          "startSeconds": 224.498,
+          "endSeconds": 226.378,
+          "startFrame": 6735,
+          "endFrame": 6791
+        },
+        {
+          "cueId": "08-02-d",
+          "segmentId": "08-02",
+          "startSeconds": 226.378,
+          "endSeconds": 229.828,
+          "startFrame": 6791,
+          "endFrame": 6895
+        },
+        {
+          "cueId": "08-02-e",
+          "segmentId": "08-02",
+          "startSeconds": 229.828,
+          "endSeconds": 233.016,
+          "startFrame": 6895,
+          "endFrame": 6990
+        },
+        {
+          "cueId": "08-03-a",
+          "segmentId": "08-03",
+          "startSeconds": 233.106,
+          "endSeconds": 235.316,
+          "startFrame": 6993,
+          "endFrame": 7059
+        },
+        {
+          "cueId": "08-03-b",
+          "segmentId": "08-03",
+          "startSeconds": 235.316,
+          "endSeconds": 236.576,
+          "startFrame": 7059,
+          "endFrame": 7097
+        },
+        {
+          "cueId": "08-03-c",
+          "segmentId": "08-03",
+          "startSeconds": 236.576,
+          "endSeconds": 240.408,
+          "startFrame": 7097,
+          "endFrame": 7212
+        },
+        {
+          "cueId": "08-04-a",
+          "segmentId": "08-04",
+          "startSeconds": 240.498,
+          "endSeconds": 242.218,
+          "startFrame": 7215,
+          "endFrame": 7267
+        },
+        {
+          "cueId": "08-04-b",
+          "segmentId": "08-04",
+          "startSeconds": 242.218,
+          "endSeconds": 243.588,
+          "startFrame": 7267,
+          "endFrame": 7308
+        },
+        {
+          "cueId": "08-04-c",
+          "segmentId": "08-04",
+          "startSeconds": 243.588,
+          "endSeconds": 246.48,
+          "startFrame": 7308,
+          "endFrame": 7394
+        },
+        {
+          "cueId": "08-05-a",
+          "segmentId": "08-05",
+          "startSeconds": 246.57,
+          "endSeconds": 248.72,
+          "startFrame": 7397,
+          "endFrame": 7462
+        },
+        {
+          "cueId": "08-05-b",
+          "segmentId": "08-05",
+          "startSeconds": 248.72,
+          "endSeconds": 250.64,
+          "startFrame": 7462,
+          "endFrame": 7519
+        },
+        {
+          "cueId": "08-05-c",
+          "segmentId": "08-05",
+          "startSeconds": 250.64,
+          "endSeconds": 252.01999999999998,
+          "startFrame": 7519,
+          "endFrame": 7561
+        },
+        {
+          "cueId": "08-05-d",
+          "segmentId": "08-05",
+          "startSeconds": 252.01999999999998,
+          "endSeconds": 254.76,
+          "startFrame": 7561,
+          "endFrame": 7643
+        }
+      ],
+      "animationEvents": [
+        {
+          "event": "主关系图逐节点组装",
+          "source": {
+            "type": "segment",
+            "id": "08-01"
+          },
+          "atSeconds": 217.368,
+          "atFrame": 6521
+        },
+        {
+          "event": "AGENTS.md 与 Memory／Chronicle 支撑关系图",
+          "source": {
+            "type": "segment",
+            "id": "08-02"
+          },
+          "atSeconds": 221.088,
+          "atFrame": 6633
+        },
+        {
+          "event": "结论卡出现",
+          "source": {
+            "type": "segment",
+            "id": "08-03"
+          },
+          "atSeconds": 233.016,
+          "atFrame": 6990
+        },
+        {
+          "event": "关系图淡化后显示下一集预告卡并独立停留",
+          "source": {
+            "type": "segment",
+            "id": "08-04"
+          },
+          "atSeconds": 240.408,
+          "atFrame": 7212
+        }
+      ]
+    }
+  ],
+  "timing": {
+    "fps": 30,
+    "totalDurationSeconds": 254.76,
+    "totalDurationFrames": 7643,
+    "sources": {
+      "ttsScript": "videos/02-core-concepts/tts-script.json",
+      "audioManifest": "src/videos/02-core-concepts/generated/audio-manifest.json",
+      "subtitleManifest": "src/videos/02-core-concepts/generated/subtitle-manifest.json",
+      "timelineManifest": "src/videos/02-core-concepts/generated/timeline-manifest.json"
+    }
+  }
 }
