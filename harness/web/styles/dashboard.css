@@ -1,1 +1,346 @@
-/* Dashboard-specific rules remain in components.css during the compatibility migration. */
+.card-heading {
+  gap: 10px;
+}
+.project-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+  gap: 16px;
+}
+
+.project-card {
+  display: flex;
+  min-height: 245px;
+  flex-direction: column;
+  padding: 20px;
+  border: 1px solid #25304a;
+  border-radius: 14px;
+  background: linear-gradient(145deg, rgba(24, 38, 65, 0.92), rgba(13, 19, 34, 0.92));
+}
+
+.project-card h3 {
+  margin: 0;
+  overflow-wrap: break-word;
+  word-break: normal;
+  font-size: 19px;
+  line-height: 1.25;
+}
+
+.project-label {
+  justify-content: flex-start;
+  gap: 10px;
+  min-width: 0;
+}
+
+.project-select {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #9eabc4;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.project-select input {
+  accent-color: #75b9ff;
+}
+
+.project-name {
+  min-height: 48px;
+  margin-top: 14px !important;
+}
+
+.project-sequence {
+  display: inline-grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 32px;
+  height: 26px;
+  border: 1px solid #4d89c7;
+  border-radius: 7px;
+  background: #152541;
+  color: #8ac8ff;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+.card-kicker {
+  margin: 0;
+  color: #75b9ff;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+}
+
+.project-card .status {
+  flex: 0 1 126px;
+  max-width: 126px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.batch-create-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  margin: 24px 0;
+  padding: 20px;
+  border: 1px solid #2d4164;
+  border-radius: 14px;
+  background: rgba(18, 31, 55, 0.84);
+}
+
+.source-import-panel {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.8fr) minmax(360px, 1.2fr);
+  gap: 24px;
+  margin: 24px 0;
+  padding: 20px;
+  border: 1px solid #2d4164;
+  border-radius: 14px;
+  background: rgba(18, 31, 55, 0.84);
+}
+
+.source-import-panel h2 {
+  margin-bottom: 8px;
+}
+
+.source-import-help,
+.source-import-state {
+  margin: 0;
+  color: #9eabc4;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.source-import-help code {
+  color: #c6ddff;
+}
+
+.source-import-form {
+  display: grid;
+  gap: 12px;
+}
+
+.source-import-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.series-panel {
+  margin: 24px 0;
+  padding: 20px;
+  border: 1px solid #2d4164;
+  border-radius: 14px;
+  background: rgba(18, 31, 55, 0.84);
+}
+
+.series-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(360px, 1.1fr);
+  gap: 24px;
+}
+
+.series-form,
+.series-cover-panel {
+  min-width: 0;
+}
+
+.series-videos {
+  margin: 18px 0;
+  padding: 14px;
+  border: 1px solid #33415f;
+  border-radius: 10px;
+}
+
+.series-videos legend {
+  padding: 0 6px;
+  color: #d3dced;
+  font-size: 13px;
+}
+
+.series-video-list {
+  display: grid;
+  max-height: 210px;
+  overflow-y: auto;
+  gap: 8px;
+}
+
+.series-video-list label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #b8c4dd;
+  font-size: 13px;
+}
+
+.series-video-list input {
+  accent-color: #75b9ff;
+}
+
+.series-cover-preview {
+  display: grid;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid #33415f;
+  border-radius: 12px;
+  background: #080d18;
+  color: #7f8eaa;
+}
+
+.series-cover-preview img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.series-state {
+  margin: 12px 0 0;
+  color: #9eabc4;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.batch-create-panel h2 {
+  margin-bottom: 8px;
+}
+
+.batch-help,
+.batch-selection-state {
+  margin: 0;
+  color: #9eabc4;
+  line-height: 1.6;
+}
+
+.batch-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.batch-actions .button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.batch-list-section {
+  margin-top: 42px;
+}
+
+.batch-list {
+  display: grid;
+  gap: 14px;
+}
+
+.batch-card {
+  padding: 18px;
+  border: 1px solid #25304a;
+  border-radius: 14px;
+  background: rgba(17, 27, 47, 0.72);
+}
+
+.batch-card-heading,
+.batch-card-status,
+.batch-meta,
+.batch-item,
+.batch-item-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.batch-card-status {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.batch-card-heading h3 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.batch-description {
+  margin: 12px 0;
+  color: #b8c4dd;
+}
+
+.batch-meta {
+  flex-wrap: wrap;
+  color: #7f8eaa;
+  font-size: 12px;
+}
+
+.batch-items {
+  display: grid;
+  gap: 8px;
+  margin: 16px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.batch-item {
+  padding: 10px 12px;
+  border: 1px solid #25304a;
+  border-radius: 8px;
+  background: rgba(10, 16, 29, 0.62);
+}
+
+.batch-item strong,
+.batch-item small {
+  display: block;
+}
+
+.batch-item small {
+  margin-top: 4px;
+  color: #7f8eaa;
+}
+
+.batch-item-actions {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.progress-track {
+  height: 7px;
+  margin: 28px 0 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #202c44;
+}
+
+.progress-track span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #4f9bea, #8e9bea);
+}
+
+.card-meta,
+.stage-meta,
+.detail-path {
+  color: #8d9bb6;
+  font-size: 12px;
+}
+
+.card-next {
+  min-height: 42px;
+  margin: 18px 0;
+  color: #b8c4dd;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.project-card .button {
+  align-self: flex-start;
+  min-width: 112px;
+  padding: 8px 16px;
+  margin-top: auto;
+}

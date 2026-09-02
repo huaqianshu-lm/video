@@ -1,1 +1,117 @@
-/* Shared shell and responsive layout remain in components.css during the compatibility migration. */
+.shell {
+  width: min(1180px, calc(100% - 48px));
+  margin: 0 auto;
+  padding: 32px 0 64px;
+}
+.topbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 18px 0 28px;
+  border-bottom: 1px solid #25304a;
+}
+
+.section-heading,
+.detail-heading,
+.detail-toolbar,
+.card-heading,
+.project-label,
+.stage-heading,
+.card-meta,
+.detail-summary,
+.detail-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.section-heading {
+  margin: 34px 0 20px;
+}
+
+.section-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.dashboard-section {
+  padding-bottom: 30px;
+}
+
+.section-heading h2,
+.detail-heading h2 {
+  margin-bottom: 0;
+  font-size: 26px;
+}
+
+.series-panel .section-heading {
+  margin: 0 0 20px;
+}
+
+@media (max-width: 760px) {
+  .batch-create-panel,
+  .batch-item {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .batch-actions,
+  .batch-item-actions {
+    justify-content: flex-start;
+  }
+
+  .series-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.detail-toolbar {
+  justify-content: flex-start;
+  margin: 26px 0 24px;
+}
+
+@media (max-width: 900px) {
+  .alignment-compare { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 640px) {
+  .shell {
+    width: min(100% - 28px, 1180px);
+    padding-top: 18px;
+  }
+
+  .topbar {
+    display: block;
+  }
+
+  .status {
+    margin-top: 18px;
+  }
+
+  .detail-summary {
+    display: grid;
+  }
+
+  .artifact-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .file-list {
+    max-height: 260px;
+  }
+
+  .detail-heading,
+  .stage-heading {
+    display: block;
+  }
+
+  .detail-heading .status,
+  .stage-status {
+    display: inline-flex;
+    margin-top: 14px;
+  }
+}
