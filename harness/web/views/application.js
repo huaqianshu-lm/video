@@ -46,6 +46,7 @@ export function startApplication({ api = createApiClient(), store = createStore(
   ui.dashboard.querySelector("#refresh-jobs-dashboard")?.addEventListener("click", () => void remote.refresh());
   ui.dashboard.querySelector("#check-github-config")?.addEventListener("click", () => void remote.diagnostics());
   ui.detail.querySelector("#back-to-projects")?.addEventListener("click", () => router.navigate({ name: "projects" }));
+  router.subscribe((route) => { store.setState({ route }); show(route); });
   const stopRouter = router.start();
   void health();
   return { router, store, views: { dashboard, batches, series, project, remote }, destroy() { stopRouter?.(); project.unmount(); polling.stopAll(); } };

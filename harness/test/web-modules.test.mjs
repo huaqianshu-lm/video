@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { ApiError, createApiClient } from "../web/core/api-client.js";
+import { ApiError, createApiClient } from "../web/api/client.js";
 import { createPollingRegistry } from "../web/core/polling.js";
 import { parseRoute } from "../web/core/router.js";
 import { createStore } from "../web/core/store.js";
@@ -10,6 +10,7 @@ import { labelFor } from "../web/shared/labels.js";
 import { matchProjectRoute } from "../src/web/routes/projects.mjs";
 import { matchTaskRoute } from "../src/web/routes/tasks.mjs";
 import { isSupportedProjectAction, normalizeProjectAction } from "../src/web/services/project-actions.mjs";
+import { createProjectView } from "../web/views/project/index.js";
 
 test("API client applies no-store and normalizes server errors", async () => {
   const calls = [];
@@ -31,6 +32,7 @@ test("API client applies no-store and normalizes server errors", async () => {
     return true;
   });
   assert.equal(calls[0].options.cache, "no-store");
+  assert.equal("request" in client, false);
 });
 
 test("store keeps the declared cross-page state and notifies subscribers", () => {
@@ -72,6 +74,18 @@ test("polling registry replaces duplicate keys and stops them", () => {
   assert.equal(active.size, 1);
   polling.stopAll();
   assert.equal(active.size, 0);
+});
+
+test("project view unmount stops project lifecycle polling", () => {
+  const stopped = [];
+  const view = createProjectView({
+    elements: { container: { querySelector() { return null; } } },
+    api: {},
+    polling: { stop(key) { stopped.push(key); }, start() {} },
+  });
+  view.mount();
+  view.unmount();
+  assert.deepEqual(stopped, ["project", "remotion-task"]);
 });
 
 test("shared presentation helpers are deterministic", () => {
