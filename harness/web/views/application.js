@@ -1,5 +1,7 @@
 import { COVER_HEIGHT, COVER_WIDTH, coverCropFor } from "../cover-image.js";
 import { apiClient } from "../core/api-client.js";
+import { polling } from "../core/polling.js";
+import { appStore } from "../core/store.js";
 
 const statusElement = document.querySelector("#service-status");
 const dashboardView = document.querySelector("#dashboard-view");
@@ -38,9 +40,8 @@ let availableProjects = [];
 let availableSeries = [];
 let activeSeriesId = "";
 let selectedCoverPreviewUrl = null;
-let projectPollTimer = null;
-let remotionTaskPollTimer = null;
 let activeProject = null;
+let activeProjectRequest = 0;
 
 function clearSelectedCover() {
   seriesCoverFile.value = "";
@@ -176,6 +177,7 @@ async function loadSeries() {
   if (!response.ok) throw new Error(`HTTP ${response.status}`);
   const payload = await response.json();
   availableSeries = payload.series ?? [];
+  appStore.setState({ series: availableSeries });
   if (activeSeriesId && !availableSeries.some((series) => series.id === activeSeriesId)) activeSeriesId = "";
   if (!activeSeriesId && availableSeries.length > 0) activeSeriesId = availableSeries[0].id;
   renderSeriesManager();
@@ -862,28 +864,25 @@ function remotionTaskErrorText(task) {
 }
 
 function watchRemotionTask(slug, id) {
-  if (remotionTaskPollTimer) clearInterval(remotionTaskPollTimer);
+  polling.stop("remotion-task");
   let attempts = 0;
   const poll = async () => {
     attempts += 1;
     const task = await readRemotionTask(id);
     if (!task) {
-      clearInterval(remotionTaskPollTimer);
-      remotionTaskPollTimer = null;
+      polling.stop("remotion-task");
       setActionFeedback("Remotion 任务已提交，但暂时无法读取任务状态。请刷新项目查看。", "error");
       return;
     }
     if (["ready", "in-progress"].includes(task.status)) {
       setActionFeedback(`Remotion 任务已创建（${remotionTaskStatusText(task.status)}），任务 ID：${task.id}`, "info");
       if (attempts >= 40) {
-        clearInterval(remotionTaskPollTimer);
-        remotionTaskPollTimer = null;
+        polling.stop("remotion-task");
         setActionFeedback("Remotion 任务仍在执行，已停止自动轮询；可刷新页面查看最新状态。", "info");
       }
       return;
     }
-    clearInterval(remotionTaskPollTimer);
-    remotionTaskPollTimer = null;
+    polling.stop("remotion-task");
     if (task.status === "blocked" || task.status === "failed") {
       setActionFeedback(`Remotion 任务${remotionTaskStatusText(task.status)}：${task.error?.message ?? "请查看任务详情后重试"}`, "error");
       return;
@@ -894,7 +893,7 @@ function watchRemotionTask(slug, id) {
     }
   };
   void poll();
-  remotionTaskPollTimer = setInterval(() => void poll(), 1500);
+  polling.start("remotion-task", poll, 1500);
 }
 
 function jobCard(job) {
@@ -1180,6 +1179,7 @@ async function loadProjects() {
     const [projectsPayload, jobsPayload, seriesPayload] = await Promise.all([projectsResponse.json(), jobsResponse.json(), seriesResponse.json()]);
     availableProjects = projectsPayload.projects;
     availableSeries = seriesPayload.series ?? [];
+    appStore.setState({ projects: availableProjects, series: availableSeries });
     if (!activeSeriesId && availableSeries.length > 0) activeSeriesId = availableSeries[0].id;
     renderProjects(projectsPayload.projects);
     renderGlobalJobs(jobsPayload.jobs);
@@ -1208,29 +1208,25 @@ async function checkGitHubConfig() {
 }
 
 async function openProject(slug) {
+  const requestId = ++activeProjectRequest;
   try {
-    if (projectPollTimer) clearTimeout(projectPollTimer);
-    const [projectResponse, filesResponse, jobsResponse, agentJobsResponse, alignmentResponse, remotionTasksResponse, batchesResponse] = await Promise.all([
-      apiClient.request(`/api/projects/${encodeURIComponent(slug)}`, { cache: "no-store" }),
-      apiClient.request(`/api/projects/${encodeURIComponent(slug)}/files`, { cache: "no-store" }),
-      apiClient.request(`/api/projects/${encodeURIComponent(slug)}/jobs`, { cache: "no-store" }),
-      apiClient.request(`/api/projects/${encodeURIComponent(slug)}/agent-jobs`, { cache: "no-store" }),
-      apiClient.request(`/api/projects/${encodeURIComponent(slug)}/alignment`, { cache: "no-store" }),
-      apiClient.request("/api/remotion-tasks", { cache: "no-store" }),
-      apiClient.request("/api/batches", { cache: "no-store" }),
-    ]);
-    if (!projectResponse.ok || !filesResponse.ok || !jobsResponse.ok || !agentJobsResponse.ok || !batchesResponse.ok) throw new Error(`HTTP ${projectResponse.status}/${filesResponse.status}/${jobsResponse.status}/${agentJobsResponse.status}/${batchesResponse.status}`);
-    const [payload, filesPayload, jobsPayload, agentJobsPayload, alignmentPayload, remotionTasksPayload, batchesPayload] = await Promise.all([projectResponse.json(), filesResponse.json(), jobsResponse.json(), agentJobsResponse.json(), alignmentResponse.ok ? alignmentResponse.json() : Promise.resolve({ alignment: null }), remotionTasksResponse.ok ? remotionTasksResponse.json() : Promise.resolve({ tasks: [] }), batchesResponse.json()]);
-    const continuousBatch = (batchesPayload.batches ?? []).find((batch) => batch.type === "to-gate-2" && batch.items.some((item) => item.slug === slug && ["queued", "running", "waiting-agent-job", "waiting-gate"].includes(item.status))) ?? null;
-    renderDetail(payload.project, filesPayload.files, jobsPayload.jobs, agentJobsPayload.jobs, alignmentPayload.alignment, remotionTasksPayload.tasks ?? [], jobsPayload.activeJob ?? null, continuousBatch);
+    polling.stop("project");
+    const workspace = await apiClient.getProjectWorkspace(slug);
+    if (requestId !== activeProjectRequest) return;
+    appStore.setState({ activeProjectSlug: slug, activeProjectWorkspace: workspace });
+    const project = workspace.project;
+    const jobsPayload = { jobs: workspace.jobs ?? [], activeJob: workspace.activeJob ?? null };
+    const agentJobsPayload = { jobs: workspace.agentJobs ?? [] };
+    const remotionTasks = workspace.remotionTasks ?? [];
+    renderDetail(project, workspace.files ?? [], jobsPayload.jobs, agentJobsPayload.jobs, workspace.alignment, remotionTasks, jobsPayload.activeJob, workspace.continuousBatch);
     dashboardView.hidden = true;
     detailView.hidden = false;
     window.location.hash = `project=${encodeURIComponent(slug)}`;
-    const latestRemotionTask = (remotionTasksPayload.tasks ?? []).find((task) => task.slug === slug);
+    const latestRemotionTask = remotionTasks.find((task) => task.slug === slug);
     const hasActiveRemotionTask = latestRemotionTask && ["ready", "in-progress"].includes(latestRemotionTask.status);
     const hasActiveRemoteJob = Boolean(jobsPayload.activeJob);
-    if (agentJobsPayload.jobs.some((job) => ["queued", "running"].includes(job.status)) || hasActiveRemotionTask || hasActiveRemoteJob || continuousBatch?.items.some((item) => ["queued", "running", "waiting-agent-job"].includes(item.status))) {
-      projectPollTimer = setTimeout(() => openProject(slug), hasActiveRemoteJob ? 5000 : 1500);
+    if (agentJobsPayload.jobs.some((job) => ["queued", "running"].includes(job.status)) || hasActiveRemotionTask || hasActiveRemoteJob || workspace.continuousBatch?.items.some((item) => ["queued", "running", "waiting-agent-job"].includes(item.status))) {
+      polling.start("project", () => openProject(slug), hasActiveRemoteJob ? 5000 : 1500);
     }
   } catch (error) {
     projectListState.hidden = false;
@@ -1239,6 +1235,10 @@ async function openProject(slug) {
 }
 
 function showDashboard() {
+  activeProjectRequest += 1;
+  polling.stop("project");
+  polling.stop("remotion-task");
+  appStore.setState({ route: { name: "projects", slug: null }, activeProjectSlug: null, activeProjectWorkspace: null });
   detailView.hidden = true;
   dashboardView.hidden = false;
   if (window.location.hash) history.replaceState(null, "", window.location.pathname);
