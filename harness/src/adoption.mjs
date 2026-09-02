@@ -140,7 +140,7 @@ export function adoptExistingProjectToGate2(slug) {
     throw new Error(`Cannot adopt ${slug} to Gate 2${details ? `：${details}` : ""}`);
   }
 
-  initializeProject(slug);
+  initializeProject(slug, { prototypeBaseline: null });
   const project = loadProject(slug, { refresh: false });
   return completeGate2Adoption(project, "existing-artifacts");
 }

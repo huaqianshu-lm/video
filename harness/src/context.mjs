@@ -6,6 +6,8 @@ import {
 import { getStyleDefinition, resolveStyleId } from "./styles.mjs";
 import { matchesArtifactPath } from "./artifact-paths.mjs";
 import { getPrototypeBaseline, remotionAlignmentPath } from "./remotion-alignment.mjs";
+import { buildRemotionTimingPlanForProject } from "./remotion-timing.mjs";
+import { validateProjectStage } from "./validation.mjs";
 
 function commandFor(command, slug, stage = null) {
   const suffix = stage ? ` ${stage}` : "";
@@ -63,9 +65,38 @@ export function buildTaskPacket(project) {
   const definition = STAGE_DEFINITIONS[stage];
   const item = state.stages[stage];
   const contract = definition.contract;
+  const currentValidationIssues = validateProjectStage(project, stage);
   const inputs = artifactEntries(project, contract.inputStages);
   const outputs = artifactEntries(project, [stage]);
+  const styleReferencePaths = ["visual-script", "visual-prototype"].includes(stage)
+    ? [style.path]
+    : [];
+  const prototypeReferencePaths = stage === "visual-prototype" && style.prototypeBaselinePath
+    ? [style.prototypeBaselinePath]
+    : [];
+  const referencePaths = [...styleReferencePaths, ...prototypeReferencePaths];
   const prototypeBaseline = stage === "remotion" ? getPrototypeBaseline(project) : null;
+  let remotionTimingPlan = null;
+  let remotionTimingPlanError = null;
+  if (stage === "remotion") {
+    try {
+      remotionTimingPlan = buildRemotionTimingPlanForProject(project);
+    } catch (error) {
+      remotionTimingPlanError = error instanceof Error ? error.message : String(error);
+    }
+  }
+  const gate3Review = state.stages["gate-3"]?.review;
+  const remotionRebuildRequest = stage === "remotion"
+    && state.stages.remotion?.invalidatedBy === "gate-3-rejected"
+    && gate3Review?.decision === "rejected"
+    && gate3Review.returnTo === "remotion"
+    ? {
+      gate: "gate-3",
+      returnTo: "remotion",
+      reason: gate3Review.reason,
+      requirement: "必须针对上述驳回原因修改 Remotion 实现，并产生新的 Remotion 产物；不能只重新校验或原样返回现有文件。",
+    }
+    : null;
   if (stage === "remotion" && prototypeBaseline?.alignmentRequired !== false) {
     for (const outputPath of [
       remotionAlignmentPath(project),
@@ -115,6 +146,7 @@ export function buildTaskPacket(project) {
       inputArtifacts: inputs,
       outputArtifacts: outputs,
       validation: contract.validation,
+      currentValidationIssues,
       manualChecks: contract.manualChecks,
       fallbackStage: contract.fallbackStage,
       nextStage: contract.nextStage,
@@ -132,18 +164,36 @@ export function buildTaskPacket(project) {
         path: style.path,
         description: style.description,
       },
-      readPaths: uniquePaths(inputs),
+      readPaths: [...uniquePaths(inputs), ...referencePaths],
+      referencePaths,
       writePaths: uniquePaths(outputs),
       constraints: [
         "只处理当前阶段，不跳过前置阶段或提前执行下游阶段。",
         "只写入当前阶段声明的输出产物。",
         "完成输出后执行任务包中列出的校验命令。",
+        ...(remotionRebuildRequest ? [
+          "这是 Gate 3 驳回后的 Remotion 重制任务，必须先读取并处理 context.rebuildRequest，不能只做只读检查。",
+          remotionRebuildRequest.requirement,
+        ] : []),
+        ...(stage === "visual-prototype" ? [
+          `必须读取并复用 ${style.prototypeBaselinePath} 的完整原型基线：shell、toolbar、stage、section.scene、caption、controls、progress 和 meta。`,
+          "系列标题、每个 Scene 的唯一标题区、PATH／幕数、右上导航、幕内字幕和底部进度区必须保持基线位置与排版；每个 Scene 的标题区至少包含 eyebrow 和 h1／title，统一位于左上安全区域，禁止缺失、重复、居中或由 Scene 专属样式改位；只替换当前视频内容、Scene 数量和 Scene 内部视觉事件。",
+          "不得只复制 class 名称后另起页面布局、定位规则、色彩系统或 Scene 容器格式；完成后必须通过基线结构和布局校验。",
+        ] : []),
         ...(stage === "remotion" ? [
           "Gate 2 冻结的 Visual Script 与 Visual Prototype 是 Remotion 的强制视觉基线。",
-          "必须逐 Scene 生成 remotion-alignment.json，记录布局、视觉事件、屏幕文字和实现文件。",
+          "必须读取并校验冻结的 tts-script.json，以及由它生成的 Audio Manifest、Subtitle Manifest 和 Timeline Manifest；四类产物共同构成当前视频的声音与时间输入。",
+          "Timeline Manifest 是唯一时间基准，tts-script.json 只用于确认 Scene／Segment 文本和 ID 边界，不能使用其他口播文本或旧音频资料替代。",
+          "对于有口播的视频，必须先读取 context.timingPlan，并以其中的 Timeline 时间坐标制作 Scene 时长、音频位置、字幕位置和动画事件；不得使用估算时长或任意硬编码时间替代映射。",
+          "如果 Scene／Segment／Cue 映射缺失或时长不一致，必须停止制作并报告原因。",
+          ...(remotionTimingPlanError ? [`当前无法生成 context.timingPlan：${remotionTimingPlanError}`] : []),
+          "必须逐 Scene 生成 schemaVersion 2 的 remotion-alignment.json，记录 Timeline 来源、Scene 起止秒／帧、Audio Segment、Subtitle Cue，以及每个视觉事件绑定的 Cue／Segment 和时间点；不能只记录布局文字。",
         ] : []),
       ],
       ...(stage === "remotion" ? { prototypeBaseline } : {}),
+      ...(stage === "remotion" ? { timingPlan: remotionTimingPlan } : {}),
+      ...(stage === "remotion" && remotionTimingPlanError ? { timingPlanError: remotionTimingPlanError } : {}),
+      ...(remotionRebuildRequest ? { rebuildRequest: remotionRebuildRequest } : {}),
     },
   };
 }

@@ -19,12 +19,19 @@ const seriesForm = document.querySelector("#series-form");
 const seriesSelect = document.querySelector("#series-select");
 const seriesIdInput = document.querySelector("#series-id");
 const seriesTitleInput = document.querySelector("#series-title");
+const seriesStyleInput = document.querySelector("#series-style");
 const seriesCoverFramesInput = document.querySelector("#series-cover-frames");
 const seriesVideoList = document.querySelector("#series-video-list");
 const seriesCoverFile = document.querySelector("#series-cover-file");
 const seriesCoverPreview = document.querySelector("#series-cover-preview");
 const uploadSeriesCoverButton = document.querySelector("#upload-series-cover");
 const seriesState = document.querySelector("#series-state");
+const sourceImportForm = document.querySelector("#source-import-form");
+const sourceImportFile = document.querySelector("#source-import-file");
+const sourceImportSlug = document.querySelector("#source-import-slug");
+const sourceImportSeries = document.querySelector("#source-import-series");
+const sourceImportSubmit = document.querySelector("#source-import-submit");
+const sourceImportState = document.querySelector("#source-import-state");
 const selectedSlugs = new Set();
 let availableProjects = [];
 let availableSeries = [];
@@ -95,6 +102,7 @@ const batchItemStatusLabels = {
   skipped: "已跳过",
   succeeded: "已完成",
   "waiting-gate": "等待 Gate",
+  "waiting-agent-job": "等待 Agent 任务",
   "waiting-tts-qc": "等待 TTS 质检",
   "waiting-remotion-task": "等待 Remotion 制作",
   "waiting-smoke-qc": "等待 Smoke 检查",
@@ -134,6 +142,7 @@ function renderSeriesManager() {
   seriesIdInput.value = series?.id ?? "";
   seriesIdInput.readOnly = Boolean(series);
   seriesTitleInput.value = series?.title ?? "";
+  seriesStyleInput.value = series?.style ?? "current";
   seriesCoverFramesInput.value = String(series?.coverDurationFrames ?? 45);
   seriesVideoList.innerHTML = availableProjects.map((project) => `
     <label>
@@ -151,6 +160,16 @@ function renderSeriesManager() {
   uploadSeriesCoverButton.disabled = !series || !seriesCoverFile.files?.[0];
 }
 
+function renderSourceImportSeriesOptions() {
+  const selected = sourceImportSeries.value;
+  sourceImportSeries.innerHTML = [
+    '<option value="">请选择系列</option>',
+    '<option value="none">不归入系列（使用通用 current 风格）</option>',
+    ...availableSeries.map((series) => `<option value="${escapeHtml(series.id)}">${escapeHtml(series.title)} · ${escapeHtml(series.id)} · ${escapeHtml(series.style)}</option>`),
+  ].join("");
+  sourceImportSeries.value = [...sourceImportSeries.options].some((option) => option.value === selected) ? selected : "";
+}
+
 async function loadSeries() {
   const response = await fetch("/api/series", { cache: "no-store" });
   if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -159,6 +178,8 @@ async function loadSeries() {
   if (activeSeriesId && !availableSeries.some((series) => series.id === activeSeriesId)) activeSeriesId = "";
   if (!activeSeriesId && availableSeries.length > 0) activeSeriesId = availableSeries[0].id;
   renderSeriesManager();
+  renderSourceImportSeriesOptions();
+  updateSourceImportState();
 }
 
 async function saveSeriesSettings(event) {
@@ -184,6 +205,7 @@ async function saveSeriesSettings(event) {
       body: JSON.stringify({
         id,
         title: seriesTitleInput.value.trim(),
+        style: seriesStyleInput.value,
         coverDurationFrames: Number(seriesCoverFramesInput.value),
         videos,
         confirmVideoRemoval,
@@ -193,7 +215,10 @@ async function saveSeriesSettings(event) {
     if (!response.ok) throw new Error(payload.error ?? `HTTP ${response.status}`);
     activeSeriesId = payload.series.id;
     await loadSeries();
-    seriesState.textContent = "系列设置已保存。";
+    const restarts = payload.updatedProjects?.filter((project) => project.restartedAt).map((project) => project.slug) ?? [];
+    seriesState.textContent = restarts.length > 0
+      ? `系列设置已保存；${restarts.join("、")} 已回退到视觉脚本阶段以应用新风格。`
+      : "系列设置已保存。";
   } catch (error) {
     seriesState.textContent = `保存失败：${error.message}`;
   }
@@ -299,6 +324,54 @@ async function uploadSeriesCover() {
     seriesState.textContent = `封面已从 ${normalized.sourceWidth}×${normalized.sourceHeight} 居中裁切并保存为 ${payload.image.width}×${payload.image.height}。`;
   } catch (error) {
     seriesState.textContent = `上传失败：${error.message}`;
+  }
+}
+
+function updateSourceImportState() {
+  const file = sourceImportFile.files?.[0];
+  const seriesId = sourceImportSeries.value;
+  sourceImportSubmit.disabled = !file || !seriesId;
+  if (!file) {
+    sourceImportState.textContent = "请选择一个原文件。";
+    return;
+  }
+  if (!seriesId) {
+    sourceImportState.textContent = "请先选择所属系列与视觉基线。";
+    return;
+  }
+  const selectedSeries = availableSeries.find((series) => series.id === seriesId);
+  sourceImportState.textContent = selectedSeries
+    ? `待上传：${file.name} · ${(file.size / 1024).toFixed(1)} KB · ${selectedSeries.title}（${selectedSeries.style}）`
+    : `待上传：${file.name} · ${(file.size / 1024).toFixed(1)} KB · 通用 current 风格`;
+}
+
+async function importSourceProject(event) {
+  event.preventDefault();
+  const file = sourceImportFile.files?.[0];
+  if (!file) return;
+  sourceImportSubmit.disabled = true;
+  sourceImportState.textContent = "正在上传并创建视频项目……";
+  try {
+    if (file.size > 10 * 1024 * 1024) throw new Error("原文件不能超过 10 MB");
+    const query = new URLSearchParams({ filename: file.name });
+    const slug = sourceImportSlug.value.trim();
+    if (slug) query.set("slug", slug);
+    if (sourceImportSeries.value !== "none") query.set("seriesId", sourceImportSeries.value);
+    const response = await fetch(`/api/projects/import?${query.toString()}`, {
+      method: "PUT",
+      headers: { "Content-Type": file.type || "text/plain" },
+      body: file,
+    });
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error ?? `HTTP ${response.status}`);
+    sourceImportForm.reset();
+    renderSourceImportSeriesOptions();
+    sourceImportState.textContent = `已创建项目 ${payload.result.slug}${payload.result.series ? `，已锁定 ${payload.result.series.title} 的 ${payload.result.series.style} 风格` : ""}，正在打开项目详情……`;
+    await loadProjects();
+    await openProject(payload.result.slug);
+  } catch (error) {
+    sourceImportState.textContent = `导入失败：${error.message}`;
+    sourceImportSubmit.disabled = false;
   }
 }
 
@@ -597,22 +670,36 @@ function alignmentPanel(project, files, alignmentView) {
   `;
 }
 
-function renderDetail(project, files, jobs, agentJobs, alignmentView, remotionTasks = [], activeRemoteJob = null) {
+function renderDetail(project, files, jobs, agentJobs, alignmentView, remotionTasks = [], activeRemoteJob = null, continuousBatch = null) {
   activeProject = project;
   const latestRemotionTask = remotionTasks.find((task) => task.slug === project.slug);
   const remotionTaskFailed = latestRemotionTask && ["blocked", "failed"].includes(latestRemotionTask.status);
+  const remotionTaskBlocked = latestRemotionTask?.status === "blocked";
   const remotionTaskPending = project.currentStage === "gate-3"
     && latestRemotionTask?.slug === project.slug
     && latestRemotionTask.status !== "completed";
   const remotionTaskInProgress = project.currentStage === "remotion"
     && latestRemotionTask?.slug === project.slug
     && latestRemotionTask.status === "in-progress";
+  const continuousItem = continuousBatch?.items?.find((item) => item.slug === project.slug) ?? null;
+  const continuousGate2Waiting = project.currentStage === "gate-2"
+    && project.next.action === "approve-or-reject-gate"
+    && continuousItem?.status === "waiting-gate";
+  const currentContinuousItem = (project.next.action === "run-stage"
+    && continuousItem?.status === "waiting-agent-job"
+    && continuousItem.phase === project.currentStage) || continuousGate2Waiting
+    ? continuousItem
+    : null;
   const nextActionMessage = remotionTaskPending
     ? "Remotion 任务尚未完成，当前没有可供 Gate 3 验证的新产物。完成执行并通过校验后才能继续。"
     : remotionTaskInProgress
       ? `Remotion Agent 正在制作，任务 ID：${latestRemotionTask.id}。页面会自动同步任务状态。`
-      : project.next.message;
-  const actionControls = projectActions(project, latestRemotionTask, activeRemoteJob);
+      : currentContinuousItem?.status === "waiting-agent-job"
+        ? currentContinuousItem.message
+        : continuousGate2Waiting
+          ? "已连续完成到 Gate 2，等待人工确认口播与视觉原型。"
+          : project.next.message;
+  const actionControls = projectActions(project, latestRemotionTask, activeRemoteJob, continuousBatch);
   projectDetail.innerHTML = `
     <div class="detail-heading">
       <div>
@@ -631,7 +718,7 @@ function renderDetail(project, files, jobs, agentJobs, alignmentView, remotionTa
       <span class="summary-label">下一步动作</span>
       <p>${escapeHtml(nextActionMessage)}</p>
       <div class="action-controls">${actionControls}</div>
-      ${remotionTaskFailed ? `<div class="action-feedback action-feedback-error remotion-task-error" role="alert"><strong>Remotion 执行失败</strong><p>${escapeHtml(remotionTaskErrorText(latestRemotionTask))}</p><small>任务 ID：${escapeHtml(latestRemotionTask.id)}。完成新的 Remotion 产物并通过校验后，才能重新验证 Gate 3。</small><button class="button button-secondary" type="button" data-remotion-task-action="run" data-task-id="${escapeHtml(latestRemotionTask.id)}">重试 Agent</button></div>` : ""}
+      ${remotionTaskFailed ? `<div class="action-feedback action-feedback-error remotion-task-error" role="alert"><strong>${remotionTaskBlocked ? "Remotion 任务已阻塞" : "Remotion 执行失败"}</strong><p>${escapeHtml(remotionTaskErrorText(latestRemotionTask))}</p><small>任务 ID：${escapeHtml(latestRemotionTask.id)}。完成新的 Remotion 产物并通过校验后，才能重新验证 Gate 3。</small><button class="button button-secondary" type="button" data-remotion-task-action="run" data-task-id="${escapeHtml(latestRemotionTask.id)}">重新提交 Agent</button></div>` : ""}
       <p id="action-feedback" class="action-feedback" role="status" aria-live="polite" hidden></p>
     </div>
     ${project.next.action === "approve-or-reject-gate" ? rejectGateDialog(project) : ""}
@@ -841,7 +928,7 @@ function renderGlobalJobs(jobs) {
     : jobs.map(jobCard).join("");
 }
 
-function projectActions(project, latestRemotionTask = null, activeRemoteJob = null) {
+function projectActions(project, latestRemotionTask = null, activeRemoteJob = null, continuousBatch = null) {
   if (!project.initialized) {
     return `<button class="button button-primary" type="button" data-action="initialize">初始化 Harness</button><button class="button button-secondary" type="button" data-action="legacy-validate">Legacy 只读检查</button>`;
   }
@@ -850,6 +937,31 @@ function projectActions(project, latestRemotionTask = null, activeRemoteJob = nu
     `<button class="button button-secondary" type="button" data-action="validate">重新校验</button>`,
     `<button class="button button-secondary" type="button" data-action="legacy-validate">Legacy 只读检查</button>`,
   ];
+  const continuousItem = continuousBatch?.items?.find((item) => item.slug === project.slug) ?? null;
+  const continuousGate2Waiting = project.currentStage === "gate-2"
+    && project.next.action === "approve-or-reject-gate"
+    && continuousItem?.status === "waiting-gate";
+  const currentContinuousItem = project.next.action === "run-stage"
+    && ["queued", "running"].includes(continuousItem?.status)
+    || project.next.action === "run-stage"
+      && continuousItem?.status === "waiting-agent-job"
+      && continuousItem.phase === project.currentStage
+    || continuousGate2Waiting
+    ? continuousItem
+    : null;
+  const continuousStages = new Set(["source", "content-analysis", "video-narrative", "scene-script", "narration-script", "visual-script", "visual-prototype"]);
+  const continuousEligible = ["run-stage", "fix-validation-issues"].includes(project.next.action)
+    && continuousStages.has(project.currentStage);
+  const continuousActive = currentContinuousItem && ["queued", "running", "waiting-agent-job"].includes(currentContinuousItem.status);
+  if (continuousActive) {
+    buttons.push(`<button class="button button-primary" type="button" disabled>连续生成至 Gate 2（执行中）</button>`);
+    buttons.push(`<span class="action-note">${escapeHtml(currentContinuousItem.message)} 批次会在每个 Agent 产物校验通过后自动继续。</span>`);
+  } else if (continuousEligible && !currentContinuousItem) {
+    buttons.push(`<button class="button button-primary" type="button" data-action="run-to-gate-2">连续生成至 Gate 2</button>`);
+    buttons.push(`<span class="action-note">从当前阶段自动执行到 Gate 2，中间不逐步等待人工确认。</span>`);
+  } else if (continuousGate2Waiting) {
+    buttons.push(`<span class="action-note">已连续生成至 Gate 2，等待人工确认口播与视觉原型。</span>`);
+  }
   const subtitleTimeline = project.stages.find((stage) => stage.stage === "subtitle-timeline");
   const ttsQcPending = project.currentStage !== "completed"
     && subtitleTimeline?.status === "succeeded"
@@ -865,7 +977,7 @@ function projectActions(project, latestRemotionTask = null, activeRemoteJob = nu
   } else if (project.next.action === "run-stage" && currentRemotionTask?.status === "in-progress") {
     buttons.push(`<button class="button button-primary" type="button" disabled>Agent 正在制作</button>`);
     buttons.push(`<span class="action-note">Remotion 任务 ${escapeHtml(currentRemotionTask.id)} 正在执行。</span>`);
-  } else if (project.next.action === "run-stage" && !currentRemotionTask) {
+  } else if (project.next.action === "run-stage" && !currentRemotionTask && !continuousEligible && !continuousActive) {
     buttons.push(`<button class="button button-primary" type="button" data-action="run">执行当前阶段</button>`);
   }
   if (project.next.action === "run-stage" && (project.currentStage === "smoke-render" || project.currentStage === "render")) {
@@ -879,10 +991,19 @@ function projectActions(project, latestRemotionTask = null, activeRemoteJob = nu
   }
   if (project.next.action === "fix-validation-issues"
     && (project.currentStage === "smoke-render" || project.currentStage === "render")) {
-    if (project.next.preparation?.action === "prepare-remote-render") {
+    const blockingIssues = project.next.issues.filter((issue) => issue.severity !== "warning");
+    const hasGitDeliveryIssues = blockingIssues.some((issue) => issue.code === "git-render-delivery-invalid");
+    if (project.currentStage === "smoke-render") {
+      buttons.push(`<button class="button button-primary" type="button" data-action="remote-run">提交并执行 Smoke Render</button>`);
+      buttons.push(`<span class="action-note">一次完成资源准备和交付预检；需要提交代码时，只会提交当前视频的渲染文件，并在执行前请求一次确认。</span>`);
+    } else if (project.next.preparation?.action === "prepare-remote-render") {
       buttons.push(`<button class="button button-primary" type="button" data-action="prepare-remote-render">准备远程渲染资源</button>`);
+      buttons.push(`<span class="action-note">资源准备：可先打包并校验本地资源；此操作不会提交或推送代码。</span>`);
     }
-    buttons.push(`<span class="action-note action-note-error">${escapeHtml(project.next.message)} 请先准备资源并完成 commit/push；交付预检通过后才能提交远程任务。</span>`);
+    const nextStep = hasGitDeliveryIssues
+      ? "请按下方列表修复问题，涉及 Git 的文件完成 commit/push 后，再点击“重新校验”。"
+      : "请按下方列表修复问题，再点击“重新校验”。";
+    buttons.push(`<span class="action-note action-note-error">提交阻塞：当前有 ${blockingIssues.length} 个交付预检问题。${nextStep}</span>`);
   }
   if (["smoke-render", "render"].includes(project.currentStage)) {
     buttons.push(`<button class="button button-secondary" type="button" data-action="find-historical">查找历史 Artifact</button>`);
@@ -938,13 +1059,30 @@ async function performAction(project, action, runId = null, rejectInput = null) 
   setActionFeedback("正在提交当前阶段请求……", "info");
 
   try {
-    const response = await fetch(`/api/projects/${encodeURIComponent(project.slug)}/action`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
-    const payload = await response.json();
-    if (!response.ok) throw new Error(payload.error ?? `HTTP ${response.status}`);
+    const sendAction = async (requestBody) => {
+      const response = await fetch(`/api/projects/${encodeURIComponent(project.slug)}/action`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(requestBody),
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error ?? `HTTP ${response.status}`);
+      return payload;
+    };
+    let payload = await sendAction(body);
+    if (action === "remote-run" && payload.result?.status === "needs-confirmation") {
+      const plan = payload.commitPlan ?? { branch: "当前分支", commitPaths: [] };
+      const paths = plan.commitPaths.length > 0 ? plan.commitPaths.map((item) => `- ${item}`).join("\n") : "（没有可定向提交的文件）";
+      const confirmed = window.confirm(
+        `Smoke Render 提交前需要定向 commit/push。\n\n分支：${plan.branch}\n将提交的文件：\n${paths}\n\n确认后会自动 commit、push，并提交 Smoke Render。其他改动不会被提交。`,
+      );
+      if (!confirmed) {
+        restoreActionButton();
+        setActionFeedback("已取消提交和推送，未创建远程任务。", "info");
+        return;
+      }
+      payload = await sendAction({ ...body, commitAndPush: true, confirmDelivery: true });
+    }
     if (payload.job?.id && payload.result?.status === "queued") {
       const job = await waitForQueuedAgentJob(payload.job.id);
       if (job?.status === "failed") {
@@ -998,6 +1136,9 @@ async function performAction(project, action, runId = null, rejectInput = null) 
     } else {
       await openProject(project.slug);
     }
+    if (action === "remote-run" && payload.result?.delivery?.status === "committed") {
+      setActionFeedback(`已提交 ${payload.result.delivery.commit} 并推送到 ${payload.result.delivery.branch}，Smoke Render 已排队。`, "info");
+    }
   } catch (error) {
     restoreActionButton();
     const message = `操作失败：${error.message}`;
@@ -1042,6 +1183,8 @@ async function loadProjects() {
     renderProjects(projectsPayload.projects);
     renderGlobalJobs(jobsPayload.jobs);
     renderSeriesManager();
+    renderSourceImportSeriesOptions();
+    updateSourceImportState();
     await loadBatches();
   } catch (error) {
     projectListState.hidden = false;
@@ -1066,24 +1209,26 @@ async function checkGitHubConfig() {
 async function openProject(slug) {
   try {
     if (projectPollTimer) clearTimeout(projectPollTimer);
-    const [projectResponse, filesResponse, jobsResponse, agentJobsResponse, alignmentResponse, remotionTasksResponse] = await Promise.all([
+    const [projectResponse, filesResponse, jobsResponse, agentJobsResponse, alignmentResponse, remotionTasksResponse, batchesResponse] = await Promise.all([
       fetch(`/api/projects/${encodeURIComponent(slug)}`, { cache: "no-store" }),
       fetch(`/api/projects/${encodeURIComponent(slug)}/files`, { cache: "no-store" }),
       fetch(`/api/projects/${encodeURIComponent(slug)}/jobs`, { cache: "no-store" }),
       fetch(`/api/projects/${encodeURIComponent(slug)}/agent-jobs`, { cache: "no-store" }),
       fetch(`/api/projects/${encodeURIComponent(slug)}/alignment`, { cache: "no-store" }),
       fetch("/api/remotion-tasks", { cache: "no-store" }),
+      fetch("/api/batches", { cache: "no-store" }),
     ]);
-    if (!projectResponse.ok || !filesResponse.ok || !jobsResponse.ok || !agentJobsResponse.ok) throw new Error(`HTTP ${projectResponse.status}/${filesResponse.status}/${jobsResponse.status}/${agentJobsResponse.status}`);
-    const [payload, filesPayload, jobsPayload, agentJobsPayload, alignmentPayload, remotionTasksPayload] = await Promise.all([projectResponse.json(), filesResponse.json(), jobsResponse.json(), agentJobsResponse.json(), alignmentResponse.ok ? alignmentResponse.json() : Promise.resolve({ alignment: null }), remotionTasksResponse.ok ? remotionTasksResponse.json() : Promise.resolve({ tasks: [] })]);
-    renderDetail(payload.project, filesPayload.files, jobsPayload.jobs, agentJobsPayload.jobs, alignmentPayload.alignment, remotionTasksPayload.tasks ?? [], jobsPayload.activeJob ?? null);
+    if (!projectResponse.ok || !filesResponse.ok || !jobsResponse.ok || !agentJobsResponse.ok || !batchesResponse.ok) throw new Error(`HTTP ${projectResponse.status}/${filesResponse.status}/${jobsResponse.status}/${agentJobsResponse.status}/${batchesResponse.status}`);
+    const [payload, filesPayload, jobsPayload, agentJobsPayload, alignmentPayload, remotionTasksPayload, batchesPayload] = await Promise.all([projectResponse.json(), filesResponse.json(), jobsResponse.json(), agentJobsResponse.json(), alignmentResponse.ok ? alignmentResponse.json() : Promise.resolve({ alignment: null }), remotionTasksResponse.ok ? remotionTasksResponse.json() : Promise.resolve({ tasks: [] }), batchesResponse.json()]);
+    const continuousBatch = (batchesPayload.batches ?? []).find((batch) => batch.type === "to-gate-2" && batch.items.some((item) => item.slug === slug && ["queued", "running", "waiting-agent-job", "waiting-gate"].includes(item.status))) ?? null;
+    renderDetail(payload.project, filesPayload.files, jobsPayload.jobs, agentJobsPayload.jobs, alignmentPayload.alignment, remotionTasksPayload.tasks ?? [], jobsPayload.activeJob ?? null, continuousBatch);
     dashboardView.hidden = true;
     detailView.hidden = false;
     window.location.hash = `project=${encodeURIComponent(slug)}`;
     const latestRemotionTask = (remotionTasksPayload.tasks ?? []).find((task) => task.slug === slug);
     const hasActiveRemotionTask = latestRemotionTask && ["ready", "in-progress"].includes(latestRemotionTask.status);
     const hasActiveRemoteJob = Boolean(jobsPayload.activeJob);
-    if (agentJobsPayload.jobs.some((job) => ["queued", "running"].includes(job.status)) || hasActiveRemotionTask || hasActiveRemoteJob) {
+    if (agentJobsPayload.jobs.some((job) => ["queued", "running"].includes(job.status)) || hasActiveRemotionTask || hasActiveRemoteJob || continuousBatch?.items.some((item) => ["queued", "running", "waiting-agent-job"].includes(item.status))) {
       projectPollTimer = setTimeout(() => openProject(slug), hasActiveRemoteJob ? 5000 : 1500);
     }
   } catch (error) {
@@ -1135,6 +1280,9 @@ seriesSelect.addEventListener("change", () => {
 seriesForm.addEventListener("submit", saveSeriesSettings);
 seriesCoverFile.addEventListener("change", previewSelectedCover);
 uploadSeriesCoverButton.addEventListener("click", uploadSeriesCover);
+sourceImportFile.addEventListener("change", updateSourceImportState);
+sourceImportSeries.addEventListener("change", updateSourceImportState);
+sourceImportForm.addEventListener("submit", importSourceProject);
 batchToGate2Button.addEventListener("click", () => createBatch("to-gate-2"));
 batchToTtsButton.addEventListener("click", () => createBatch("to-tts"));
 batchToRemotionButton.addEventListener("click", () => createBatch("to-remotion"));

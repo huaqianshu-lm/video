@@ -47,7 +47,7 @@ function isRenderRelevantPath(relativePath) {
     || RENDER_RELEVANT_PREFIXES.some((prefix) => relativePath === prefix.slice(0, -1) || relativePath.startsWith(prefix));
 }
 
-function renderRequiredPaths(project) {
+export function renderRequiredPaths(project) {
   const workspaceRoot = path.resolve(project.config.workspaceRoot);
   const slug = project.config.slug;
   const videoDirectory = path.join(workspaceRoot, "src", "videos", slug);
@@ -66,6 +66,107 @@ function renderRequiredPaths(project) {
     `src/videos/${slug}/generated/timeline-manifest.json`,
     ...componentPaths,
   ];
+}
+
+function isAutoCommitPath(relativePath, requiredPaths) {
+  return requiredPaths.includes(relativePath)
+    || relativePath.startsWith("src/components/")
+    || relativePath.startsWith("src/lib/")
+    || relativePath.startsWith("src/scenes/")
+    || relativePath.startsWith("src/styles/")
+    || relativePath.startsWith(".github/workflows/")
+    || RENDER_RELEVANT_FILES.has(relativePath);
+}
+
+function currentBranchFor(workspaceRoot) {
+  try {
+    return gitCommand(workspaceRoot, ["symbolic-ref", "--quiet", "--short", "HEAD"]);
+  } catch {
+    return "";
+  }
+}
+
+function statusPathsFor(workspaceRoot) {
+  return gitCommand(workspaceRoot, ["status", "--porcelain=v1", "--untracked-files=all"], { trim: false })
+    .split(/\r?\n/)
+    .filter(Boolean)
+    .map(parseStatusPath);
+}
+
+export function buildGitRenderCommitPlan(project, { environment = process.env } = {}) {
+  if (typeof project?.config?.workspaceRoot !== "string" || !project.config.workspaceRoot.trim()) {
+    const error = new Error("缺少视频工作区路径，无法准备 Git 渲染交付");
+    error.code = "git-render-commit-workspace-invalid";
+    throw error;
+  }
+  const workspaceRoot = path.resolve(project.config.workspaceRoot);
+  if (!isGitWorkspace(workspaceRoot)) {
+    const error = new Error("渲染工作区不是 Git 仓库，无法准备 Git 渲染交付");
+    error.code = "git-render-commit-repository-invalid";
+    throw error;
+  }
+  const branch = currentBranchFor(workspaceRoot);
+  if (!branch) {
+    const error = new Error("当前工作区处于 detached HEAD，无法自动提交和推送");
+    error.code = "git-render-commit-detached-head";
+    throw error;
+  }
+  const config = readGitHubActionsConfig(environment, { currentGitRef: branch, cwd: workspaceRoot });
+  const requiredPaths = renderRequiredPaths(project);
+  const statusPaths = statusPathsFor(workspaceRoot);
+  const relevantPaths = statusPaths.filter((relativePath) => isRenderRelevantPath(relativePath));
+  const commitPaths = relevantPaths.filter((relativePath) => isAutoCommitPath(relativePath, requiredPaths));
+  const outOfScopePaths = relevantPaths.filter((relativePath) => !isAutoCommitPath(relativePath, requiredPaths));
+
+  return {
+    branch,
+    ref: config.ref,
+    requiredPaths,
+    commitPaths: [...new Set(commitPaths)],
+    outOfScopePaths: [...new Set(outOfScopePaths)],
+  };
+}
+
+function commitError(message, code) {
+  const error = new Error(message);
+  error.code = code;
+  return error;
+}
+
+export function commitAndPushRenderDelivery(
+  project,
+  { environment = process.env, commitMessage = `chore: prepare ${project.config.slug} smoke render delivery` } = {},
+) {
+  const workspaceRoot = path.resolve(project.config.workspaceRoot);
+  const plan = buildGitRenderCommitPlan(project, { environment });
+  if (plan.ref !== plan.branch) {
+    throw commitError(`dispatch 分支 ${plan.ref} 与当前工作区分支 ${plan.branch} 不一致，无法自动推送`, "git-render-commit-branch-mismatch");
+  }
+  if (plan.outOfScopePaths.length > 0) {
+    throw commitError(`发现未纳入当前视频提交范围的渲染改动：${plan.outOfScopePaths.join("、")}`, "git-render-commit-out-of-scope");
+  }
+  if (plan.commitPaths.length === 0) {
+    const commit = localGitCommit(workspaceRoot);
+    return { status: "unchanged", commit, ...plan };
+  }
+
+  try {
+    execFileSync("git", ["-C", workspaceRoot, "add", "--", ...plan.commitPaths], { stdio: ["ignore", "pipe", "pipe"] });
+    execFileSync("git", ["-C", workspaceRoot, "commit", "--only", "-m", commitMessage, "--", ...plan.commitPaths], {
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    const commit = localGitCommit(workspaceRoot);
+    if (!commit) throw commitError("定向提交完成后无法解析本地提交", "git-render-commit-missing");
+    execFileSync("git", ["-C", workspaceRoot, "push", "origin", `HEAD:${plan.branch}`], { stdio: ["ignore", "pipe", "pipe"] });
+    const remote = gitCommand(workspaceRoot, ["ls-remote", "--heads", "origin", plan.branch]).split(/\s+/)[0] ?? "";
+    if (remote !== commit) {
+      throw commitError(`推送完成后远程分支 ${plan.branch} 未指向本次提交`, "git-render-commit-remote-mismatch");
+    }
+    return { status: "committed", commit, ...plan };
+  } catch (cause) {
+    if (cause?.code?.startsWith("git-render-commit-")) throw cause;
+    throw commitError(`渲染交付 commit/push 失败：${cause instanceof Error ? cause.message : String(cause)}`, "git-render-commit-push-failed");
+  }
 }
 
 function addIssue(issues, message) {

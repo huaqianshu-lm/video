@@ -51,6 +51,14 @@
                 <input id="series-title" name="title" required placeholder="Codex 教程系列" />
               </label>
               <label class="form-field">
+                <span>视觉风格</span>
+                <select id="series-style" name="style">
+                  <option value="current">通用 current</option>
+                  <option value="codex">Codex 青绿色</option>
+                  <option value="claude-code">Claude Code 蓝紫</option>
+                </select>
+              </label>
+              <label class="form-field">
                 <span>封面帧数</span>
                 <input id="series-cover-frames" name="coverDurationFrames" type="number" min="1" value="45" required />
               </label>
@@ -70,6 +78,31 @@
               <p id="series-state" class="series-state">选择或创建系列后上传封面。</p>
             </div>
           </div>
+        </section>
+        <section class="source-import-panel">
+          <div>
+            <p class="eyebrow">SOURCE IMPORT</p>
+            <h2>导入原文件</h2>
+            <p class="source-import-help">先选择系列以锁定视觉风格与原型基线，再上传 Markdown 或纯文本原文件。系统会创建视频项目并保存为 <code>videos/&lt;slug&gt;/source.md</code>。</p>
+          </div>
+          <form id="source-import-form" class="source-import-form">
+            <label class="form-field">
+              <span>原文件（.md、.markdown 或 .txt；最大 10 MB）</span>
+              <input id="source-import-file" type="file" accept=".md,.markdown,.txt,text/markdown,text/plain" required />
+            </label>
+            <label class="form-field">
+              <span>视频 slug（可选；留空时从文件名生成）</span>
+              <input id="source-import-slug" type="text" pattern="[a-z0-9]+(?:-[a-z0-9]+)*" placeholder="例如：02-what-is-agents" autocomplete="off" />
+            </label>
+            <label class="form-field">
+              <span>所属系列与视觉基线</span>
+              <select id="source-import-series" required><option value="">请选择系列</option></select>
+            </label>
+            <div class="source-import-actions">
+              <button id="source-import-submit" class="button button-primary" type="submit" disabled>上传并创建项目</button>
+              <p id="source-import-state" class="source-import-state" role="status" aria-live="polite">请选择一个原文件。</p>
+            </div>
+          </form>
         </section>
         <section class="batch-create-panel">
           <div>

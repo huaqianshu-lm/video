@@ -4,7 +4,7 @@ import path from "node:path";
 import { loadProject, projectsRoot, readJson, writeJson } from "./storage.mjs";
 import { retryStage, runStage, validateStage } from "./runner.mjs";
 import { buildNextAction } from "./reports.mjs";
-import { stageIndex } from "./stages.mjs";
+import { stageIndex, STAGE_DEFINITIONS } from "./stages.mjs";
 import { ensureRemotionTask, getRemotionTask, retryRemotionTask } from "./remotion-tasks.mjs";
 import { createRemoteJobMonitor } from "./remote-jobs.mjs";
 import { createRemoteRenderExecutor } from "./remote-executor.mjs";
@@ -13,6 +13,7 @@ import { createTtsExecutorFromEnv } from "./tts-executor.mjs";
 import { runSingleStage } from "./single-runner.mjs";
 import { getJob } from "./jobs.mjs";
 import { REMOTE_JOB_STATUS } from "./remote-status.mjs";
+import { createAgentJob, getAgentJob } from "./agent-jobs.mjs";
 
 const BATCH_DEFINITIONS = Object.freeze({
   "to-gate-2": Object.freeze({
@@ -79,12 +80,14 @@ const LEGACY_DEFINITIONS = Object.freeze({
 const ALL_DEFINITIONS = Object.freeze({ ...BATCH_DEFINITIONS, ...LEGACY_DEFINITIONS });
 const WAITING_ITEM_STATUSES = new Set([
   "waiting-gate",
+  "waiting-agent-job",
   "waiting-tts-qc",
   "waiting-remotion-task",
   "waiting-remote",
   "waiting-smoke-qc",
 ]);
 const activeBatchIds = new Set();
+const pendingBatchRuns = new Map();
 
 function batchesRoot() {
   return path.resolve(process.env.HARNESS_BATCHES_DIR ?? path.join(projectsRoot(), "..", "batches"));
@@ -122,6 +125,8 @@ function item(slug, status, message, extra = {}) {
     remotionTaskId: null,
     smokeQcApprovedAt: null,
     remoteJobId: null,
+    agentJobId: null,
+    internalReviews: [],
     startedAt: null,
     completedAt: null,
     updatedAt: new Date().toISOString(),
@@ -182,6 +187,7 @@ function summarize(batch) {
     "queued",
     "running",
     "waiting-gate",
+    "waiting-agent-job",
     "waiting-tts-qc",
     "waiting-remote",
     "waiting-smoke-qc",
@@ -327,6 +333,76 @@ function remoteJobState(batchItem) {
   return getJob(batchItem.slug, batchItem.remoteJobId);
 }
 
+function agentJobState(batchItem) {
+  if (!batchItem.agentJobId) return null;
+  return getAgentJob(batchItem.agentJobId);
+}
+
+function recordGate1Review(batch, batchItem) {
+  const project = loadProject(batchItem.slug, { refresh: true });
+  const stages = ["content-analysis", "video-narrative", "scene-script"];
+  const issues = stages.flatMap((stage) => validateStage(project, stage));
+  if (issues.length > 0) {
+    const error = new Error(`Gate 1 内部审查发现 ${issues.length} 个问题。`);
+    error.code = "gate-1-review-failed";
+    error.issues = issues;
+    throw error;
+  }
+  const reviewedAt = new Date().toISOString();
+  const review = {
+    gate: "gate-1",
+    kind: "internal-review",
+    decision: "approved",
+    reviewedAt,
+    checks: ["内容一致性", "事实边界", "叙事关系", "Scene 拆分与 Video Value"],
+  };
+  project.state.stages["scene-script"].review = review;
+  writeJson(project.files.state, project.state);
+  batchItem.internalReviews = [...(batchItem.internalReviews ?? []).filter((item) => item.gate !== "gate-1"), review];
+  saveBatch(batch);
+}
+
+async function resolveWaitingAgentItem(batch, batchItem) {
+  if (batchItem.status !== "waiting-agent-job") return;
+  const job = agentJobState(batchItem);
+  if (!job) {
+    updateItem(batch, batchItem, {
+      status: "failed",
+      error: { code: "agent-job-missing", message: "找不到批量任务关联的 Agent Job。" },
+      message: "Agent Job 记录丢失，无法安全恢复。",
+      completedAt: new Date().toISOString(),
+    });
+    return;
+  }
+
+  if (job.status === "succeeded") {
+    if (job.stage === "scene-script" && !(batchItem.internalReviews ?? []).some((review) => review.gate === "gate-1")) {
+      recordGate1Review(batch, batchItem);
+    }
+    updateItem(batch, batchItem, {
+      status: "queued",
+      message: `${batchItem.phase} 已通过产物校验，继续执行下一阶段。`,
+    });
+    return;
+  }
+
+  if (job.status === "failed") {
+    updateItem(batch, batchItem, {
+      status: "failed",
+      error: job.error ?? { code: "agent-job-failed", message: `${batchItem.phase} Agent Job 执行失败。` },
+      message: "该视频 Agent 任务失败，可以重试；其他视频继续。",
+      completedAt: new Date().toISOString(),
+    });
+    return;
+  }
+
+  updateItem(batch, batchItem, {
+    message: job.status === "running"
+      ? `Agent 正在执行 ${batchItem.phase}，等待产物校验。`
+      : `Agent Job 已排队，等待执行 ${batchItem.phase}。`,
+  });
+}
+
 async function resolveWaitingRemoteItem(batch, batchItem) {
   if (batchItem.status !== "waiting-remote") return;
   const job = remoteJobState(batchItem);
@@ -409,6 +485,25 @@ async function executeItem(batch, batchItem, definition, options) {
         throw new Error(`${currentStage} 当前状态为 ${stageItem.status}，无法继续批量执行。`);
       }
 
+      const shouldQueueAgentJob = definition.type === "to-gate-2"
+        && typeof options.queueAgentJob === "function"
+        && currentStage !== "source"
+        && currentStage !== "remotion"
+        && STAGE_DEFINITIONS[currentStage]?.executor === "agent";
+      if (shouldQueueAgentJob) {
+        const job = createAgentJob({ slug: batchItem.slug, stage: currentStage, batchId: batch.id });
+        updateItem(batch, batchItem, {
+          status: "waiting-agent-job",
+          phase: currentStage,
+          agentJobId: job.id,
+          message: job.status === "running"
+            ? `Agent 正在执行 ${currentStage}，等待产物校验。`
+            : `Agent Job 已创建，等待执行 ${currentStage}。`,
+        });
+        options.queueAgentJob(job.id);
+        return;
+      }
+
       if (currentStage === "remotion" && definition.requiresRemotionTask) {
         const issues = validateStage(project, "remotion");
         if (issues.length > 0 && !options.executors?.remotion) {
@@ -482,7 +577,10 @@ async function executeItem(batch, batchItem, definition, options) {
 export async function runBatch(id, options = {}) {
   const batch = getBatch(id);
   if (!batch) throw new Error(`Batch not found: ${id}`);
-  if (activeBatchIds.has(id)) return batch;
+  if (activeBatchIds.has(id)) {
+    pendingBatchRuns.set(id, options);
+    return batch;
+  }
   const definition = validateType(batch.type);
   const executionOptions = mergeExecutionOptions(options);
   activeBatchIds.add(id);
@@ -507,6 +605,9 @@ export async function runBatch(id, options = {}) {
       await executionOptions.remoteMonitor.poll();
     }
     for (const batchItem of batch.items) {
+      await resolveWaitingAgentItem(batch, batchItem);
+    }
+    for (const batchItem of batch.items) {
       await resolveWaitingRemoteItem(batch, batchItem);
     }
     for (const batchItem of batch.items) {
@@ -516,7 +617,56 @@ export async function runBatch(id, options = {}) {
     return refreshBatchStatus(batch);
   } finally {
     activeBatchIds.delete(id);
+    const pendingOptions = pendingBatchRuns.get(id);
+    if (pendingOptions) {
+      pendingBatchRuns.delete(id);
+      queueMicrotask(() => void runBatch(id, pendingOptions).catch(() => {}));
+    }
   }
+}
+
+export function findActiveBatchForProject(type, slug) {
+  return listBatches().find((batch) => batch.type === type
+    && batch.items.some((batchItem) => batchItem.slug === slug
+      && ["queued", "running", "waiting-agent-job", "waiting-gate"].includes(batchItem.status)
+      && isCurrentBatchItem(batchItem, type))) ?? null;
+}
+
+function isCurrentBatchItem(batchItem, type) {
+  if (type !== "to-gate-2" || !batchItem.phase) return true;
+  try {
+    const project = loadProject(batchItem.slug, { refresh: false });
+    if (project.state.currentStage !== batchItem.phase) return false;
+    if (batchItem.status === "waiting-gate") {
+      return project.state.currentStage === "gate-2" && project.state.stages["gate-2"].status === "waiting";
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function stopBatchesAfterGateRejection({ slug, gate, returnTo, reason }) {
+  const stopped = [];
+  for (const batch of listBatches()) {
+    if (batch.type !== "to-gate-2") continue;
+    const batchItem = batch.items.find((entry) => entry.slug === slug
+      && ["queued", "running", "waiting-agent-job", "waiting-gate"].includes(entry.status));
+    if (!batchItem) continue;
+
+    const now = new Date().toISOString();
+    Object.assign(batchItem, {
+      status: "failed",
+      phase: gate,
+      error: { code: "gate-rejected", gate, returnTo, message: reason },
+      message: `${gate} 已驳回，旧的连续批次已停止；请从 ${returnTo} 重新执行。`,
+      completedAt: now,
+      updatedAt: now,
+    });
+    refreshBatchStatus(batch);
+    stopped.push(batch.id);
+  }
+  return stopped;
 }
 
 function approveProjectReview(slug, stage, kind) {

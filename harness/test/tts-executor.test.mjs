@@ -13,7 +13,8 @@ function fixture() {
   const slug = "tts-executor-video";
   process.env.HARNESS_WORKSPACE_ROOT = workspaceRoot;
   process.env.HARNESS_PROJECTS_DIR = projectsRoot;
-  initializeProject(slug);
+  process.env.HARNESS_TTS_PROJECT_DIR = path.resolve(new URL("../..", import.meta.url).pathname, "..", "tts");
+  initializeProject(slug, { prototypeBaseline: null });
   const project = loadProject(slug, { refresh: false });
   const source = {
     "source.md": "# Source\n\n内容。\n",
@@ -143,4 +144,19 @@ test("marks a failed TTS executor as failed without advancing the project", asyn
   assert.equal(failed.state.currentStage, "subtitle-timeline");
   assert.equal(failed.state.stages["subtitle-timeline"].status, "failed");
   assert.equal(failed.state.stages["subtitle-timeline"].error.code, "tts-service-unavailable");
+});
+
+test("does not invoke TTS when the frozen script contains non-spoken text", async () => {
+  const { slug, project } = fixture();
+  prepareAtSubtitleTimeline(project);
+  const ttsPath = path.join(project.config.workspaceRoot, `videos/${slug}/tts-script.json`);
+  fs.writeFileSync(ttsPath, JSON.stringify({
+    schemaVersion: "1.0",
+    videoId: slug,
+    scenes: [{ sceneId: "01", segments: [{ id: "01-01", text: "---" }] }],
+  }), "utf8");
+  const invalidated = loadProject(slug);
+  assert.equal(invalidated.state.currentStage, "tts");
+  assert.equal(invalidated.state.stages.tts.status, "ready");
+  assert.equal(invalidated.state.stages["subtitle-timeline"].status, "invalidated");
 });

@@ -459,6 +459,8 @@ Visual Prototype
 外部提供的音频 / 字幕数据
 ```
 
+对于有明确口播的视频，Remotion 制作必须先读取已校验的 Audio Manifest、Subtitle Manifest 和 Timeline Manifest，并以 `timeline-manifest.json` 作为唯一时间基准。Scene 时长、音频起点、字幕位置和视觉事件时间必须从同一套 Scene／Segment／Cue 映射产生；TypeScript 配置统一复用 `src/lib/timing.ts` 的 `createNarratedTiming`，`remotion-alignment.json` 的每个 Scene 必须记录这些来源、起止秒／帧和动画事件绑定；不得在单条视频目录内重新实现时间映射，也不得先按估算时长或任意硬编码时间完成画面，再事后适配音频。缺少映射时必须停止制作并报告原因。
+
 每条新视频进入 Remotion 后必须生成 `videos/<video-slug>/remotion-alignment.json`，逐 Scene 记录：
 
 - 对应的原型指纹
