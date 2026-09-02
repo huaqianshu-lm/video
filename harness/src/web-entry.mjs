@@ -5,8 +5,14 @@ import { fileURLToPath } from "node:url";
 import { createWebServer } from "./server.mjs";
 
 const moduleDirectory = path.dirname(fileURLToPath(import.meta.url));
+const agentAdapterPath = path.join(moduleDirectory, "agent-harness-adapter.mjs");
+const ttsAdapterPath = path.join(moduleDirectory, "tts-harness-adapter.mjs");
 const adapterPath = path.join(moduleDirectory, "remotion-harness-adapter.mjs");
 
+process.env.HARNESS_AGENT_EXECUTOR_COMMAND ||= process.execPath;
+process.env.HARNESS_AGENT_EXECUTOR_ARGS ||= JSON.stringify([agentAdapterPath]);
+process.env.HARNESS_TTS_EXECUTOR_COMMAND ||= process.execPath;
+process.env.HARNESS_TTS_EXECUTOR_ARGS ||= JSON.stringify([ttsAdapterPath]);
 process.env.HARNESS_REMOTION_EXECUTOR_COMMAND ||= process.execPath;
 process.env.HARNESS_REMOTION_EXECUTOR_ARGS ||= JSON.stringify([adapterPath]);
 

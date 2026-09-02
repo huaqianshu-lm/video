@@ -89,11 +89,14 @@ export function buildNextAction(project) {
     };
   }
   if (item.status === "ready" && blockingIssues.length > 0) {
+    const remoteStage = stage === "smoke-render" || stage === "render";
     return {
       currentStage: stage,
       status: item.status,
       action: "fix-validation-issues",
-      message: `${stage} 还有 ${blockingIssues.length} 个阻塞性校验问题，修复后才能执行。`,
+      message: remoteStage
+        ? `${stage} 暂不能提交远程任务，交付预检发现 ${blockingIssues.length} 个阻塞问题。`
+        : `${stage} 还有 ${blockingIssues.length} 个阻塞性校验问题，修复后才能执行。`,
       requiresUser: false,
       commands: [commandFor(project, "validate", stage)],
       issues,

@@ -316,6 +316,45 @@ h1 {
   background: rgba(18, 31, 55, 0.84);
 }
 
+.source-import-panel {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.8fr) minmax(360px, 1.2fr);
+  gap: 24px;
+  margin: 24px 0;
+  padding: 20px;
+  border: 1px solid #2d4164;
+  border-radius: 14px;
+  background: rgba(18, 31, 55, 0.84);
+}
+
+.source-import-panel h2 {
+  margin-bottom: 8px;
+}
+
+.source-import-help,
+.source-import-state {
+  margin: 0;
+  color: #9eabc4;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.source-import-help code {
+  color: #c6ddff;
+}
+
+.source-import-form {
+  display: grid;
+  gap: 12px;
+}
+
+.source-import-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
 .series-panel {
   margin: 24px 0;
   padding: 20px;

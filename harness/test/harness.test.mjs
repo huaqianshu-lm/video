@@ -9,7 +9,7 @@ import { artifactManifestFor } from "../src/artifacts.mjs";
 import { buildNextAction, buildProjectReport } from "../src/reports.mjs";
 import { buildTaskPacket } from "../src/context.mjs";
 import { buildProjectPlan } from "../src/plans.mjs";
-import { initializeProject, loadProject } from "../src/storage.mjs";
+import { applySeriesStyle, initializeProject, loadProject, writeJson } from "../src/storage.mjs";
 import { approveGate, rejectGate, resumeProject, runStage, validateStage } from "../src/runner.mjs";
 import {
   ADAPTER_REQUIRED_STAGES,
@@ -23,7 +23,7 @@ import {
 import { validateProjectStage } from "../src/validation.mjs";
 import { buildTtsScript } from "../src/tts-script.mjs";
 import { approveSmokeQc, approveTtsQc, approveTtsQcForProject, batchForView, createBatch, retryFailedBatchItems, runBatch } from "../src/batches.mjs";
-import { completeRemotionTask, ensureRemotionTask, listRemotionTasks, runRemotionTask, startRemotionTask } from "../src/remotion-tasks.mjs";
+import { completeRemotionTask, ensureRemotionTask, listRemotionTasks, retryRemotionTask, runRemotionTask, startRemotionTask } from "../src/remotion-tasks.mjs";
 import { buildRemotionExecutionInput } from "../src/remotion-executor.mjs";
 import { createRemoteRenderExecutor } from "../src/remote-executor.mjs";
 import { runSingleStage } from "../src/single-runner.mjs";
@@ -33,7 +33,7 @@ import { getSeriesDefinitionForSlug, getStyleDefinition, resolveStyleId } from "
 
 const repositoryRoot = path.resolve(new URL("../..", import.meta.url).pathname);
 
-function createFixture() {
+function createFixture({ prototypeBaseline = null } = {}) {
   const workspaceRoot = fs.mkdtempSync(path.join(os.tmpdir(), "video-harness-workspace-"));
   const projectsRoot = fs.mkdtempSync(path.join(os.tmpdir(), "video-harness-projects-"));
   const slug = "fixture-video";
@@ -89,7 +89,8 @@ function createFixture() {
 
   process.env.HARNESS_PROJECTS_DIR = projectsRoot;
   process.env.HARNESS_WORKSPACE_ROOT = workspaceRoot;
-  initializeProject(slug);
+  process.env.HARNESS_TTS_PROJECT_DIR = path.resolve(repositoryRoot, "..", "tts");
+  initializeProject(slug, { prototypeBaseline });
   return { slug, projectsRoot };
 }
 
@@ -138,11 +139,12 @@ test("defines one canonical workflow for all 15 production stages", () => {
 });
 
 test("initializes explicit workflow, style, and target project configuration", () => {
-  const { slug } = createFixture();
+  const { slug } = createFixture({ prototypeBaseline: "codex-v1" });
   const project = loadFixture(slug);
   assert.equal(project.config.workflow, "default");
   assert.equal(project.config.workflowVersion, 1);
   assert.equal(project.config.style, "current");
+  assert.equal(project.config.prototypeBaseline, "codex-v1");
   assert.equal(project.config.target, "gate-4");
   assert.equal(project.config.harnessVersion, "0.6.0");
 });
@@ -152,6 +154,81 @@ test("resolves the Codex series style and exposes dedicated style definitions", 
   assert.equal(resolveStyleId({ style: "current" }, "02-core-concepts"), "codex");
   assert.equal(getStyleDefinition("codex")?.path, "styles/codex/STYLE.md");
   assert.equal(getStyleDefinition("claude-code")?.path, "styles/current/STYLE.md");
+});
+
+test("adds the style-specific prototype baseline to the visual prototype task packet", () => {
+  const { slug } = createFixture();
+  const project = loadFixture(slug);
+  project.config.style = "codex";
+  project.state.currentStage = "visual-prototype";
+  const packet = buildTaskPacket(project);
+  assert.deepEqual(packet.context.referencePaths, [
+    "styles/codex/STYLE.md",
+    "videos/01-what-is-codex/visual-prototype.html",
+  ]);
+  assert.ok(packet.context.readPaths.includes("styles/codex/STYLE.md"));
+  assert.ok(packet.context.readPaths.includes("videos/01-what-is-codex/visual-prototype.html"));
+  assert.match(packet.context.constraints.join("\n"), /shell、toolbar、stage、section\.scene、caption、controls、progress 和 meta/);
+});
+
+test("requires the immutable Codex prototype shell and layout contract", () => {
+  const { slug } = createFixture({ prototypeBaseline: "codex-v1" });
+  const project = loadFixture(slug);
+  const prototypePath = path.join(project.config.workspaceRoot, `videos/${slug}/visual-prototype.html`);
+  const baseline = fs.readFileSync(new URL("../../videos/01-what-is-codex/visual-prototype.html", import.meta.url), "utf8");
+  fs.writeFileSync(prototypePath, baseline, "utf8");
+  const validIssues = validateStage(loadFixture(slug), "visual-prototype");
+  assert.equal(validIssues.some((item) => item.code === "prototype-baseline-format-mismatch"), false);
+  assert.equal(validIssues.some((item) => item.code === "prototype-baseline-layout-mismatch"), false);
+
+  fs.writeFileSync(prototypePath, "<main><div class=\"stage\"><section class=\"scene\"></section></div></main>\n", "utf8");
+  const invalidIssues = validateStage(loadFixture(slug), "visual-prototype");
+  assert.equal(invalidIssues.some((item) => item.code === "prototype-baseline-format-mismatch"), true);
+  assert.equal(invalidIssues.some((item) => item.code === "prototype-baseline-layout-mismatch"), true);
+});
+
+test("requires one upper-left baseline title block in every prototype scene", () => {
+  const { slug } = createFixture({ prototypeBaseline: "codex-v1" });
+  const project = loadFixture(slug);
+  const prototypePath = path.join(project.config.workspaceRoot, `videos/${slug}/visual-prototype.html`);
+  const baseline = fs.readFileSync(new URL("../../videos/01-what-is-codex/visual-prototype.html", import.meta.url), "utf8");
+  fs.writeFileSync(prototypePath, baseline, "utf8");
+  const validIssues = validateStage(loadFixture(slug), "visual-prototype");
+  assert.equal(validIssues.some((item) => item.code === "prototype-baseline-scene-title-mismatch"), false);
+  assert.equal(validIssues.some((item) => item.code === "prototype-baseline-scene-title-layout-mismatch"), false);
+
+  const missingTitle = baseline.replace(
+    '<div class="eyebrow">Scene 04 · Routing</div>\n        <h1>三扇门在本机，一扇门去云端</h1>',
+    '<div class="eyebrow">Scene 04 · Routing</div>',
+  );
+  fs.writeFileSync(prototypePath, missingTitle, "utf8");
+  const missingTitleIssues = validateStage(loadFixture(slug), "visual-prototype");
+  assert.equal(missingTitleIssues.some((item) => item.code === "prototype-baseline-scene-title-mismatch"), true);
+
+  const centeredTitle = baseline.replace("</style>", ".scene h1 { text-align: center; }\n    </style>");
+  fs.writeFileSync(prototypePath, centeredTitle, "utf8");
+  const centeredTitleIssues = validateStage(loadFixture(slug), "visual-prototype");
+  assert.equal(centeredTitleIssues.some((item) => item.code === "prototype-baseline-scene-title-layout-mismatch"), true);
+});
+
+test("restarts an existing project from Visual Script when its series style changes", () => {
+  const { slug } = createFixture();
+  const project = loadFixture(slug);
+  project.state.currentStage = "visual-prototype";
+  for (const stage of ["visual-script", "visual-prototype"]) {
+    project.state.stages[stage].status = "succeeded";
+    project.state.stages[stage].outputFingerprint = `${stage}-fingerprint`;
+  }
+  writeJson(project.files.config, project.config);
+  writeJson(project.files.state, project.state);
+
+  const result = applySeriesStyle(slug, "codex");
+  const updated = loadFixture(slug);
+  assert.deepEqual(result, { changed: true, restartedAt: "visual-script" });
+  assert.equal(updated.config.style, "codex");
+  assert.equal(updated.state.currentStage, "visual-script");
+  assert.equal(updated.state.stages["visual-script"].status, "ready");
+  assert.equal(updated.state.stages["visual-prototype"].status, "invalidated");
 });
 
 test("adopts an existing prototype-only project into a waiting Gate 2 state", () => {
@@ -206,7 +283,7 @@ test("repairs a freshly initialized prototype-only project without overwriting d
   process.env.HARNESS_PROJECTS_DIR = projectsRoot;
   process.env.HARNESS_WORKSPACE_ROOT = workspaceRoot;
 
-  initializeProject(slug);
+  initializeProject(slug, { prototypeBaseline: null });
   const initialized = loadProject(slug, { refresh: false });
   initialized.state.stages.source.status = "succeeded";
   initialized.state.stages.source.outputFingerprint = "existing-source-fingerprint";
@@ -250,6 +327,7 @@ test("builds a single-stage context task packet with bounded read and write path
   assert.equal(packet.project.currentStage, "content-analysis");
   assert.equal(packet.task.executor, "agent");
   assert.deepEqual(packet.task.inputStages, ["source"]);
+  assert.deepEqual(packet.task.currentValidationIssues, []);
   assert.deepEqual(packet.context.readPaths, [`videos/${slug}/source.md`]);
   assert.deepEqual(packet.context.writePaths, [`videos/${slug}/content-analysis.md`]);
   assert.deepEqual(packet.context.style, {
@@ -376,6 +454,35 @@ test("derives TTS Script from narration paragraphs", () => {
       ],
     }],
   });
+});
+
+test("does not derive Markdown separators as TTS segments", () => {
+  const script = buildTtsScript("fixture-video", "## Scene 01｜测试\n\n第一段口播。\n\n---\n");
+  assert.deepEqual(script.scenes[0].segments, [{ id: "01-01", text: "第一段口播。" }]);
+});
+
+test("uses the canonical TTS cleaner for Markdown presentation syntax", () => {
+  const script = buildTtsScript(
+    "fixture-video",
+    "## Scene 01｜测试\n\n> 这是 **第一** 段，见 [官方说明](https://example.com)。\n\n### 视觉说明\n\n---\n\n这是第二段。\n",
+  );
+  assert.deepEqual(script.scenes[0].segments, [
+    { id: "01-01", text: "这是 第一 段，见 官方说明。" },
+    { id: "01-02", text: "这是第二段。" },
+  ]);
+});
+
+test("rejects non-spoken Markdown separators in an existing TTS Script", () => {
+  const { slug } = createFixture();
+  const project = loadFixture(slug);
+  const ttsPath = path.join(project.config.workspaceRoot, `videos/${slug}/tts-script.json`);
+  fs.writeFileSync(ttsPath, JSON.stringify({
+    schemaVersion: "1.0",
+    scenes: [{ sceneId: "01", segments: [{ id: "01-01", text: "---" }] }],
+  }), "utf8");
+
+  const issues = validateStage(loadFixture(slug), "tts");
+  assert.equal(issues.some((item) => item.code === "internal-tts-text"), true);
 });
 
 test("automatically creates and validates TTS Script when Gate 2 is approved", () => {
@@ -1117,6 +1224,30 @@ test("requires new Remotion output after Gate 3 rejection", async () => {
   assert.equal(result.task.status, "blocked");
   assert.equal(result.task.error.code, "remotion-unchanged-after-gate-rejection");
   assert.equal(loadFixture(slug).state.currentStage, "remotion");
+});
+
+test("refreshes a retried Remotion task with the Gate 3 rejection request", async () => {
+  const { slug } = createFixture();
+  const project = loadFixture(slug);
+  runToGate3(project);
+  const previousFingerprint = loadFixture(slug).state.stages.remotion.outputFingerprint;
+
+  rejectGate(loadFixture(slug), "gate-3", "remotion", "修复 Scene 01 的重叠并校准字幕入场时间");
+  const task = ensureRemotionTask({ slug });
+  const blocked = await runRemotionTask(task.id, { executor: { async run() {} } });
+  assert.equal(blocked.task.status, "blocked");
+
+  const retried = retryRemotionTask(task.id);
+  assert.equal(retried.status, "ready");
+  assert.deepEqual(retried.context.rebuildRequest, {
+    gate: "gate-3",
+    returnTo: "remotion",
+    reason: "修复 Scene 01 的重叠并校准字幕入场时间",
+    requirement: "必须针对上述驳回原因修改 Remotion 实现，并产生新的 Remotion 产物；不能只重新校验或原样返回现有文件。",
+  });
+  assert.match(retried.context.constraints.join("\n"), /Gate 3 驳回后的 Remotion 重制任务/);
+  assert.equal(retried.context.prototypeBaseline.visualPrototype.fingerprint.length, 64);
+  assert.equal(loadFixture(slug).state.stages.remotion.rebuildBaselineFingerprint, previousFingerprint);
 });
 
 test("completes a GitHub Actions run and records its artifact metadata", async () => {

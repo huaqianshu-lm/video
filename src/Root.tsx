@@ -24,6 +24,10 @@ import {CoreConceptsVideo} from './videos/02-core-concepts/CoreConceptsVideo';
 import {videoConfig as coreConceptsConfig} from './videos/02-core-concepts/video.config';
 import {ProjectInitVideo} from './videos/project-init/ProjectInitVideo';
 import {videoConfig as projectInitConfig} from './videos/project-init/video.config';
+import {InstallVideo} from './videos/03-install/InstallVideo';
+import {videoConfig as installConfig} from './videos/03-install/video.config';
+import {PricingVideo} from './videos/04-pricing/PricingVideo';
+import {videoConfig as pricingConfig} from './videos/04-pricing/video.config';
 
 export const Root = () => {
   return (
@@ -123,6 +127,22 @@ export const Root = () => {
         fps={projectInitConfig.fps}
         width={projectInitConfig.width}
         height={projectInitConfig.height}
+      />
+      <Composition
+        id={installConfig.slug}
+        component={InstallVideo}
+        durationInFrames={getTotalDurationFrames(installConfig)}
+        fps={installConfig.fps}
+        width={installConfig.width}
+        height={installConfig.height}
+      />
+      <Composition
+        id={pricingConfig.slug}
+        component={PricingVideo}
+        durationInFrames={getTotalDurationFrames(pricingConfig)}
+        fps={pricingConfig.fps}
+        width={pricingConfig.width}
+        height={pricingConfig.height}
       />
     </>
   );

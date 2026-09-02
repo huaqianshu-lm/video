@@ -198,6 +198,18 @@ export function runStage(project, requestedStage, { adapters = {}, executors = {
     }
   }
 
+  if (stage === "subtitle-timeline") {
+    const inputIssues = validateProjectStage(project, "tts").filter((item) => item.severity !== "warning");
+    if (inputIssues.length > 0) {
+      const error = { code: "input-validation-failed", stage, inputStage: "tts", issues: inputIssues };
+      item.status = "failed";
+      item.error = error;
+      item.updatedAt = new Date().toISOString();
+      saveState(project);
+      throw new Error(`TTS 输入校验失败：${inputIssues.map((issue) => issue.message).join("；")}`);
+    }
+  }
+
   const executor = executors[stage];
   if (executor) {
     if (typeof executor.run !== "function") {

@@ -10,19 +10,21 @@ import { findActiveJob, listAllJobs, listJobs } from "./jobs.mjs";
 import { requireGitHubActionsConfig } from "./github-config.mjs";
 import { diagnoseGitHubActions } from "./diagnostics.mjs";
 import { createRemoteJobMonitor } from "./remote-jobs.mjs";
-import { assertRemoteRenderDeliveryInputs, prepareRemoteRenderInputs } from "./remote-executor.mjs";
+import { assertRemoteRenderDeliveryInputs, prepareRemoteRenderInputs, validateRemoteRenderInputs } from "./remote-executor.mjs";
+import { buildGitRenderCommitPlan, commitAndPushRenderDelivery, validateGitRenderDelivery } from "./git-delivery.mjs";
 import { artifactManifestFor } from "./artifacts.mjs";
 import { approveGate, rejectGate, resumeProject, retryStage, runStage, validateStage } from "./runner.mjs";
 import { validateProjectStage } from "./validation.mjs";
 import { buildNextAction, buildProjectReport } from "./reports.mjs";
 import { buildTaskPacket } from "./context.mjs";
 import { buildProjectPlan } from "./plans.mjs";
-import { initializeProject, loadProject, reopenGate3ForSeriesCover } from "./storage.mjs";
+import { applySeriesStyle, initializeProject, loadProject, reopenGate3ForSeriesCover } from "./storage.mjs";
 import { HARNESS_VERSION } from "./stages.mjs";
 import { STAGE_DEFINITIONS } from "./stages.mjs";
 import { createAgentExecutorFromEnv } from "./agent-executor.mjs";
 import { createTtsExecutorFromEnv } from "./tts-executor.mjs";
 import { createRemotionExecutorFromEnv } from "./remotion-executor.mjs";
+import { importSourceProject, MAX_SOURCE_BYTES } from "./source-import.mjs";
 import {
   createAgentJob,
   getAgentJob,
@@ -38,11 +40,13 @@ import {
   approveSmokeQc,
   batchDefinitions,
   createBatch,
+  findActiveBatchForProject,
   getBatch,
   getBatchForView,
   listBatchesForView,
   retryFailedBatchItems,
   runBatch,
+  stopBatchesAfterGateRejection,
 } from "./batches.mjs";
 import {
   completeRemotionTask,
@@ -159,14 +163,20 @@ async function serveSeriesApi(response, request, pathname) {
 
   if (request.method === "POST" && pathname === "/api/series") {
     const body = await readJsonBody(request);
+    const previous = getSeries(body.id);
     const series = saveSeries({
       id: body.id,
       title: body.title,
+      style: body.style,
       coverDurationFrames: body.coverDurationFrames,
       videos: body.videos,
       confirmVideoRemoval: body.confirmVideoRemoval === true,
     });
-    sendJson(response, 200, { series });
+    const updatedProjects = series.videos
+      .filter((slug) => !previous?.videos.includes(slug))
+      .map((slug) => ({ slug, ...applySeriesStyle(slug, series.style) }))
+      .filter((result) => result.changed);
+    sendJson(response, 200, { series, updatedProjects });
     return true;
   }
 
@@ -291,6 +301,28 @@ async function serveApi(response, pathname, search, remoteJobMonitor, diagnose) 
   return false;
 }
 
+async function serveSourceImportApi(response, request, pathname, search) {
+  if (request.method !== "PUT" || pathname !== "/api/projects/import") return false;
+
+  try {
+    const body = await readBody(request, MAX_SOURCE_BYTES);
+    const query = new URLSearchParams(search);
+    const result = importSourceProject({
+      slug: query.get("slug"),
+      filename: query.get("filename"),
+      content: body,
+      seriesId: query.get("seriesId"),
+    });
+    sendJson(response, 201, { result, project: getVideoProject(result.slug) });
+  } catch (error) {
+    sendJson(response, error?.code === "source-project-exists" ? 409 : 400, {
+      error: error instanceof Error ? error.message : String(error),
+      code: error?.code ?? "source-import-failed",
+    });
+  }
+  return true;
+}
+
 async function serveBatchApi(response, request, pathname) {
   if (request.method === "GET" && pathname === "/api/batches") {
     sendJson(response, 200, { definitions: batchDefinitions(), batches: listBatchesForView() });
@@ -300,7 +332,7 @@ async function serveBatchApi(response, request, pathname) {
   if (request.method === "POST" && pathname === "/api/batches") {
     const body = await readJsonBody(request);
     const batch = createBatch({ type: body.type, slugs: body.slugs });
-    void runBatch(batch.id).catch(() => {});
+    void runBatch(batch.id, { queueAgentJob: request.queueAgentJob }).catch(() => {});
     sendJson(response, 202, { batch: getBatchForView(batch.id) });
     return true;
   }
@@ -331,7 +363,7 @@ async function serveBatchApi(response, request, pathname) {
       sendJson(response, 400, { error: `Unknown batch action: ${body.action ?? "missing"}` });
       return true;
     }
-    void runBatch(id).catch(() => {});
+    void runBatch(id, { queueAgentJob: request.queueAgentJob }).catch(() => {});
     sendJson(response, 202, { batch: getBatchForView(id) });
     return true;
   }
@@ -529,6 +561,17 @@ async function serveAction(response, request, pathname) {
     return true;
   }
 
+  if (action === "run-to-gate-2") {
+    const activeBatch = findActiveBatchForProject("to-gate-2", slug);
+    const batch = activeBatch ?? createBatch({ type: "to-gate-2", slugs: [slug] });
+    void runBatch(batch.id, { queueAgentJob: request.queueAgentJob }).catch(() => {});
+    sendJson(response, 202, {
+      result: { action, status: activeBatch ? "already-running" : "queued" },
+      batch: getBatchForView(batch.id),
+    });
+    return true;
+  }
+
   if (action === "remote-run") {
     const stage = body.stage;
     if (stage !== "smoke-render" && stage !== "render") {
@@ -553,9 +596,42 @@ async function serveAction(response, request, pathname) {
     try {
       const renderProject = loadProject(slug, { refresh: true });
       prepareRemoteRenderInputs(renderProject);
-      assertRemoteRenderDeliveryInputs(renderProject);
+      const inputIssues = validateRemoteRenderInputs(renderProject);
+      if (inputIssues.length > 0) {
+        const error = new Error(`远程渲染输入预检失败：${inputIssues.join("；")}`);
+        error.code = "remote-render-inputs-invalid";
+        error.issues = inputIssues;
+        throw error;
+      }
+      let delivery = null;
+      const deliveryIssues = validateGitRenderDelivery(renderProject);
+      if (deliveryIssues.length > 0) {
+        if (stage !== "smoke-render" || body.commitAndPush !== true || body.confirmDelivery !== true) {
+          if (stage === "smoke-render" && body.commitAndPush !== true) {
+            const commitPlan = buildGitRenderCommitPlan(renderProject);
+            sendJson(response, 200, {
+              result: { action, status: "needs-confirmation" },
+              error: `远程渲染交付预检失败：${deliveryIssues.join("；")}`,
+              code: "git-render-commit-confirmation-required",
+              issues: deliveryIssues,
+              commitPlan,
+              project: getVideoProject(slug),
+            });
+            return true;
+          }
+          const error = new Error(`远程渲染交付预检失败：${deliveryIssues.join("；")}`);
+          error.code = "remote-render-delivery-invalid";
+          error.issues = deliveryIssues;
+          throw error;
+        }
+        delivery = commitAndPushRenderDelivery(renderProject);
+        const refreshedProject = loadProject(slug, { refresh: true });
+        assertRemoteRenderDeliveryInputs(refreshedProject);
+      } else {
+        assertRemoteRenderDeliveryInputs(renderProject);
+      }
       const job = request.remoteJobMonitor.submit({ slug, stage });
-      sendJson(response, 202, { result: { action, status: "queued" }, job });
+      sendJson(response, 202, { result: { action, status: "queued", delivery }, job });
     } catch (error) {
       sendJson(response, 400, {
         error: error instanceof Error ? error.message : String(error),
@@ -603,6 +679,7 @@ async function serveAction(response, request, pathname) {
 
   const project = loadProject(slug, { refresh: true });
   let result;
+  let responseStatus = 200;
   switch (action) {
     case "validate":
       result = { action, stage: body.stage ?? project.state.currentStage, issues: validateStage(project, body.stage) };
@@ -659,6 +736,24 @@ async function serveAction(response, request, pathname) {
       break;
     case "reject":
       result = rejectGate(project, body.gate ?? body.stage, body.returnTo, body.reason);
+      if (result.stage === "gate-2") {
+        result.stoppedBatchIds = stopBatchesAfterGateRejection({
+          slug,
+          gate: result.stage,
+          returnTo: result.returnTo,
+          reason: result.reason,
+        });
+      }
+      if (result.stage === "gate-3" && result.returnTo === "remotion") {
+        const task = ensureRemotionTask({ slug, batchId: null });
+        result = {
+          ...result,
+          status: task.status === "in-progress" ? "already-running" : "queued",
+          taskId: task.id,
+        };
+        if (task.status !== "in-progress") request.queueRemotionTask(task.id);
+        responseStatus = 202;
+      }
       break;
     case "retry":
       result = retryStage(project, body.stage);
@@ -671,7 +766,7 @@ async function serveAction(response, request, pathname) {
       return true;
   }
 
-  sendJson(response, 200, { result, project: getVideoProject(slug) });
+  sendJson(response, responseStatus, { result, project: getVideoProject(slug) });
   return true;
 }
 
@@ -681,7 +776,8 @@ async function handleRequest(request, response, host, remoteJobMonitor, diagnose
   const isBatchCreate = request.method === "POST" && requestUrl.pathname === "/api/batches";
   const isSeriesWrite = (request.method === "POST" && requestUrl.pathname === "/api/series")
     || (request.method === "PUT" && /^\/api\/series\/[a-z0-9]+(?:-[a-z0-9]+)*\/cover$/.test(requestUrl.pathname));
-  if (request.method !== "GET" && request.method !== "HEAD" && !isAction && !isBatchCreate && !isSeriesWrite) {
+  const isSourceImport = request.method === "PUT" && requestUrl.pathname === "/api/projects/import";
+  if (request.method !== "GET" && request.method !== "HEAD" && !isAction && !isBatchCreate && !isSeriesWrite && !isSourceImport) {
     send(response, 405, "Method not allowed\n");
     return;
   }
@@ -702,6 +798,9 @@ async function handleRequest(request, response, host, remoteJobMonitor, diagnose
     return;
   }
   if (requestUrl.pathname.startsWith("/api/series") && await serveSeriesApi(response, request, requestUrl.pathname)) {
+    return;
+  }
+  if (isSourceImport && await serveSourceImportApi(response, request, requestUrl.pathname, requestUrl.search)) {
     return;
   }
 
@@ -763,11 +862,18 @@ export function createWebServer({
       try {
         const job = getAgentJob(id);
         executor = agentExecutorFactory(job?.stage);
-      } catch {
-        await runAgentJob(id);
+      } catch (error) {
+        const unavailableExecutor = {
+          async run() {
+            throw error;
+          },
+        };
+        const finished = await runAgentJob(id, { executor: unavailableExecutor });
+        if (finished.batchId) await runBatch(finished.batchId, { queueAgentJob });
         return;
       }
-      await runAgentJob(id, { executor });
+      const finished = await runAgentJob(id, { executor });
+      if (finished.batchId) await runBatch(finished.batchId, { queueAgentJob });
     })().catch(() => {});
   };
   const queueRemotionTask = (id) => {

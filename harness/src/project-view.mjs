@@ -8,8 +8,18 @@ import { STAGES, STAGE_DEFINITIONS } from "./stages.mjs";
 import { resolveStyleId } from "./styles.mjs";
 
 const repositoryRoot = path.resolve(new URL("../..", import.meta.url).pathname);
-const videosRoot = path.join(repositoryRoot, "videos");
-const remotionRoot = path.join(repositoryRoot, "src", "videos");
+
+function workspaceRoot() {
+  return path.resolve(process.env.HARNESS_WORKSPACE_ROOT ?? repositoryRoot);
+}
+
+function videosRoot() {
+  return path.join(workspaceRoot(), "videos");
+}
+
+function remotionRoot() {
+  return path.join(workspaceRoot(), "src", "videos");
+}
 
 function directorySlugs(directory) {
   if (!fs.existsSync(directory)) return [];
@@ -19,7 +29,7 @@ function directorySlugs(directory) {
 }
 
 function sequenceForSlug(slug) {
-  const sourcePath = path.join(videosRoot, slug, "source.md");
+  const sourcePath = path.join(videosRoot(), slug, "source.md");
   if (!fs.existsSync(sourcePath)) return null;
   const firstLine = fs.readFileSync(sourcePath, "utf8").split(/\r?\n/, 1)[0];
   const match = firstLine.match(/^#\s+(\d+)\s+·/);
@@ -39,8 +49,8 @@ function compareVideoSlugs(left, right) {
 
 function allVideoSlugs() {
   return [...new Set([
-    ...directorySlugs(videosRoot),
-    ...directorySlugs(remotionRoot),
+    ...directorySlugs(videosRoot()),
+    ...directorySlugs(remotionRoot()),
   ])].sort(compareVideoSlugs);
 }
 

@@ -6,6 +6,7 @@ import test from "node:test";
 import { createAgentJob, getAgentJob, retryAgentJob, runAgentJob } from "../src/agent-jobs.mjs";
 import { buildTaskPacket } from "../src/context.mjs";
 import { buildPrototypeBaseline, getPrototypeBaseline, remotionAlignmentPath } from "../src/remotion-alignment.mjs";
+import { buildRemotionTimingPlan } from "../src/remotion-timing.mjs";
 import { buildNextAction } from "../src/reports.mjs";
 import { approveGate, runStage, validateStage } from "../src/runner.mjs";
 import { initializeProject, loadProject } from "../src/storage.mjs";
@@ -15,6 +16,7 @@ function roots(prefix) {
   process.env.HARNESS_WORKSPACE_ROOT = path.join(root, "workspace");
   process.env.HARNESS_PROJECTS_DIR = path.join(root, "projects");
   process.env.HARNESS_AGENT_JOBS_DIR = path.join(root, "agent-jobs");
+  process.env.HARNESS_TTS_PROJECT_DIR = path.resolve(new URL("../..", import.meta.url).pathname, "..", "tts");
   return root;
 }
 
@@ -105,10 +107,10 @@ function createAlignmentFixture() {
     "tts-script.json": JSON.stringify({ schemaVersion: "1.0", scenes: [{ sceneId: "01", segments: [{ id: "01-01", text: "这是测试口播。" }] }] }),
   };
   for (const [file, content] of Object.entries(documents)) write(workspace, `videos/${slug}/${file}`, content);
-  write(workspace, `src/videos/${slug}/generated/audio-manifest.json`, JSON.stringify({ scenes: [{ sceneId: "01", segments: [{ id: "01-01", duration: 1 }] }] }));
+  write(workspace, `src/videos/${slug}/generated/audio-manifest.json`, JSON.stringify({ scenes: [{ sceneId: "01", segments: [{ id: "01-01", file: "audio/scene-01/01-01.mp3", duration: 1 }] }] }));
   write(workspace, `src/videos/${slug}/generated/subtitle-manifest.json`, JSON.stringify({ scenes: [{ sceneId: "01", segments: [{ segmentId: "01-01", cues: [{ start: 0, end: 0.9, text: "这是测试口播" }] }] }] }));
   write(workspace, `src/videos/${slug}/generated/timeline-manifest.json`, JSON.stringify({ duration: 1, scenes: [{ sceneId: "01", offset: 0, duration: 1, end: 1, segments: [{ segmentId: "01-01", offset: 0, duration: 1, end: 1 }] }] }));
-  initializeProject(slug);
+  initializeProject(slug, { prototypeBaseline: null });
   const project = loadProject(slug, { refresh: false });
   for (const stage of ["source", "content-analysis", "video-narrative", "scene-script", "narration-script", "visual-script", "visual-prototype"]) runStage(project, stage);
   runStage(project, "gate-2");
@@ -133,21 +135,84 @@ test("freezes Gate 2 prototype fingerprints and enforces per-Scene Remotion alig
   write(project.config.workspaceRoot, `src/videos/${project.config.slug}/video.config.ts`, "const fps = 30; const subtitleManifest = {}; const timelineManifest = {}; export const videoConfig = { width: 1920, height: 1080, fps, scenes: [] };");
   write(project.config.workspaceRoot, `src/videos/${project.config.slug}/AlignmentVideo.tsx`, "export const AlignmentVideo = () => null;");
   write(project.config.workspaceRoot, "src/Root.tsx", `export const compositionId = "${project.config.slug}";`);
+  const timingPlan = buildRemotionTimingPlan({ workspaceRoot: project.config.workspaceRoot, slug: project.config.slug, fps: 30 });
+  const expectedScene = timingPlan.scenes[0];
+  const expectedSegment = expectedScene.segments[0];
+  const expectedCue = expectedSegment.cues[0];
   write(project.config.workspaceRoot, remotionAlignmentPath(project), JSON.stringify({
-    schemaVersion: 1,
+    schemaVersion: 2,
     slug: project.config.slug,
     prototypeFingerprint: baseline.visualPrototype.fingerprint,
     visualScriptFingerprint: baseline.visualScript.fingerprint,
+    timing: {
+      fps: timingPlan.fps,
+      totalDurationSeconds: timingPlan.durationSeconds,
+      totalDurationFrames: timingPlan.durationFrames,
+      sources: {
+        ttsScript: `videos/${project.config.slug}/tts-script.json`,
+        audioManifest: `src/videos/${project.config.slug}/generated/audio-manifest.json`,
+        subtitleManifest: `src/videos/${project.config.slug}/generated/subtitle-manifest.json`,
+        timelineManifest: `src/videos/${project.config.slug}/generated/timeline-manifest.json`,
+      },
+    },
     scenes: [{
       sceneId: "01",
       layout: "中心状态卡片",
       visualEvents: ["淡入"],
       screenText: ["状态"],
       implementationFiles: [`src/videos/${project.config.slug}/AlignmentVideo.tsx`],
+      timing: {
+        timelineSource: `src/videos/${project.config.slug}/generated/timeline-manifest.json`,
+        startSeconds: expectedScene.startSeconds,
+        endSeconds: expectedScene.endSeconds,
+        durationSeconds: expectedScene.durationSeconds,
+        startFrame: expectedScene.startFrame,
+        endFrame: expectedScene.endFrame,
+        durationFrames: expectedScene.durationFrames,
+      },
+      audioSegments: [{
+        segmentId: expectedSegment.segmentId,
+        file: expectedSegment.audioFile,
+        startSeconds: expectedSegment.startSeconds,
+        endSeconds: expectedSegment.endSeconds,
+        durationSeconds: expectedSegment.durationSeconds,
+        startFrame: expectedSegment.startFrame,
+        endFrame: expectedSegment.endFrame,
+        durationFrames: expectedSegment.durationFrames,
+      }],
+      subtitleCues: [{
+        cueId: expectedCue.id,
+        segmentId: expectedCue.segmentId,
+        startSeconds: expectedCue.startSeconds,
+        endSeconds: expectedCue.endSeconds,
+        startFrame: expectedCue.startFrame,
+        endFrame: expectedCue.endFrame,
+      }],
+      animationEvents: [{
+        event: "淡入",
+        source: { type: "cue", id: expectedCue.id },
+        atSeconds: expectedCue.startSeconds,
+        atFrame: expectedCue.startFrame,
+      }],
     }],
   }));
   assert.deepEqual(validateStage(loadProject(project.config.slug, { refresh: false }), "remotion"), []);
 
+  const alignmentFile = path.join(project.config.workspaceRoot, remotionAlignmentPath(project));
+  const invalidAlignment = JSON.parse(fs.readFileSync(alignmentFile, "utf8"));
+  invalidAlignment.scenes[0].animationEvents = [];
+  fs.writeFileSync(alignmentFile, `${JSON.stringify(invalidAlignment)}\n`, "utf8");
+  assert.equal(validateStage(loadProject(project.config.slug, { refresh: false }), "remotion").some((item) => item.code === "remotion-alignment-animation-events-missing"), true);
+
+  fs.writeFileSync(alignmentFile, `${JSON.stringify(JSON.parse(fs.readFileSync(alignmentFile, "utf8")), null, 2)}\n`, "utf8");
+  const restoredAlignment = JSON.parse(fs.readFileSync(alignmentFile, "utf8"));
+  restoredAlignment.scenes[0].animationEvents = [{
+    event: "淡入",
+    source: {type: "cue", id: expectedCue.id},
+    atSeconds: expectedCue.startSeconds,
+    atFrame: expectedCue.startFrame,
+  }];
+  fs.writeFileSync(alignmentFile, `${JSON.stringify(restoredAlignment, null, 2)}\n`, "utf8");
   fs.appendFileSync(path.join(project.config.workspaceRoot, `videos/${project.config.slug}/visual-prototype.html`), "\n<!-- changed -->\n", "utf8");
   assert.equal(validateStage(loadProject(project.config.slug, { refresh: false }), "remotion").some((item) => item.code === "prototype-baseline-stale"), true);
 });

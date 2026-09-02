@@ -41,9 +41,15 @@ export function findActiveAgentJob(slug, stage) {
   return listAgentJobs({ slug }).find((job) => job.stage === stage && ACTIVE_STATUSES.has(job.status)) ?? null;
 }
 
-export function createAgentJob({ slug, stage }) {
+export function createAgentJob({ slug, stage, batchId = null }) {
   const existing = findActiveAgentJob(slug, stage);
-  if (existing) return existing;
+  if (existing) {
+    if (batchId && !existing.batchId) {
+      existing.batchId = batchId;
+      saveJob(existing);
+    }
+    return existing;
+  }
   const project = loadProject(slug, { refresh: true });
   if (project.state.currentStage !== stage || project.state.stages[stage]?.status !== "ready") {
     throw new Error(`${slug} 的 ${stage} 当前不可执行`);
@@ -58,6 +64,7 @@ export function createAgentJob({ slug, stage }) {
     kind: "video-agent-job",
     slug,
     stage,
+    batchId,
     status: "queued",
     attempts: 0,
     createdAt: now,

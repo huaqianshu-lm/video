@@ -40,7 +40,7 @@ export function readJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, "utf8"));
 }
 
-export function initializeProject(slug) {
+export function initializeProject(slug, { style = null, prototypeBaseline = "codex-v1" } = {}) {
   const files = projectFiles(slug);
   if (fs.existsSync(files.config) || fs.existsSync(files.state) || fs.existsSync(files.artifacts)) {
     throw new Error(`Harness project already exists: ${slug}`);
@@ -51,10 +51,11 @@ export function initializeProject(slug) {
     schemaVersion: 1,
     harnessVersion: HARNESS_VERSION,
     validationPolicy: "strict",
+    prototypeBaseline,
     slug,
     workflow: DEFAULT_WORKFLOW_ID,
     workflowVersion: WORKFLOW_DEFINITIONS[DEFAULT_WORKFLOW_ID].version,
-    style: resolveStyleId({}, slug),
+    style: resolveStyleId(style ? { style } : {}, slug),
     target: "gate-4",
     createdAt: now,
     updatedAt: now,
@@ -78,6 +79,44 @@ export function initializeProject(slug) {
   });
 
   return files;
+}
+
+export function applySeriesStyle(slug, style) {
+  const files = projectFiles(slug);
+  if (!fs.existsSync(files.config) || !fs.existsSync(files.state) || !fs.existsSync(files.artifacts)) {
+    return { changed: false, restartedAt: null };
+  }
+
+  const project = loadProject(slug, { refresh: false });
+  const needsBaseline = project.config.prototypeBaseline !== "codex-v1";
+  if (project.config.style === style && !needsBaseline) return { changed: false, restartedAt: null };
+
+  const now = new Date().toISOString();
+  project.config.style = style;
+  project.config.prototypeBaseline = "codex-v1";
+  project.config.updatedAt = now;
+  writeJson(project.files.config, project.config);
+
+  const restartAt = "visual-script";
+  const restartIndex = STAGES.indexOf(restartAt);
+  const currentIndex = project.state.currentStage === "completed"
+    ? STAGES.length
+    : STAGES.indexOf(project.state.currentStage);
+  if (currentIndex < restartIndex) return { changed: true, restartedAt: null };
+
+  for (const stage of STAGES.slice(restartIndex)) {
+    const item = project.state.stages[stage];
+    item.status = stage === restartAt ? "ready" : "invalidated";
+    item.error = null;
+    item.invalidatedBy = "series-style";
+    item.outputs = [];
+    item.review = null;
+    item.outputFingerprint = null;
+    item.updatedAt = now;
+  }
+  project.state.currentStage = restartAt;
+  saveState(project);
+  return { changed: true, restartedAt: restartAt };
 }
 
 export function loadProject(slug, { refresh = true } = {}) {

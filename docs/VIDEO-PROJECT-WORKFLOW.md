@@ -423,6 +423,8 @@ Visual Prototype
 
 音频和字幕准备好之后，再用于最终时间同步。
 
+进入 Remotion 制作时，必须先把已校验的 Audio／Subtitle／Timeline Manifest 映射成统一的 Scene／Segment／Cue 时间坐标。Remotion Agent 应以 Timeline 为唯一时间基准，并通过 `src/lib/timing.ts` 的 `createNarratedTiming` 直接据此制作 Scene 时长、音频位置、字幕位置和动画节奏；`remotion-alignment.json` 的每个 Scene 还必须记录 Timeline 来源、Scene 起止秒／帧、关联 Audio Segment、关联 Subtitle Cue，以及动画事件绑定的 Cue／Segment 时间点。视频配置不得各自复制时间映射逻辑，也不得先按估算时长制作后再适配音频。Gate 3 负责最终确认和兜底，不应成为音画同步问题的首次发现点。
+
 进入 Remotion 前必须确认 Gate 2 冻结基线存在。若 Visual Script 或 Visual Prototype 在冻结后发生变化，应先回到对应阶段重新确认，不允许继续沿用旧实现。
 
 ---

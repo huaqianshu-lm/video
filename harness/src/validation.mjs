@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { STAGE_DEFINITIONS, stageIndex } from "./stages.mjs";
@@ -21,6 +22,10 @@ const INTERNAL_NARRATION_PATTERNS = [
   "视觉说明",
   "制作备注",
   "Gate 检查清单",
+];
+
+const NON_SPOKEN_TTS_PATTERNS = [
+  { label: "Markdown 分隔线", test: (text) => /^(?:-{3,}|\*{3,}|_{3,})$/.test(text.trim()) },
 ];
 
 export function validateStageArtifacts(project, stage, { remotePreflight = false } = {}) {
@@ -79,7 +84,20 @@ function readJsonArtifact(project, relativePath) {
 }
 
 function normalizeText(text) {
-  return text.replace(/[`*_~]/g, "").replace(/\s+/g, "").trim();
+  return text
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line && line !== "---" && !line.startsWith("#"))
+    .map((line) => line.startsWith(">") ? line.slice(1).trimStart() : line)
+    .join(" ")
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
+    .replace(/(`+|\*\*|__|~~)/g, "")
+    .replace(/\s+/g, "")
+    .trim();
+}
+
+function fingerprint(text) {
+  return crypto.createHash("sha256").update(text, "utf8").digest("hex");
 }
 
 function sceneIdsFromMarkdown(text) {
@@ -224,7 +242,7 @@ function validateStageStructure(project, stage) {
 }
 
 function sceneBodiesFromNarration(text) {
-  const matches = [...text.matchAll(/^#{1,6}\s+Scene\s+(\d+).*$/gim)];
+  const matches = [...text.matchAll(/^##\s+Scene\s+(\d+).*$/gim)];
   return matches.map((match, index) => {
     const start = match.index + match[0].length;
     const end = matches[index + 1]?.index ?? text.length;
@@ -302,11 +320,104 @@ function validateSceneAlignment(project, stage) {
   return compareSceneIds(stage, entries);
 }
 
+function countMatches(text, pattern) {
+  return [...text.matchAll(pattern)].length;
+}
+
+function prototypeSceneBlocks(prototype) {
+  const starts = [...prototype.matchAll(/<section\b[^>]*class=["'][^"']*\bscene\b[^"']*["'][^>]*>/gi)];
+  return starts.map((match, index) => prototype.slice(match.index, starts[index + 1]?.index ?? prototype.length));
+}
+
+function validatePrototypeSceneTitles(stage, prototypePath, prototype) {
+  const issues = [];
+  for (const [index, block] of prototypeSceneBlocks(prototype).entries()) {
+    const sceneNumber = String(index + 1).padStart(2, "0");
+    const eyebrowCount = countMatches(block, /class=["'][^"']*\beyebrow\b[^"']*["']/gi);
+    const h1Count = countMatches(block, /<h1\b/gi);
+    const titleClassCount = countMatches(block, /class=["'][^"']*\btitle\b[^"']*["']/gi);
+    const headingCount = Math.max(h1Count, titleClassCount);
+    if (eyebrowCount !== 1 || headingCount !== 1) {
+      issues.push(issue(
+        stage,
+        "prototype-baseline-scene-title-mismatch",
+        `Scene ${sceneNumber} 必须且只能有一个基线标题区，并包含一个 eyebrow 和一个 h1／title；当前 eyebrow=${eyebrowCount}、标题=${headingCount}`,
+        prototypePath,
+      ));
+      continue;
+    }
+
+    const eyebrowIndex = block.search(/class=["'][^"']*\beyebrow\b[^"']*["']/i);
+    const headingIndex = block.search(/<h1\b|class=["'][^"']*\btitle\b[^"']*["']/i);
+    if (headingIndex < eyebrowIndex) {
+      issues.push(issue(
+        stage,
+        "prototype-baseline-scene-title-order-mismatch",
+        `Scene ${sceneNumber} 的标题区必须按 eyebrow → h1／title 的基线顺序位于主体视觉内容之前`,
+        prototypePath,
+      ));
+    }
+  }
+
+  const titleLayoutPatterns = [
+    /(?:^|})\s*[^{}]*\.scene(?:[-.]?[\w-]+)?[^{}]*\{[^}]*\btext-align\s*:\s*center/i,
+    /(?:^|})\s*[^{}]*\.scene(?:[-.]?[\w-]+)?[^{}]*\{[^}]*\b(?:align-items|justify-items|place-items)\s*:\s*center/i,
+    /(?:^|})\s*[^{}]*\.scene(?:[-.]?[\w-]+)?[^{}]*(?:head|title|eyebrow|h1|copy)[^{}]*\{[^}]*\b(?:text-align|align-self|justify-self)\s*:\s*center/i,
+  ];
+  if (titleLayoutPatterns.some((pattern) => pattern.test(prototype))) {
+    issues.push(issue(
+      stage,
+      "prototype-baseline-scene-title-layout-mismatch",
+      "Visual Prototype 的 Scene 标题不得通过 Scene 专属 CSS 居中或单独改变定位；所有标题必须使用基线左上锚点",
+      prototypePath,
+    ));
+  }
+
+  return issues;
+}
+
+function validatePrototypeBaseline(project, stage, prototypePath, prototype) {
+  const issues = [];
+  const structurePatterns = [
+    /<main\b[^>]*class=["'][^"']*\bshell\b/i,
+    /<header\b[^>]*class=["'][^"']*\btoolbar\b/i,
+    /<div\b[^>]*class=["'][^"']*\bstage\b/i,
+    /<section\b[^>]*class=["'][^"']*\bscene\b/i,
+    /<div\b[^>]*class=["'][^"']*\bcaption\b/i,
+    /<div\b[^>]*class=["'][^"']*\bcontrols\b/i,
+    /<div\b[^>]*class=["'][^"']*\bprogress\b/i,
+    /<div\b[^>]*class=["'][^"']*\bmeta\b/i,
+  ];
+  if (!structurePatterns.every((pattern) => pattern.test(prototype))) {
+    issues.push(issue(stage, "prototype-baseline-format-mismatch", "Visual Prototype 未复用 Codex 基线的 shell、toolbar、stage、Scene、caption、controls、progress 和 meta 结构", prototypePath));
+  }
+
+  const sceneCount = countMatches(prototype, /<section\b[^>]*class=["'][^"']*\bscene\b/gi);
+  const captionCount = countMatches(prototype, /<div\b[^>]*class=["'][^"']*\bcaption\b/gi);
+  if (sceneCount > 0 && captionCount < sceneCount) {
+    issues.push(issue(stage, "prototype-baseline-caption-mismatch", "Visual Prototype 必须为每个 Scene 保留基线字幕容器", prototypePath));
+  }
+  issues.push(...validatePrototypeSceneTitles(stage, prototypePath, prototype));
+
+  const layoutPatterns = [
+    /\.shell\s*\{[^}]*width:\s*min\(1420px,\s*96vw\)/s,
+    /\.toolbar\s*\{[^}]*margin-bottom:\s*14px/s,
+    /\.stage\s*\{[^}]*aspect-ratio:\s*16\s*\/\s*9/s,
+    /\.scene\s*\{[^}]*inset:\s*0;[^}]*padding:\s*5\.2%\s+6%\s+13\.8%/s,
+    /\.caption\s*\{[^}]*left:\s*8%;[^}]*right:\s*8%;[^}]*bottom:\s*4\.2%/s,
+    /\.progress\s*\{[^}]*display:\s*flex/s,
+    /\.meta\s*\{[^}]*display:\s*flex[^}]*justify-content:\s*space-between/s,
+  ];
+  if (!layoutPatterns.every((pattern) => pattern.test(prototype))) {
+    issues.push(issue(stage, "prototype-baseline-layout-mismatch", "Visual Prototype 的标题区、舞台区、字幕区、导航区或底部进度区偏离 Codex 基线布局", prototypePath));
+  }
+  return issues;
+}
+
 function validateSeriesStyle(project, stage) {
   const series = getSeriesDefinitionForSlug(project.config.slug);
-  if (!series?.style) return [];
-
-  const expectedStyle = series.style;
+  const expectedStyle = series?.style ?? project.config.style;
+  if (!expectedStyle || (!series?.style && project.config.prototypeBaseline !== "codex-v1")) return [];
   const configuredStyle = project.config.style ?? expectedStyle;
   const issues = [];
   if (!getStyleDefinition(expectedStyle)) {
@@ -321,8 +432,11 @@ function validateSeriesStyle(project, stage) {
   if (stageIndex(stage) < stageIndex("visual-prototype")) return issues;
   const prototypePath = artifactPathFor(project, "visual-prototype", 0);
   const prototype = readTextArtifact(project, prototypePath);
-  if (expectedStyle === "codex" && prototype !== null && !/--app\s*:\s*#39d7c2|--accent\s*:\s*#39d7c2/i.test(prototype)) {
-    issues.push(issue(stage, "series-style-mismatch", "Codex Visual Prototype 未声明 Codex 青绿色视觉令牌", prototypePath));
+  if (prototype !== null) {
+    issues.push(...validatePrototypeBaseline(project, stage, prototypePath, prototype));
+    if (expectedStyle === "codex" && !/--app\s*:\s*#39d7c2/i.test(prototype)) {
+      issues.push(issue(stage, "series-style-mismatch", "Codex Visual Prototype 未声明 Codex 青绿色主令牌", prototypePath));
+    }
   }
 
   if (stageIndex(stage) < stageIndex("remotion")) return issues;
@@ -370,12 +484,20 @@ function validateTts(project, stage, { strict = true } = {}) {
           issues.push(issue(stage, "forbidden-tts-text", `Segment ${segment.id} 包含禁止文字：${pattern}`, relativePath));
         }
       }
+      for (const pattern of NON_SPOKEN_TTS_PATTERNS) {
+        if (pattern.test(segment.text ?? "")) {
+          issues.push(issue(stage, "internal-tts-text", `Segment ${segment.id} 是非口播制作文字：${pattern.label}`, relativePath));
+        }
+      }
     }
   }
 
   const narrationPath = artifactPathFor(project, "narration-script", 0);
   const narration = readTextArtifact(project, narrationPath);
   if (narration !== null) {
+    if (value.source?.narrationFingerprint && value.source.narrationFingerprint !== fingerprint(narration)) {
+      issues.push(issue(stage, "tts-script-stale", "TTS Script 不是根据当前冻结的 Narration Script 生成", relativePath));
+    }
     const narrationByScene = Object.fromEntries(sceneBodiesFromNarration(narration).map(({ sceneId, body }) => [sceneId, normalizeText(body)]));
     for (const scene of value.scenes) {
       const ttsText = normalizeText(scene.segments.map((segment) => segment.text ?? "").join(""));
