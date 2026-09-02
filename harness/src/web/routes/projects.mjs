@@ -2,7 +2,7 @@ const projectPattern = /^\/api\/projects\/([a-z0-9]+(?:-[a-z0-9]+)*)(?:\/(worksp
 
 export function matchProjectRoute(method, pathname) {
   const match = pathname.match(projectPattern);
-  if (!match) return null;
+  if (!match || match[1] === "import") return null;
   return { method, slug: match[1], resource: match[2] ?? "detail" };
 }
 
