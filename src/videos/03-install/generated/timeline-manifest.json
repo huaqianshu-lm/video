@@ -1,0 +1,134 @@
+{
+  "schemaVersion": "1.0",
+  "videoId": "03-install",
+  "sceneBuffer": 0.0,
+  "duration": 210.744,
+  "scenes": [
+    {
+      "sceneId": "01",
+      "offset": 0.0,
+      "narrationDuration": 21.6,
+      "buffer": 0.0,
+      "duration": 21.6,
+      "end": 21.6,
+      "segments": [
+        {
+          "segmentId": "01-01",
+          "offset": 0.0,
+          "duration": 21.6,
+          "end": 21.6,
+          "audioFile": "audio/scene-01/01-01.mp3",
+          "subtitleFile": "subtitles/scene-01.json"
+        }
+      ]
+    },
+    {
+      "sceneId": "02",
+      "offset": 21.6,
+      "narrationDuration": 26.688,
+      "buffer": 0.0,
+      "duration": 26.688,
+      "end": 48.288,
+      "segments": [
+        {
+          "segmentId": "02-01",
+          "offset": 0.0,
+          "duration": 26.688,
+          "end": 26.688,
+          "audioFile": "audio/scene-02/02-01.mp3",
+          "subtitleFile": "subtitles/scene-02.json"
+        }
+      ]
+    },
+    {
+      "sceneId": "03",
+      "offset": 48.288,
+      "narrationDuration": 36.096,
+      "buffer": 0.0,
+      "duration": 36.096,
+      "end": 84.384,
+      "segments": [
+        {
+          "segmentId": "03-01",
+          "offset": 0.0,
+          "duration": 36.096,
+          "end": 36.096,
+          "audioFile": "audio/scene-03/03-01.mp3",
+          "subtitleFile": "subtitles/scene-03.json"
+        }
+      ]
+    },
+    {
+      "sceneId": "04",
+      "offset": 84.384,
+      "narrationDuration": 27.744,
+      "buffer": 0.0,
+      "duration": 27.744,
+      "end": 112.128,
+      "segments": [
+        {
+          "segmentId": "04-01",
+          "offset": 0.0,
+          "duration": 27.744,
+          "end": 27.744,
+          "audioFile": "audio/scene-04/04-01.mp3",
+          "subtitleFile": "subtitles/scene-04.json"
+        }
+      ]
+    },
+    {
+      "sceneId": "05",
+      "offset": 112.128,
+      "narrationDuration": 34.848,
+      "buffer": 0.0,
+      "duration": 34.848,
+      "end": 146.976,
+      "segments": [
+        {
+          "segmentId": "05-01",
+          "offset": 0.0,
+          "duration": 34.848,
+          "end": 34.848,
+          "audioFile": "audio/scene-05/05-01.mp3",
+          "subtitleFile": "subtitles/scene-05.json"
+        }
+      ]
+    },
+    {
+      "sceneId": "06",
+      "offset": 146.976,
+      "narrationDuration": 32.904,
+      "buffer": 0.0,
+      "duration": 32.904,
+      "end": 179.88,
+      "segments": [
+        {
+          "segmentId": "06-01",
+          "offset": 0.0,
+          "duration": 32.904,
+          "end": 32.904,
+          "audioFile": "audio/scene-06/06-01.mp3",
+          "subtitleFile": "subtitles/scene-06.json"
+        }
+      ]
+    },
+    {
+      "sceneId": "07",
+      "offset": 179.88,
+      "narrationDuration": 30.864,
+      "buffer": 0.0,
+      "duration": 30.864,
+      "end": 210.744,
+      "segments": [
+        {
+          "segmentId": "07-01",
+          "offset": 0.0,
+          "duration": 30.864,
+          "end": 30.864,
+          "audioFile": "audio/scene-07/07-01.mp3",
+          "subtitleFile": "subtitles/scene-07.json"
+        }
+      ]
+    }
+  ]
+}
