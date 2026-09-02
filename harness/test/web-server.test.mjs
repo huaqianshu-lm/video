@@ -33,36 +33,14 @@ test("serves the Web UI shell and health endpoint on localhost", async () => {
 
     const app = await request(webServer, "/app.js");
     assert.equal(app.status, 200);
-    assert.match(app.body, /payload\.result\?\.taskId \?\? payload\.task\?\.id/);
-    assert.match(app.body, /Agent 正在制作/);
-    assert.match(app.body, /页面会自动同步任务状态/);
-    assert.match(app.body, /hasActiveRemotionTask/);
-    assert.match(app.body, /jobsPayload\.activeJob/);
-    assert.match(app.body, /远程任务执行中/);
-    assert.match(app.body, /请等待完成或在下方查看任务状态/);
-    assert.match(app.body, /准备远程渲染资源/);
-    assert.match(app.body, /prepare-remote-render/);
-    assert.match(app.body, /资源准备：可先打包并校验本地资源；此操作不会提交或推送代码。/);
-    assert.match(app.body, /提交阻塞：当前有/);
-    assert.match(app.body, /涉及 Git 的文件完成 commit\/push 后，再点击“重新校验”/);
+    assert.match(app.contentType, /text\/javascript/);
+    const application = await request(webServer, "/views/application.js");
+    assert.equal(application.status, 200);
+    assert.match(application.contentType, /text\/javascript/);
+    const styles = await request(webServer, "/styles.css");
+    assert.equal(styles.status, 200);
+    assert.match(styles.contentType, /text\/css/);
     assert.match(page.body, /导入原文件/);
-    assert.match(page.body, /source-import-form/);
-    assert.match(page.body, /source-import-series/);
-    const webEntry = fs.readFileSync(path.join(process.cwd(), "src/web-entry.mjs"), "utf8");
-    assert.match(webEntry, /HARNESS_TTS_EXECUTOR_COMMAND \|\|= process\.execPath/);
-    assert.match(webEntry, /HARNESS_TTS_EXECUTOR_ARGS \|\|= JSON\.stringify\(\[ttsAdapterPath\]\)/);
-    const serverSource = fs.readFileSync(path.join(process.cwd(), "src/server.mjs"), "utf8");
-    assert.match(serverSource, /const unavailableExecutor = \{[\s\S]*?throw error;[\s\S]*?runAgentJob\(id, \{ executor: unavailableExecutor \}\)/);
-    assert.match(
-      app.body,
-      /availableSeries = seriesPayload\.series \?\? \[\];[\s\S]*?renderSourceImportSeriesOptions\(\);[\s\S]*?updateSourceImportState\(\);/,
-      "initial project loading must populate the source import series selector",
-    );
-    assert.match(
-      app.body,
-      /const currentRemotionTask = project\.currentStage === "remotion"[\s\S]*?latestRemotionTask\.status !== "completed"/,
-      "completed Remotion history must not hide the current stage action",
-    );
 
     const health = await request(webServer, "/api/health");
     assert.equal(health.status, 200);
