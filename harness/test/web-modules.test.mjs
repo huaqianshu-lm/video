@@ -2,11 +2,12 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { ApiError, createApiClient } from "../web/api/client.js";
 import { createPollingRegistry } from "../web/core/polling.js";
-import { parseRoute } from "../web/core/router.js";
+import { createRouter, parseRoute } from "../web/core/router.js";
 import { createStore } from "../web/core/store.js";
 import { formatError } from "../web/shared/feedback.js";
 import { escapeHtml } from "../web/shared/html.js";
 import { labelFor } from "../web/shared/labels.js";
+import { startApplication } from "../web/views/application.js";
 import { matchProjectRoute } from "../src/web/routes/projects.mjs";
 import { matchTaskRoute } from "../src/web/routes/tasks.mjs";
 import { isSupportedProjectAction, normalizeProjectAction } from "../src/web/services/project-actions.mjs";
@@ -86,6 +87,85 @@ test("project view unmount stops project lifecycle polling", () => {
   view.mount();
   view.unmount();
   assert.deepEqual(stopped, ["project", "remotion-task"]);
+});
+
+test("application routes mount, refresh, unmount, and clear project polling", async () => {
+  let hash = "#/projects";
+  const hashListeners = new Set();
+  const windowObject = {
+    location: {
+      get hash() { return hash; },
+      set hash(value) { hash = value; for (const listener of hashListeners) listener(); },
+    },
+    addEventListener(type, listener) { if (type === "hashchange") hashListeners.add(listener); },
+    removeEventListener(type, listener) { if (type === "hashchange") hashListeners.delete(listener); },
+  };
+  const timers = new Set();
+  const clearedTimers = [];
+  let nextTimer = 0;
+  const polling = createPollingRegistry({
+    setIntervalImpl: () => { const id = ++nextTimer; timers.add(id); return id; },
+    clearIntervalImpl: (id) => { timers.delete(id); clearedTimers.push(id); },
+  });
+  const lifecycle = [];
+  const view = (name) => ({
+    mount() { lifecycle.push(`${name}:mount`); },
+    refresh() { lifecycle.push(`${name}:refresh`); },
+    unmount() { lifecycle.push(`${name}:unmount`); },
+    setProjects() {},
+    create() {},
+  });
+  const project = {
+    mount() { lifecycle.push("project:mount"); },
+    async open(slug) {
+      polling.stop("project");
+      lifecycle.push(`project:refresh:${slug}`);
+      polling.start("project", () => {}, 1000);
+    },
+    unmount() {
+      lifecycle.push("project:unmount");
+      polling.stop("project");
+      polling.stop("remotion-task");
+    },
+  };
+  const ui = {
+    status: { textContent: "", className: "" },
+    dashboard: { hidden: false, querySelector() { return null; } },
+    detail: { hidden: true, querySelector() { return null; } },
+  };
+  const application = startApplication({
+    api: { async getHealth() { return { harnessVersion: "test" }; } },
+    router: createRouter({ windowObject }),
+    polling,
+    ui,
+    views: { dashboard: view("dashboard"), batches: view("batches"), series: view("series"), remote: view("remote"), project },
+  });
+
+  assert.equal(application.router.current().name, "projects");
+  assert.ok(lifecycle.includes("dashboard:mount"));
+  assert.ok(lifecycle.includes("batches:mount"));
+  assert.ok(lifecycle.includes("series:mount"));
+  assert.ok(lifecycle.includes("remote:mount"));
+
+  application.router.navigate({ name: "project", slug: "project-a" });
+  assert.equal(application.router.current().slug, "project-a");
+  assert.ok(lifecycle.includes("project:mount"));
+  assert.ok(lifecycle.includes("project:refresh:project-a"));
+  const projectATimer = [...timers][0];
+  assert.ok(projectATimer);
+
+  application.router.navigate({ name: "project", slug: "project-b" });
+  assert.ok(lifecycle.includes("project:refresh:project-b"));
+  assert.ok(clearedTimers.includes(projectATimer));
+  assert.equal(timers.size, 1);
+
+  application.router.navigate({ name: "projects" });
+  assert.equal(timers.size, 0);
+  assert.ok(lifecycle.filter((item) => item === "project:unmount").length >= 1);
+
+  application.destroy();
+  assert.equal(timers.size, 0);
+  assert.equal(hashListeners.size, 0);
 });
 
 test("shared presentation helpers are deterministic", () => {

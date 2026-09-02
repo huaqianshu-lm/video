@@ -18,6 +18,47 @@ async function request(server, pathname, options = {}) {
   };
 }
 
+function assertApiError(result, status) {
+  assert.equal(result.status, status);
+  assert.match(result.contentType, /application\/json/);
+  const payload = JSON.parse(result.body);
+  assert.equal(typeof payload.error, "string");
+  assert.ok(payload.error.length > 0);
+  assert.equal(typeof payload.code, "string");
+  assert.ok(payload.code.length > 0);
+  assert.ok(Object.hasOwn(payload, "issues"));
+  assert.ok(Array.isArray(payload.issues));
+  return payload;
+}
+
+test("all WebUI route families return the uniform API error shape", async () => {
+  const webServer = createWebServer({
+    port: 0,
+    remoteJobMonitor: { start() {}, stop() {}, async poll() {} },
+  });
+  await webServer.listen();
+
+  try {
+    assertApiError(await request(webServer, "/api/projects/missing-webui-project"), 404);
+    assertApiError(await request(webServer, "/api/batches/00000000-0000-0000-0000-000000000000"), 404);
+    assertApiError(await request(webServer, "/api/series/missing-webui-series"), 404);
+    assertApiError(await request(webServer, "/api/remotion-tasks/00000000-0000-0000-0000-000000000000"), 404);
+
+    assertApiError(await request(webServer, "/api/projects/claude-code-what-is/action", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "delete-everything" }),
+    }), 400);
+    assertApiError(await request(webServer, "/api/remotion-tasks/00000000-0000-0000-0000-000000000000/action", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "run" }),
+    }), 400);
+  } finally {
+    await webServer.close();
+  }
+});
+
 test("serves the Web UI shell and health endpoint on localhost", async () => {
   const webServer = createWebServer({
     port: 0,

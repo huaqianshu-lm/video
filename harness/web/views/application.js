@@ -20,14 +20,23 @@ function elements() {
   };
 }
 
-export function startApplication({ api = createApiClient(), store = createStore(), router = createRouter(), polling = createPollingRegistry() } = {}) {
-  const ui = elements();
+export function startApplication({ api = createApiClient(), store = createStore(), router = createRouter(), polling = createPollingRegistry(), ui: injectedUi, views: injectedViews } = {}) {
+  const ui = injectedUi ?? elements();
   let projects = [];
-  const remote = createRemoteJobsView({ elements: { list: ui.globalJobs, diagnostics: ui.diagnostics }, api });
-  const batches = createBatchView({ elements: { batchList: ui.batchList, taskList: ui.taskList }, api, onRefreshProjects: () => dashboard.refresh(), getActiveProject: project.getCurrent, onOpenProject: project.open });
-  const series = createSeriesView({ elements: { seriesSelect: ui.seriesSelect, seriesId: ui.seriesId, seriesTitle: ui.seriesTitle, seriesStyle: ui.seriesStyle, seriesCoverFrames: ui.seriesCoverFrames, seriesVideoList: ui.seriesVideoList, seriesForm: ui.seriesForm, seriesCoverFile: ui.seriesCoverFile, seriesCoverPreview: ui.seriesCoverPreview, seriesState: ui.seriesState, newSeries: ui.newSeries, uploadSeriesCover: ui.uploadSeriesCover, importForm: ui.importForm, importFile: ui.importFile, importSlug: ui.importSlug, importSeries: ui.importSeries, importSubmit: ui.importSubmit, importState: ui.importState }, api, getProjects: () => projects, onImported: async (slug) => { await dashboard.refresh(); router.navigate({ name: "project", slug }); } });
-  const project = createProjectView({ elements: { container: ui.projectDetail }, api, polling, onBack: () => router.navigate({ name: "projects" }), onRefreshDashboard: () => dashboard.refresh() });
-  const dashboard = createDashboardView({ elements: { projectGrid: ui.projectGrid, projectListState: ui.projectListState, batchSelectionState: ui.batchSelectionState, batchButtons: ui.batchButtons }, api, store, onOpenProject: (slug) => router.navigate({ name: "project", slug }), onCreateBatch: batches.create, onData: (data) => { projects = data.projects; series.setProjects(projects); } });
+  let remote;
+  let batches;
+  let series;
+  let project;
+  let dashboard;
+  if (injectedViews) {
+    ({ remote, batches, series, project, dashboard } = injectedViews);
+  } else {
+    remote = createRemoteJobsView({ elements: { list: ui.globalJobs, diagnostics: ui.diagnostics }, api });
+    batches = createBatchView({ elements: { batchList: ui.batchList, taskList: ui.taskList }, api, onRefreshProjects: () => dashboard.refresh(), getActiveProject: project.getCurrent, onOpenProject: project.open });
+    series = createSeriesView({ elements: { seriesSelect: ui.seriesSelect, seriesId: ui.seriesId, seriesTitle: ui.seriesTitle, seriesStyle: ui.seriesStyle, seriesCoverFrames: ui.seriesCoverFrames, seriesVideoList: ui.seriesVideoList, seriesForm: ui.seriesForm, seriesCoverFile: ui.seriesCoverFile, seriesCoverPreview: ui.seriesCoverPreview, seriesState: ui.seriesState, newSeries: ui.newSeries, uploadSeriesCover: ui.uploadSeriesCover, importForm: ui.importForm, importFile: ui.importFile, importSlug: ui.importSlug, importSeries: ui.importSeries, importSubmit: ui.importSubmit, importState: ui.importState }, api, getProjects: () => projects, onImported: async (slug) => { await dashboard.refresh(); router.navigate({ name: "project", slug }); } });
+    project = createProjectView({ elements: { container: ui.projectDetail }, api, polling, onBack: () => router.navigate({ name: "projects" }), onRefreshDashboard: () => dashboard.refresh() });
+    dashboard = createDashboardView({ elements: { projectGrid: ui.projectGrid, projectListState: ui.projectListState, batchSelectionState: ui.batchSelectionState, batchButtons: ui.batchButtons }, api, store, onOpenProject: (slug) => router.navigate({ name: "project", slug }), onCreateBatch: batches.create, onData: (data) => { projects = data.projects; series.setProjects(projects); } });
+  }
 
   async function health() {
     try { const result = await api.getHealth(); ui.status.textContent = `服务正常 · Harness ${result.harnessVersion}`; ui.status.className = "status status-ok"; }
