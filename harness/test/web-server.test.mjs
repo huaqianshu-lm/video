@@ -64,6 +64,17 @@ test("serves the Web UI shell and health endpoint on localhost", async () => {
     assert.equal(detailPayload.project.sequence, 1);
     assert.equal(detailPayload.project.stages.length, 15);
 
+    const workspace = await request(webServer, "/api/projects/claude-code-what-is/workspace");
+    assert.equal(workspace.status, 200);
+    const workspacePayload = JSON.parse(workspace.body);
+    assert.equal(workspacePayload.project.slug, detailPayload.project.slug);
+    assert.equal(workspacePayload.project.stages.length, detailPayload.project.stages.length);
+    assert.ok(Array.isArray(workspacePayload.files));
+    assert.ok(Array.isArray(workspacePayload.jobs));
+    assert.ok(Array.isArray(workspacePayload.agentJobs));
+    assert.ok(Array.isArray(workspacePayload.remotionTasks));
+    assert.ok(workspacePayload.alignment === null || typeof workspacePayload.alignment === "object");
+
     const files = await request(webServer, "/api/projects/claude-code-what-is/files");
     assert.equal(files.status, 200);
     const filesPayload = JSON.parse(files.body);

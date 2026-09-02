@@ -36,6 +36,7 @@ import {
 import { buildAlignmentView } from "../remotion-alignment.mjs";
 import { createRuntime } from "./runtime.mjs";
 import { readBody, readJsonBody, send, sendJson } from "./http.mjs";
+import { normalizeProjectAction } from "./services/project-actions.mjs";
 import {
   approveTtsQc,
   approveTtsQcForProject,
@@ -69,6 +70,7 @@ import {
   saveSeriesCover,
   seriesAssetPath,
 } from "../series-assets.mjs";
+import { getProjectWorkspace } from "./services/project-workspace.mjs";
 
 const moduleDirectory = path.dirname(fileURLToPath(import.meta.url));
 const webDirectory = path.resolve(moduleDirectory, "../../web");
@@ -193,6 +195,17 @@ async function serveApi(response, pathname, search, remoteJobMonitor, diagnose) 
 
   if (pathname === "/api/projects") {
     sendJson(response, 200, { projects: listVideoProjects() });
+    return true;
+  }
+
+  const workspaceMatch = pathname.match(/^\/api\/projects\/([a-z0-9]+(?:-[a-z0-9]+)*)\/workspace$/);
+  if (workspaceMatch) {
+    const workspace = await getProjectWorkspace(workspaceMatch[1], { remoteJobMonitor });
+    if (!workspace) {
+      sendJson(response, 404, { error: "Video project not found" });
+      return true;
+    }
+    sendJson(response, 200, workspace);
     return true;
   }
 
@@ -442,7 +455,8 @@ async function serveAction(response, request, pathname, runtime) {
   }
 
   const body = await readJsonBody(request);
-  const action = body.action;
+  const actionInput = normalizeProjectAction({ ...body, slug });
+  const action = actionInput.action;
   if (action === "initialize") {
     if (projectView.initialized) {
       sendJson(response, 409, { error: "Harness project is already initialized" });

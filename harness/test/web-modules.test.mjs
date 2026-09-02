@@ -7,6 +7,9 @@ import { createStore } from "../web/core/store.js";
 import { formatError } from "../web/shared/feedback.js";
 import { escapeHtml } from "../web/shared/html.js";
 import { labelFor } from "../web/shared/labels.js";
+import { matchProjectRoute } from "../src/web/routes/projects.mjs";
+import { matchTaskRoute } from "../src/web/routes/tasks.mjs";
+import { isSupportedProjectAction, normalizeProjectAction } from "../src/web/services/project-actions.mjs";
 
 test("API client applies no-store and normalizes server errors", async () => {
   const calls = [];
@@ -75,4 +78,23 @@ test("shared presentation helpers are deterministic", () => {
   assert.equal(escapeHtml("<a>&\""), "&lt;a&gt;&amp;&quot;");
   assert.equal(labelFor("waiting"), "等待确认");
   assert.match(formatError({ message: "失败", issues: ["缺少文件"] }), /失败：缺少文件/);
+});
+
+test("web route matchers keep URL parsing outside business services", () => {
+  assert.deepEqual(matchProjectRoute("GET", "/api/projects/demo/workspace"), {
+    method: "GET", slug: "demo", resource: "workspace",
+  });
+  assert.deepEqual(matchTaskRoute("POST", "/api/remotion-tasks/abc-123/action"), {
+    method: "POST", kind: "remotion-tasks", id: "abc-123", action: true,
+  });
+  assert.equal(matchProjectRoute("GET", "/api/projects/import"), null);
+});
+
+test("project action service normalizes only the action input contract", () => {
+  assert.equal(isSupportedProjectAction("reject"), true);
+  assert.equal(isSupportedProjectAction("delete-everything"), false);
+  assert.deepEqual(normalizeProjectAction({ slug: "demo", action: "approve", commitAndPush: 1 }), {
+    slug: "demo", action: "approve", stage: null, gate: null, returnTo: null, reason: null, runId: null,
+    commitAndPush: false, confirmDelivery: false,
+  });
 });
