@@ -1,0 +1,2044 @@
+{
+  "schemaVersion": 2,
+  "slug": "04-pricing",
+  "visualScriptFingerprint": "2742bfe682dc175c0ae09356fcf2cd58b582dcb96503d6b70f4179b630856ffe",
+  "prototypeFingerprint": "45bea1f82b57064caeeb0cea0ed6f57e18059109a9ceffbf5caf52b11196224f",
+  "timing": {
+    "fps": 30,
+    "totalDurationSeconds": 298.776,
+    "totalDurationFrames": 8963,
+    "sources": {
+      "ttsScript": "videos/04-pricing/tts-script.json",
+      "audioManifest": "src/videos/04-pricing/generated/audio-manifest.json",
+      "subtitleManifest": "src/videos/04-pricing/generated/subtitle-manifest.json",
+      "timelineManifest": "src/videos/04-pricing/generated/timeline-manifest.json"
+    }
+  },
+  "scenes": [
+    {
+      "sceneId": "01",
+      "layout": "左右两列等宽路径卡，标题固定左上，底部字幕安全区留空；两条路径从相同消息入口分别展开为小脚本与大型项目上下文堆栈，结论文字位于主体下方独立安全行。",
+      "visualEvents": [
+        "同一条消息入口同时出现",
+        "小脚本与大型项目上下文块按不同规模展开",
+        "两条用量条推进且右侧更快",
+        "消息条数 ≠ 实际用量最后锁定"
+      ],
+      "screenText": [
+        "同一条消息",
+        "消息入口",
+        "小脚本",
+        "大型项目＋长会话＋规则",
+        "少量上下文",
+        "更多上下文",
+        "消息条数 ≠ 实际用量"
+      ],
+      "implementationFiles": [
+        "src/videos/04-pricing/PricingVideo.tsx"
+      ],
+      "timing": {
+        "timelineSource": "src/videos/04-pricing/generated/timeline-manifest.json",
+        "startSeconds": 0,
+        "endSeconds": 27.936,
+        "durationSeconds": 27.936,
+        "startFrame": 0,
+        "endFrame": 838,
+        "durationFrames": 838
+      },
+      "audioSegments": [
+        {
+          "segmentId": "01-01",
+          "file": "audio/scene-01/01-01.mp3",
+          "startSeconds": 0,
+          "endSeconds": 4.128,
+          "durationSeconds": 4.128,
+          "startFrame": 0,
+          "endFrame": 124
+        },
+        {
+          "segmentId": "01-02",
+          "file": "audio/scene-01/01-02.mp3",
+          "startSeconds": 4.128,
+          "endSeconds": 17.352,
+          "durationSeconds": 13.224,
+          "startFrame": 124,
+          "endFrame": 521
+        },
+        {
+          "segmentId": "01-03",
+          "file": "audio/scene-01/01-03.mp3",
+          "startSeconds": 17.352,
+          "endSeconds": 27.936,
+          "durationSeconds": 10.584,
+          "startFrame": 521,
+          "endFrame": 838
+        }
+      ],
+      "subtitleCues": [
+        {
+          "cueId": "01-01-a",
+          "segmentId": "01-01",
+          "startSeconds": 0.09,
+          "endSeconds": 1.85,
+          "startFrame": 3,
+          "endFrame": 56
+        },
+        {
+          "cueId": "01-01-b",
+          "segmentId": "01-01",
+          "startSeconds": 1.85,
+          "endSeconds": 4.128,
+          "startFrame": 56,
+          "endFrame": 124
+        },
+        {
+          "cueId": "01-02-a",
+          "segmentId": "01-02",
+          "startSeconds": 4.218,
+          "endSeconds": 6.6080000000000005,
+          "startFrame": 127,
+          "endFrame": 198
+        },
+        {
+          "cueId": "01-02-b",
+          "segmentId": "01-02",
+          "startSeconds": 6.6080000000000005,
+          "endSeconds": 8.418,
+          "startFrame": 198,
+          "endFrame": 253
+        },
+        {
+          "cueId": "01-02-c",
+          "segmentId": "01-02",
+          "startSeconds": 8.418,
+          "endSeconds": 10.847999999999999,
+          "startFrame": 253,
+          "endFrame": 325
+        },
+        {
+          "cueId": "01-02-d",
+          "segmentId": "01-02",
+          "startSeconds": 10.847999999999999,
+          "endSeconds": 13.148,
+          "startFrame": 325,
+          "endFrame": 394
+        },
+        {
+          "cueId": "01-02-e",
+          "segmentId": "01-02",
+          "startSeconds": 13.148,
+          "endSeconds": 14.438,
+          "startFrame": 394,
+          "endFrame": 433
+        },
+        {
+          "cueId": "01-02-f",
+          "segmentId": "01-02",
+          "startSeconds": 14.438,
+          "endSeconds": 15.908,
+          "startFrame": 433,
+          "endFrame": 477
+        },
+        {
+          "cueId": "01-02-g",
+          "segmentId": "01-02",
+          "startSeconds": 15.908,
+          "endSeconds": 17.352,
+          "startFrame": 477,
+          "endFrame": 521
+        },
+        {
+          "cueId": "01-03-a",
+          "segmentId": "01-03",
+          "startSeconds": 17.442,
+          "endSeconds": 20.712,
+          "startFrame": 523,
+          "endFrame": 621
+        },
+        {
+          "cueId": "01-03-b",
+          "segmentId": "01-03",
+          "startSeconds": 20.712,
+          "endSeconds": 22.652,
+          "startFrame": 621,
+          "endFrame": 680
+        },
+        {
+          "cueId": "01-03-c",
+          "segmentId": "01-03",
+          "startSeconds": 22.652,
+          "endSeconds": 23.962,
+          "startFrame": 680,
+          "endFrame": 719
+        },
+        {
+          "cueId": "01-03-d",
+          "segmentId": "01-03",
+          "startSeconds": 23.962,
+          "endSeconds": 26.201999999999998,
+          "startFrame": 719,
+          "endFrame": 786
+        },
+        {
+          "cueId": "01-03-e",
+          "segmentId": "01-03",
+          "startSeconds": 26.201999999999998,
+          "endSeconds": 27.936,
+          "startFrame": 786,
+          "endFrame": 838
+        }
+      ],
+      "animationEvents": [
+        {
+          "event": "同一条消息入口同时出现",
+          "source": {
+            "type": "segment",
+            "id": "01-01"
+          },
+          "atSeconds": 0,
+          "atFrame": 0
+        },
+        {
+          "event": "小脚本与大型项目上下文块按不同规模展开",
+          "source": {
+            "type": "segment",
+            "id": "01-02"
+          },
+          "atSeconds": 4.128,
+          "atFrame": 124
+        },
+        {
+          "event": "两条用量条推进且右侧更快",
+          "source": {
+            "type": "segment",
+            "id": "01-03"
+          },
+          "atSeconds": 17.352,
+          "atFrame": 521
+        },
+        {
+          "event": "消息条数 ≠ 实际用量最后锁定",
+          "source": {
+            "type": "segment",
+            "id": "01-01"
+          },
+          "atSeconds": 0,
+          "atFrame": 0
+        }
+      ]
+    },
+    {
+      "sceneId": "02",
+      "layout": "三列入口层、处理层、计量层，从左到右保持同一高度与间距；长文件、历史会话、规则汇入右侧上下文节点。",
+      "visualEvents": [
+        "工具入口单独出现",
+        "模型处理层沿水平轴展开",
+        "输入 token、输出 token、上下文逐项出现",
+        "上下文输入标签完成汇入"
+      ],
+      "screenText": [
+        "入口层",
+        "工具入口",
+        "Codex",
+        "处理层",
+        "模型处理",
+        "计量层",
+        "输入 token",
+        "输出 token",
+        "上下文",
+        "长文件",
+        "历史会话",
+        "规则"
+      ],
+      "implementationFiles": [
+        "src/videos/04-pricing/PricingVideo.tsx"
+      ],
+      "timing": {
+        "timelineSource": "src/videos/04-pricing/generated/timeline-manifest.json",
+        "startSeconds": 27.936,
+        "endSeconds": 60.984,
+        "durationSeconds": 33.048,
+        "startFrame": 838,
+        "endFrame": 1830,
+        "durationFrames": 991
+      },
+      "audioSegments": [
+        {
+          "segmentId": "02-01",
+          "file": "audio/scene-02/02-01.mp3",
+          "startSeconds": 27.936,
+          "endSeconds": 31.176000000000002,
+          "durationSeconds": 3.24,
+          "startFrame": 838,
+          "endFrame": 935
+        },
+        {
+          "segmentId": "02-02",
+          "file": "audio/scene-02/02-02.mp3",
+          "startSeconds": 31.176000000000002,
+          "endSeconds": 41.616,
+          "durationSeconds": 10.44,
+          "startFrame": 935,
+          "endFrame": 1248
+        },
+        {
+          "segmentId": "02-03",
+          "file": "audio/scene-02/02-03.mp3",
+          "startSeconds": 41.616,
+          "endSeconds": 51.623999999999995,
+          "durationSeconds": 10.008,
+          "startFrame": 1248,
+          "endFrame": 1549
+        },
+        {
+          "segmentId": "02-04",
+          "file": "audio/scene-02/02-04.mp3",
+          "startSeconds": 51.623999999999995,
+          "endSeconds": 60.983999999999995,
+          "durationSeconds": 9.36,
+          "startFrame": 1549,
+          "endFrame": 1830
+        }
+      ],
+      "subtitleCues": [
+        {
+          "cueId": "02-01-a",
+          "segmentId": "02-01",
+          "startSeconds": 28.026,
+          "endSeconds": 29.476,
+          "startFrame": 841,
+          "endFrame": 884
+        },
+        {
+          "cueId": "02-01-b",
+          "segmentId": "02-01",
+          "startSeconds": 29.476,
+          "endSeconds": 31.176000000000002,
+          "startFrame": 884,
+          "endFrame": 935
+        },
+        {
+          "cueId": "02-02-a",
+          "segmentId": "02-02",
+          "startSeconds": 31.266000000000002,
+          "endSeconds": 33.846000000000004,
+          "startFrame": 938,
+          "endFrame": 1015
+        },
+        {
+          "cueId": "02-02-b",
+          "segmentId": "02-02",
+          "startSeconds": 33.846000000000004,
+          "endSeconds": 35.386,
+          "startFrame": 1015,
+          "endFrame": 1062
+        },
+        {
+          "cueId": "02-02-c",
+          "segmentId": "02-02",
+          "startSeconds": 35.386,
+          "endSeconds": 37.356,
+          "startFrame": 1062,
+          "endFrame": 1121
+        },
+        {
+          "cueId": "02-02-d",
+          "segmentId": "02-02",
+          "startSeconds": 37.356,
+          "endSeconds": 39.226,
+          "startFrame": 1121,
+          "endFrame": 1177
+        },
+        {
+          "cueId": "02-02-e",
+          "segmentId": "02-02",
+          "startSeconds": 39.226,
+          "endSeconds": 41.616,
+          "startFrame": 1177,
+          "endFrame": 1248
+        },
+        {
+          "cueId": "02-03-a",
+          "segmentId": "02-03",
+          "startSeconds": 41.706,
+          "endSeconds": 45.146,
+          "startFrame": 1251,
+          "endFrame": 1354
+        },
+        {
+          "cueId": "02-03-b",
+          "segmentId": "02-03",
+          "startSeconds": 45.146,
+          "endSeconds": 47.366,
+          "startFrame": 1354,
+          "endFrame": 1421
+        },
+        {
+          "cueId": "02-03-c",
+          "segmentId": "02-03",
+          "startSeconds": 47.366,
+          "endSeconds": 49.275999999999996,
+          "startFrame": 1421,
+          "endFrame": 1478
+        },
+        {
+          "cueId": "02-03-d",
+          "segmentId": "02-03",
+          "startSeconds": 49.275999999999996,
+          "endSeconds": 51.623999999999995,
+          "startFrame": 1478,
+          "endFrame": 1549
+        },
+        {
+          "cueId": "02-04-a",
+          "segmentId": "02-04",
+          "startSeconds": 51.714,
+          "endSeconds": 53.60399999999999,
+          "startFrame": 1551,
+          "endFrame": 1608
+        },
+        {
+          "cueId": "02-04-b",
+          "segmentId": "02-04",
+          "startSeconds": 53.60399999999999,
+          "endSeconds": 55.45399999999999,
+          "startFrame": 1608,
+          "endFrame": 1664
+        },
+        {
+          "cueId": "02-04-c",
+          "segmentId": "02-04",
+          "startSeconds": 55.45399999999999,
+          "endSeconds": 58.663999999999994,
+          "startFrame": 1664,
+          "endFrame": 1760
+        },
+        {
+          "cueId": "02-04-d",
+          "segmentId": "02-04",
+          "startSeconds": 58.663999999999994,
+          "endSeconds": 60.983999999999995,
+          "startFrame": 1760,
+          "endFrame": 1830
+        }
+      ],
+      "animationEvents": [
+        {
+          "event": "工具入口单独出现",
+          "source": {
+            "type": "segment",
+            "id": "02-01"
+          },
+          "atSeconds": 27.936,
+          "atFrame": 838
+        },
+        {
+          "event": "模型处理层沿水平轴展开",
+          "source": {
+            "type": "segment",
+            "id": "02-02"
+          },
+          "atSeconds": 31.176000000000002,
+          "atFrame": 935
+        },
+        {
+          "event": "输入 token、输出 token、上下文逐项出现",
+          "source": {
+            "type": "segment",
+            "id": "02-03"
+          },
+          "atSeconds": 41.616,
+          "atFrame": 1248
+        },
+        {
+          "event": "上下文输入标签完成汇入",
+          "source": {
+            "type": "segment",
+            "id": "02-04"
+          },
+          "atSeconds": 51.623999999999995,
+          "atFrame": 1549
+        }
+      ]
+    },
+    {
+      "sceneId": "03",
+      "layout": "左右两列；左侧为订阅路径垂直步骤，右侧为限额后的订阅账本分支，主体避开底部字幕区。",
+      "visualEvents": [
+        "ChatGPT 订阅、固定月费、订阅用量规则、滚动限额依次点亮",
+        "达到限额状态变为琥珀色",
+        "积分从限额节点下方分支出现",
+        "积分停留在订阅账本并标记不接入 API 账单"
+      ],
+      "screenText": [
+        "订阅路径",
+        "ChatGPT 订阅",
+        "固定月费",
+        "订阅用量规则",
+        "滚动限额",
+        "达到限额",
+        "积分",
+        "留在订阅账本内",
+        "不接入 API 账单"
+      ],
+      "implementationFiles": [
+        "src/videos/04-pricing/PricingVideo.tsx"
+      ],
+      "timing": {
+        "timelineSource": "src/videos/04-pricing/generated/timeline-manifest.json",
+        "startSeconds": 60.984,
+        "endSeconds": 89.808,
+        "durationSeconds": 28.824,
+        "startFrame": 1830,
+        "endFrame": 2694,
+        "durationFrames": 865
+      },
+      "audioSegments": [
+        {
+          "segmentId": "03-01",
+          "file": "audio/scene-03/03-01.mp3",
+          "startSeconds": 60.984,
+          "endSeconds": 65.424,
+          "durationSeconds": 4.44,
+          "startFrame": 1830,
+          "endFrame": 1963
+        },
+        {
+          "segmentId": "03-02",
+          "file": "audio/scene-03/03-02.mp3",
+          "startSeconds": 65.424,
+          "endSeconds": 76.584,
+          "durationSeconds": 11.16,
+          "startFrame": 1963,
+          "endFrame": 2298
+        },
+        {
+          "segmentId": "03-03",
+          "file": "audio/scene-03/03-03.mp3",
+          "startSeconds": 76.584,
+          "endSeconds": 89.808,
+          "durationSeconds": 13.224,
+          "startFrame": 2298,
+          "endFrame": 2694
+        }
+      ],
+      "subtitleCues": [
+        {
+          "cueId": "03-01-a",
+          "segmentId": "03-01",
+          "startSeconds": 61.074000000000005,
+          "endSeconds": 63.094,
+          "startFrame": 1832,
+          "endFrame": 1893
+        },
+        {
+          "cueId": "03-01-b",
+          "segmentId": "03-01",
+          "startSeconds": 63.094,
+          "endSeconds": 65.424,
+          "startFrame": 1893,
+          "endFrame": 1963
+        },
+        {
+          "cueId": "03-02-a",
+          "segmentId": "03-02",
+          "startSeconds": 65.51400000000001,
+          "endSeconds": 66.924,
+          "startFrame": 1965,
+          "endFrame": 2008
+        },
+        {
+          "cueId": "03-02-b",
+          "segmentId": "03-02",
+          "startSeconds": 66.924,
+          "endSeconds": 70.584,
+          "startFrame": 2008,
+          "endFrame": 2118
+        },
+        {
+          "cueId": "03-02-c",
+          "segmentId": "03-02",
+          "startSeconds": 70.584,
+          "endSeconds": 73.34400000000001,
+          "startFrame": 2118,
+          "endFrame": 2200
+        },
+        {
+          "cueId": "03-02-d",
+          "segmentId": "03-02",
+          "startSeconds": 73.34400000000001,
+          "endSeconds": 76.584,
+          "startFrame": 2200,
+          "endFrame": 2298
+        },
+        {
+          "cueId": "03-03-a",
+          "segmentId": "03-03",
+          "startSeconds": 76.674,
+          "endSeconds": 78.534,
+          "startFrame": 2300,
+          "endFrame": 2356
+        },
+        {
+          "cueId": "03-03-b",
+          "segmentId": "03-03",
+          "startSeconds": 78.534,
+          "endSeconds": 80.494,
+          "startFrame": 2356,
+          "endFrame": 2415
+        },
+        {
+          "cueId": "03-03-c",
+          "segmentId": "03-03",
+          "startSeconds": 80.494,
+          "endSeconds": 82.51400000000001,
+          "startFrame": 2415,
+          "endFrame": 2475
+        },
+        {
+          "cueId": "03-03-d",
+          "segmentId": "03-03",
+          "startSeconds": 82.51400000000001,
+          "endSeconds": 85.604,
+          "startFrame": 2475,
+          "endFrame": 2568
+        },
+        {
+          "cueId": "03-03-e",
+          "segmentId": "03-03",
+          "startSeconds": 85.604,
+          "endSeconds": 88.334,
+          "startFrame": 2568,
+          "endFrame": 2650
+        },
+        {
+          "cueId": "03-03-f",
+          "segmentId": "03-03",
+          "startSeconds": 88.334,
+          "endSeconds": 89.808,
+          "startFrame": 2650,
+          "endFrame": 2694
+        }
+      ],
+      "animationEvents": [
+        {
+          "event": "ChatGPT 订阅、固定月费、订阅用量规则、滚动限额依次点亮",
+          "source": {
+            "type": "segment",
+            "id": "03-01"
+          },
+          "atSeconds": 60.984,
+          "atFrame": 1830
+        },
+        {
+          "event": "达到限额状态变为琥珀色",
+          "source": {
+            "type": "segment",
+            "id": "03-02"
+          },
+          "atSeconds": 65.424,
+          "atFrame": 1963
+        },
+        {
+          "event": "积分从限额节点下方分支出现",
+          "source": {
+            "type": "segment",
+            "id": "03-03"
+          },
+          "atSeconds": 76.584,
+          "atFrame": 2298
+        },
+        {
+          "event": "积分停留在订阅账本并标记不接入 API 账单",
+          "source": {
+            "type": "segment",
+            "id": "03-01"
+          },
+          "atSeconds": 60.984,
+          "atFrame": 1830
+        }
+      ]
+    },
+    {
+      "sceneId": "04",
+      "layout": "三列订阅账本、中央两套账边界、API 账本；蓝色只用于程序化调用与 Platform 出口，账本不汇总。",
+      "visualEvents": [
+        "订阅路径收缩为第一本账",
+        "程序或脚本经 API key 分出输入／输出 token",
+        "中央两套账边界亮起",
+        "Platform 账单保留独立出口"
+      ],
+      "screenText": [
+        "订阅账本",
+        "ChatGPT 订阅",
+        "ChatGPT 积分",
+        "订阅路径",
+        "两套账",
+        "不混算",
+        "API 账本",
+        "程序或脚本",
+        "API key",
+        "输入／输出 token",
+        "Platform 账单"
+      ],
+      "implementationFiles": [
+        "src/videos/04-pricing/PricingVideo.tsx"
+      ],
+      "timing": {
+        "timelineSource": "src/videos/04-pricing/generated/timeline-manifest.json",
+        "startSeconds": 89.808,
+        "endSeconds": 122.664,
+        "durationSeconds": 32.856,
+        "startFrame": 2694,
+        "endFrame": 3680,
+        "durationFrames": 986
+      },
+      "audioSegments": [
+        {
+          "segmentId": "04-01",
+          "file": "audio/scene-04/04-01.mp3",
+          "startSeconds": 89.808,
+          "endSeconds": 92.08800000000001,
+          "durationSeconds": 2.28,
+          "startFrame": 2694,
+          "endFrame": 2763
+        },
+        {
+          "segmentId": "04-02",
+          "file": "audio/scene-04/04-02.mp3",
+          "startSeconds": 92.08800000000001,
+          "endSeconds": 104.54400000000001,
+          "durationSeconds": 12.456,
+          "startFrame": 2763,
+          "endFrame": 3136
+        },
+        {
+          "segmentId": "04-03",
+          "file": "audio/scene-04/04-03.mp3",
+          "startSeconds": 104.54400000000001,
+          "endSeconds": 112.41600000000001,
+          "durationSeconds": 7.872,
+          "startFrame": 3136,
+          "endFrame": 3372
+        },
+        {
+          "segmentId": "04-04",
+          "file": "audio/scene-04/04-04.mp3",
+          "startSeconds": 112.41600000000001,
+          "endSeconds": 122.66400000000002,
+          "durationSeconds": 10.248,
+          "startFrame": 3372,
+          "endFrame": 3680
+        }
+      ],
+      "subtitleCues": [
+        {
+          "cueId": "04-01-a",
+          "segmentId": "04-01",
+          "startSeconds": 89.89800000000001,
+          "endSeconds": 92.08800000000001,
+          "startFrame": 2697,
+          "endFrame": 2763
+        },
+        {
+          "cueId": "04-02-a",
+          "segmentId": "04-02",
+          "startSeconds": 92.17800000000001,
+          "endSeconds": 93.42800000000001,
+          "startFrame": 2765,
+          "endFrame": 2803
+        },
+        {
+          "cueId": "04-02-b",
+          "segmentId": "04-02",
+          "startSeconds": 93.42800000000001,
+          "endSeconds": 95.908,
+          "startFrame": 2803,
+          "endFrame": 2877
+        },
+        {
+          "cueId": "04-02-c",
+          "segmentId": "04-02",
+          "startSeconds": 95.908,
+          "endSeconds": 98.23800000000001,
+          "startFrame": 2877,
+          "endFrame": 2947
+        },
+        {
+          "cueId": "04-02-d",
+          "segmentId": "04-02",
+          "startSeconds": 98.23800000000001,
+          "endSeconds": 101.388,
+          "startFrame": 2947,
+          "endFrame": 3042
+        },
+        {
+          "cueId": "04-02-e",
+          "segmentId": "04-02",
+          "startSeconds": 101.388,
+          "endSeconds": 104.54400000000001,
+          "startFrame": 3042,
+          "endFrame": 3136
+        },
+        {
+          "cueId": "04-03-a",
+          "segmentId": "04-03",
+          "startSeconds": 104.63400000000001,
+          "endSeconds": 106.05400000000002,
+          "startFrame": 3139,
+          "endFrame": 3182
+        },
+        {
+          "cueId": "04-03-b",
+          "segmentId": "04-03",
+          "startSeconds": 106.05400000000002,
+          "endSeconds": 109.18400000000001,
+          "startFrame": 3182,
+          "endFrame": 3276
+        },
+        {
+          "cueId": "04-03-c",
+          "segmentId": "04-03",
+          "startSeconds": 109.18400000000001,
+          "endSeconds": 112.41600000000001,
+          "startFrame": 3276,
+          "endFrame": 3372
+        },
+        {
+          "cueId": "04-04-a",
+          "segmentId": "04-04",
+          "startSeconds": 112.50600000000001,
+          "endSeconds": 115.156,
+          "startFrame": 3375,
+          "endFrame": 3455
+        },
+        {
+          "cueId": "04-04-b",
+          "segmentId": "04-04",
+          "startSeconds": 115.156,
+          "endSeconds": 118.546,
+          "startFrame": 3455,
+          "endFrame": 3556
+        },
+        {
+          "cueId": "04-04-c",
+          "segmentId": "04-04",
+          "startSeconds": 118.546,
+          "endSeconds": 119.766,
+          "startFrame": 3556,
+          "endFrame": 3593
+        },
+        {
+          "cueId": "04-04-d",
+          "segmentId": "04-04",
+          "startSeconds": 119.766,
+          "endSeconds": 122.66400000000002,
+          "startFrame": 3593,
+          "endFrame": 3680
+        }
+      ],
+      "animationEvents": [
+        {
+          "event": "订阅路径收缩为第一本账",
+          "source": {
+            "type": "segment",
+            "id": "04-01"
+          },
+          "atSeconds": 89.808,
+          "atFrame": 2694
+        },
+        {
+          "event": "程序或脚本经 API key 分出输入／输出 token",
+          "source": {
+            "type": "segment",
+            "id": "04-02"
+          },
+          "atSeconds": 92.08800000000001,
+          "atFrame": 2763
+        },
+        {
+          "event": "中央两套账边界亮起",
+          "source": {
+            "type": "segment",
+            "id": "04-03"
+          },
+          "atSeconds": 104.54400000000001,
+          "atFrame": 3136
+        },
+        {
+          "event": "Platform 账单保留独立出口",
+          "source": {
+            "type": "segment",
+            "id": "04-04"
+          },
+          "atSeconds": 112.41600000000001,
+          "atFrame": 3372
+        }
+      ]
+    },
+    {
+      "sceneId": "05",
+      "layout": "四张等高场景卡从左到右排列，依次表达个人、重度个人、团队、组织；边界提示独立放在右下，不参与套餐排序。",
+      "visualEvents": [
+        "Plus 个人卡先出现",
+        "Pro 卡强调使用强度",
+        "Business 卡强调团队协作",
+        "Enterprise & Edu 卡强调组织级部署",
+        "支持范围待核对最后出现"
+      ],
+      "screenText": [
+        "Plus",
+        "个人",
+        "个人开发者",
+        "基础使用",
+        "Pro",
+        "重度个人",
+        "高频使用",
+        "使用强度",
+        "Business",
+        "团队",
+        "团队协作",
+        "协作管理",
+        "Enterprise & Edu",
+        "组织",
+        "组织级部署",
+        "安全管理",
+        "支持范围待核对"
+      ],
+      "implementationFiles": [
+        "src/videos/04-pricing/PricingVideo.tsx"
+      ],
+      "timing": {
+        "timelineSource": "src/videos/04-pricing/generated/timeline-manifest.json",
+        "startSeconds": 122.664,
+        "endSeconds": 166.224,
+        "durationSeconds": 43.56,
+        "startFrame": 3680,
+        "endFrame": 4987,
+        "durationFrames": 1307
+      },
+      "audioSegments": [
+        {
+          "segmentId": "05-01",
+          "file": "audio/scene-05/05-01.mp3",
+          "startSeconds": 122.664,
+          "endSeconds": 129.36,
+          "durationSeconds": 6.696,
+          "startFrame": 3680,
+          "endFrame": 3881
+        },
+        {
+          "segmentId": "05-02",
+          "file": "audio/scene-05/05-02.mp3",
+          "startSeconds": 129.36,
+          "endSeconds": 137.76000000000002,
+          "durationSeconds": 8.4,
+          "startFrame": 3881,
+          "endFrame": 4133
+        },
+        {
+          "segmentId": "05-03",
+          "file": "audio/scene-05/05-03.mp3",
+          "startSeconds": 137.76,
+          "endSeconds": 147.21599999999998,
+          "durationSeconds": 9.456,
+          "startFrame": 4133,
+          "endFrame": 4416
+        },
+        {
+          "segmentId": "05-04",
+          "file": "audio/scene-05/05-04.mp3",
+          "startSeconds": 147.216,
+          "endSeconds": 166.22400000000002,
+          "durationSeconds": 19.008,
+          "startFrame": 4416,
+          "endFrame": 4987
+        }
+      ],
+      "subtitleCues": [
+        {
+          "cueId": "05-01-a",
+          "segmentId": "05-01",
+          "startSeconds": 122.754,
+          "endSeconds": 124.234,
+          "startFrame": 3683,
+          "endFrame": 3727
+        },
+        {
+          "cueId": "05-01-b",
+          "segmentId": "05-01",
+          "startSeconds": 124.234,
+          "endSeconds": 127.31400000000001,
+          "startFrame": 3727,
+          "endFrame": 3819
+        },
+        {
+          "cueId": "05-01-c",
+          "segmentId": "05-01",
+          "startSeconds": 127.31400000000001,
+          "endSeconds": 129.36,
+          "startFrame": 3819,
+          "endFrame": 3881
+        },
+        {
+          "cueId": "05-02-a",
+          "segmentId": "05-02",
+          "startSeconds": 129.45000000000002,
+          "endSeconds": 132.72000000000003,
+          "startFrame": 3884,
+          "endFrame": 3982
+        },
+        {
+          "cueId": "05-02-b",
+          "segmentId": "05-02",
+          "startSeconds": 132.72000000000003,
+          "endSeconds": 134.86,
+          "startFrame": 3982,
+          "endFrame": 4046
+        },
+        {
+          "cueId": "05-02-c",
+          "segmentId": "05-02",
+          "startSeconds": 134.86,
+          "endSeconds": 137.76000000000002,
+          "startFrame": 4046,
+          "endFrame": 4133
+        },
+        {
+          "cueId": "05-03-a",
+          "segmentId": "05-03",
+          "startSeconds": 137.85,
+          "endSeconds": 140.69,
+          "startFrame": 4136,
+          "endFrame": 4221
+        },
+        {
+          "cueId": "05-03-b",
+          "segmentId": "05-03",
+          "startSeconds": 140.69,
+          "endSeconds": 143.06,
+          "startFrame": 4221,
+          "endFrame": 4292
+        },
+        {
+          "cueId": "05-03-c",
+          "segmentId": "05-03",
+          "startSeconds": 143.06,
+          "endSeconds": 144.26,
+          "startFrame": 4292,
+          "endFrame": 4328
+        },
+        {
+          "cueId": "05-03-d",
+          "segmentId": "05-03",
+          "startSeconds": 144.26,
+          "endSeconds": 147.21599999999998,
+          "startFrame": 4328,
+          "endFrame": 4416
+        },
+        {
+          "cueId": "05-04-a",
+          "segmentId": "05-04",
+          "startSeconds": 147.306,
+          "endSeconds": 148.556,
+          "startFrame": 4419,
+          "endFrame": 4457
+        },
+        {
+          "cueId": "05-04-b",
+          "segmentId": "05-04",
+          "startSeconds": 148.556,
+          "endSeconds": 149.786,
+          "startFrame": 4457,
+          "endFrame": 4494
+        },
+        {
+          "cueId": "05-04-c",
+          "segmentId": "05-04",
+          "startSeconds": 149.786,
+          "endSeconds": 153.196,
+          "startFrame": 4494,
+          "endFrame": 4596
+        },
+        {
+          "cueId": "05-04-d",
+          "segmentId": "05-04",
+          "startSeconds": 153.196,
+          "endSeconds": 155.996,
+          "startFrame": 4596,
+          "endFrame": 4680
+        },
+        {
+          "cueId": "05-04-e",
+          "segmentId": "05-04",
+          "startSeconds": 155.996,
+          "endSeconds": 157.79600000000002,
+          "startFrame": 4680,
+          "endFrame": 4734
+        },
+        {
+          "cueId": "05-04-f",
+          "segmentId": "05-04",
+          "startSeconds": 157.79600000000002,
+          "endSeconds": 160.23600000000002,
+          "startFrame": 4734,
+          "endFrame": 4807
+        },
+        {
+          "cueId": "05-04-g",
+          "segmentId": "05-04",
+          "startSeconds": 160.23600000000002,
+          "endSeconds": 162.226,
+          "startFrame": 4807,
+          "endFrame": 4867
+        },
+        {
+          "cueId": "05-04-h",
+          "segmentId": "05-04",
+          "startSeconds": 162.226,
+          "endSeconds": 163.806,
+          "startFrame": 4867,
+          "endFrame": 4914
+        },
+        {
+          "cueId": "05-04-i",
+          "segmentId": "05-04",
+          "startSeconds": 163.806,
+          "endSeconds": 166.22400000000002,
+          "startFrame": 4914,
+          "endFrame": 4987
+        }
+      ],
+      "animationEvents": [
+        {
+          "event": "Plus 个人卡先出现",
+          "source": {
+            "type": "segment",
+            "id": "05-01"
+          },
+          "atSeconds": 122.664,
+          "atFrame": 3680
+        },
+        {
+          "event": "Pro 卡强调使用强度",
+          "source": {
+            "type": "segment",
+            "id": "05-02"
+          },
+          "atSeconds": 129.36,
+          "atFrame": 3881
+        },
+        {
+          "event": "Business 卡强调团队协作",
+          "source": {
+            "type": "segment",
+            "id": "05-03"
+          },
+          "atSeconds": 137.76,
+          "atFrame": 4133
+        },
+        {
+          "event": "Enterprise & Edu 卡强调组织级部署",
+          "source": {
+            "type": "segment",
+            "id": "05-04"
+          },
+          "atSeconds": 147.216,
+          "atFrame": 4416
+        },
+        {
+          "event": "支持范围待核对最后出现",
+          "source": {
+            "type": "segment",
+            "id": "05-01"
+          },
+          "atSeconds": 122.664,
+          "atFrame": 3680
+        }
+      ]
+    },
+    {
+      "sceneId": "06",
+      "layout": "左右两列；左侧为持续向右移动的 5 小时窗口和三种大小消耗块，右侧为达到限额后的积分分支与独立 API 出口。",
+      "visualEvents": [
+        "5 小时滚动窗口向右移动",
+        "小脚本、大型项目、长会话按大小进入窗口",
+        "窗口右端变为达到限额",
+        "积分分支出现且积分 ≠ API 账单"
+      ],
+      "screenText": [
+        "订阅用量",
+        "5 小时滚动窗口",
+        "窗口持续向右移动，不是每日清零",
+        "小脚本",
+        "大型项目",
+        "长会话",
+        "窗口右端",
+        "达到限额",
+        "积分",
+        "从订阅账本向下分出",
+        "独立出口",
+        "积分 ≠ API 账单"
+      ],
+      "implementationFiles": [
+        "src/videos/04-pricing/PricingVideo.tsx"
+      ],
+      "timing": {
+        "timelineSource": "src/videos/04-pricing/generated/timeline-manifest.json",
+        "startSeconds": 166.224,
+        "endSeconds": 197.64,
+        "durationSeconds": 31.416,
+        "startFrame": 4987,
+        "endFrame": 5929,
+        "durationFrames": 942
+      },
+      "audioSegments": [
+        {
+          "segmentId": "06-01",
+          "file": "audio/scene-06/06-01.mp3",
+          "startSeconds": 166.224,
+          "endSeconds": 172.512,
+          "durationSeconds": 6.288,
+          "startFrame": 4987,
+          "endFrame": 5175
+        },
+        {
+          "segmentId": "06-02",
+          "file": "audio/scene-06/06-02.mp3",
+          "startSeconds": 172.512,
+          "endSeconds": 186.024,
+          "durationSeconds": 13.512,
+          "startFrame": 5175,
+          "endFrame": 5581
+        },
+        {
+          "segmentId": "06-03",
+          "file": "audio/scene-06/06-03.mp3",
+          "startSeconds": 186.024,
+          "endSeconds": 197.64,
+          "durationSeconds": 11.616,
+          "startFrame": 5581,
+          "endFrame": 5929
+        }
+      ],
+      "subtitleCues": [
+        {
+          "cueId": "06-01-a",
+          "segmentId": "06-01",
+          "startSeconds": 166.314,
+          "endSeconds": 170.084,
+          "startFrame": 4989,
+          "endFrame": 5103
+        },
+        {
+          "cueId": "06-01-b",
+          "segmentId": "06-01",
+          "startSeconds": 170.084,
+          "endSeconds": 172.512,
+          "startFrame": 5103,
+          "endFrame": 5175
+        },
+        {
+          "cueId": "06-02-a",
+          "segmentId": "06-02",
+          "startSeconds": 172.602,
+          "endSeconds": 174.352,
+          "startFrame": 5178,
+          "endFrame": 5231
+        },
+        {
+          "cueId": "06-02-b",
+          "segmentId": "06-02",
+          "startSeconds": 174.352,
+          "endSeconds": 176.562,
+          "startFrame": 5231,
+          "endFrame": 5297
+        },
+        {
+          "cueId": "06-02-c",
+          "segmentId": "06-02",
+          "startSeconds": 176.562,
+          "endSeconds": 179.282,
+          "startFrame": 5297,
+          "endFrame": 5378
+        },
+        {
+          "cueId": "06-02-d",
+          "segmentId": "06-02",
+          "startSeconds": 179.282,
+          "endSeconds": 181.282,
+          "startFrame": 5378,
+          "endFrame": 5438
+        },
+        {
+          "cueId": "06-02-e",
+          "segmentId": "06-02",
+          "startSeconds": 181.282,
+          "endSeconds": 183.332,
+          "startFrame": 5438,
+          "endFrame": 5500
+        },
+        {
+          "cueId": "06-02-f",
+          "segmentId": "06-02",
+          "startSeconds": 183.332,
+          "endSeconds": 186.024,
+          "startFrame": 5500,
+          "endFrame": 5581
+        },
+        {
+          "cueId": "06-03-a",
+          "segmentId": "06-03",
+          "startSeconds": 186.114,
+          "endSeconds": 188.084,
+          "startFrame": 5583,
+          "endFrame": 5643
+        },
+        {
+          "cueId": "06-03-b",
+          "segmentId": "06-03",
+          "startSeconds": 188.084,
+          "endSeconds": 191.364,
+          "startFrame": 5643,
+          "endFrame": 5741
+        },
+        {
+          "cueId": "06-03-c",
+          "segmentId": "06-03",
+          "startSeconds": 191.364,
+          "endSeconds": 193.444,
+          "startFrame": 5741,
+          "endFrame": 5803
+        },
+        {
+          "cueId": "06-03-d",
+          "segmentId": "06-03",
+          "startSeconds": 193.444,
+          "endSeconds": 196.124,
+          "startFrame": 5803,
+          "endFrame": 5884
+        },
+        {
+          "cueId": "06-03-e",
+          "segmentId": "06-03",
+          "startSeconds": 196.124,
+          "endSeconds": 197.64,
+          "startFrame": 5884,
+          "endFrame": 5929
+        }
+      ],
+      "animationEvents": [
+        {
+          "event": "5 小时滚动窗口向右移动",
+          "source": {
+            "type": "segment",
+            "id": "06-01"
+          },
+          "atSeconds": 166.224,
+          "atFrame": 4987
+        },
+        {
+          "event": "小脚本、大型项目、长会话按大小进入窗口",
+          "source": {
+            "type": "segment",
+            "id": "06-02"
+          },
+          "atSeconds": 172.512,
+          "atFrame": 5175
+        },
+        {
+          "event": "窗口右端变为达到限额",
+          "source": {
+            "type": "segment",
+            "id": "06-03"
+          },
+          "atSeconds": 186.024,
+          "atFrame": 5581
+        },
+        {
+          "event": "积分分支出现且积分 ≠ API 账单",
+          "source": {
+            "type": "segment",
+            "id": "06-01"
+          },
+          "atSeconds": 166.224,
+          "atFrame": 4987
+        }
+      ]
+    },
+    {
+      "sceneId": "07",
+      "layout": "左右两列；左侧为从大而杂到短而准的四组收缩／替换动作，右侧为上下文终端与 /new 清理动作。",
+      "visualEvents": [
+        "模糊请求收缩为文件／函数",
+        "巨型规则折叠为分层规则",
+        "全挂工具替换为按需连接",
+        "全程强模型替换为任务匹配模型",
+        "旧会话移出并由 /new 清理"
+      ],
+      "screenText": [
+        "从大而杂到短而准",
+        "缩小输入范围",
+        "模糊请求",
+        "文件／函数",
+        "压缩固定上下文",
+        "巨型规则",
+        "分层规则",
+        "按需连接工具",
+        "全挂工具",
+        "按需连接",
+        "匹配模型与任务",
+        "全程强模型",
+        "任务匹配",
+        "workspace / context",
+        "/new",
+        "无关会话已清理",
+        "短而准"
+      ],
+      "implementationFiles": [
+        "src/videos/04-pricing/PricingVideo.tsx"
+      ],
+      "timing": {
+        "timelineSource": "src/videos/04-pricing/generated/timeline-manifest.json",
+        "startSeconds": 197.64,
+        "endSeconds": 235.776,
+        "durationSeconds": 38.136,
+        "startFrame": 5929,
+        "endFrame": 7073,
+        "durationFrames": 1144
+      },
+      "audioSegments": [
+        {
+          "segmentId": "07-01",
+          "file": "audio/scene-07/07-01.mp3",
+          "startSeconds": 197.64,
+          "endSeconds": 204.672,
+          "durationSeconds": 7.032,
+          "startFrame": 5929,
+          "endFrame": 6140
+        },
+        {
+          "segmentId": "07-02",
+          "file": "audio/scene-07/07-02.mp3",
+          "startSeconds": 204.672,
+          "endSeconds": 224.496,
+          "durationSeconds": 19.824,
+          "startFrame": 6140,
+          "endFrame": 6735
+        },
+        {
+          "segmentId": "07-03",
+          "file": "audio/scene-07/07-03.mp3",
+          "startSeconds": 224.49599999999998,
+          "endSeconds": 230.664,
+          "durationSeconds": 6.168,
+          "startFrame": 6735,
+          "endFrame": 6920
+        },
+        {
+          "segmentId": "07-04",
+          "file": "audio/scene-07/07-04.mp3",
+          "startSeconds": 230.664,
+          "endSeconds": 235.77599999999998,
+          "durationSeconds": 5.112,
+          "startFrame": 6920,
+          "endFrame": 7073
+        }
+      ],
+      "subtitleCues": [
+        {
+          "cueId": "07-01-a",
+          "segmentId": "07-01",
+          "startSeconds": 197.73,
+          "endSeconds": 199.17999999999998,
+          "startFrame": 5932,
+          "endFrame": 5975
+        },
+        {
+          "cueId": "07-01-b",
+          "segmentId": "07-01",
+          "startSeconds": 199.17999999999998,
+          "endSeconds": 200.89,
+          "startFrame": 5975,
+          "endFrame": 6027
+        },
+        {
+          "cueId": "07-01-c",
+          "segmentId": "07-01",
+          "startSeconds": 200.89,
+          "endSeconds": 204.672,
+          "startFrame": 6027,
+          "endFrame": 6140
+        },
+        {
+          "cueId": "07-02-a",
+          "segmentId": "07-02",
+          "startSeconds": 204.762,
+          "endSeconds": 206.572,
+          "startFrame": 6143,
+          "endFrame": 6197
+        },
+        {
+          "cueId": "07-02-b",
+          "segmentId": "07-02",
+          "startSeconds": 206.572,
+          "endSeconds": 208.862,
+          "startFrame": 6197,
+          "endFrame": 6266
+        },
+        {
+          "cueId": "07-02-c",
+          "segmentId": "07-02",
+          "startSeconds": 208.862,
+          "endSeconds": 210.212,
+          "startFrame": 6266,
+          "endFrame": 6306
+        },
+        {
+          "cueId": "07-02-d",
+          "segmentId": "07-02",
+          "startSeconds": 210.212,
+          "endSeconds": 212.132,
+          "startFrame": 6306,
+          "endFrame": 6364
+        },
+        {
+          "cueId": "07-02-e",
+          "segmentId": "07-02",
+          "startSeconds": 212.132,
+          "endSeconds": 215.072,
+          "startFrame": 6364,
+          "endFrame": 6452
+        },
+        {
+          "cueId": "07-02-f",
+          "segmentId": "07-02",
+          "startSeconds": 215.072,
+          "endSeconds": 216.862,
+          "startFrame": 6452,
+          "endFrame": 6506
+        },
+        {
+          "cueId": "07-02-g",
+          "segmentId": "07-02",
+          "startSeconds": 216.862,
+          "endSeconds": 219.432,
+          "startFrame": 6506,
+          "endFrame": 6583
+        },
+        {
+          "cueId": "07-02-h",
+          "segmentId": "07-02",
+          "startSeconds": 219.432,
+          "endSeconds": 221.612,
+          "startFrame": 6583,
+          "endFrame": 6648
+        },
+        {
+          "cueId": "07-02-i",
+          "segmentId": "07-02",
+          "startSeconds": 221.612,
+          "endSeconds": 224.496,
+          "startFrame": 6648,
+          "endFrame": 6735
+        },
+        {
+          "cueId": "07-03-a",
+          "segmentId": "07-03",
+          "startSeconds": 224.58599999999998,
+          "endSeconds": 226.00599999999997,
+          "startFrame": 6738,
+          "endFrame": 6780
+        },
+        {
+          "cueId": "07-03-b",
+          "segmentId": "07-03",
+          "startSeconds": 226.00599999999997,
+          "endSeconds": 227.72599999999997,
+          "startFrame": 6780,
+          "endFrame": 6832
+        },
+        {
+          "cueId": "07-03-c",
+          "segmentId": "07-03",
+          "startSeconds": 227.72599999999997,
+          "endSeconds": 230.664,
+          "startFrame": 6832,
+          "endFrame": 6920
+        },
+        {
+          "cueId": "07-04-a",
+          "segmentId": "07-04",
+          "startSeconds": 230.754,
+          "endSeconds": 233.684,
+          "startFrame": 6923,
+          "endFrame": 7011
+        },
+        {
+          "cueId": "07-04-b",
+          "segmentId": "07-04",
+          "startSeconds": 233.684,
+          "endSeconds": 235.77599999999998,
+          "startFrame": 7011,
+          "endFrame": 7073
+        }
+      ],
+      "animationEvents": [
+        {
+          "event": "模糊请求收缩为文件／函数",
+          "source": {
+            "type": "segment",
+            "id": "07-01"
+          },
+          "atSeconds": 197.64,
+          "atFrame": 5929
+        },
+        {
+          "event": "巨型规则折叠为分层规则",
+          "source": {
+            "type": "segment",
+            "id": "07-02"
+          },
+          "atSeconds": 204.672,
+          "atFrame": 6140
+        },
+        {
+          "event": "全挂工具替换为按需连接",
+          "source": {
+            "type": "segment",
+            "id": "07-03"
+          },
+          "atSeconds": 224.49599999999998,
+          "atFrame": 6735
+        },
+        {
+          "event": "全程强模型替换为任务匹配模型",
+          "source": {
+            "type": "segment",
+            "id": "07-04"
+          },
+          "atSeconds": 230.664,
+          "atFrame": 6920
+        },
+        {
+          "event": "旧会话移出并由 /new 清理",
+          "source": {
+            "type": "segment",
+            "id": "07-01"
+          },
+          "atSeconds": 197.64,
+          "atFrame": 5929
+        }
+      ]
+    },
+    {
+      "sceneId": "08",
+      "layout": "左右两列；左侧为大尺寸终端窗口，右侧为查看、调整、清理、复盘状态板，底部双出口不汇总。",
+      "visualEvents": [
+        "/status 显示状态、审批策略和上下文容量",
+        "/model 切换为任务匹配",
+        "/new 移除无关会话",
+        "任务结果进入复盘并分流到两套观察位置"
+      ],
+      "screenText": [
+        "Codex / current task",
+        "/status",
+        "context 68% · approval on request",
+        "/model",
+        "model → task-matched",
+        "/new",
+        "unrelated session removed",
+        "用量管理闭环",
+        "查看",
+        "调整",
+        "清理",
+        "复盘",
+        "订阅用量面板",
+        "API Platform 账单"
+      ],
+      "implementationFiles": [
+        "src/videos/04-pricing/PricingVideo.tsx"
+      ],
+      "timing": {
+        "timelineSource": "src/videos/04-pricing/generated/timeline-manifest.json",
+        "startSeconds": 235.776,
+        "endSeconds": 266.976,
+        "durationSeconds": 31.2,
+        "startFrame": 7073,
+        "endFrame": 8009,
+        "durationFrames": 936
+      },
+      "audioSegments": [
+        {
+          "segmentId": "08-01",
+          "file": "audio/scene-08/08-01.mp3",
+          "startSeconds": 235.776,
+          "endSeconds": 241.36800000000002,
+          "durationSeconds": 5.592,
+          "startFrame": 7073,
+          "endFrame": 7241
+        },
+        {
+          "segmentId": "08-02",
+          "file": "audio/scene-08/08-02.mp3",
+          "startSeconds": 241.36800000000002,
+          "endSeconds": 253.34400000000002,
+          "durationSeconds": 11.976,
+          "startFrame": 7241,
+          "endFrame": 7600
+        },
+        {
+          "segmentId": "08-03",
+          "file": "audio/scene-08/08-03.mp3",
+          "startSeconds": 253.34400000000002,
+          "endSeconds": 266.976,
+          "durationSeconds": 13.632,
+          "startFrame": 7600,
+          "endFrame": 8009
+        }
+      ],
+      "subtitleCues": [
+        {
+          "cueId": "08-01-a",
+          "segmentId": "08-01",
+          "startSeconds": 235.866,
+          "endSeconds": 238.67600000000002,
+          "startFrame": 7076,
+          "endFrame": 7160
+        },
+        {
+          "cueId": "08-01-b",
+          "segmentId": "08-01",
+          "startSeconds": 238.67600000000002,
+          "endSeconds": 241.36800000000002,
+          "startFrame": 7160,
+          "endFrame": 7241
+        },
+        {
+          "cueId": "08-02-a",
+          "segmentId": "08-02",
+          "startSeconds": 241.45800000000003,
+          "endSeconds": 244.57800000000003,
+          "startFrame": 7244,
+          "endFrame": 7337
+        },
+        {
+          "cueId": "08-02-b",
+          "segmentId": "08-02",
+          "startSeconds": 244.57800000000003,
+          "endSeconds": 246.44800000000004,
+          "startFrame": 7337,
+          "endFrame": 7393
+        },
+        {
+          "cueId": "08-02-c",
+          "segmentId": "08-02",
+          "startSeconds": 246.44800000000004,
+          "endSeconds": 249.88800000000003,
+          "startFrame": 7393,
+          "endFrame": 7497
+        },
+        {
+          "cueId": "08-02-d",
+          "segmentId": "08-02",
+          "startSeconds": 249.88800000000003,
+          "endSeconds": 251.52800000000002,
+          "startFrame": 7497,
+          "endFrame": 7546
+        },
+        {
+          "cueId": "08-02-e",
+          "segmentId": "08-02",
+          "startSeconds": 251.52800000000002,
+          "endSeconds": 253.34400000000002,
+          "startFrame": 7546,
+          "endFrame": 7600
+        },
+        {
+          "cueId": "08-03-a",
+          "segmentId": "08-03",
+          "startSeconds": 253.43400000000003,
+          "endSeconds": 255.42400000000004,
+          "startFrame": 7603,
+          "endFrame": 7663
+        },
+        {
+          "cueId": "08-03-b",
+          "segmentId": "08-03",
+          "startSeconds": 255.42400000000004,
+          "endSeconds": 258.024,
+          "startFrame": 7663,
+          "endFrame": 7741
+        },
+        {
+          "cueId": "08-03-c",
+          "segmentId": "08-03",
+          "startSeconds": 258.024,
+          "endSeconds": 261.09400000000005,
+          "startFrame": 7741,
+          "endFrame": 7833
+        },
+        {
+          "cueId": "08-03-d",
+          "segmentId": "08-03",
+          "startSeconds": 261.09400000000005,
+          "endSeconds": 264.444,
+          "startFrame": 7833,
+          "endFrame": 7933
+        },
+        {
+          "cueId": "08-03-e",
+          "segmentId": "08-03",
+          "startSeconds": 264.444,
+          "endSeconds": 266.976,
+          "startFrame": 7933,
+          "endFrame": 8009
+        }
+      ],
+      "animationEvents": [
+        {
+          "event": "/status 显示状态、审批策略和上下文容量",
+          "source": {
+            "type": "segment",
+            "id": "08-01"
+          },
+          "atSeconds": 235.776,
+          "atFrame": 7073
+        },
+        {
+          "event": "/model 切换为任务匹配",
+          "source": {
+            "type": "segment",
+            "id": "08-02"
+          },
+          "atSeconds": 241.36800000000002,
+          "atFrame": 7241
+        },
+        {
+          "event": "/new 移除无关会话",
+          "source": {
+            "type": "segment",
+            "id": "08-03"
+          },
+          "atSeconds": 253.34400000000002,
+          "atFrame": 7600
+        },
+        {
+          "event": "任务结果进入复盘并分流到两套观察位置",
+          "source": {
+            "type": "segment",
+            "id": "08-01"
+          },
+          "atSeconds": 235.776,
+          "atFrame": 7073
+        }
+      ]
+    },
+    {
+      "sceneId": "09",
+      "layout": "上部保留订阅账本与 API 账本两个独立入口，中部四张判断卡按顺序落位；判断框架淡出后，下一集预告卡在字幕区上方单独停留。",
+      "visualEvents": [
+        "订阅账本与 API 账本同时出现并保持边界",
+        "登录路径、任务类型、上下文规模、用量观察位置依次落位",
+        "四问框架完成后收束",
+        "下一集预告最后出现并保留停留时间"
+      ],
+      "screenText": [
+        "ChatGPT 订阅",
+        "API 账本",
+        "01",
+        "登录路径",
+        "订阅额度 or API 按量计费",
+        "02",
+        "任务类型",
+        "交互 or 程序化",
+        "03",
+        "上下文规模",
+        "小脚本 or 大项目",
+        "04",
+        "用量观察位置",
+        "面板 or Platform",
+        "下一集",
+        "接入 DeepSeek 等国产模型",
+        "模型接入 · API 配置 · 调用路径"
+      ],
+      "implementationFiles": [
+        "src/videos/04-pricing/PricingVideo.tsx"
+      ],
+      "timing": {
+        "timelineSource": "src/videos/04-pricing/generated/timeline-manifest.json",
+        "startSeconds": 266.976,
+        "endSeconds": 298.776,
+        "durationSeconds": 31.8,
+        "startFrame": 8009,
+        "endFrame": 8963,
+        "durationFrames": 954
+      },
+      "audioSegments": [
+        {
+          "segmentId": "09-01",
+          "file": "audio/scene-09/09-01.mp3",
+          "startSeconds": 266.976,
+          "endSeconds": 278.784,
+          "durationSeconds": 11.808,
+          "startFrame": 8009,
+          "endFrame": 8364
+        },
+        {
+          "segmentId": "09-02",
+          "file": "audio/scene-09/09-02.mp3",
+          "startSeconds": 278.784,
+          "endSeconds": 291.792,
+          "durationSeconds": 13.008,
+          "startFrame": 8364,
+          "endFrame": 8754
+        },
+        {
+          "segmentId": "09-03",
+          "file": "audio/scene-09/09-03.mp3",
+          "startSeconds": 291.792,
+          "endSeconds": 298.77599999999995,
+          "durationSeconds": 6.984,
+          "startFrame": 8754,
+          "endFrame": 8963
+        }
+      ],
+      "subtitleCues": [
+        {
+          "cueId": "09-01-a",
+          "segmentId": "09-01",
+          "startSeconds": 267.066,
+          "endSeconds": 270.076,
+          "startFrame": 8012,
+          "endFrame": 8102
+        },
+        {
+          "cueId": "09-01-b",
+          "segmentId": "09-01",
+          "startSeconds": 270.076,
+          "endSeconds": 271.756,
+          "startFrame": 8102,
+          "endFrame": 8153
+        },
+        {
+          "cueId": "09-01-c",
+          "segmentId": "09-01",
+          "startSeconds": 271.756,
+          "endSeconds": 274.976,
+          "startFrame": 8153,
+          "endFrame": 8249
+        },
+        {
+          "cueId": "09-01-d",
+          "segmentId": "09-01",
+          "startSeconds": 274.976,
+          "endSeconds": 276.846,
+          "startFrame": 8249,
+          "endFrame": 8305
+        },
+        {
+          "cueId": "09-01-e",
+          "segmentId": "09-01",
+          "startSeconds": 276.846,
+          "endSeconds": 278.784,
+          "startFrame": 8305,
+          "endFrame": 8364
+        },
+        {
+          "cueId": "09-02-a",
+          "segmentId": "09-02",
+          "startSeconds": 278.87399999999997,
+          "endSeconds": 282.06399999999996,
+          "startFrame": 8366,
+          "endFrame": 8462
+        },
+        {
+          "cueId": "09-02-b",
+          "segmentId": "09-02",
+          "startSeconds": 282.06399999999996,
+          "endSeconds": 284.454,
+          "startFrame": 8462,
+          "endFrame": 8534
+        },
+        {
+          "cueId": "09-02-c",
+          "segmentId": "09-02",
+          "startSeconds": 284.454,
+          "endSeconds": 287.43399999999997,
+          "startFrame": 8534,
+          "endFrame": 8623
+        },
+        {
+          "cueId": "09-02-d",
+          "segmentId": "09-02",
+          "startSeconds": 287.43399999999997,
+          "endSeconds": 288.714,
+          "startFrame": 8623,
+          "endFrame": 8661
+        },
+        {
+          "cueId": "09-02-e",
+          "segmentId": "09-02",
+          "startSeconds": 288.714,
+          "endSeconds": 291.792,
+          "startFrame": 8661,
+          "endFrame": 8754
+        },
+        {
+          "cueId": "09-03-a",
+          "segmentId": "09-03",
+          "startSeconds": 291.88199999999995,
+          "endSeconds": 295.69199999999995,
+          "startFrame": 8756,
+          "endFrame": 8871
+        },
+        {
+          "cueId": "09-03-b",
+          "segmentId": "09-03",
+          "startSeconds": 295.69199999999995,
+          "endSeconds": 298.77599999999995,
+          "startFrame": 8871,
+          "endFrame": 8963
+        }
+      ],
+      "animationEvents": [
+        {
+          "event": "订阅账本与 API 账本同时出现并保持边界",
+          "source": {
+            "type": "segment",
+            "id": "09-01"
+          },
+          "atSeconds": 266.976,
+          "atFrame": 8009
+        },
+        {
+          "event": "登录路径、任务类型、上下文规模、用量观察位置依次落位",
+          "source": {
+            "type": "segment",
+            "id": "09-02"
+          },
+          "atSeconds": 278.784,
+          "atFrame": 8364
+        },
+        {
+          "event": "四问框架完成后收束",
+          "source": {
+            "type": "segment",
+            "id": "09-03"
+          },
+          "atSeconds": 291.792,
+          "atFrame": 8754
+        },
+        {
+          "event": "下一集预告最后出现并保留停留时间",
+          "source": {
+            "type": "segment",
+            "id": "09-01"
+          },
+          "atSeconds": 266.976,
+          "atFrame": 8009
+        }
+      ]
+    }
+  ]
+}

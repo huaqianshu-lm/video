@@ -1,0 +1,1323 @@
+{
+  "schemaVersion": 2,
+  "slug": "03-install",
+  "visualScriptFingerprint": "af695b75c124ead7a9f34705fede9df290548da998fec554d6db7ac7f593cd67",
+  "prototypeFingerprint": "8dd3c63982ed58c5bd6c3feecfcf8aec25c908169cfec194752ff34b9239d0e7",
+  "scenes": [
+    {
+      "sceneId": "01",
+      "layout": "近黑终端面板位于左侧，三张条件卡片从下方依次出现并沿连接线汇入右侧的我的启动路径；标题固定在左上，字幕保留在底部安全区。",
+      "visualEvents": [
+        "终端保持待执行状态，立即安装箭头指向命令位置后收回",
+        "使用入口、账号路径、网络连通性三张卡片依次浮现并点亮",
+        "三项条件沿路径汇入我的启动路径并停在选择完成状态"
+      ],
+      "screenText": [
+        "先别急着复制安装命令",
+        "使用入口",
+        "账号路径",
+        "网络连通性",
+        "先确认条件，再执行",
+        "立即安装",
+        "我的启动路径",
+        "先确认条件，再选择路径"
+      ],
+      "implementationFiles": [
+        "src/videos/03-install/InstallVideo.tsx",
+        "src/videos/03-install/video.config.ts"
+      ],
+      "timing": {
+        "timelineSource": "src/videos/03-install/generated/timeline-manifest.json",
+        "startSeconds": 0,
+        "endSeconds": 21.6,
+        "durationSeconds": 21.6,
+        "startFrame": 0,
+        "endFrame": 648,
+        "durationFrames": 648
+      },
+      "audioSegments": [
+        {
+          "segmentId": "01-01",
+          "file": "audio/scene-01/01-01.mp3",
+          "startSeconds": 0,
+          "endSeconds": 21.6,
+          "durationSeconds": 21.6,
+          "startFrame": 0,
+          "endFrame": 648
+        }
+      ],
+      "subtitleCues": [
+        {
+          "cueId": "01-01-a",
+          "segmentId": "01-01",
+          "startSeconds": 0.09,
+          "endSeconds": 2.17,
+          "startFrame": 3,
+          "endFrame": 65
+        },
+        {
+          "cueId": "01-01-b",
+          "segmentId": "01-01",
+          "startSeconds": 2.17,
+          "endSeconds": 5.55,
+          "startFrame": 65,
+          "endFrame": 167
+        },
+        {
+          "cueId": "01-01-c",
+          "segmentId": "01-01",
+          "startSeconds": 5.55,
+          "endSeconds": 7.31,
+          "startFrame": 167,
+          "endFrame": 219
+        },
+        {
+          "cueId": "01-01-d",
+          "segmentId": "01-01",
+          "startSeconds": 7.31,
+          "endSeconds": 8.95,
+          "startFrame": 219,
+          "endFrame": 269
+        },
+        {
+          "cueId": "01-01-e",
+          "segmentId": "01-01",
+          "startSeconds": 8.95,
+          "endSeconds": 11.97,
+          "startFrame": 269,
+          "endFrame": 359
+        },
+        {
+          "cueId": "01-01-f",
+          "segmentId": "01-01",
+          "startSeconds": 11.97,
+          "endSeconds": 13.75,
+          "startFrame": 359,
+          "endFrame": 413
+        },
+        {
+          "cueId": "01-01-g",
+          "segmentId": "01-01",
+          "startSeconds": 13.75,
+          "endSeconds": 16.25,
+          "startFrame": 413,
+          "endFrame": 488
+        },
+        {
+          "cueId": "01-01-h",
+          "segmentId": "01-01",
+          "startSeconds": 16.25,
+          "endSeconds": 17.91,
+          "startFrame": 488,
+          "endFrame": 537
+        },
+        {
+          "cueId": "01-01-i",
+          "segmentId": "01-01",
+          "startSeconds": 17.91,
+          "endSeconds": 19.36,
+          "startFrame": 537,
+          "endFrame": 581
+        },
+        {
+          "cueId": "01-01-j",
+          "segmentId": "01-01",
+          "startSeconds": 19.36,
+          "endSeconds": 21.6,
+          "startFrame": 581,
+          "endFrame": 648
+        }
+      ],
+      "animationEvents": [
+        {
+          "event": "终端保持待执行状态，立即安装箭头指向命令位置后收回",
+          "source": {
+            "type": "segment",
+            "id": "01-01"
+          },
+          "atSeconds": 0,
+          "atFrame": 0
+        },
+        {
+          "event": "使用入口、账号路径、网络连通性三张卡片依次浮现并点亮",
+          "source": {
+            "type": "segment",
+            "id": "01-01"
+          },
+          "atSeconds": 0,
+          "atFrame": 0
+        },
+        {
+          "event": "三项条件沿路径汇入我的启动路径并停在选择完成状态",
+          "source": {
+            "type": "segment",
+            "id": "01-01"
+          },
+          "atSeconds": 0,
+          "atFrame": 0
+        }
+      ]
+    },
+    {
+      "sceneId": "02",
+      "layout": "画面左右分栏，左侧为 macOS／Windows 桌面 App 窗口与项目文件，右侧为 CLI 终端；Linux 标签从下方直接连接 CLI，底部保留工作流能力标签。",
+      "visualEvents": [
+        "桌面 App 与 CLI 两条并行路径同时出现并分别高亮",
+        "工作方式标签进入对应入口卡片",
+        "Linux 直接连接 CLI，官方独立安装器和不要求 Node.js 标签点亮"
+      ],
+      "screenText": [
+        "工作方式决定入口",
+        "桌面 App",
+        "CLI",
+        "macOS／Windows",
+        "图形项目工作流",
+        "终端操作",
+        "自动化任务",
+        "Linux",
+        "官方独立安装器",
+        "不要求 Node.js",
+        "共同目标：完成同一类工作"
+      ],
+      "implementationFiles": [
+        "src/videos/03-install/InstallVideo.tsx",
+        "src/videos/03-install/video.config.ts"
+      ],
+      "timing": {
+        "timelineSource": "src/videos/03-install/generated/timeline-manifest.json",
+        "startSeconds": 21.6,
+        "endSeconds": 48.288,
+        "durationSeconds": 26.688,
+        "startFrame": 648,
+        "endFrame": 1449,
+        "durationFrames": 801
+      },
+      "audioSegments": [
+        {
+          "segmentId": "02-01",
+          "file": "audio/scene-02/02-01.mp3",
+          "startSeconds": 21.6,
+          "endSeconds": 48.288,
+          "durationSeconds": 26.688,
+          "startFrame": 648,
+          "endFrame": 1449
+        }
+      ],
+      "subtitleCues": [
+        {
+          "cueId": "02-01-a",
+          "segmentId": "02-01",
+          "startSeconds": 21.69,
+          "endSeconds": 23.82,
+          "startFrame": 651,
+          "endFrame": 715
+        },
+        {
+          "cueId": "02-01-b",
+          "segmentId": "02-01",
+          "startSeconds": 23.82,
+          "endSeconds": 27.66,
+          "startFrame": 715,
+          "endFrame": 830
+        },
+        {
+          "cueId": "02-01-c",
+          "segmentId": "02-01",
+          "startSeconds": 27.66,
+          "endSeconds": 30.67,
+          "startFrame": 830,
+          "endFrame": 920
+        },
+        {
+          "cueId": "02-01-d",
+          "segmentId": "02-01",
+          "startSeconds": 30.67,
+          "endSeconds": 34.29,
+          "startFrame": 920,
+          "endFrame": 1029
+        },
+        {
+          "cueId": "02-01-e",
+          "segmentId": "02-01",
+          "startSeconds": 34.29,
+          "endSeconds": 37.92,
+          "startFrame": 1029,
+          "endFrame": 1138
+        },
+        {
+          "cueId": "02-01-f",
+          "segmentId": "02-01",
+          "startSeconds": 37.92,
+          "endSeconds": 39.43,
+          "startFrame": 1138,
+          "endFrame": 1183
+        },
+        {
+          "cueId": "02-01-g",
+          "segmentId": "02-01",
+          "startSeconds": 39.43,
+          "endSeconds": 42.08,
+          "startFrame": 1183,
+          "endFrame": 1262
+        },
+        {
+          "cueId": "02-01-h",
+          "segmentId": "02-01",
+          "startSeconds": 42.08,
+          "endSeconds": 45.13,
+          "startFrame": 1262,
+          "endFrame": 1354
+        },
+        {
+          "cueId": "02-01-i",
+          "segmentId": "02-01",
+          "startSeconds": 45.13,
+          "endSeconds": 48.288,
+          "startFrame": 1354,
+          "endFrame": 1449
+        }
+      ],
+      "animationEvents": [
+        {
+          "event": "桌面 App 与 CLI 两条并行路径同时出现并分别高亮",
+          "source": {
+            "type": "segment",
+            "id": "02-01"
+          },
+          "atSeconds": 21.6,
+          "atFrame": 648
+        },
+        {
+          "event": "工作方式标签进入对应入口卡片",
+          "source": {
+            "type": "segment",
+            "id": "02-01"
+          },
+          "atSeconds": 21.6,
+          "atFrame": 648
+        },
+        {
+          "event": "Linux 直接连接 CLI，官方独立安装器和不要求 Node.js 标签点亮",
+          "source": {
+            "type": "segment",
+            "id": "02-01"
+          },
+          "atSeconds": 21.6,
+          "atFrame": 648
+        }
+      ]
+    },
+    {
+      "sceneId": "03",
+      "layout": "三列决策图按系统、安装路径、运行边界排列，列间用箭头连接；下方展开 PowerShell／WSL2 分支与 Linux 文件系统和 /mnt/c/... 的位置对照。",
+      "visualEvents": [
+        "系统、安装路径、运行边界三列依次出现并逐项点亮",
+        "系统决定路径和 PowerShell／WSL2 分支依次连接",
+        "Linux 文件系统以成功色显示，/mnt/c/... 以警示色停在不推荐位置"
+      ],
+      "screenText": [
+        "匹配系统与运行环境",
+        "系统",
+        "安装路径",
+        "运行边界",
+        "macOS",
+        "Linux",
+        "Windows",
+        "芯片架构 → Shell",
+        "CLI → Shell",
+        "PowerShell／WSL2",
+        "elevated",
+        "unelevated",
+        "Linux 文件系统",
+        "/mnt/c/...",
+        "系统决定路径",
+        "环境决定边界",
+        "不推荐位置"
+      ],
+      "implementationFiles": [
+        "src/videos/03-install/InstallVideo.tsx",
+        "src/videos/03-install/video.config.ts"
+      ],
+      "timing": {
+        "timelineSource": "src/videos/03-install/generated/timeline-manifest.json",
+        "startSeconds": 48.288,
+        "endSeconds": 84.384,
+        "durationSeconds": 36.096,
+        "startFrame": 1449,
+        "endFrame": 2532,
+        "durationFrames": 1083
+      },
+      "audioSegments": [
+        {
+          "segmentId": "03-01",
+          "file": "audio/scene-03/03-01.mp3",
+          "startSeconds": 48.288,
+          "endSeconds": 84.38399999999999,
+          "durationSeconds": 36.096,
+          "startFrame": 1449,
+          "endFrame": 2532
+        }
+      ],
+      "subtitleCues": [
+        {
+          "cueId": "03-01-a",
+          "segmentId": "03-01",
+          "startSeconds": 48.378,
+          "endSeconds": 51.797999999999995,
+          "startFrame": 1451,
+          "endFrame": 1554
+        },
+        {
+          "cueId": "03-01-b",
+          "segmentId": "03-01",
+          "startSeconds": 51.797999999999995,
+          "endSeconds": 54.878,
+          "startFrame": 1554,
+          "endFrame": 1646
+        },
+        {
+          "cueId": "03-01-c",
+          "segmentId": "03-01",
+          "startSeconds": 54.878,
+          "endSeconds": 58.388,
+          "startFrame": 1646,
+          "endFrame": 1752
+        },
+        {
+          "cueId": "03-01-d",
+          "segmentId": "03-01",
+          "startSeconds": 58.388,
+          "endSeconds": 60.748,
+          "startFrame": 1752,
+          "endFrame": 1822
+        },
+        {
+          "cueId": "03-01-e",
+          "segmentId": "03-01",
+          "startSeconds": 60.748,
+          "endSeconds": 63.897999999999996,
+          "startFrame": 1822,
+          "endFrame": 1917
+        },
+        {
+          "cueId": "03-01-f",
+          "segmentId": "03-01",
+          "startSeconds": 63.897999999999996,
+          "endSeconds": 66.708,
+          "startFrame": 1917,
+          "endFrame": 2001
+        },
+        {
+          "cueId": "03-01-g",
+          "segmentId": "03-01",
+          "startSeconds": 66.708,
+          "endSeconds": 68.208,
+          "startFrame": 2001,
+          "endFrame": 2046
+        },
+        {
+          "cueId": "03-01-h",
+          "segmentId": "03-01",
+          "startSeconds": 68.208,
+          "endSeconds": 69.928,
+          "startFrame": 2046,
+          "endFrame": 2098
+        },
+        {
+          "cueId": "03-01-i",
+          "segmentId": "03-01",
+          "startSeconds": 69.928,
+          "endSeconds": 71.96799999999999,
+          "startFrame": 2098,
+          "endFrame": 2159
+        },
+        {
+          "cueId": "03-01-j",
+          "segmentId": "03-01",
+          "startSeconds": 71.96799999999999,
+          "endSeconds": 74.508,
+          "startFrame": 2159,
+          "endFrame": 2235
+        },
+        {
+          "cueId": "03-01-k",
+          "segmentId": "03-01",
+          "startSeconds": 74.508,
+          "endSeconds": 76.458,
+          "startFrame": 2235,
+          "endFrame": 2294
+        },
+        {
+          "cueId": "03-01-l",
+          "segmentId": "03-01",
+          "startSeconds": 76.458,
+          "endSeconds": 78.258,
+          "startFrame": 2294,
+          "endFrame": 2348
+        },
+        {
+          "cueId": "03-01-m",
+          "segmentId": "03-01",
+          "startSeconds": 78.258,
+          "endSeconds": 80.548,
+          "startFrame": 2348,
+          "endFrame": 2416
+        },
+        {
+          "cueId": "03-01-n",
+          "segmentId": "03-01",
+          "startSeconds": 80.548,
+          "endSeconds": 82.398,
+          "startFrame": 2416,
+          "endFrame": 2472
+        },
+        {
+          "cueId": "03-01-o",
+          "segmentId": "03-01",
+          "startSeconds": 82.398,
+          "endSeconds": 84.38399999999999,
+          "startFrame": 2472,
+          "endFrame": 2532
+        }
+      ],
+      "animationEvents": [
+        {
+          "event": "系统、安装路径、运行边界三列依次出现并逐项点亮",
+          "source": {
+            "type": "segment",
+            "id": "03-01"
+          },
+          "atSeconds": 48.288,
+          "atFrame": 1449
+        },
+        {
+          "event": "系统决定路径和 PowerShell／WSL2 分支依次连接",
+          "source": {
+            "type": "segment",
+            "id": "03-01"
+          },
+          "atSeconds": 48.288,
+          "atFrame": 1449
+        },
+        {
+          "event": "Linux 文件系统以成功色显示，/mnt/c/... 以警示色停在不推荐位置",
+          "source": {
+            "type": "segment",
+            "id": "03-01"
+          },
+          "atSeconds": 48.288,
+          "atFrame": 1449
+        }
+      ]
+    },
+    {
+      "sceneId": "04",
+      "layout": "左侧大尺寸新终端先完成 codex --version 和版本号结果，右侧再出现 command not found 失败分支与两个首查标签。",
+      "visualEvents": [
+        "codex --version 在新终端中输入并执行",
+        "codex <版本号> 出现，CLI 可执行状态切换为成功色",
+        "command not found 分支随后出现并点亮检查 PATH 和检查多重安装"
+      ],
+      "screenText": [
+        "用版本号验证 CLI 已可执行",
+        "$",
+        "codex --version",
+        "codex <版本号>",
+        "CLI 可执行",
+        "command not found",
+        "检查 PATH",
+        "检查多重安装",
+        "能看到版本号，才算命令可用"
+      ],
+      "implementationFiles": [
+        "src/videos/03-install/InstallVideo.tsx",
+        "src/videos/03-install/video.config.ts"
+      ],
+      "timing": {
+        "timelineSource": "src/videos/03-install/generated/timeline-manifest.json",
+        "startSeconds": 84.384,
+        "endSeconds": 112.128,
+        "durationSeconds": 27.744,
+        "startFrame": 2532,
+        "endFrame": 3364,
+        "durationFrames": 832
+      },
+      "audioSegments": [
+        {
+          "segmentId": "04-01",
+          "file": "audio/scene-04/04-01.mp3",
+          "startSeconds": 84.384,
+          "endSeconds": 112.128,
+          "durationSeconds": 27.744,
+          "startFrame": 2532,
+          "endFrame": 3364
+        }
+      ],
+      "subtitleCues": [
+        {
+          "cueId": "04-01-a",
+          "segmentId": "04-01",
+          "startSeconds": 84.474,
+          "endSeconds": 85.794,
+          "startFrame": 2534,
+          "endFrame": 2574
+        },
+        {
+          "cueId": "04-01-b",
+          "segmentId": "04-01",
+          "startSeconds": 85.794,
+          "endSeconds": 87.494,
+          "startFrame": 2574,
+          "endFrame": 2625
+        },
+        {
+          "cueId": "04-01-c",
+          "segmentId": "04-01",
+          "startSeconds": 87.494,
+          "endSeconds": 88.804,
+          "startFrame": 2625,
+          "endFrame": 2664
+        },
+        {
+          "cueId": "04-01-d",
+          "segmentId": "04-01",
+          "startSeconds": 88.804,
+          "endSeconds": 90.524,
+          "startFrame": 2664,
+          "endFrame": 2716
+        },
+        {
+          "cueId": "04-01-e",
+          "segmentId": "04-01",
+          "startSeconds": 90.524,
+          "endSeconds": 92.344,
+          "startFrame": 2716,
+          "endFrame": 2770
+        },
+        {
+          "cueId": "04-01-f",
+          "segmentId": "04-01",
+          "startSeconds": 92.344,
+          "endSeconds": 96.024,
+          "startFrame": 2770,
+          "endFrame": 2881
+        },
+        {
+          "cueId": "04-01-g",
+          "segmentId": "04-01",
+          "startSeconds": 96.024,
+          "endSeconds": 98.274,
+          "startFrame": 2881,
+          "endFrame": 2948
+        },
+        {
+          "cueId": "04-01-h",
+          "segmentId": "04-01",
+          "startSeconds": 98.274,
+          "endSeconds": 100.914,
+          "startFrame": 2948,
+          "endFrame": 3027
+        },
+        {
+          "cueId": "04-01-i",
+          "segmentId": "04-01",
+          "startSeconds": 100.914,
+          "endSeconds": 103.354,
+          "startFrame": 3027,
+          "endFrame": 3101
+        },
+        {
+          "cueId": "04-01-j",
+          "segmentId": "04-01",
+          "startSeconds": 103.354,
+          "endSeconds": 105.374,
+          "startFrame": 3101,
+          "endFrame": 3161
+        },
+        {
+          "cueId": "04-01-k",
+          "segmentId": "04-01",
+          "startSeconds": 105.374,
+          "endSeconds": 107.694,
+          "startFrame": 3161,
+          "endFrame": 3231
+        },
+        {
+          "cueId": "04-01-l",
+          "segmentId": "04-01",
+          "startSeconds": 107.694,
+          "endSeconds": 110.724,
+          "startFrame": 3231,
+          "endFrame": 3322
+        },
+        {
+          "cueId": "04-01-m",
+          "segmentId": "04-01",
+          "startSeconds": 110.724,
+          "endSeconds": 112.128,
+          "startFrame": 3322,
+          "endFrame": 3364
+        }
+      ],
+      "animationEvents": [
+        {
+          "event": "codex --version 在新终端中输入并执行",
+          "source": {
+            "type": "segment",
+            "id": "04-01"
+          },
+          "atSeconds": 84.384,
+          "atFrame": 2532
+        },
+        {
+          "event": "codex <版本号> 出现，CLI 可执行状态切换为成功色",
+          "source": {
+            "type": "segment",
+            "id": "04-01"
+          },
+          "atSeconds": 84.384,
+          "atFrame": 2532
+        },
+        {
+          "event": "command not found 分支随后出现并点亮检查 PATH 和检查多重安装",
+          "source": {
+            "type": "segment",
+            "id": "04-01"
+          },
+          "atSeconds": 84.384,
+          "atFrame": 2532
+        }
+      ]
+    },
+    {
+      "sceneId": "05",
+      "layout": "上方从 CLI 可执行展开 ChatGPT 账号和 API key 两条身份路径，下方以浏览器登录和设备码登录汇入已认证工作环境；右下保留共享登录缓存与凭据受保护状态。",
+      "visualEvents": [
+        "CLI 可执行承接上一幕并转为可执行 ≠ 可工作",
+        "ChatGPT 账号与 API key 保持并列，浏览器登录先出现",
+        "远程、headless、localhost 条件进入设备码登录，两条路径共同汇入已认证工作环境",
+        "共享登录缓存出现并以凭据受保护状态收束"
+      ],
+      "screenText": [
+        "完成登录，连接身份与使用边界",
+        "CLI 可执行",
+        "可执行 ≠ 可工作",
+        "ChatGPT 账号",
+        "API key",
+        "浏览器登录",
+        "设备码登录",
+        "正常图形环境",
+        "远程 · headless · localhost",
+        "已认证工作环境",
+        "共享登录缓存",
+        "凭据受保护",
+        "CLI 与 IDE 扩展共享状态，凭据不要暴露"
+      ],
+      "implementationFiles": [
+        "src/videos/03-install/InstallVideo.tsx",
+        "src/videos/03-install/video.config.ts"
+      ],
+      "timing": {
+        "timelineSource": "src/videos/03-install/generated/timeline-manifest.json",
+        "startSeconds": 112.128,
+        "endSeconds": 146.976,
+        "durationSeconds": 34.848,
+        "startFrame": 3364,
+        "endFrame": 4409,
+        "durationFrames": 1045
+      },
+      "audioSegments": [
+        {
+          "segmentId": "05-01",
+          "file": "audio/scene-05/05-01.mp3",
+          "startSeconds": 112.128,
+          "endSeconds": 146.976,
+          "durationSeconds": 34.848,
+          "startFrame": 3364,
+          "endFrame": 4409
+        }
+      ],
+      "subtitleCues": [
+        {
+          "cueId": "05-01-a",
+          "segmentId": "05-01",
+          "startSeconds": 112.218,
+          "endSeconds": 115.208,
+          "startFrame": 3367,
+          "endFrame": 3456
+        },
+        {
+          "cueId": "05-01-b",
+          "segmentId": "05-01",
+          "startSeconds": 115.208,
+          "endSeconds": 116.788,
+          "startFrame": 3456,
+          "endFrame": 3504
+        },
+        {
+          "cueId": "05-01-c",
+          "segmentId": "05-01",
+          "startSeconds": 116.788,
+          "endSeconds": 120.718,
+          "startFrame": 3504,
+          "endFrame": 3622
+        },
+        {
+          "cueId": "05-01-d",
+          "segmentId": "05-01",
+          "startSeconds": 120.718,
+          "endSeconds": 122.778,
+          "startFrame": 3622,
+          "endFrame": 3683
+        },
+        {
+          "cueId": "05-01-e",
+          "segmentId": "05-01",
+          "startSeconds": 122.778,
+          "endSeconds": 124.478,
+          "startFrame": 3683,
+          "endFrame": 3734
+        },
+        {
+          "cueId": "05-01-f",
+          "segmentId": "05-01",
+          "startSeconds": 124.478,
+          "endSeconds": 127.108,
+          "startFrame": 3734,
+          "endFrame": 3813
+        },
+        {
+          "cueId": "05-01-g",
+          "segmentId": "05-01",
+          "startSeconds": 127.108,
+          "endSeconds": 128.668,
+          "startFrame": 3813,
+          "endFrame": 3860
+        },
+        {
+          "cueId": "05-01-h",
+          "segmentId": "05-01",
+          "startSeconds": 128.668,
+          "endSeconds": 130.748,
+          "startFrame": 3860,
+          "endFrame": 3922
+        },
+        {
+          "cueId": "05-01-i",
+          "segmentId": "05-01",
+          "startSeconds": 130.748,
+          "endSeconds": 132.718,
+          "startFrame": 3922,
+          "endFrame": 3982
+        },
+        {
+          "cueId": "05-01-j",
+          "segmentId": "05-01",
+          "startSeconds": 132.718,
+          "endSeconds": 134.548,
+          "startFrame": 3982,
+          "endFrame": 4036
+        },
+        {
+          "cueId": "05-01-k",
+          "segmentId": "05-01",
+          "startSeconds": 134.548,
+          "endSeconds": 136.078,
+          "startFrame": 4036,
+          "endFrame": 4082
+        },
+        {
+          "cueId": "05-01-l",
+          "segmentId": "05-01",
+          "startSeconds": 136.078,
+          "endSeconds": 139.058,
+          "startFrame": 4082,
+          "endFrame": 4172
+        },
+        {
+          "cueId": "05-01-m",
+          "segmentId": "05-01",
+          "startSeconds": 139.058,
+          "endSeconds": 141.128,
+          "startFrame": 4172,
+          "endFrame": 4234
+        },
+        {
+          "cueId": "05-01-n",
+          "segmentId": "05-01",
+          "startSeconds": 141.128,
+          "endSeconds": 144.048,
+          "startFrame": 4234,
+          "endFrame": 4321
+        },
+        {
+          "cueId": "05-01-o",
+          "segmentId": "05-01",
+          "startSeconds": 144.048,
+          "endSeconds": 145.558,
+          "startFrame": 4321,
+          "endFrame": 4367
+        },
+        {
+          "cueId": "05-01-p",
+          "segmentId": "05-01",
+          "startSeconds": 145.558,
+          "endSeconds": 146.976,
+          "startFrame": 4367,
+          "endFrame": 4409
+        }
+      ],
+      "animationEvents": [
+        {
+          "event": "CLI 可执行承接上一幕并转为可执行 ≠ 可工作",
+          "source": {
+            "type": "segment",
+            "id": "05-01"
+          },
+          "atSeconds": 112.128,
+          "atFrame": 3364
+        },
+        {
+          "event": "ChatGPT 账号与 API key 保持并列，浏览器登录先出现",
+          "source": {
+            "type": "segment",
+            "id": "05-01"
+          },
+          "atSeconds": 112.128,
+          "atFrame": 3364
+        },
+        {
+          "event": "远程、headless、localhost 条件进入设备码登录，两条路径共同汇入已认证工作环境",
+          "source": {
+            "type": "segment",
+            "id": "05-01"
+          },
+          "atSeconds": 112.128,
+          "atFrame": 3364
+        },
+        {
+          "event": "共享登录缓存出现并以凭据受保护状态收束",
+          "source": {
+            "type": "segment",
+            "id": "05-01"
+          },
+          "atSeconds": 112.128,
+          "atFrame": 3364
+        }
+      ]
+    },
+    {
+      "sceneId": "06",
+      "layout": "中心固定失败发生在哪一步？问题节点以两列两行排布并通过回连符号指向对应边界；底部独立展示 sudo 风险和两个替代路径。",
+      "visualEvents": [
+        "中心问题先出现，四类故障卡片按顺序回连",
+        "找不到 codex、下载超时、浏览器登录失败、Windows 沙箱失败分别显示首查边界",
+        "sudo 以风险色出现并被划停，修正用户 Node 环境和官方独立安装器亮起",
+        "最终收束为按现象找根因和不要盲目重装"
+      ],
+      "screenText": [
+        "遇到问题，回到失败发生的边界",
+        "失败发生在哪一步？",
+        "找不到 codex",
+        "PATH / 多重安装",
+        "下载超时",
+        "网络连通性",
+        "浏览器登录失败",
+        "回调环境 / 设备码",
+        "Windows 沙箱失败",
+        "权限策略 / 运行环境",
+        "sudo",
+        "修正用户 Node 环境",
+        "官方独立安装器",
+        "按现象找根因",
+        "不要盲目重装"
+      ],
+      "implementationFiles": [
+        "src/videos/03-install/InstallVideo.tsx",
+        "src/videos/03-install/video.config.ts"
+      ],
+      "timing": {
+        "timelineSource": "src/videos/03-install/generated/timeline-manifest.json",
+        "startSeconds": 146.976,
+        "endSeconds": 179.88,
+        "durationSeconds": 32.904,
+        "startFrame": 4409,
+        "endFrame": 5396,
+        "durationFrames": 987
+      },
+      "audioSegments": [
+        {
+          "segmentId": "06-01",
+          "file": "audio/scene-06/06-01.mp3",
+          "startSeconds": 146.976,
+          "endSeconds": 179.88,
+          "durationSeconds": 32.904,
+          "startFrame": 4409,
+          "endFrame": 5396
+        }
+      ],
+      "subtitleCues": [
+        {
+          "cueId": "06-01-a",
+          "segmentId": "06-01",
+          "startSeconds": 147.066,
+          "endSeconds": 149.576,
+          "startFrame": 4412,
+          "endFrame": 4487
+        },
+        {
+          "cueId": "06-01-b",
+          "segmentId": "06-01",
+          "startSeconds": 149.576,
+          "endSeconds": 151.546,
+          "startFrame": 4487,
+          "endFrame": 4546
+        },
+        {
+          "cueId": "06-01-c",
+          "segmentId": "06-01",
+          "startSeconds": 151.546,
+          "endSeconds": 154.826,
+          "startFrame": 4546,
+          "endFrame": 4645
+        },
+        {
+          "cueId": "06-01-d",
+          "segmentId": "06-01",
+          "startSeconds": 154.826,
+          "endSeconds": 157.526,
+          "startFrame": 4645,
+          "endFrame": 4726
+        },
+        {
+          "cueId": "06-01-e",
+          "segmentId": "06-01",
+          "startSeconds": 157.526,
+          "endSeconds": 158.806,
+          "startFrame": 4726,
+          "endFrame": 4764
+        },
+        {
+          "cueId": "06-01-f",
+          "segmentId": "06-01",
+          "startSeconds": 158.806,
+          "endSeconds": 160.196,
+          "startFrame": 4764,
+          "endFrame": 4806
+        },
+        {
+          "cueId": "06-01-g",
+          "segmentId": "06-01",
+          "startSeconds": 160.196,
+          "endSeconds": 161.966,
+          "startFrame": 4806,
+          "endFrame": 4859
+        },
+        {
+          "cueId": "06-01-h",
+          "segmentId": "06-01",
+          "startSeconds": 161.966,
+          "endSeconds": 163.55599999999998,
+          "startFrame": 4859,
+          "endFrame": 4907
+        },
+        {
+          "cueId": "06-01-i",
+          "segmentId": "06-01",
+          "startSeconds": 163.55599999999998,
+          "endSeconds": 166.80599999999998,
+          "startFrame": 4907,
+          "endFrame": 5004
+        },
+        {
+          "cueId": "06-01-j",
+          "segmentId": "06-01",
+          "startSeconds": 166.80599999999998,
+          "endSeconds": 169.756,
+          "startFrame": 5004,
+          "endFrame": 5093
+        },
+        {
+          "cueId": "06-01-k",
+          "segmentId": "06-01",
+          "startSeconds": 169.756,
+          "endSeconds": 171.30599999999998,
+          "startFrame": 5093,
+          "endFrame": 5139
+        },
+        {
+          "cueId": "06-01-l",
+          "segmentId": "06-01",
+          "startSeconds": 171.30599999999998,
+          "endSeconds": 173.536,
+          "startFrame": 5139,
+          "endFrame": 5206
+        },
+        {
+          "cueId": "06-01-m",
+          "segmentId": "06-01",
+          "startSeconds": 173.536,
+          "endSeconds": 175.766,
+          "startFrame": 5206,
+          "endFrame": 5273
+        },
+        {
+          "cueId": "06-01-n",
+          "segmentId": "06-01",
+          "startSeconds": 175.766,
+          "endSeconds": 177.006,
+          "startFrame": 5273,
+          "endFrame": 5310
+        },
+        {
+          "cueId": "06-01-o",
+          "segmentId": "06-01",
+          "startSeconds": 177.006,
+          "endSeconds": 179.88,
+          "startFrame": 5310,
+          "endFrame": 5396
+        }
+      ],
+      "animationEvents": [
+        {
+          "event": "中心问题先出现，四类故障卡片按顺序回连",
+          "source": {
+            "type": "segment",
+            "id": "06-01"
+          },
+          "atSeconds": 146.976,
+          "atFrame": 4409
+        },
+        {
+          "event": "找不到 codex、下载超时、浏览器登录失败、Windows 沙箱失败分别显示首查边界",
+          "source": {
+            "type": "segment",
+            "id": "06-01"
+          },
+          "atSeconds": 146.976,
+          "atFrame": 4409
+        },
+        {
+          "event": "sudo 以风险色出现并被划停，修正用户 Node 环境和官方独立安装器亮起",
+          "source": {
+            "type": "segment",
+            "id": "06-01"
+          },
+          "atSeconds": 146.976,
+          "atFrame": 4409
+        },
+        {
+          "event": "最终收束为按现象找根因和不要盲目重装",
+          "source": {
+            "type": "segment",
+            "id": "06-01"
+          },
+          "atSeconds": 146.976,
+          "atFrame": 4409
+        }
+      ]
+    },
+    {
+      "sceneId": "07",
+      "layout": "中央横向五节点路径依次连接并点亮，终点显示完整工作状态；路径完成后降低亮度，右下方在字幕安全区上方独立进入下一集预告卡并停留。",
+      "visualEvents": [
+        "选择入口、匹配环境、验证命令、完成登录、按根因排错五个节点从左到右依次点亮",
+        "完整路径汇入可验证、可登录、可安全工作",
+        "安装不是终点和稳定启动才是出现后，完整路径降低亮度",
+        "下一集预告卡独立出现并停留约 2～3 秒"
+      ],
+      "screenText": [
+        "建立一条可验证、可恢复的启动路径",
+        "选择入口",
+        "匹配环境",
+        "验证命令",
+        "完成登录",
+        "按根因排错",
+        "可验证、可登录、可安全工作",
+        "安装不是终点　→　稳定启动才是",
+        "下一集",
+        "ChatGPT 套餐登录 vs API key",
+        "用量边界与计费选择"
+      ],
+      "implementationFiles": [
+        "src/videos/03-install/InstallVideo.tsx",
+        "src/videos/03-install/video.config.ts"
+      ],
+      "timing": {
+        "timelineSource": "src/videos/03-install/generated/timeline-manifest.json",
+        "startSeconds": 179.88,
+        "endSeconds": 210.744,
+        "durationSeconds": 30.864,
+        "startFrame": 5396,
+        "endFrame": 6322,
+        "durationFrames": 926
+      },
+      "audioSegments": [
+        {
+          "segmentId": "07-01",
+          "file": "audio/scene-07/07-01.mp3",
+          "startSeconds": 179.88,
+          "endSeconds": 210.744,
+          "durationSeconds": 30.864,
+          "startFrame": 5396,
+          "endFrame": 6322
+        }
+      ],
+      "subtitleCues": [
+        {
+          "cueId": "07-01-a",
+          "segmentId": "07-01",
+          "startSeconds": 179.97,
+          "endSeconds": 182.1,
+          "startFrame": 5399,
+          "endFrame": 5463
+        },
+        {
+          "cueId": "07-01-b",
+          "segmentId": "07-01",
+          "startSeconds": 182.1,
+          "endSeconds": 184.78,
+          "startFrame": 5463,
+          "endFrame": 5543
+        },
+        {
+          "cueId": "07-01-c",
+          "segmentId": "07-01",
+          "startSeconds": 184.78,
+          "endSeconds": 186.45,
+          "startFrame": 5543,
+          "endFrame": 5594
+        },
+        {
+          "cueId": "07-01-d",
+          "segmentId": "07-01",
+          "startSeconds": 186.45,
+          "endSeconds": 189.69,
+          "startFrame": 5594,
+          "endFrame": 5691
+        },
+        {
+          "cueId": "07-01-e",
+          "segmentId": "07-01",
+          "startSeconds": 189.69,
+          "endSeconds": 192.03,
+          "startFrame": 5691,
+          "endFrame": 5761
+        },
+        {
+          "cueId": "07-01-f",
+          "segmentId": "07-01",
+          "startSeconds": 192.03,
+          "endSeconds": 194.14,
+          "startFrame": 5761,
+          "endFrame": 5824
+        },
+        {
+          "cueId": "07-01-g",
+          "segmentId": "07-01",
+          "startSeconds": 194.14,
+          "endSeconds": 195.56,
+          "startFrame": 5824,
+          "endFrame": 5867
+        },
+        {
+          "cueId": "07-01-h",
+          "segmentId": "07-01",
+          "startSeconds": 195.56,
+          "endSeconds": 197.5,
+          "startFrame": 5867,
+          "endFrame": 5925
+        },
+        {
+          "cueId": "07-01-i",
+          "segmentId": "07-01",
+          "startSeconds": 197.5,
+          "endSeconds": 199.55,
+          "startFrame": 5925,
+          "endFrame": 5987
+        },
+        {
+          "cueId": "07-01-j",
+          "segmentId": "07-01",
+          "startSeconds": 199.55,
+          "endSeconds": 202.35,
+          "startFrame": 5987,
+          "endFrame": 6071
+        },
+        {
+          "cueId": "07-01-k",
+          "segmentId": "07-01",
+          "startSeconds": 202.35,
+          "endSeconds": 204.1,
+          "startFrame": 6071,
+          "endFrame": 6123
+        },
+        {
+          "cueId": "07-01-l",
+          "segmentId": "07-01",
+          "startSeconds": 204.1,
+          "endSeconds": 207.74,
+          "startFrame": 6123,
+          "endFrame": 6232
+        },
+        {
+          "cueId": "07-01-m",
+          "segmentId": "07-01",
+          "startSeconds": 207.74,
+          "endSeconds": 210.744,
+          "startFrame": 6232,
+          "endFrame": 6322
+        }
+      ],
+      "animationEvents": [
+        {
+          "event": "选择入口、匹配环境、验证命令、完成登录、按根因排错五个节点从左到右依次点亮",
+          "source": {
+            "type": "segment",
+            "id": "07-01"
+          },
+          "atSeconds": 179.88,
+          "atFrame": 5396
+        },
+        {
+          "event": "完整路径汇入可验证、可登录、可安全工作",
+          "source": {
+            "type": "segment",
+            "id": "07-01"
+          },
+          "atSeconds": 179.88,
+          "atFrame": 5396
+        },
+        {
+          "event": "安装不是终点和稳定启动才是出现后，完整路径降低亮度",
+          "source": {
+            "type": "segment",
+            "id": "07-01"
+          },
+          "atSeconds": 179.88,
+          "atFrame": 5396
+        },
+        {
+          "event": "下一集预告卡独立出现并停留约 2～3 秒",
+          "source": {
+            "type": "segment",
+            "id": "07-01"
+          },
+          "atSeconds": 179.88,
+          "atFrame": 5396
+        }
+      ]
+    }
+  ],
+  "timing": {
+    "fps": 30,
+    "totalDurationSeconds": 210.744,
+    "totalDurationFrames": 6322,
+    "sources": {
+      "ttsScript": "videos/03-install/tts-script.json",
+      "audioManifest": "src/videos/03-install/generated/audio-manifest.json",
+      "subtitleManifest": "src/videos/03-install/generated/subtitle-manifest.json",
+      "timelineManifest": "src/videos/03-install/generated/timeline-manifest.json"
+    }
+  }
+}

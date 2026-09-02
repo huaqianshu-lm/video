@@ -1,0 +1,520 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Codex 订阅与计费｜Visual Prototype</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #071017;
+      --panel: rgba(14, 28, 39, 0.88);
+      --panel-soft: rgba(20, 39, 53, 0.66);
+      --line: rgba(155, 200, 220, 0.18);
+      --text: #f4f9fb;
+      --muted: #9bb0bd;
+      --app: #39d7c2;
+      --cli: #78dd6b;
+      --ide: #ad88ff;
+      --web: #5da8ff;
+      --warning: #f2b85b;
+      --danger: #fb7185;
+      --shadow: 0 28px 90px rgba(0, 0, 0, 0.42);
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; background: #03080c; color: var(--text); }
+    body {
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      display: grid;
+      place-items: center;
+      padding: 26px;
+    }
+
+    button { font: inherit; }
+
+    .shell { width: min(1420px, 96vw); }
+    .toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      margin-bottom: 14px;
+      color: var(--muted);
+    }
+    .brand { display: flex; align-items: center; gap: 10px; font-weight: 750; letter-spacing: .02em; }
+    .brand-dot { width: 11px; height: 11px; border-radius: 50%; background: var(--app); box-shadow: 0 0 20px var(--app); }
+    .controls { display: flex; gap: 8px; }
+    .controls button {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: rgba(14, 27, 37, 0.9);
+      color: var(--text);
+      padding: 9px 15px;
+      cursor: pointer;
+    }
+    .controls button:hover { border-color: rgba(57, 215, 194, .7); }
+
+    .stage {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      overflow: hidden;
+      border: 1px solid rgba(155, 200, 220, 0.2);
+      border-radius: 22px;
+      background:
+        radial-gradient(circle at 14% 12%, rgba(57, 215, 194, .12), transparent 30%),
+        radial-gradient(circle at 86% 18%, rgba(93, 168, 255, .11), transparent 31%),
+        linear-gradient(145deg, #08131c, #050b10 68%);
+      box-shadow: var(--shadow);
+    }
+    .stage::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      opacity: .22;
+      background-image:
+        linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px);
+      background-size: 42px 42px;
+    }
+
+    .scene {
+      position: absolute;
+      inset: 0;
+      display: none;
+      padding: 5.2% 6% 13.8%;
+    }
+    .scene.active { display: flex; flex-direction: column; animation: sceneIn .45s ease both; }
+    @keyframes sceneIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+
+    .eyebrow { color: var(--app); font-size: clamp(12px, 1.15vw, 18px); letter-spacing: .16em; text-transform: uppercase; font-weight: 800; }
+    h1 { margin: 9px 0 6px; font-size: clamp(30px, 4vw, 62px); line-height: 1.08; letter-spacing: -.045em; }
+    .lede { margin: 0; color: var(--muted); font-size: clamp(14px, 1.45vw, 23px); line-height: 1.5; }
+    .content { flex: 1; min-height: 0; margin-top: 3.2%; display: grid; align-items: stretch; gap: 2.5%; }
+    .two { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+    .three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
+    .panel, .card {
+      border: 1px solid var(--line);
+      background: var(--panel);
+      border-radius: 18px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.025);
+    }
+    .panel { padding: 22px; }
+    .card { padding: 18px; }
+    .label { color: var(--muted); font-size: clamp(11px, .95vw, 15px); letter-spacing: .08em; text-transform: uppercase; }
+    .big { font-size: clamp(20px, 2.2vw, 34px); font-weight: 800; line-height: 1.18; }
+    .mono { font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace; }
+    .accent { color: var(--app); }
+    .warning { color: var(--warning); }
+    .muted { color: var(--muted); }
+    .chip { display: inline-flex; align-items: center; gap: 7px; border: 1px solid var(--line); background: rgba(255,255,255,.035); border-radius: 999px; padding: 7px 11px; font-size: clamp(10px, .85vw, 14px); }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; box-shadow: 0 0 13px currentColor; }
+
+    .caption {
+      position: absolute;
+      z-index: 4;
+      left: 8%;
+      right: 8%;
+      bottom: 4.2%;
+      min-height: 7%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px 26px;
+      border: 1px solid rgba(255,255,255,.11);
+      border-radius: 12px;
+      background: rgba(2, 7, 11, .82);
+      color: #fff;
+      font-size: clamp(13px, 1.45vw, 22px);
+      text-align: center;
+      line-height: 1.4;
+    }
+
+    .entry-layout { position: relative; flex: 1; min-height: 0; margin-top: 2.2%; }
+    .entry-grid { height: 100%; margin-top: 0; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: repeat(2, minmax(0, 1fr)); gap: 2.5%; }
+    .entry-card { display: flex; flex-direction: column; justify-content: space-between; min-height: 0; }
+    .entry-grid .entry-card:nth-child(odd) { padding-right: 18%; }
+    .entry-grid .entry-card:nth-child(even) { align-items: flex-end; padding-left: 18%; text-align: right; }
+    .entry-icon { width: 38px; height: 38px; border-radius: 11px; border: 1px solid currentColor; display: grid; place-items: center; font-weight: 900; }
+    .core {
+      position: absolute;
+      left: 50%; top: 50%; transform: translate(-50%, -50%);
+      width: 22%; aspect-ratio: 1;
+      display: grid; place-items: center; text-align: center;
+      border: 1px solid rgba(57,215,194,.55);
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(57,215,194,.18), rgba(9,23,31,.95) 66%);
+      box-shadow: 0 0 52px rgba(57,215,194,.14);
+      font-size: clamp(16px, 1.8vw, 28px); font-weight: 850;
+    }
+
+    .flow { display: flex; flex-direction: column; gap: 10px; justify-content: center; }
+    .step { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--line); background: rgba(255,255,255,.025); }
+    .step-index { width: 28px; height: 28px; border-radius: 9px; background: rgba(57,215,194,.13); color: var(--app); display: grid; place-items: center; font-weight: 800; }
+    .step.done { border-color: rgba(57,215,194,.42); }
+    .terminal { padding: 0; overflow: hidden; background: #03080c; }
+    .terminal-bar { padding: 11px 15px; border-bottom: 1px solid var(--line); color: var(--muted); background: #0b151d; }
+    .terminal-body { padding: 18px; line-height: 1.9; font-size: clamp(11px, 1vw, 16px); }
+    .ok { color: #78dd6b; }
+    .bad { color: var(--danger); }
+
+    .routes { display: grid; grid-template-columns: .9fr 1.15fr 1.15fr; gap: 18px; align-items: stretch; }
+    .route-list { display: grid; gap: 10px; }
+    .route { border-left: 3px solid currentColor; }
+    .environment { position: relative; display: flex; flex-direction: column; justify-content: center; gap: 12px; }
+    .environment.local { border-color: rgba(57,215,194,.45); }
+    .environment.cloud { border-color: rgba(93,168,255,.45); }
+    .env-box { border: 1px dashed currentColor; border-radius: 14px; padding: 14px; color: var(--muted); }
+
+    .task-map { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 14px; }
+    .arrow { color: var(--muted); font-size: 24px; }
+    .slot { display: flex; justify-content: space-between; align-items: center; gap: 14px; }
+
+    .status-board { display: grid; gap: 11px; }
+    .status-row { display: grid; grid-template-columns: 1.2fr .8fr; align-items: center; gap: 12px; }
+    .status { text-align: right; color: var(--app); font-family: "SFMono-Regular", Consolas, monospace; }
+
+    .gate { display: grid; place-items: center; text-align: center; border-color: rgba(242,184,91,.45); background: rgba(71,48,17,.23); }
+    .gate-line { width: 70%; height: 3px; background: var(--warning); box-shadow: 0 0 18px rgba(242,184,91,.5); margin: 18px auto; }
+    .responsibility ul { margin: 14px 0 0; padding: 0; list-style: none; display: grid; gap: 10px; color: var(--muted); }
+
+    .axis { position: relative; height: 5px; margin: 60px 6% 25px; background: linear-gradient(90deg, #71818b, var(--app)); border-radius: 999px; }
+    .axis::before, .axis::after { position: absolute; top: 16px; color: var(--muted); font-size: 14px; }
+    .axis::before { content: "问答与建议"; left: 0; }
+    .axis::after { content: "执行项目任务"; right: 0; }
+    .tool-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+    .tool-card { position: relative; min-height: 150px; }
+    .tool-card.agent { border-color: rgba(57,215,194,.38); }
+
+    .command { font-size: clamp(20px, 2.4vw, 38px); color: #fff; }
+    .result-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 20px; }
+    .result { border: 1px solid var(--line); border-radius: 13px; padding: 16px; }
+    .confirmed { margin-top: 13px; color: var(--app); font-weight: 750; }
+
+    .summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .summary-card { min-height: 122px; display: flex; flex-direction: column; justify-content: center; text-align: center; border-color: rgba(57,215,194,.3); }
+    .teaser { margin-top: 18px; border-color: rgba(173,136,255,.48); background: linear-gradient(90deg, rgba(173,136,255,.13), rgba(93,168,255,.08)); }
+    .terms { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 13px; }
+
+    .progress { display: flex; justify-content: center; align-items: center; gap: 7px; margin-top: 16px; }
+    .progress button { width: 28px; height: 5px; padding: 0; border: 0; border-radius: 99px; background: #263946; cursor: pointer; transition: .2s ease; }
+    .progress button.active { width: 48px; background: var(--app); box-shadow: 0 0 14px rgba(57,215,194,.45); }
+    .meta { display: flex; justify-content: space-between; margin-top: 10px; color: var(--muted); font-size: 13px; }
+
+    @media (max-width: 900px) {
+      body { padding: 10px; }
+      .toolbar { align-items: flex-start; }
+      .controls { flex-wrap: wrap; justify-content: flex-end; }
+      .panel, .card { padding: 12px; border-radius: 12px; }
+      .scene { padding: 4.5% 5% 14%; }
+      .content { margin-top: 2%; }
+      .step { padding: 7px 9px; }
+      .entry-card { min-height: 95px; }
+      .route-list { gap: 6px; }
+      .caption { min-height: 6%; padding: 5px 12px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="toolbar">
+      <div class="brand"><span class="brand-dot"></span>Codex 订阅与计费 · PATH / PRICING · Gate 2 Visual Prototype</div>
+      <div class="controls">
+        <button type="button" onclick="prevScene()">上一幕</button>
+        <button type="button" onclick="nextScene()">下一幕</button>
+        <button type="button" id="autoButton" onclick="toggleAuto()">自动播放</button>
+      </div>
+    </header>
+
+    <div class="stage">
+      <section class="scene active" data-title="同样一条消息，为什么消耗不同？">
+        <div class="eyebrow">Scene 01 · Opening</div>
+        <h1>同样一条消息，为什么消耗不同？</h1>
+        <p class="lede">消息条数相同，真正进入处理的上下文可能完全不同。</p>
+        <div class="content two">
+          <div class="panel flow">
+            <div class="chip accent"><span class="dot"></span>同一条消息</div>
+            <div class="step done"><span class="step-index">1</span><b>消息入口</b><span class="muted">相同</span></div>
+            <div class="card"><div class="label">小脚本</div><div class="big accent">少量上下文</div><div class="terms"><span class="chip">短文件</span><span class="chip">短会话</span></div></div>
+            <div class="label">实际用量</div>
+            <div style="height:9px;border-radius:999px;background:linear-gradient(90deg,var(--app) 0 28%,#263946 28% 100%)"></div>
+          </div>
+          <div class="panel flow" style="border-color:rgba(242,184,91,.42)">
+            <div class="chip warning"><span class="dot"></span>同一条消息</div>
+            <div class="step done"><span class="step-index">1</span><b>消息入口</b><span class="muted">相同</span></div>
+            <div class="card"><div class="label">大型项目＋长会话＋规则</div><div class="big warning">更多上下文</div><div class="terms"><span class="chip">项目文件</span><span class="chip">历史会话</span><span class="chip">规则</span></div></div>
+            <div class="label warning">实际用量 · 更快消耗</div>
+            <div style="height:9px;border-radius:999px;background:linear-gradient(90deg,var(--warning) 0 78%,#263946 78% 100%)"></div>
+          </div>
+        </div>
+        <div class="caption">消息条数 ≠ 实际用量；差异来自每次处理携带的上下文。</div>
+      </section>
+
+      <section class="scene" data-title="工具、模型与 token 不是一回事">
+        <div class="eyebrow">Scene 02 · Layers</div>
+        <h1>工具、模型与 token 不是一回事</h1>
+        <p class="lede">从入口到处理，再到计量，三层关系要分开看。</p>
+        <div class="content three">
+          <div class="panel flow">
+            <div class="label accent">入口层</div>
+            <div class="card"><div class="big accent">工具入口</div><div class="muted">Codex</div></div>
+            <div class="arrow" style="text-align:center">↓</div>
+            <div class="chip"><span class="dot"></span>发起任务</div>
+          </div>
+          <div class="panel flow" style="border-color:rgba(57,215,194,.42)">
+            <div class="label accent">处理层</div>
+            <div class="card"><div class="big">模型处理</div><div class="muted">理解请求与上下文</div></div>
+            <div class="arrow" style="text-align:center">↓</div>
+            <div class="chip accent"><span class="dot"></span>生成结果</div>
+          </div>
+          <div class="panel flow" style="border-color:rgba(93,168,255,.42)">
+            <div class="label" style="color:var(--web)">计量层</div>
+            <div class="card"><div class="big">输入 token</div><div class="big">输出 token</div><div class="big">上下文</div></div>
+            <div class="terms"><span class="chip">长文件</span><span class="chip">历史会话</span><span class="chip">规则</span></div>
+          </div>
+        </div>
+        <div class="caption">工具是入口，模型负责处理，token 和上下文是观察用量的坐标。</div>
+      </section>
+
+      <section class="scene" data-title="ChatGPT 订阅这条账">
+        <div class="eyebrow">Scene 03 · Subscription Path</div>
+        <h1>ChatGPT 订阅这条账</h1>
+        <p class="lede">先沿订阅路径看固定月费、规则和滚动限额的关系。</p>
+        <div class="content two">
+          <div class="panel flow">
+            <div class="label accent">订阅路径</div>
+            <div class="step done"><span class="step-index">1</span>ChatGPT 订阅</div>
+            <div class="arrow" style="text-align:center">↓</div>
+            <div class="step done"><span class="step-index">2</span>固定月费</div>
+            <div class="arrow" style="text-align:center">↓</div>
+            <div class="step done"><span class="step-index">3</span>订阅用量规则</div>
+            <div class="arrow" style="text-align:center">↓</div>
+            <div class="step" style="border-color:rgba(242,184,91,.48)"><span class="step-index warning">4</span><span class="warning">滚动限额</span></div>
+          </div>
+          <div class="panel flow">
+            <div class="label">限额后的分支</div>
+            <div class="card gate"><div class="chip warning"><span class="dot"></span>达到限额</div><div class="gate-line"></div><div class="big warning">积分</div><div class="muted">留在订阅账本内</div></div>
+            <div class="chip accent"><span class="dot"></span>不接入 API 账单</div>
+          </div>
+        </div>
+        <div class="caption">积分是订阅路径在限额后的分支，不与 API Platform 账单混在一起。</div>
+      </section>
+
+      <section class="scene" data-title="API key 这条账：两套账">
+        <div class="eyebrow">Scene 04 · Two Ledgers</div>
+        <h1>API key 这条账：两套账</h1>
+        <p class="lede">程序化调用从 API key 出发，走向独立的 Platform 账单。</p>
+        <div class="content three">
+          <div class="panel flow">
+            <div class="label accent">订阅账本</div>
+            <div class="step done"><span class="step-index">1</span>ChatGPT 订阅</div>
+            <div class="step done"><span class="step-index">2</span>ChatGPT 积分</div>
+            <div class="chip accent"><span class="dot"></span>订阅路径</div>
+          </div>
+          <div class="panel gate">
+            <div class="chip warning"><span class="dot"></span>两套账</div>
+            <div class="gate-line"></div>
+            <div class="big">不混算</div>
+            <div class="muted">边界保持独立</div>
+          </div>
+          <div class="panel flow" style="border-color:rgba(93,168,255,.42)">
+            <div class="label" style="color:var(--web)">API 账本</div>
+            <div class="step done" style="border-color:rgba(93,168,255,.42)"><span class="step-index" style="color:var(--web)">1</span>程序或脚本</div>
+            <div class="step done" style="border-color:rgba(93,168,255,.42)"><span class="step-index" style="color:var(--web)">2</span>API key</div>
+            <div class="step done" style="border-color:rgba(93,168,255,.42)"><span class="step-index" style="color:var(--web)">3</span>输入／输出 token</div>
+            <div class="chip" style="color:var(--web)"><span class="dot"></span>Platform 账单</div>
+          </div>
+        </div>
+        <div class="caption">ChatGPT 订阅、ChatGPT 积分和 API key 分别回到所属账本。</div>
+      </section>
+
+      <section class="scene" data-title="套餐先按使用场景分层">
+        <div class="eyebrow">Scene 05 · Use Cases</div>
+        <h1>套餐先按使用场景分层</h1>
+        <p class="lede">先判断谁在用、怎么协作，再核对支持范围。</p>
+        <div class="content four">
+          <div class="card flow">
+            <div class="label accent">个人</div>
+            <div class="big">Plus</div>
+            <div class="muted">个人开发者</div>
+            <div class="chip">基础使用</div>
+          </div>
+          <div class="card flow" style="border-color:rgba(120,221,107,.38)">
+            <div class="label" style="color:var(--cli)">重度个人</div>
+            <div class="big">Pro</div>
+            <div class="muted">高频使用</div>
+            <div class="chip" style="color:var(--cli)">使用强度</div>
+          </div>
+          <div class="card flow" style="border-color:rgba(93,168,255,.38)">
+            <div class="label" style="color:var(--web)">团队</div>
+            <div class="big">Business</div>
+            <div class="muted">团队协作</div>
+            <div class="chip" style="color:var(--web)">协作管理</div>
+          </div>
+          <div class="card flow" style="border-color:rgba(173,136,255,.38)">
+            <div class="label" style="color:var(--ide)">组织</div>
+            <div class="big">Enterprise &amp; Edu</div>
+            <div class="muted">组织级部署</div>
+            <div class="chip" style="color:var(--ide)">安全管理</div>
+          </div>
+        </div>
+        <div class="caption">Plus、Pro、Business、Enterprise &amp; Edu 先按使用场景分层，支持范围待核对。</div>
+      </section>
+
+      <section class="scene" data-title="滚动窗口与任务复杂度">
+        <div class="eyebrow">Scene 06 · Rolling Window</div>
+        <h1>滚动窗口与任务复杂度</h1>
+        <p class="lede">限额是随时间移动的资源，任务越复杂，窗口内消耗越快。</p>
+        <div class="content two">
+          <div class="panel flow">
+            <div class="label accent">订阅用量</div>
+            <div class="card"><div class="big accent">5 小时滚动窗口</div><div class="muted">窗口持续向右移动，不是每日清零</div></div>
+            <div class="step done"><span class="step-index">S</span>小脚本 <span class="muted">少量消耗</span></div>
+            <div class="step done"><span class="step-index">P</span>大型项目 <span class="warning">更快占用</span></div>
+            <div class="step done"><span class="step-index">C</span>长会话 <span class="warning">持续累积</span></div>
+            <div style="height:9px;border-radius:999px;background:linear-gradient(90deg,var(--app) 0 86%,var(--warning) 86% 100%)"></div>
+          </div>
+          <div class="panel flow" style="border-color:rgba(242,184,91,.42)">
+            <div class="label warning">窗口右端</div>
+            <div class="card gate"><div class="chip warning"><span class="dot"></span>达到限额</div><div class="gate-line"></div><div class="big warning">积分</div><div class="muted">从订阅账本向下分出</div></div>
+            <div class="card" style="border-color:rgba(93,168,255,.42)"><div class="label" style="color:var(--web)">独立出口</div><div class="big" style="color:var(--web)">积分 ≠ API 账单</div></div>
+          </div>
+        </div>
+        <div class="caption">滚动窗口随时间移动，复杂任务更快触达限额；积分与 API 账单仍然分开。</div>
+      </section>
+
+      <section class="scene" data-title="升级前先控制上下文">
+        <div class="eyebrow">Scene 07 · Context Control</div>
+        <h1>升级前先控制上下文</h1>
+        <p class="lede">先减少无效输入，再决定是否需要更高的用量空间。</p>
+        <div class="content two">
+          <div class="panel flow">
+            <div class="label accent">从大而杂到短而准</div>
+            <div class="step done"><span class="step-index">1</span><span>缩小输入范围</span><span class="muted">模糊请求 → 文件／函数</span></div>
+            <div class="step done"><span class="step-index">2</span><span>压缩固定上下文</span><span class="muted">巨型规则 → 分层规则</span></div>
+            <div class="step done"><span class="step-index">3</span><span>按需连接工具</span><span class="muted">全挂工具 → 按需连接</span></div>
+            <div class="step done"><span class="step-index">4</span><span>匹配模型与任务</span><span class="muted">全程强模型 → 任务匹配</span></div>
+          </div>
+          <div class="panel terminal">
+            <div class="terminal-bar mono">workspace / context</div>
+            <div class="terminal-body mono">
+              <div><span class="bad">before</span>  huge-context / old-session</div>
+              <div><span class="ok">after </span>  focused-file / needed-tool</div>
+              <br>
+              <div class="command"><span class="accent">$</span> /new</div>
+              <div class="confirmed">✓ 无关会话已清理</div>
+              <div class="chip accent"><span class="dot"></span>短而准</div>
+            </div>
+          </div>
+        </div>
+        <div class="caption">缩小输入、压缩规则、按需连接工具，再用 /new 清理无关会话。</div>
+      </section>
+
+      <section class="scene" data-title="查看、调整、清理、复盘">
+        <div class="eyebrow">Scene 08 · Usage Loop</div>
+        <h1>查看、调整、清理、复盘</h1>
+        <p class="lede">四个可执行动作，把用量管理变成一个终端闭环。</p>
+        <div class="content two">
+          <div class="panel terminal">
+            <div class="terminal-bar mono">Codex / current task</div>
+            <div class="terminal-body mono">
+              <div><span class="accent">$</span> /status</div>
+              <div class="ok">context 68% · approval on request</div>
+              <br>
+              <div><span class="accent">$</span> /model</div>
+              <div class="warning">model → task-matched</div>
+              <br>
+              <div><span class="accent">$</span> /new</div>
+              <div class="ok">unrelated session removed</div>
+            </div>
+          </div>
+          <div class="panel status-board">
+            <div class="label accent">用量管理闭环</div>
+            <div class="status-row"><span>/status</span><span class="status">查看</span></div>
+            <div class="status-row"><span>/model</span><span class="status">调整</span></div>
+            <div class="status-row"><span>/new</span><span class="status">清理</span></div>
+            <div class="status-row"><span>任务结果</span><span class="status">复盘</span></div>
+            <div class="card" style="margin-top:auto"><div class="chip accent"><span class="dot"></span>订阅用量面板</div><div class="chip" style="color:var(--web);margin-top:8px"><span class="dot"></span>API Platform 账单</div></div>
+          </div>
+        </div>
+        <div class="caption">查看当前状态，调整模型，清理会话，最后分别复盘订阅用量与 API 账单。</div>
+      </section>
+
+      <section class="scene" data-title="先识别付费路径，再进入模型接入">
+        <div class="eyebrow">Scene 09 · Summary</div>
+        <h1>先识别付费路径，再进入模型接入</h1>
+        <p class="lede">四个问题先把账本和用量路径放回正确位置。</p>
+        <div class="content" style="display:block;margin-top:2.8%">
+          <div class="summary-grid" style="grid-template-columns:repeat(4,minmax(0,1fr))">
+            <div class="card summary-card"><div class="label">01</div><div class="big">登录路径</div><div class="muted">订阅 or API</div></div>
+            <div class="card summary-card"><div class="label">02</div><div class="big">任务类型</div><div class="muted">交互 or 程序化</div></div>
+            <div class="card summary-card"><div class="label">03</div><div class="big">上下文规模</div><div class="muted">小脚本 or 大项目</div></div>
+            <div class="card summary-card"><div class="label">04</div><div class="big">用量观察位置</div><div class="muted">面板 or Platform</div></div>
+          </div>
+          <div class="panel teaser">
+            <div class="label" style="color:var(--ide)">下一集</div>
+            <div class="big">接入 DeepSeek 等国产模型</div>
+            <div class="terms"><span class="chip">模型接入</span><span class="chip">API 配置</span><span class="chip">调用路径</span></div>
+          </div>
+        </div>
+        <div class="caption">先识别付费路径，再判断任务、上下文和观察位置；下一集进入 DeepSeek 等国产模型接入。</div>
+      </section>
+    </div>
+
+    <div class="progress" id="progress" aria-label="Scene 进度"></div>
+    <div class="meta"><span id="sceneTitle">Scene 01 · 同样一条消息，为什么消耗不同？</span><span id="sceneCount">01 / 09</span></div>
+  </main>
+
+  <script>
+    const scenes = Array.from(document.querySelectorAll('.scene'));
+    const progress = document.getElementById('progress');
+    const sceneTitle = document.getElementById('sceneTitle');
+    const sceneCount = document.getElementById('sceneCount');
+    const autoButton = document.getElementById('autoButton');
+    let index = 0;
+    let timer = null;
+
+    scenes.forEach((scene, sceneIndex) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.setAttribute('aria-label', `切换到 Scene ${sceneIndex + 1}`);
+      button.addEventListener('click', () => showScene(sceneIndex));
+      progress.appendChild(button);
+    });
+
+    function showScene(nextIndex) {
+      index = (nextIndex + scenes.length) % scenes.length;
+      scenes.forEach((scene, sceneIndex) => scene.classList.toggle('active', sceneIndex === index));
+      Array.from(progress.children).forEach((button, sceneIndex) => button.classList.toggle('active', sceneIndex === index));
+      sceneTitle.textContent = `Scene ${String(index + 1).padStart(2, '0')} · ${scenes[index].dataset.title}`;
+      sceneCount.textContent = `${String(index + 1).padStart(2, '0')} / ${String(scenes.length).padStart(2, '0')}`;
+    }
+
+    function prevScene() { showScene(index - 1); }
+    function nextScene() { showScene(index + 1); }
+
+    function toggleAuto() {
+      if (timer) {
+        clearInterval(timer);
+        timer = null;
+        autoButton.textContent = '自动播放';
+        return;
+      }
+      timer = setInterval(nextScene, 4000);
+      autoButton.textContent = '暂停播放';
+    }
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'ArrowLeft') prevScene();
+      if (event.key === 'ArrowRight') nextScene();
+      if (event.key === ' ') { event.preventDefault(); toggleAuto(); }
+    });
+
+    showScene(0);
+  </script>
+</body>
+</html>
