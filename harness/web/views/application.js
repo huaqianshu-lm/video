@@ -12,6 +12,8 @@ function elements() {
   const get = (id) => document.querySelector(`#${id}`);
   return {
     status: get("service-status"), dashboard: get("dashboard-view"), detail: get("detail-view"), projectDetail: get("project-detail"),
+    pages: { projects: get("dashboard-view"), batches: get("batches-view"), series: get("series-view"), "remote-jobs": get("remote-jobs-view") },
+    navLinks: [...document.querySelectorAll("[data-route]")],
     projectGrid: get("project-grid"), projectListState: get("project-list-state"), batchSelectionState: get("batch-selection-state"),
     batchButtons: ["batch-to-gate2", "batch-to-tts", "batch-to-remotion", "batch-to-render"].map(get),
     batchList: get("batch-list"), taskList: get("remotion-task-list"), globalJobs: get("global-jobs-list"), diagnostics: get("github-diagnostics"),
@@ -32,9 +34,9 @@ export function startApplication({ api = createApiClient(), store = createStore(
     ({ remote, batches, series, project, dashboard } = injectedViews);
   } else {
     remote = createRemoteJobsView({ elements: { list: ui.globalJobs, diagnostics: ui.diagnostics }, api });
-    batches = createBatchView({ elements: { batchList: ui.batchList, taskList: ui.taskList }, api, onRefreshProjects: () => dashboard.refresh(), getActiveProject: project.getCurrent, onOpenProject: project.open });
-    series = createSeriesView({ elements: { seriesSelect: ui.seriesSelect, seriesId: ui.seriesId, seriesTitle: ui.seriesTitle, seriesStyle: ui.seriesStyle, seriesCoverFrames: ui.seriesCoverFrames, seriesVideoList: ui.seriesVideoList, seriesForm: ui.seriesForm, seriesCoverFile: ui.seriesCoverFile, seriesCoverPreview: ui.seriesCoverPreview, seriesState: ui.seriesState, newSeries: ui.newSeries, uploadSeriesCover: ui.uploadSeriesCover, importForm: ui.importForm, importFile: ui.importFile, importSlug: ui.importSlug, importSeries: ui.importSeries, importSubmit: ui.importSubmit, importState: ui.importState }, api, getProjects: () => projects, onImported: async (slug) => { await dashboard.refresh(); router.navigate({ name: "project", slug }); } });
-    project = createProjectView({ elements: { container: ui.projectDetail }, api, polling, onBack: () => router.navigate({ name: "projects" }), onRefreshDashboard: () => dashboard.refresh() });
+    batches = createBatchView({ elements: { batchList: ui.batchList, taskList: ui.taskList }, api, onRefreshProjects: () => dashboard?.refresh(), getActiveProject: () => project?.getCurrent?.(), onOpenProject: (slug) => project?.open?.(slug) });
+    series = createSeriesView({ elements: { seriesSelect: ui.seriesSelect, seriesId: ui.seriesId, seriesTitle: ui.seriesTitle, seriesStyle: ui.seriesStyle, seriesCoverFrames: ui.seriesCoverFrames, seriesVideoList: ui.seriesVideoList, seriesForm: ui.seriesForm, seriesCoverFile: ui.seriesCoverFile, seriesCoverPreview: ui.seriesCoverPreview, seriesState: ui.seriesState, newSeries: ui.newSeries, uploadSeriesCover: ui.uploadSeriesCover, importForm: ui.importForm, importFile: ui.importFile, importSlug: ui.importSlug, importSeries: ui.importSeries, importSubmit: ui.importSubmit, importState: ui.importState }, api, getProjects: () => projects, onImported: async (slug) => { await dashboard?.refresh(); router.navigate({ name: "project", slug }); } });
+    project = createProjectView({ elements: { container: ui.projectDetail }, api, polling, onBack: () => router.navigate({ name: "projects" }), onRefreshDashboard: () => dashboard?.refresh() });
     dashboard = createDashboardView({ elements: { projectGrid: ui.projectGrid, projectListState: ui.projectListState, batchSelectionState: ui.batchSelectionState, batchButtons: ui.batchButtons }, api, store, onOpenProject: (slug) => router.navigate({ name: "project", slug }), onCreateBatch: batches.create, onData: (data) => { projects = data.projects; series.setProjects(projects); } });
   }
 
@@ -45,18 +47,25 @@ export function startApplication({ api = createApiClient(), store = createStore(
 
   function show(route) {
     const detail = route.name === "project";
-    ui.dashboard.hidden = detail; ui.detail.hidden = !detail;
+    Object.entries(ui.pages ?? {}).forEach(([name, page]) => { if (page) page.hidden = detail || name !== route.name; });
+    ui.navLinks?.forEach((link) => link.setAttribute("aria-current", !detail && link.dataset.route === route.name ? "page" : "false"));
+    if (ui.dashboard && !ui.pages) ui.dashboard.hidden = detail;
+    if (ui.detail) ui.detail.hidden = !detail;
     if (detail) { project.mount(); void project.open(route.slug); }
-    else { project.unmount(); dashboard.mount(); series.mount(); batches.mount(); remote.mount(); }
+    else project.unmount();
   }
 
-  ui.dashboard.querySelector("#refresh-projects")?.addEventListener("click", () => void dashboard.refresh());
-  ui.dashboard.querySelector("#refresh-batches")?.addEventListener("click", () => void batches.refresh());
-  ui.dashboard.querySelector("#refresh-jobs-dashboard")?.addEventListener("click", () => void remote.refresh());
-  ui.dashboard.querySelector("#check-github-config")?.addEventListener("click", () => void remote.diagnostics());
-  ui.detail.querySelector("#back-to-projects")?.addEventListener("click", () => router.navigate({ name: "projects" }));
+  ui.pages?.projects?.querySelector("#refresh-projects")?.addEventListener("click", () => void dashboard.refresh());
+  ui.pages?.batches?.querySelector("#refresh-batches")?.addEventListener("click", () => void batches.refresh());
+  ui.pages?.["remote-jobs"]?.querySelector("#refresh-jobs-dashboard")?.addEventListener("click", () => void remote.refresh());
+  ui.pages?.["remote-jobs"]?.querySelector("#check-github-config")?.addEventListener("click", () => void remote.diagnostics());
+  ui.detail?.querySelector("#back-to-projects")?.addEventListener("click", () => router.navigate({ name: "projects" }));
+  dashboard.mount();
+  series.mount();
+  batches.mount();
+  remote.mount();
   router.subscribe((route) => { store.setState({ route }); show(route); });
   const stopRouter = router.start();
   void health();
-  return { router, store, views: { dashboard, batches, series, project, remote }, destroy() { stopRouter?.(); project.unmount(); polling.stopAll(); } };
+  return { router, store, views: { dashboard, batches, series, project, remote }, destroy() { stopRouter?.(); project.unmount(); dashboard.unmount?.(); batches.unmount?.(); series.unmount?.(); remote.unmount?.(); polling.stopAll(); } };
 }

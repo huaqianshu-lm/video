@@ -50,8 +50,23 @@ test("store keeps the declared cross-page state and notifies subscribers", () =>
 
 test("router accepts both current and legacy project hashes", () => {
   assert.deepEqual(parseRoute("#/projects"), { name: "projects", slug: null });
+  assert.deepEqual(parseRoute("#/batches"), { name: "batches", slug: null });
+  assert.deepEqual(parseRoute("#/series"), { name: "series", slug: null });
+  assert.deepEqual(parseRoute("#/remote-jobs"), { name: "remote-jobs", slug: null });
   assert.deepEqual(parseRoute("#/projects/demo-video"), { name: "project", slug: "demo-video" });
   assert.deepEqual(parseRoute("#project=demo-video"), { name: "project", slug: "demo-video" });
+});
+
+test("router navigates every top-level entry and keeps listeners in sync without a window", () => {
+  const router = createRouter({ windowObject: null });
+  const routes = [];
+  router.subscribe((route) => routes.push(route));
+  router.navigate({ name: "batches" });
+  router.navigate({ name: "series" });
+  router.navigate({ name: "remote-jobs" });
+  router.navigate({ name: "projects" });
+  assert.deepEqual(routes.map((route) => route.name), ["batches", "series", "remote-jobs", "projects"]);
+  assert.deepEqual(router.current(), { name: "projects", slug: null });
 });
 
 test("polling registry replaces duplicate keys and stops them", () => {
@@ -165,6 +180,68 @@ test("application routes mount, refresh, unmount, and clear project polling", as
 
   application.destroy();
   assert.equal(timers.size, 0);
+  assert.equal(hashListeners.size, 0);
+});
+
+test("application mounts top-level views once and toggles page and navigation state", async () => {
+  let hash = "#/projects";
+  const hashListeners = new Set();
+  const windowObject = {
+    location: {
+      get hash() { return hash; },
+      set hash(value) { hash = value; for (const listener of hashListeners) listener(); },
+    },
+    addEventListener(type, listener) { if (type === "hashchange") hashListeners.add(listener); },
+    removeEventListener(type, listener) { if (type === "hashchange") hashListeners.delete(listener); },
+  };
+  const lifecycle = [];
+  const page = () => ({ hidden: false, querySelector() { return null; } });
+  const pages = { projects: page(), batches: page(), series: page(), "remote-jobs": page() };
+  const navLinks = Object.keys(pages).map((name) => ({ dataset: { route: name }, setAttribute(name, value) { this[name] = value; } }));
+  const view = (name) => ({
+    mount() { lifecycle.push(`${name}:mount`); },
+    refresh() { lifecycle.push(`${name}:refresh`); },
+    unmount() { lifecycle.push(`${name}:unmount`); },
+    setProjects() {},
+    create() {},
+  });
+  const project = {
+    mount() { lifecycle.push("project:mount"); },
+    async open(slug) { lifecycle.push(`project:open:${slug}`); },
+    unmount() { lifecycle.push("project:unmount"); },
+    getCurrent() { return null; },
+  };
+  const ui = {
+    status: { textContent: "", className: "" },
+    dashboard: pages.projects,
+    detail: { hidden: true, querySelector() { return null; } },
+    pages,
+    navLinks,
+  };
+  const application = startApplication({
+    api: { async getHealth() { return { harnessVersion: "test" }; } },
+    router: createRouter({ windowObject }),
+    ui,
+    views: { dashboard: view("dashboard"), batches: view("batches"), series: view("series"), remote: view("remote"), project },
+  });
+
+  for (const name of ["dashboard", "batches", "series", "remote"]) assert.equal(lifecycle.filter((item) => item === `${name}:mount`).length, 1);
+  application.router.navigate({ name: "batches" });
+  application.router.navigate({ name: "series" });
+  application.router.navigate({ name: "remote-jobs" });
+  application.router.navigate({ name: "projects" });
+  assert.deepEqual(lifecycle.filter((item) => item.endsWith(":mount")), ["dashboard:mount", "series:mount", "batches:mount", "remote:mount"]);
+  assert.equal(pages.projects.hidden, false);
+  assert.equal(pages.batches.hidden, true);
+  assert.equal(navLinks.find((link) => link.dataset.route === "projects")["aria-current"], "page");
+  assert.equal(navLinks.find((link) => link.dataset.route === "remote-jobs")["aria-current"], "false");
+  application.router.navigate({ name: "project", slug: "demo" });
+  assert.equal(ui.detail.hidden, false);
+  assert.equal(pages.projects.hidden, true);
+  application.router.navigate({ name: "batches" });
+  assert.equal(ui.detail.hidden, true);
+  assert.equal(pages.batches.hidden, false);
+  application.destroy();
   assert.equal(hashListeners.size, 0);
 });
 

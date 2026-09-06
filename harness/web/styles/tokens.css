@@ -1,5 +1,26 @@
 :root {
+  --webui-color-bg: #070a12;
   --webui-color-surface: #0b1020;
+  --webui-color-surface-raised: #10182a;
+  --webui-color-surface-muted: #0d1424;
   --webui-color-text: #e8edf7;
+  --webui-color-text-muted: #9eabc4;
+  --webui-color-text-subtle: #7f8eaa;
+  --webui-color-border: #25304a;
+  --webui-color-border-strong: #33415f;
+  --webui-color-accent: #75b9ff;
+  --webui-color-accent-strong: #2e74ba;
+  --webui-color-success: #8de2bc;
+  --webui-color-warning: #ffd27d;
+  --webui-color-danger: #ff9db0;
+  --webui-radius-sm: 8px;
   --webui-radius: 12px;
+  --webui-radius-lg: 14px;
+  --webui-space-1: 4px;
+  --webui-space-2: 8px;
+  --webui-space-3: 12px;
+  --webui-space-4: 16px;
+  --webui-space-5: 20px;
+  --webui-space-6: 24px;
+  --webui-shadow-panel: 0 16px 40px rgba(0, 0, 0, 0.18);
 }

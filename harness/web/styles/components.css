@@ -1,6 +1,6 @@
 .eyebrow {
   margin: 0 0 8px;
-  color: #75b9ff;
+  color: var(--webui-color-accent);
   font-size: 12px;
   letter-spacing: 0.16em;
 }
@@ -9,21 +9,46 @@
   align-items: center;
   min-height: 34px;
   padding: 0 14px;
-  border: 1px solid #33415f;
+  border: 1px solid var(--webui-color-border-strong);
   border-radius: 999px;
-  color: #b8c4dd;
+  color: var(--webui-color-text-muted);
   font-size: 13px;
   white-space: nowrap;
 }
 
 .status-ok {
   border-color: #2f8a67;
-  color: #8de2bc;
+  color: var(--webui-color-success);
 }
 
 .status-error {
   border-color: #a94b60;
   color: #ff9db0;
+}
+
+.status-succeeded,
+.status-completed,
+.status-success {
+  border-color: #2f8a67;
+  color: var(--webui-color-success);
+}
+
+.status-waiting,
+.status-ready,
+.status-in-progress,
+.status-running,
+.status-queued,
+.status-pending {
+  border-color: #4d89c7;
+  color: #a6d6ff;
+}
+
+.status-failed,
+.status-blocked,
+.status-invalidated,
+.status-error {
+  border-color: #a94b60;
+  color: var(--webui-color-danger);
 }
 
 .empty-state {
@@ -66,20 +91,20 @@
 
 .button {
   border: 1px solid transparent;
-  border-radius: 8px;
+  border-radius: var(--webui-radius-sm);
   padding: 9px 14px;
-  color: #e8edf7;
+  color: var(--webui-color-text);
   cursor: pointer;
   font: inherit;
 }
 
 .button-primary {
-  background: #2e74ba;
+  background: var(--webui-color-accent-strong);
 }
 
 .button-secondary {
-  border-color: #33415f;
-  background: #121b2e;
+  border-color: var(--webui-color-border-strong);
+  background: var(--webui-color-surface-raised);
 }
 
 .button:hover:not(:disabled) {
@@ -93,10 +118,10 @@
 
 .loading-state,
 .next-action {
-  border: 1px solid #25304a;
-  border-radius: 12px;
+  border: 1px solid var(--webui-color-border);
+  border-radius: var(--webui-radius);
   background: rgba(17, 27, 47, 0.72);
-  color: #9eabc4;
+  color: var(--webui-color-text-muted);
 }
 
 .remotion-task-error {

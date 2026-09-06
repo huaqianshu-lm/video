@@ -71,6 +71,13 @@ test("serves the Web UI shell and health endpoint on localhost", async () => {
     assert.equal(page.status, 200);
     assert.match(page.contentType, /text\/html/);
     assert.match(page.body, /视频项目管理/);
+    assert.match(page.body, /href="#\/projects"[^>]*>工作台/);
+    assert.match(page.body, /href="#\/batches"[^>]*>批次/);
+    assert.match(page.body, /href="#\/series"[^>]*>系列与导入/);
+    assert.match(page.body, /href="#\/remote-jobs"[^>]*>远程任务/);
+    assert.match(page.body, /id="batches-view"/);
+    assert.match(page.body, /id="series-view"/);
+    assert.match(page.body, /id="remote-jobs-view"/);
 
     const app = await request(webServer, "/app.js");
     assert.equal(app.status, 200);
