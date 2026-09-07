@@ -883,12 +883,12 @@ test("real batch view binds refresh once and deduplicates concurrent navigation 
   });
 });
 
-test("real batch view renders every record in status order and preserves action requests", async () => {
+test("real batch view covers batch and Remotion actions with exact requests and refreshes", async () => {
   await withBrowserGlobals(async () => {
     const batchList = new FakeElement({
       onInnerHTML: (html, element) => {
-        const buttons = [...html.matchAll(/<button[^>]*data-batch-action="([^"]+)"[^>]*data-batch-id="([^"]+)"[^>]*data-slug="([^"]+)"[^>]*>/g)]
-          .map((match) => new FakeElement({ dataset: { batchAction: match[1], batchId: match[2], slug: match[3] }, matchesSelectors: ["[data-batch-action]"] }));
+        const buttons = [...html.matchAll(/<button[^>]*data-batch-action="([^"]+)"[^>]*data-batch-id="([^"]+)"(?:[^>]*data-slug="([^"]+)")?[^>]*>/g)]
+          .map((match) => new FakeElement({ dataset: { batchAction: match[1], batchId: match[2], ...(match[3] === undefined ? {} : { slug: match[3] }) }, matchesSelectors: ["[data-batch-action]"] }));
         element.setQuery("[data-batch-action]", buttons);
       },
     });
@@ -901,31 +901,56 @@ test("real batch view renders every record in status order and preserves action 
     });
     const summary = new FakeElement();
     const refreshButton = new FakeElement();
-    const batchGate = deferred();
-    const taskGate = deferred();
-    const actionGate = deferred();
-    const taskActionGate = deferred();
     let batchReads = 0;
     let taskReads = 0;
     const batchActions = [];
     const taskActions = [];
-    const batches = Array.from({ length: 9 }, (_, index) => ({
-      id: `batch-${index + 1}`,
-      type: index === 0 ? "to-tts" : "to-gate-2",
-      label: `批次 ${index + 1}`,
-      status: index === 0 ? "waiting" : "completed",
-      description: `说明 ${index + 1}`,
-      targetStage: "gate-2",
-      items: index === 0 ? [
-        { slug: "tts-video", status: "waiting-tts-qc", message: "等待 TTS 质检", currentProject: { status: "waiting-tts-qc", ttsQcApproved: false } },
-        { slug: "smoke-video", status: "waiting-smoke-qc", message: "等待 Smoke 检查", currentProject: { status: "waiting-smoke-qc" } },
-      ] : [],
-    }));
-    batches[1].status = "completed-with-errors";
+    const batchActionGates = [];
+    const taskActionGates = [];
+    let projectRefreshes = 0;
+    const openedProjects = [];
+    const batches = [
+      {
+        id: "batch-tts",
+        type: "to-tts",
+        label: "TTS 批次",
+        status: "waiting",
+        description: "等待 TTS 质检",
+        targetStage: "tts",
+        items: [{ slug: "tts-video", status: "waiting-tts-qc", message: "等待 TTS 质检", currentProject: { status: "waiting-tts-qc", ttsQcApproved: false } }],
+      },
+      {
+        id: "batch-smoke",
+        type: "to-gate-3",
+        label: "Smoke 批次",
+        status: "waiting",
+        description: "等待 Smoke 检查",
+        targetStage: "smoke-render",
+        items: [{ slug: "smoke-video", status: "waiting-smoke-qc", message: "等待 Smoke 检查", currentProject: { status: "waiting-smoke-qc" } }],
+      },
+      {
+        id: "batch-failed",
+        type: "to-gate-2",
+        label: "失败批次",
+        status: "completed-with-errors",
+        description: "部分项目失败",
+        targetStage: "gate-2",
+        items: [],
+      },
+      ...Array.from({ length: 6 }, (_, index) => ({
+        id: `batch-${index + 4}`,
+        type: "to-gate-2",
+        label: `批次 ${index + 4}`,
+        status: "completed",
+        description: `说明 ${index + 4}`,
+        targetStage: "gate-2",
+        items: [],
+      })),
+    ];
     const tasks = [
-      { id: "task-ready", kind: "remotion", slug: "ready-video", status: "ready", batchId: "batch-1", outputArtifacts: [] },
-      { id: "task-running", kind: "remotion", slug: "running-video", status: "in-progress", batchId: "batch-2", outputArtifacts: [{ name: "config" }] },
-      { id: "task-failed", kind: "remotion", slug: "failed-video", status: "failed", batchId: "batch-3", outputArtifacts: [], error: { message: "校验失败", stderr: "missing output" } },
+      { id: "task-ready", kind: "remotion", slug: "ready-video", status: "ready", batchId: "batch-tts", outputArtifacts: [] },
+      { id: "task-running", kind: "remotion", slug: "running-video", status: "in-progress", batchId: "batch-smoke", outputArtifacts: [{ name: "config" }] },
+      { id: "task-failed", kind: "remotion", slug: "failed-video", status: "failed", batchId: "batch-failed", outputArtifacts: [], error: { message: "校验失败", stderr: "missing output" } },
     ];
     const previousCSS = globalThis.CSS;
     setGlobal("CSS", { escape: (value) => value });
@@ -934,17 +959,21 @@ test("real batch view renders every record in status order and preserves action 
         elements: { batchList, taskList, summary },
         refreshButton,
         api: {
-          getBatches() { batchReads += 1; return batchReads === 1 ? batchGate.promise : { batches }; },
-          getRemotionTasks() { taskReads += 1; return taskReads === 1 ? taskGate.promise : tasks; },
-          runBatchAction(id, body) { batchActions.push({ id, body }); return actionGate.promise; },
-          runRemotionTaskAction(id, body) { taskActions.push({ id, body }); return taskActionGate.promise; },
+          getBatches() { batchReads += 1; return { batches }; },
+          getRemotionTasks() { taskReads += 1; return tasks; },
+          runBatchAction(id, body) { const gate = deferred(); batchActionGates.push(gate); batchActions.push({ id, body }); return gate.promise; },
+          runRemotionTaskAction(id, body) { const gate = deferred(); taskActionGates.push(gate); taskActions.push({ id, body }); return gate.promise; },
         },
+        onRefreshProjects() { projectRefreshes += 1; },
+        getActiveProject: () => ({ slug: "active-video" }),
+        onOpenProject(slug) { openedProjects.push(slug); },
       });
       view.mount();
-      batchGate.resolve({ batches });
-      taskGate.resolve(tasks);
       await flush();
       assert.match(batchList.innerHTML, /batch-9/);
+      assert.ok(batchList.innerHTML.indexOf("batch-tts") < batchList.innerHTML.indexOf("batch-smoke"));
+      assert.ok(batchList.innerHTML.indexOf("batch-smoke") < batchList.innerHTML.indexOf("batch-failed"));
+      assert.ok(batchList.innerHTML.indexOf("batch-failed") < batchList.innerHTML.indexOf("batch-9"));
       assert.match(taskList.innerHTML, /task-failed/);
       assert.match(batchList.innerHTML, /status status-waiting/);
       assert.match(batchList.innerHTML, /status status-waiting-tts-qc/);
@@ -958,19 +987,66 @@ test("real batch view renders every record in status order and preserves action 
       assert.match(summary.innerHTML, /<strong>9<\/strong>/);
       assert.match(summary.innerHTML, /<strong>3<\/strong>/);
 
-      const ttsButton = { dataset: { batchAction: "approve-tts-qc", batchId: "batch-1", slug: "tts-video" }, closest: () => ttsButton };
+      const ttsButton = batchList.querySelectorAll("[data-batch-action]").find((button) => button.dataset.batchAction === "approve-tts-qc");
       batchList.dispatch("click", { target: ttsButton });
       batchList.dispatch("click", { target: ttsButton });
-      assert.deepEqual(batchActions, [{ id: "batch-1", body: { action: "approve-tts-qc", slug: "tts-video" } }]);
-      actionGate.resolve({});
+      assert.deepEqual(batchActions, [{ id: "batch-tts", body: { action: "approve-tts-qc", slug: "tts-video" } }]);
+      batchActionGates.shift().resolve({});
       await flush();
 
-      const taskButton = { dataset: { remotionTaskAction: "run", taskId: "task-ready" }, closest: () => taskButton };
-      taskList.dispatch("click", { target: taskButton });
-      taskList.dispatch("click", { target: taskButton });
-      assert.deepEqual(taskActions, [{ id: "task-ready", body: { action: "run" } }]);
-      taskActionGate.resolve({});
+      const smokeButton = batchList.querySelectorAll("[data-batch-action]").find((button) => button.dataset.batchAction === "approve-smoke-qc");
+      batchList.dispatch("click", { target: smokeButton });
+      batchList.dispatch("click", { target: smokeButton });
+      assert.deepEqual(batchActions, [
+        { id: "batch-tts", body: { action: "approve-tts-qc", slug: "tts-video" } },
+        { id: "batch-smoke", body: { action: "approve-smoke-qc", slug: "smoke-video" } },
+      ]);
+      batchActionGates.shift().resolve({});
       await flush();
+
+      const retryButton = batchList.querySelectorAll("[data-batch-action]").find((button) => button.dataset.batchAction === "retry-failed");
+      batchList.dispatch("click", { target: retryButton });
+      batchList.dispatch("click", { target: retryButton });
+      assert.deepEqual(batchActions, [
+        { id: "batch-tts", body: { action: "approve-tts-qc", slug: "tts-video" } },
+        { id: "batch-smoke", body: { action: "approve-smoke-qc", slug: "smoke-video" } },
+        { id: "batch-failed", body: { action: "retry-failed", slug: null } },
+      ]);
+      batchActionGates.shift().resolve({});
+      await flush();
+
+      const readyButton = taskList.querySelectorAll("[data-remotion-task-action]").find((button) => button.dataset.taskId === "task-ready");
+      taskList.dispatch("click", { target: readyButton });
+      taskList.dispatch("click", { target: readyButton });
+      assert.deepEqual(taskActions, [{ id: "task-ready", body: { action: "run" } }]);
+      taskActionGates.shift().resolve({});
+      await flush();
+
+      const failedButton = taskList.querySelectorAll("[data-remotion-task-action]").find((button) => button.dataset.taskId === "task-failed");
+      taskList.dispatch("click", { target: failedButton });
+      taskList.dispatch("click", { target: failedButton });
+      assert.deepEqual(taskActions, [
+        { id: "task-ready", body: { action: "run" } },
+        { id: "task-failed", body: { action: "run" } },
+      ]);
+      taskActionGates.shift().resolve({});
+      await flush();
+
+      const runningButton = taskList.querySelectorAll("[data-remotion-task-action]").find((button) => button.dataset.taskId === "task-running");
+      taskList.dispatch("click", { target: runningButton });
+      taskList.dispatch("click", { target: runningButton });
+      assert.deepEqual(taskActions, [
+        { id: "task-ready", body: { action: "run" } },
+        { id: "task-failed", body: { action: "run" } },
+        { id: "task-running", body: { action: "complete" } },
+      ]);
+      taskActionGates.shift().resolve({});
+      await flush();
+      await flush();
+      assert.equal(projectRefreshes, 6);
+      assert.deepEqual(openedProjects, ["active-video", "active-video", "active-video"]);
+      assert.ok(batchReads >= 7);
+      assert.ok(taskReads >= 7);
       view.unmount();
     } finally {
       setGlobal("CSS", previousCSS);
@@ -997,6 +1073,42 @@ test("real batch view keeps batch and task failures separate and preserves empty
   });
 });
 
+test("real batch view keeps the opposite batch and task empty/error states independent", async () => {
+  await withBrowserGlobals(async () => {
+    const makeView = (api) => {
+      const elements = { batchList: new FakeElement(), taskList: new FakeElement(), summary: new FakeElement() };
+      const view = createBatchView({ elements, refreshButton: new FakeElement(), api });
+      return { elements, view };
+    };
+
+    const emptyBatches = makeView({
+      async getBatches() { return { batches: [] }; },
+      async getRemotionTasks() { throw new Error("任务服务不可用"); },
+    });
+    emptyBatches.view.mount();
+    await flush();
+    assert.match(emptyBatches.elements.batchList.textContent, /暂无批次记录/);
+    assert.match(emptyBatches.elements.taskList.textContent, /读取 Remotion 制作任务失败：任务服务不可用/);
+    assert.match(emptyBatches.elements.summary.innerHTML, /<strong>0<\/strong>/);
+    assert.match(emptyBatches.elements.summary.innerHTML, /<strong>—<\/strong>/);
+    assert.match(emptyBatches.elements.summary.innerHTML, /Remotion 任务：任务服务不可用/);
+    emptyBatches.view.unmount();
+
+    const emptyTasks = makeView({
+      async getBatches() { throw new Error("批次服务不可用"); },
+      async getRemotionTasks() { return []; },
+    });
+    emptyTasks.view.mount();
+    await flush();
+    assert.match(emptyTasks.elements.batchList.textContent, /读取批次失败：批次服务不可用/);
+    assert.match(emptyTasks.elements.taskList.textContent, /暂无 Remotion 制作任务/);
+    assert.match(emptyTasks.elements.summary.innerHTML, /<strong>—<\/strong>/);
+    assert.match(emptyTasks.elements.summary.innerHTML, /<strong>0<\/strong>/);
+    assert.match(emptyTasks.elements.summary.innerHTML, /批次：批次服务不可用/);
+    emptyTasks.view.unmount();
+  });
+});
+
 test("real series and import view deduplicates save, cover upload and source import after repeated mount", async () => {
   await withBrowserGlobals(async () => {
     const elements = {
@@ -1005,7 +1117,14 @@ test("real series and import view deduplicates save, cover upload and source imp
       seriesTitle: new FakeElement(),
       seriesStyle: new FakeElement(),
       seriesCoverFrames: new FakeElement(),
-      seriesVideoList: new FakeElement(),
+      seriesVideoList: new FakeElement({
+        onInnerHTML: (html, element) => {
+          const inputs = [...html.matchAll(/<input[^>]*name="series-video"[^>]*value="([^"]+)"([^>]*)>/g)]
+            .map((match) => { const input = new FakeElement(); input.value = match[1]; input.checked = /\bchecked\b/.test(match[2]); return input; });
+          element.setQuery('input[name="series-video"]:checked', inputs.filter((input) => input.checked));
+          element.setQuery('input[name="series-video"]', inputs);
+        },
+      }),
       seriesForm: new FakeElement(),
       seriesCoverFile: new FakeElement(),
       seriesCoverPreview: new FakeElement(),
@@ -1019,21 +1138,22 @@ test("real series and import view deduplicates save, cover upload and source imp
       importSubmit: new FakeElement(),
       importState: new FakeElement(),
     };
-    const series = { id: "demo-series", title: "Demo", style: "current", coverDurationFrames: 45, videos: [] };
+    const series = { id: "demo-series", title: "Demo", style: "current", coverDurationFrames: 45, videos: ["existing-video"] };
     const saveGate = deferred();
     const uploadGate = deferred();
     const importGate = deferred();
     let seriesReads = 0;
     let saveCalls = 0;
+    const saveInputs = [];
     let uploadCalls = 0;
     let importCalls = 0;
     const imported = [];
     const view = createSeriesView({
       elements,
-      getProjects: () => [],
+      getProjects: () => [{ slug: "existing-video" }],
       api: {
         async getSeries() { seriesReads += 1; return [series]; },
-        saveSeries(input) { saveCalls += 1; assert.equal(input.id, "demo-series"); return saveGate.promise; },
+        saveSeries(input) { saveCalls += 1; saveInputs.push(input); assert.equal(input.id, "demo-series"); return saveGate.promise; },
         uploadSeriesCover(id, blob) { uploadCalls += 1; assert.equal(id, "demo-series"); assert.ok(blob instanceof Blob); return uploadGate.promise; },
         importSource(file, input) { importCalls += 1; assert.equal(file.name, "source.md"); assert.equal(input.seriesId, "none"); return importGate.promise; },
       },
@@ -1053,7 +1173,8 @@ test("real series and import view deduplicates save, cover upload and source imp
     saveGate.resolve({ series });
     await flush();
 
-    series.videos = ["existing-video"];
+    elements.seriesVideoList.querySelectorAll('input[name="series-video"]')[0].checked = false;
+    elements.seriesVideoList.setQuery('input[name="series-video"]:checked', []);
     const confirmationMessages = [];
     const previousConfirm = globalThis.window.confirm;
     globalThis.window.confirm = (message) => { confirmationMessages.push(message); return false; };
@@ -1062,6 +1183,18 @@ test("real series and import view deduplicates save, cover upload and source imp
     assert.equal(saveCalls, 1);
     assert.equal(confirmationMessages.length, 1);
     assert.match(confirmationMessages[0], /existing-video/);
+    globalThis.window.confirm = () => true;
+    elements.seriesForm.dispatch("submit", { preventDefault() {}, currentTarget: elements.seriesForm });
+    await flush();
+    assert.equal(saveCalls, 2);
+    assert.deepEqual(saveInputs[1], {
+      id: "demo-series",
+      title: "Demo",
+      style: "current",
+      coverDurationFrames: 45,
+      videos: [],
+      confirmVideoRemoval: true,
+    });
     globalThis.window.confirm = previousConfirm;
     series.videos = [];
 
@@ -1100,8 +1233,123 @@ test("real series and import view deduplicates save, cover upload and source imp
     view.unmount();
     elements.seriesForm.dispatch("submit", { preventDefault() {}, currentTarget: elements.seriesForm });
     elements.importForm.dispatch("submit", { preventDefault() {}, currentTarget: elements.importForm });
-    assert.equal(saveCalls, 1);
+    assert.equal(saveCalls, 2);
     assert.equal(importCalls, 1);
+  });
+});
+
+test("real series view releases cover preview and source Object URLs on switch and unmount", async () => {
+  await withBrowserGlobals(async () => {
+    const elements = {
+      seriesSelect: new FakeElement(),
+      seriesId: new FakeElement(),
+      seriesTitle: new FakeElement(),
+      seriesStyle: new FakeElement(),
+      seriesCoverFrames: new FakeElement(),
+      seriesVideoList: new FakeElement(),
+      seriesForm: new FakeElement(),
+      seriesCoverFile: new FakeElement(),
+      seriesCoverPreview: new FakeElement(),
+      seriesState: new FakeElement(),
+      newSeries: new FakeElement(),
+      uploadSeriesCover: new FakeElement(),
+      importForm: new FakeElement(),
+      importFile: new FakeElement(),
+      importSlug: new FakeElement(),
+      importSeries: new FakeElement(),
+      importSubmit: new FakeElement(),
+      importState: new FakeElement(),
+    };
+    const previousURL = globalThis.URL;
+    let objectUrlCount = 0;
+    const revoked = [];
+    setGlobal("URL", {
+      createObjectURL() { objectUrlCount += 1; return `blob:${objectUrlCount === 1 || objectUrlCount === 3 ? "source" : "preview"}-${objectUrlCount}`; },
+      revokeObjectURL(url) { revoked.push(url); },
+    });
+    const view = createSeriesView({
+      elements,
+      getProjects: () => [],
+      api: { async getSeries() { return [{ id: "first-series", title: "First", style: "current", coverDurationFrames: 45, videos: [] }, { id: "second-series", title: "Second", style: "current", coverDurationFrames: 45, videos: [] }]; } },
+    });
+    try {
+      view.mount();
+      await flush();
+      elements.seriesCoverFile.files = [{ size: 1, type: "image/png", name: "cover.png" }];
+      elements.seriesCoverFile.dispatch("change");
+      await flush();
+      assert.ok(revoked.includes("blob:source-1"));
+      assert.match(elements.seriesCoverPreview.innerHTML, /blob:preview-2/);
+
+      elements.seriesSelect.value = "second-series";
+      elements.seriesSelect.dispatch("change");
+      await flush();
+      assert.ok(revoked.includes("blob:preview-2"));
+
+      elements.seriesCoverFile.files = [{ size: 1, type: "image/png", name: "cover-again.png" }];
+      elements.seriesCoverFile.dispatch("change");
+      await flush();
+      view.unmount();
+      assert.ok(revoked.includes("blob:source-3"));
+      assert.ok(revoked.includes("blob:preview-4"));
+      assert.equal(revoked.filter((url) => url.startsWith("blob:source-")).length, 2);
+    } finally {
+      setGlobal("URL", previousURL);
+    }
+  });
+});
+
+test("real series import view preserves none selection and reports a failed import once", async () => {
+  await withBrowserGlobals(async () => {
+    const elements = {
+      seriesSelect: new FakeElement(),
+      seriesId: new FakeElement(),
+      seriesTitle: new FakeElement(),
+      seriesStyle: new FakeElement(),
+      seriesCoverFrames: new FakeElement(),
+      seriesVideoList: new FakeElement(),
+      seriesForm: new FakeElement(),
+      seriesCoverFile: new FakeElement(),
+      seriesCoverPreview: new FakeElement(),
+      seriesState: new FakeElement(),
+      newSeries: new FakeElement(),
+      uploadSeriesCover: new FakeElement(),
+      importForm: new FakeElement(),
+      importFile: new FakeElement(),
+      importSlug: new FakeElement(),
+      importSeries: new FakeElement(),
+      importSubmit: new FakeElement(),
+      importState: new FakeElement(),
+    };
+    const file = { size: 1, name: "source.md", type: "text/markdown" };
+    const importCalls = [];
+    const imported = [];
+    const view = createSeriesView({
+      elements,
+      getProjects: () => [],
+      api: {
+        async getSeries() { return []; },
+        async importSource(inputFile, input) { importCalls.push({ file: inputFile, input }); throw new Error("导入服务不可用"); },
+      },
+      onImported: (slug) => imported.push(slug),
+    });
+    view.mount();
+    await flush();
+    elements.importFile.files = [file];
+    elements.importSeries.value = "none";
+    elements.importFile.dispatch("change");
+    elements.importSeries.dispatch("change");
+    assert.equal(elements.importSubmit.disabled, false);
+    elements.importForm.dispatch("submit", { preventDefault() {}, currentTarget: elements.importForm });
+    elements.importForm.dispatch("submit", { preventDefault() {}, currentTarget: elements.importForm });
+    await flush();
+    assert.equal(importCalls.length, 1);
+    assert.equal(importCalls[0].file, file);
+    assert.deepEqual(importCalls[0].input, { slug: "", seriesId: "none" });
+    assert.match(elements.importState.textContent, /导入失败：导入服务不可用/);
+    assert.equal(elements.importSubmit.disabled, false);
+    assert.deepEqual(imported, []);
+    view.unmount();
   });
 });
 
@@ -1120,8 +1368,8 @@ test("real remote jobs view sends one refresh and one diagnostics request after 
       refreshButton,
       diagnosticsButton,
       api: {
-        getJobs() { jobReads += 1; return jobsGate.promise; },
-        getGitHubDiagnostics() { diagnosticReads += 1; return diagnosticsGate.promise; },
+        getJobs() { jobReads += 1; return jobReads === 1 ? jobsGate.promise : [{ slug: "remote-video", stage: "smoke-render", status: "failed", id: "job-remote", remote: { runId: 42, runUrl: "https://example.test/run/42" }, result: { outputs: [{ artifactName: "remote-video.mp4" }] }, lastCheckedAt: "刚刚", error: { message: "Run 失败" } }]; },
+        getGitHubDiagnostics() { diagnosticReads += 1; return diagnosticReads === 1 ? diagnosticsGate.promise : { ok: false, checks: [{ status: "error", name: "token", message: "未配置" }] }; },
       },
     });
 
@@ -1145,10 +1393,60 @@ test("real remote jobs view sends one refresh and one diagnostics request after 
     assert.match(diagnostics.innerHTML, /status status-error/);
     assert.match(diagnostics.innerHTML, /token/);
     assert.match(diagnostics.innerHTML, /未配置/);
+    refreshButton.dispatch("click");
+    diagnosticsButton.dispatch("click");
+    await flush();
+    assert.equal(jobReads, 2);
+    assert.equal(diagnosticReads, 2);
+    assert.match(list.innerHTML, /remote-video/);
+    assert.match(diagnostics.innerHTML, /未配置/);
     view.unmount();
     refreshButton.dispatch("click");
     diagnosticsButton.dispatch("click");
+    assert.equal(jobReads, 2);
+    assert.equal(diagnosticReads, 2);
+  });
+});
+
+test("real remote jobs view keeps refresh and diagnostics failures visible and independent", async () => {
+  await withBrowserGlobals(async () => {
+    const list = new FakeElement();
+    const diagnostics = new FakeElement();
+    const refreshButton = new FakeElement();
+    const diagnosticsButton = new FakeElement();
+    let jobReads = 0;
+    let diagnosticReads = 0;
+    const view = createRemoteJobsView({
+      elements: { list, diagnostics },
+      refreshButton,
+      diagnosticsButton,
+      api: {
+        async getJobs() { jobReads += 1; throw new Error("远程任务服务不可用"); },
+        async getGitHubDiagnostics() { diagnosticReads += 1; throw new Error("GitHub 配置服务不可用"); },
+      },
+    });
+    view.mount();
+    await flush();
     assert.equal(jobReads, 1);
+    assert.equal(diagnosticReads, 0);
+    assert.match(list.textContent, /读取远程任务失败：远程任务服务不可用/);
+    assert.match(list.className, /error-state/);
+    refreshButton.dispatch("click");
+    await flush();
+    assert.equal(jobReads, 2);
+
+    diagnosticsButton.dispatch("click");
+    diagnosticsButton.dispatch("click");
+    await flush();
+    assert.equal(diagnosticReads, 1);
+    assert.match(diagnostics.textContent, /检查失败：GitHub 配置服务不可用/);
+    assert.match(diagnostics.className, /error-state/);
+    assert.match(list.textContent, /读取远程任务失败：远程任务服务不可用/);
+    view.unmount();
+    refreshButton.dispatch("click");
+    diagnosticsButton.dispatch("click");
+    await flush();
+    assert.equal(jobReads, 2);
     assert.equal(diagnosticReads, 1);
   });
 });
