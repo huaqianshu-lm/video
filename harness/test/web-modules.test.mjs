@@ -80,11 +80,11 @@ function projectDetailElement() {
 }
 
 class FakeElement {
-  constructor({ dataset = {}, onInnerHTML } = {}) {
+  constructor({ dataset = {}, onInnerHTML, matchesSelectors = [] } = {}) {
     this.dataset = { ...dataset };
     this.listeners = new Map();
     this.queries = new Map();
-    this.matchesSelectors = new Set();
+    this.matchesSelectors = new Set(matchesSelectors);
     this.attributes = new Map();
     this.classNames = new Set();
     this.classList = {
@@ -883,6 +883,120 @@ test("real batch view binds refresh once and deduplicates concurrent navigation 
   });
 });
 
+test("real batch view renders every record in status order and preserves action requests", async () => {
+  await withBrowserGlobals(async () => {
+    const batchList = new FakeElement({
+      onInnerHTML: (html, element) => {
+        const buttons = [...html.matchAll(/<button[^>]*data-batch-action="([^"]+)"[^>]*data-batch-id="([^"]+)"[^>]*data-slug="([^"]+)"[^>]*>/g)]
+          .map((match) => new FakeElement({ dataset: { batchAction: match[1], batchId: match[2], slug: match[3] }, matchesSelectors: ["[data-batch-action]"] }));
+        element.setQuery("[data-batch-action]", buttons);
+      },
+    });
+    const taskList = new FakeElement({
+      onInnerHTML: (html, element) => {
+        const buttons = [...html.matchAll(/<button[^>]*data-remotion-task-action="([^"]+)"[^>]*data-task-id="([^"]+)"[^>]*>/g)]
+          .map((match) => new FakeElement({ dataset: { remotionTaskAction: match[1], taskId: match[2] }, matchesSelectors: ["[data-remotion-task-action]"] }));
+        element.setQuery("[data-remotion-task-action]", buttons);
+      },
+    });
+    const summary = new FakeElement();
+    const refreshButton = new FakeElement();
+    const batchGate = deferred();
+    const taskGate = deferred();
+    const actionGate = deferred();
+    const taskActionGate = deferred();
+    let batchReads = 0;
+    let taskReads = 0;
+    const batchActions = [];
+    const taskActions = [];
+    const batches = Array.from({ length: 9 }, (_, index) => ({
+      id: `batch-${index + 1}`,
+      type: index === 0 ? "to-tts" : "to-gate-2",
+      label: `批次 ${index + 1}`,
+      status: index === 0 ? "waiting" : "completed",
+      description: `说明 ${index + 1}`,
+      targetStage: "gate-2",
+      items: index === 0 ? [
+        { slug: "tts-video", status: "waiting-tts-qc", message: "等待 TTS 质检", currentProject: { status: "waiting-tts-qc", ttsQcApproved: false } },
+        { slug: "smoke-video", status: "waiting-smoke-qc", message: "等待 Smoke 检查", currentProject: { status: "waiting-smoke-qc" } },
+      ] : [],
+    }));
+    batches[1].status = "completed-with-errors";
+    const tasks = [
+      { id: "task-ready", kind: "remotion", slug: "ready-video", status: "ready", batchId: "batch-1", outputArtifacts: [] },
+      { id: "task-running", kind: "remotion", slug: "running-video", status: "in-progress", batchId: "batch-2", outputArtifacts: [{ name: "config" }] },
+      { id: "task-failed", kind: "remotion", slug: "failed-video", status: "failed", batchId: "batch-3", outputArtifacts: [], error: { message: "校验失败", stderr: "missing output" } },
+    ];
+    const previousCSS = globalThis.CSS;
+    setGlobal("CSS", { escape: (value) => value });
+    try {
+      const view = createBatchView({
+        elements: { batchList, taskList, summary },
+        refreshButton,
+        api: {
+          getBatches() { batchReads += 1; return batchReads === 1 ? batchGate.promise : { batches }; },
+          getRemotionTasks() { taskReads += 1; return taskReads === 1 ? taskGate.promise : tasks; },
+          runBatchAction(id, body) { batchActions.push({ id, body }); return actionGate.promise; },
+          runRemotionTaskAction(id, body) { taskActions.push({ id, body }); return taskActionGate.promise; },
+        },
+      });
+      view.mount();
+      batchGate.resolve({ batches });
+      taskGate.resolve(tasks);
+      await flush();
+      assert.match(batchList.innerHTML, /batch-9/);
+      assert.match(taskList.innerHTML, /task-failed/);
+      assert.match(batchList.innerHTML, /status status-waiting/);
+      assert.match(batchList.innerHTML, /status status-waiting-tts-qc/);
+      assert.match(batchList.innerHTML, /确认 TTS 质检/);
+      assert.match(batchList.innerHTML, /确认 Smoke 检查/);
+      assert.match(batchList.innerHTML, /重试失败项目/);
+      assert.match(taskList.innerHTML, /status status-ready/);
+      assert.match(taskList.innerHTML, /status status-in-progress/);
+      assert.match(taskList.innerHTML, /status status-failed/);
+      assert.match(taskList.innerHTML, /校验失败/);
+      assert.match(summary.innerHTML, /<strong>9<\/strong>/);
+      assert.match(summary.innerHTML, /<strong>3<\/strong>/);
+
+      const ttsButton = { dataset: { batchAction: "approve-tts-qc", batchId: "batch-1", slug: "tts-video" }, closest: () => ttsButton };
+      batchList.dispatch("click", { target: ttsButton });
+      batchList.dispatch("click", { target: ttsButton });
+      assert.deepEqual(batchActions, [{ id: "batch-1", body: { action: "approve-tts-qc", slug: "tts-video" } }]);
+      actionGate.resolve({});
+      await flush();
+
+      const taskButton = { dataset: { remotionTaskAction: "run", taskId: "task-ready" }, closest: () => taskButton };
+      taskList.dispatch("click", { target: taskButton });
+      taskList.dispatch("click", { target: taskButton });
+      assert.deepEqual(taskActions, [{ id: "task-ready", body: { action: "run" } }]);
+      taskActionGate.resolve({});
+      await flush();
+      view.unmount();
+    } finally {
+      setGlobal("CSS", previousCSS);
+    }
+  });
+});
+
+test("real batch view keeps batch and task failures separate and preserves empty states", async () => {
+  await withBrowserGlobals(async () => {
+    const batchList = new FakeElement();
+    const taskList = new FakeElement();
+    const view = createBatchView({
+      elements: { batchList, taskList },
+      api: {
+        async getBatches() { throw new Error("批次服务不可用"); },
+        async getRemotionTasks() { return []; },
+      },
+    });
+    view.mount();
+    await flush();
+    assert.match(batchList.textContent, /读取批次失败：批次服务不可用/);
+    assert.match(taskList.textContent, /暂无 Remotion 制作任务/);
+    view.unmount();
+  });
+});
+
 test("real series and import view deduplicates save, cover upload and source import after repeated mount", async () => {
   await withBrowserGlobals(async () => {
     const elements = {
@@ -1013,16 +1127,24 @@ test("real remote jobs view sends one refresh and one diagnostics request after 
 
     view.mount();
     view.mount();
+    assert.equal(diagnosticReads, 0);
     refreshButton.dispatch("click");
     refreshButton.dispatch("click");
     diagnosticsButton.dispatch("click");
     diagnosticsButton.dispatch("click");
     assert.equal(jobReads, 1);
     assert.equal(diagnosticReads, 1);
-    jobsGate.resolve([]);
-    diagnosticsGate.resolve({ ok: true, checks: [{ status: "ok", name: "token", message: "已配置" }] });
+    jobsGate.resolve([{ slug: "remote-video", stage: "smoke-render", status: "failed", id: "job-remote", remote: { runId: 42, runUrl: "https://example.test/run/42" }, result: { outputs: [{ artifactName: "remote-video.mp4" }] }, lastCheckedAt: "刚刚", error: { message: "Run 失败" } }]);
+    diagnosticsGate.resolve({ ok: false, checks: [{ status: "error", name: "token", message: "未配置" }] });
     await flush();
-    assert.equal(list.innerHTML.includes("token"), false);
+    assert.match(list.innerHTML, /remote-video/);
+    assert.match(list.innerHTML, /status status-failed/);
+    assert.match(list.innerHTML, /Run 失败/);
+    assert.match(list.innerHTML, /target="_blank" rel="noreferrer"/);
+    assert.match(list.innerHTML, /Artifact：remote-video\.mp4/);
+    assert.match(diagnostics.innerHTML, /status status-error/);
+    assert.match(diagnostics.innerHTML, /token/);
+    assert.match(diagnostics.innerHTML, /未配置/);
     view.unmount();
     refreshButton.dispatch("click");
     diagnosticsButton.dispatch("click");

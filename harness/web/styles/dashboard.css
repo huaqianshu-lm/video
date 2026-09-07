@@ -509,3 +509,240 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Management pages: shared hierarchy for batch, series and remote-job consoles. */
+.management-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: var(--webui-space-3);
+  margin-bottom: var(--webui-space-4);
+}
+
+.management-summary > span {
+  display: grid;
+  min-width: 150px;
+  gap: var(--webui-space-1);
+  padding: var(--webui-space-4);
+  border: 1px solid var(--webui-border-subtle);
+  border-radius: var(--webui-radius-sm);
+  background: var(--webui-surface-inset);
+}
+
+.management-summary strong {
+  color: var(--webui-text-primary);
+  font-size: 24px;
+  line-height: 1;
+}
+
+.management-summary small,
+.summary-error {
+  color: var(--webui-text-muted);
+  font-size: 12px;
+}
+
+.summary-error {
+  align-self: center;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.batch-card,
+.job-card,
+.series-panel,
+.source-import-panel {
+  border-color: var(--webui-border-subtle);
+  border-radius: var(--webui-radius);
+  background: var(--webui-surface-panel);
+  box-shadow: var(--webui-shadow-panel);
+}
+
+.batch-card-heading,
+.job-card-heading {
+  align-items: flex-start;
+}
+
+.batch-card-heading > div,
+.job-card-heading > div {
+  min-width: 0;
+}
+
+.batch-card-heading h3,
+.job-card-heading strong,
+.job-id,
+.batch-description,
+.batch-meta,
+.batch-item,
+.job-card p,
+.job-meta,
+.diagnostics-list {
+  overflow-wrap: anywhere;
+}
+
+.batch-card-status,
+.batch-item-actions {
+  flex: 0 1 auto;
+}
+
+.batch-meta,
+.job-meta {
+  align-items: flex-start;
+  color: var(--webui-text-muted);
+}
+
+.batch-item {
+  border-color: var(--webui-border-subtle);
+  background: var(--webui-surface-inset);
+}
+
+.error-state {
+  border-color: color-mix(in srgb, var(--webui-state-failure) 48%, var(--webui-border-subtle));
+  color: var(--webui-state-failure);
+}
+
+.series-panel,
+.source-import-panel {
+  margin-top: var(--webui-space-6);
+  padding: var(--webui-space-5);
+}
+
+.series-layout {
+  align-items: start;
+}
+
+.series-form h3,
+.series-cover-panel h3 {
+  margin: 0 0 var(--webui-space-4);
+  font-size: 18px;
+}
+
+.series-cover-panel {
+  display: grid;
+  align-content: start;
+  gap: var(--webui-space-3);
+}
+
+.series-cover-panel .eyebrow {
+  margin-bottom: 0;
+}
+
+.series-cover-preview {
+  border-color: var(--webui-border-strong);
+  border-radius: var(--webui-radius-sm);
+  background: var(--webui-surface-inset);
+}
+
+.source-import-panel {
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+}
+
+.source-import-panel,
+.source-import-form,
+.series-form {
+  min-width: 0;
+}
+
+.remote-diagnostics-section,
+.remote-jobs-section {
+  padding-bottom: var(--webui-space-5);
+}
+
+.diagnostics-panel {
+  margin-top: var(--webui-space-4);
+  padding: var(--webui-space-4);
+  border: 1px solid var(--webui-border-subtle);
+  border-radius: var(--webui-radius-sm);
+  background: var(--webui-surface-inset);
+  color: var(--webui-text-secondary);
+  line-height: 1.6;
+}
+
+.diagnostics-panel.loading-state {
+  color: var(--webui-text-muted);
+}
+
+.diagnostics-list {
+  display: grid;
+  gap: var(--webui-space-3);
+  margin: var(--webui-space-4) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.diagnostics-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--webui-space-3);
+}
+
+.diagnostics-list li > span:last-child {
+  display: grid;
+  min-width: 0;
+  gap: var(--webui-space-1);
+}
+
+.diagnostics-list small {
+  color: var(--webui-text-muted);
+}
+
+.job-card {
+  display: grid;
+  gap: var(--webui-space-3);
+  padding: var(--webui-space-5);
+}
+
+.job-card-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--webui-space-4);
+}
+
+.job-card-heading > div {
+  display: grid;
+  gap: var(--webui-space-2);
+}
+
+.job-id {
+  color: var(--webui-text-muted);
+  font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.job-error {
+  margin: 0;
+  color: var(--webui-state-failure);
+}
+
+.job-run {
+  margin: 0;
+}
+
+.job-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--webui-space-3);
+  margin: 0;
+  font-size: 12px;
+}
+
+@media (max-width: 1024px) {
+  .series-layout,
+  .source-import-panel {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .management-summary > span {
+    flex: 1 1 140px;
+  }
+
+  .batch-card-heading,
+  .job-card-heading {
+    display: grid;
+  }
+
+  .batch-card-status,
+  .batch-item-actions {
+    justify-content: flex-start;
+  }
+}

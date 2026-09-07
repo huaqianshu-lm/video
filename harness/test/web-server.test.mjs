@@ -78,6 +78,15 @@ test("serves the Web UI shell and health endpoint on localhost", async () => {
     assert.match(page.body, /id="batches-view"/);
     assert.match(page.body, /id="series-view"/);
     assert.match(page.body, /id="remote-jobs-view"/);
+    assert.match(page.body, /id="batch-summary"/);
+    assert.match(page.body, /id="batch-list"/);
+    assert.match(page.body, /id="remotion-task-list"/);
+    assert.match(page.body, /id="series-settings-heading"/);
+    assert.match(page.body, /id="series-cover-heading"/);
+    assert.match(page.body, /id="source-import-form"/);
+    assert.match(page.body, /id="github-diagnostics"/);
+    assert.match(page.body, /尚未检查，请点击“检查 GitHub 配置”/);
+    assert.match(page.body, /id="global-jobs-list"/);
 
     const app = await request(webServer, "/app.js");
     assert.equal(app.status, 200);

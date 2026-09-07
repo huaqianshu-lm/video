@@ -1,5 +1,5 @@
 import { escapeHtml } from "../../shared/html.js";
-import { batchItemStatusLabels, batchStatusLabels, labelFor, remotionTaskStatusLabels } from "../../shared/labels.js";
+import { batchItemStatusLabels, batchStatusLabels, batchTypeLabels, labelFor, remotionTaskStatusLabels } from "../../shared/labels.js";
 
 function remotionError(task) {
   const message = task.error?.message ?? "未提供错误详情";
@@ -16,6 +16,16 @@ export function createBatchView({ elements, api, refreshButton, onRefreshProject
   const pendingActions = new Set();
   const pendingTasks = new Set();
 
+  function summaryElement() {
+    return elements.summary ?? globalThis.document?.getElementById?.("batch-summary") ?? null;
+  }
+
+  function renderSummary({ batches, tasks, batchesError = null, tasksError = null } = {}) {
+    const summary = summaryElement();
+    if (!summary) return;
+    summary.innerHTML = `<span><strong>${batchesError ? "—" : batches.length}</strong><small>批次记录</small></span><span><strong>${tasksError ? "—" : tasks.length}</strong><small>Remotion 制作任务</small></span>${batchesError || tasksError ? `<p class="summary-error">${escapeHtml([batchesError, tasksError].filter(Boolean).join("；"))}</p>` : ""}`;
+  }
+
   function itemCard(batch, item) {
     const project = item.currentProject; const status = project?.status ?? item.status; const message = project?.message ?? item.message;
     const action = item.status === "waiting-tts-qc" && project?.ttsQcApproved !== true ? `<button class="button button-secondary" type="button" data-batch-action="approve-tts-qc" data-batch-id="${escapeHtml(batch.id)}" data-slug="${escapeHtml(item.slug)}">确认 TTS 质检</button>` : item.status === "waiting-smoke-qc" ? `<button class="button button-secondary" type="button" data-batch-action="approve-smoke-qc" data-batch-id="${escapeHtml(batch.id)}" data-slug="${escapeHtml(item.slug)}">确认 Smoke 检查</button>` : "";
@@ -23,34 +33,43 @@ export function createBatchView({ elements, api, refreshButton, onRefreshProject
   }
 
   function renderBatches(batches) {
-    if (!batches.length) { elements.batchList.className = "loading-state"; elements.batchList.textContent = "暂无批次记录。"; return; }
+    if (!batches.length) { elements.batchList.className = "batch-list loading-state"; elements.batchList.textContent = "暂无批次记录。"; return; }
     elements.batchList.className = "batch-list";
-    elements.batchList.innerHTML = batches.slice(0, 8).map((batch) => `<article class="batch-card"><div class="batch-card-heading"><div><p class="eyebrow">${escapeHtml(batch.type)}</p><h3>${escapeHtml(batch.label)}</h3></div><span class="batch-card-status"><span class="status status-${escapeHtml(batch.status)}">${escapeHtml(labelFor(batch.status, batchStatusLabels))}</span>${batch.status === "completed-with-errors" ? `<button class="button button-secondary" type="button" data-batch-action="retry-failed" data-batch-id="${escapeHtml(batch.id)}">重试失败项目</button>` : ""}</span></div><p class="batch-description">${escapeHtml(batch.description)}</p><div class="batch-meta"><span>${escapeHtml(batch.id)}</span><span>目标：${escapeHtml(batch.targetStage)}</span><span>${batch.summary?.total ?? batch.items.length} 个视频</span></div><ul class="batch-items">${batch.items.map((item) => itemCard(batch, item)).join("")}</ul></article>`).join("");
+    elements.batchList.innerHTML = batches.map((batch) => `<article class="batch-card"><div class="batch-card-heading"><div><p class="eyebrow">${escapeHtml(labelFor(batch.type, batchTypeLabels))}</p><h3>${escapeHtml(batch.label)}</h3></div><span class="batch-card-status"><span class="status status-${escapeHtml(batch.status)}">${escapeHtml(labelFor(batch.status, batchStatusLabels))}</span>${batch.status === "completed-with-errors" ? `<button class="button button-secondary" type="button" data-batch-action="retry-failed" data-batch-id="${escapeHtml(batch.id)}">重试失败项目</button>` : ""}</span></div><p class="batch-description">${escapeHtml(batch.description ?? "暂无批次说明")}</p><div class="batch-meta"><span>${escapeHtml(batch.id)}</span><span>目标：${escapeHtml(batch.targetStage ?? "—")}</span><span>${batch.summary?.total ?? batch.items?.length ?? 0} 个视频</span></div><ul class="batch-items">${(batch.items ?? []).map((item) => itemCard(batch, item)).join("") || "<li class=\"loading-state\">此批次暂无项目项。</li>"}</ul></article>`).join("");
   }
 
   function renderTasks(tasks) {
-    if (!tasks.length) { elements.taskList.className = "loading-state"; elements.taskList.textContent = "暂无 Remotion 制作任务。"; return; }
+    if (!tasks.length) { elements.taskList.className = "batch-list loading-state"; elements.taskList.textContent = "暂无 Remotion 制作任务。"; return; }
     elements.taskList.className = "batch-list";
-    elements.taskList.innerHTML = tasks.slice(0, 12).map((task) => { const failed = ["blocked", "failed"].includes(task.status); return `<article class="batch-card"><div class="batch-card-heading"><div><p class="eyebrow">${escapeHtml(task.kind)}</p><h3>${escapeHtml(task.slug)}</h3></div><span class="batch-card-status"><span class="status status-${escapeHtml(task.status)}">${escapeHtml(labelFor(task.status, remotionTaskStatusLabels))}</span>${["ready", "blocked", "failed"].includes(task.status) ? `<button class="button button-secondary" type="button" aria-describedby="remotion-task-action-reason-${escapeHtml(task.id)}" data-remotion-task-action="run" data-task-id="${escapeHtml(task.id)}">${task.status === "ready" ? "执行 Agent" : "重试 Agent"}</button>` : ""}${task.status === "in-progress" ? `<button class="button button-secondary" type="button" aria-describedby="remotion-task-action-reason-${escapeHtml(task.id)}" data-remotion-task-action="complete" data-task-id="${escapeHtml(task.id)}">提交完成校验</button>` : ""}</span></div><p class="batch-description${failed ? " remotion-task-error" : ""}">${escapeHtml(failed ? `Remotion ${task.status === "blocked" ? "已阻塞" : "执行失败"}：${remotionError(task)}` : "根据 Visual Script、原型、音频、字幕和 Timeline 生成 Remotion 配置与主组件。")}</p><span id="remotion-task-action-reason-${escapeHtml(task.id)}" class="visually-hidden">操作提交中时按钮暂不可用，请等待服务端返回结果。</span><div class="batch-meta"><span>${escapeHtml(task.id)}</span><span>批次：${escapeHtml(task.batchId ?? "—")}</span><span>输出：${task.outputArtifacts.length} 项</span></div></article>`; }).join("");
+    elements.taskList.innerHTML = tasks.map((task) => { const failed = ["blocked", "failed"].includes(task.status); return `<article class="batch-card"><div class="batch-card-heading"><div><p class="eyebrow">${escapeHtml(task.kind ?? "REMOTION")}</p><h3>${escapeHtml(task.slug)}</h3></div><span class="batch-card-status"><span class="status status-${escapeHtml(task.status)}">${escapeHtml(labelFor(task.status, remotionTaskStatusLabels))}</span>${["ready", "blocked", "failed"].includes(task.status) ? `<button class="button button-secondary" type="button" aria-describedby="remotion-task-action-reason-${escapeHtml(task.id)}" data-remotion-task-action="run" data-task-id="${escapeHtml(task.id)}">${task.status === "ready" ? "执行 Agent" : "重试 Agent"}</button>` : ""}${task.status === "in-progress" ? `<button class="button button-secondary" type="button" aria-describedby="remotion-task-action-reason-${escapeHtml(task.id)}" data-remotion-task-action="complete" data-task-id="${escapeHtml(task.id)}">提交完成校验</button>` : ""}</span></div><p class="batch-description${failed ? " remotion-task-error" : ""}">${escapeHtml(failed ? `Remotion ${task.status === "blocked" ? "已阻塞" : "执行失败"}：${remotionError(task)}` : "根据 Visual Script、原型、音频、字幕和 Timeline 生成 Remotion 配置与主组件。")}</p><span id="remotion-task-action-reason-${escapeHtml(task.id)}" class="visually-hidden">操作提交中时按钮暂不可用，请等待服务端返回结果。</span><div class="batch-meta"><span>${escapeHtml(task.id)}</span><span>批次：${escapeHtml(task.batchId ?? "—")}</span><span>${task.outputArtifacts?.length ?? 0} 项输出</span></div></article>`; }).join("");
   }
 
   async function refresh() {
     if (refreshPromise) return refreshPromise;
     refreshPromise = (async () => {
-      try { const [batches, tasks] = await Promise.all([api.getBatches(), api.getRemotionTasks()]); renderBatches(batches.batches ?? []); renderTasks(tasks); }
-      catch (error) { elements.batchList.textContent = `读取批次失败：${error.message}`; elements.taskList.textContent = `读取 Remotion 制作任务失败：${error.message}`; }
+      try {
+        const [batchesResult, tasksResult] = await Promise.allSettled([api.getBatches(), api.getRemotionTasks()]);
+        const batches = batchesResult.status === "fulfilled" ? batchesResult.value.batches ?? [] : [];
+        const tasks = tasksResult.status === "fulfilled" ? tasksResult.value ?? [] : [];
+        if (batchesResult.status === "fulfilled") renderBatches(batches);
+        else { elements.batchList.className = "batch-list error-state"; elements.batchList.textContent = `读取批次失败：${batchesResult.reason.message}`; }
+        if (tasksResult.status === "fulfilled") renderTasks(tasks);
+        else { elements.taskList.className = "batch-list error-state"; elements.taskList.textContent = `读取 Remotion 制作任务失败：${tasksResult.reason.message}`; }
+        renderSummary({ batches, tasks, batchesError: batchesResult.status === "rejected" ? `批次：${batchesResult.reason.message}` : null, tasksError: tasksResult.status === "rejected" ? `Remotion 任务：${tasksResult.reason.message}` : null });
+      }
       finally { refreshPromise = null; }
     })();
     return refreshPromise;
   }
 
-  async function action(action, id, slug = null) {
+  async function action(action, id, slug = null, button = null) {
     const key = `${action}:${id}:${slug ?? ""}`;
     if (pendingActions.has(key)) return;
     pendingActions.add(key);
+    if (button) button.disabled = true;
     try { await api.runBatchAction(id, { action, slug }); await refresh(); await onRefreshProjects?.(); }
     catch (error) { window.alert(`批次操作失败：${error.message}`); }
-    finally { pendingActions.delete(key); }
+    finally { if (button?.isConnected) button.disabled = false; pendingActions.delete(key); }
   }
 
   async function taskAction(actionName, id) {
@@ -65,7 +84,7 @@ export function createBatchView({ elements, api, refreshButton, onRefreshProject
 
   function mount() {
     if (mounted) return; mounted = true;
-    batchListHandler = (event) => { const button = event.target.closest("[data-batch-action]"); if (button) void action(button.dataset.batchAction, button.dataset.batchId, button.dataset.slug); };
+    batchListHandler = (event) => { const button = event.target.closest("[data-batch-action]"); if (button) void action(button.dataset.batchAction, button.dataset.batchId, button.dataset.slug, button); };
     taskListHandler = (event) => { const button = event.target.closest("[data-remotion-task-action]"); if (button) void taskAction(button.dataset.remotionTaskAction, button.dataset.taskId); };
     elements.batchList.addEventListener("click", batchListHandler);
     elements.taskList.addEventListener("click", taskListHandler);
