@@ -241,6 +241,55 @@ test("project view unmount stops project lifecycle polling", () => {
   assert.deepEqual(stopped, ["project", "remotion-task"]);
 });
 
+test("project view renders Agent Job status classes from real workspace data", async () => {
+  const container = new FakeElement();
+  const view = createProjectView({
+    elements: { container },
+    api: {
+      async getProjectWorkspace() {
+        return {
+          project: {
+            slug: "demo",
+            sequence: 1,
+            sourceDirectory: "videos/demo",
+            remotionDirectory: "src/videos/demo",
+            status: "waiting-gate",
+            initialized: true,
+            currentStage: "content-analysis",
+            progress: 0,
+            next: { action: "run-stage", message: "继续执行" },
+            stages: [{
+              order: 0,
+              stage: "content-analysis",
+              label: "内容分析",
+              objective: "提取内容",
+              status: "ready",
+              artifacts: [],
+              requiresApproval: false,
+            }],
+          },
+          files: [],
+          jobs: [],
+          agentJobs: [
+            { id: "job-queued", stage: "content-analysis", status: "queued" },
+            { id: "job-running", stage: "video-narrative", status: "running" },
+            { id: "job-failed", stage: "scene-script", status: "failed", error: { message: "执行失败" } },
+          ],
+          remotionTasks: [],
+        };
+      },
+    },
+    polling: { stop() {}, start() {} },
+  });
+
+  view.mount();
+  await view.open("demo");
+
+  assert.match(container.innerHTML, /class="stage-status status status-queued"/);
+  assert.match(container.innerHTML, /class="stage-status status status-running"/);
+  assert.match(container.innerHTML, /class="stage-status status status-failed"/);
+});
+
 test("application routes mount, refresh, unmount, and clear project polling", async () => {
   let hash = "#/projects";
   const hashListeners = new Set();
