@@ -28,6 +28,8 @@ import {InstallVideo} from './videos/03-install/InstallVideo';
 import {videoConfig as installConfig} from './videos/03-install/video.config';
 import {PricingVideo} from './videos/04-pricing/PricingVideo';
 import {videoConfig as pricingConfig} from './videos/04-pricing/video.config';
+import {ThirdPartyModelsVideo} from './videos/05-third-party-models/ThirdPartyModelsVideo';
+import {videoConfig as thirdPartyModelsConfig} from './videos/05-third-party-models/video.config';
 
 export const Root = () => {
   return (
@@ -143,6 +145,14 @@ export const Root = () => {
         fps={pricingConfig.fps}
         width={pricingConfig.width}
         height={pricingConfig.height}
+      />
+      <Composition
+        id={thirdPartyModelsConfig.slug}
+        component={ThirdPartyModelsVideo}
+        durationInFrames={getTotalDurationFrames(thirdPartyModelsConfig)}
+        fps={thirdPartyModelsConfig.fps}
+        width={thirdPartyModelsConfig.width}
+        height={thirdPartyModelsConfig.height}
       />
     </>
   );
