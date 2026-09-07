@@ -44,6 +44,41 @@ function projectCollectionElement() {
   });
 }
 
+function projectDetailElement() {
+  return new FakeElement({
+    onInnerHTML: (html, element) => {
+      const actions = [...html.matchAll(/<button[^>]*data-action="([^"]+)"[^>]*>/g)]
+        .map((match) => new FakeElement({ dataset: { action: match[1] } }));
+      const remotionActions = [...html.matchAll(/<button[^>]*data-remotion-task-action="([^"]+)"[^>]*data-task-id="([^"]+)"[^>]*>/g)]
+        .map((match) => new FakeElement({ dataset: { remotionTaskAction: match[1], taskId: match[2] } }));
+      const agentRetries = [...html.matchAll(/<button[^>]*data-agent-job-retry="([^"]+)"[^>]*>/g)]
+        .map((match) => new FakeElement({ dataset: { agentJobRetry: match[1] } }));
+      const fileButtons = [...html.matchAll(/<button[^>]*data-path="([^"]+)"[^>]*>/g)]
+        .map((match) => new FakeElement({ dataset: { path: match[1] } }));
+      const refresh = new FakeElement();
+      const feedback = new FakeElement();
+      const viewerState = new FakeElement();
+      const fileContent = new FakeElement();
+      const dialog = new FakeElement();
+      const cancel = new FakeElement();
+      const form = new FakeElement();
+      dialog.showModal = () => { dialog.opened = true; };
+      dialog.close = () => { dialog.opened = false; };
+      element.setQuery("[data-action]", actions);
+      element.setQuery("[data-remotion-task-action]", remotionActions);
+      element.setQuery("[data-agent-job-retry]", agentRetries);
+      element.setQuery("[data-path]", fileButtons);
+      element.setQuery("#refresh-project-jobs", html.includes('id="refresh-project-jobs"') ? [refresh] : []);
+      element.setQuery("#action-feedback", [feedback]);
+      element.setQuery("#file-viewer-state", [viewerState]);
+      element.setQuery("#file-content", [fileContent]);
+      element.setQuery("#reject-gate-dialog", html.includes('id="reject-gate-dialog"') ? [dialog] : []);
+      dialog.setQuery("[data-reject-cancel]", [cancel]);
+      dialog.setQuery("[data-reject-form]", [form]);
+    },
+  });
+}
+
 class FakeElement {
   constructor({ dataset = {}, onInnerHTML } = {}) {
     this.dataset = { ...dataset };
@@ -301,6 +336,224 @@ test("project view renders Agent Job status classes from real workspace data", a
   assert.match(container.innerHTML, /class="stage-status status status-queued"/);
   assert.match(container.innerHTML, /class="stage-status status status-running"/);
   assert.match(container.innerHTML, /class="stage-status status status-failed"/);
+});
+
+test("real project view puts current decision, task evidence, full stages and materials in order", async () => {
+  const container = projectDetailElement();
+  const stageStatuses = ["succeeded", "ready", "running", "waiting", "failed", "invalidated", "missing", "pending", "available", "succeeded", "ready", "running", "waiting", "failed", "succeeded"];
+  const stages = stageStatuses.map((status, index) => ({
+    order: index,
+    stage: `stage-${index + 1}`,
+    label: `阶段 ${index + 1}`,
+    objective: `阶段 ${index + 1} 的目标`,
+    status,
+    artifacts: [{ present: status === "succeeded" || status === "available" }],
+    requiresApproval: status === "waiting",
+    review: index === 0 ? { decision: "approved" } : index === 4 ? { decision: "rejected" } : null,
+  }));
+  const workspace = {
+    project: {
+      slug: "detail-demo",
+      sequence: 7,
+      sourceDirectory: "videos/detail-demo",
+      remotionDirectory: "src/videos/detail-demo",
+      status: "waiting",
+      initialized: true,
+      currentStage: "stage-4",
+      progress: 40,
+      next: { action: "approve-or-reject-gate", message: "等待 Gate 2 人工确认", returnToStages: [{ stage: "stage-3", label: "阶段 3" }] },
+      stages,
+    },
+    files: [
+      { path: "videos/detail-demo/source.md", stage: "source", label: "原始内容", present: false },
+      { path: "videos/detail-demo/visual-prototype.html", stage: "visual-prototype", label: "视觉原型", present: true },
+    ],
+    jobs: [{ id: "remote-1", stage: "smoke-render", status: "failed", remote: { runId: 123, runUrl: "https://example.test/run/123" }, error: { message: "远程任务失败" }, lastCheckedAt: "刚刚" }],
+    activeJob: null,
+    agentJobs: [{ id: "agent-1", stage: "visual-script", status: "running" }, { id: "agent-2", stage: "scene-script", status: "failed", error: { message: "Agent 产物校验失败" } }],
+    remotionTasks: [{ id: "remotion-1", slug: "detail-demo", status: "blocked", error: { message: "任务被阻塞", stderr: "missing output" }, createdAt: "2026-09-07T00:00:00Z", updatedAt: "2026-09-07T00:01:00Z" }],
+    alignment: { studioUrl: "http://127.0.0.1:3000", baseline: { sceneIds: ["01"] }, alignment: { scenes: [{ sceneId: "01", layout: "左上标题", visualEvents: ["淡入"], implementationFiles: ["Scene.tsx"] }] }, issues: [{ severity: "warning", message: "需要人工检查画面" }] },
+  };
+  const view = createProjectView({ elements: { container }, api: { async getProjectWorkspace() { return workspace; } }, polling: { stop() {}, start() {} } });
+
+  view.mount();
+  await view.open("detail-demo");
+
+  const html = container.innerHTML;
+  const order = ["project-identity", "project-decision", "evidence-section", "pipeline-section", "supporting-materials"].map((className) => html.indexOf(className));
+  assert.ok(order.every((position) => position >= 0));
+  assert.ok(order.every((position, index) => index === 0 || position > order[index - 1]));
+  assert.equal((html.match(/class="stage-item/g) ?? []).length, 15);
+  for (const status of stageStatuses) assert.match(html, new RegExp(`status status-${status}`));
+  assert.match(html, /stage-item stage-waiting stage-current/);
+  assert.match(html, /原文件序号 07/);
+  assert.match(html, /当前阶段/);
+  assert.match(html, /等待 Gate 2 人工确认/);
+  assert.match(html, /1\/1 个产物/);
+  assert.match(html, /需要人工确认/);
+  assert.match(html, /审查：已通过/);
+  assert.match(html, /审查：已驳回/);
+  assert.match(html, /远程任务失败/);
+  assert.match(html, /Agent 产物校验失败/);
+  assert.match(html, /missing output/);
+  assert.match(html, /Gate 3 对齐检查/);
+  assert.match(html, /src="\/preview\/detail-demo"/);
+  assert.match(html, /视觉原型预览/);
+  assert.match(html, /当前缺失，不能查看文件内容/);
+});
+
+test("real project view keeps action and Gate rejection parameters while preventing duplicate submissions", async () => {
+  await withBrowserGlobals(async () => {
+    const container = projectDetailElement();
+    const workspace = {
+      project: {
+        slug: "action-demo", sequence: 1, sourceDirectory: "videos/action-demo", remotionDirectory: "src/videos/action-demo", status: "ready", initialized: true,
+        currentStage: "content-analysis", progress: 10, next: { action: "run-stage", message: "执行内容分析" }, stages: [{ order: 0, stage: "content-analysis", label: "内容分析", objective: "分析", status: "ready", artifacts: [] }],
+      }, files: [], jobs: [], agentJobs: [], remotionTasks: [], activeJob: null,
+    };
+    const actionGate = deferred();
+    let workspaceReads = 0;
+    const actionBodies = [];
+    const view = createProjectView({
+      elements: { container },
+      api: {
+        async getProjectWorkspace() { workspaceReads += 1; return workspace; },
+        runProjectAction(slug, body) { actionBodies.push({ slug, body }); return actionGate.promise; },
+      },
+      polling: { stop() {}, start() {} },
+    });
+    view.mount();
+    await view.open("action-demo");
+    const runButton = container.querySelectorAll("[data-action]").find((button) => button.dataset.action === "run");
+    runButton.dispatch("click");
+    runButton.dispatch("click");
+    assert.equal(actionBodies.length, 1);
+    assert.deepEqual(actionBodies[0], { slug: "action-demo", body: { action: "run", stage: "content-analysis", gate: undefined } });
+    actionGate.resolve({});
+    await flush();
+    assert.equal(workspaceReads, 2);
+    runButton.dispatch("click");
+    assert.equal(actionBodies.length, 1);
+
+    const gateContainer = projectDetailElement();
+    const gateWorkspace = { ...workspace, project: { ...workspace.project, slug: "gate-demo", status: "waiting", currentStage: "gate-2", next: { action: "approve-or-reject-gate", message: "等待 Gate 2", returnToStages: [{ stage: "visual-script", label: "视觉脚本" }] } } };
+    const gateBodies = [];
+    const previousFormData = globalThis.FormData;
+    globalThis.FormData = class TestFormData {
+      get(name) { return name === "returnTo" ? "visual-script" : "已发现问题"; }
+    };
+    try {
+      const gateView = createProjectView({ elements: { container: gateContainer }, api: { async getProjectWorkspace() { return gateWorkspace; }, async runProjectAction(slug, body) { gateBodies.push({ slug, body }); return {}; } }, polling: { stop() {}, start() {} } });
+      gateView.mount();
+      await gateView.open("gate-demo");
+      const reject = gateContainer.querySelectorAll("[data-action]").find((button) => button.dataset.action === "reject");
+      const dialog = gateContainer.querySelector("#reject-gate-dialog");
+      reject.dispatch("click");
+      assert.equal(dialog.opened, true);
+      assert.equal(gateBodies.length, 0);
+      dialog.querySelector("[data-reject-cancel]").dispatch("click");
+      assert.equal(dialog.opened, false);
+      dialog.querySelector("[data-reject-form]").dispatch("submit", { preventDefault() {}, currentTarget: dialog.querySelector("[data-reject-form]") });
+      await flush();
+      assert.deepEqual(gateBodies[0], { slug: "gate-demo", body: { action: "reject", stage: undefined, gate: "gate-2", returnTo: "visual-script", reason: "已发现问题" } });
+    } finally {
+      globalThis.FormData = previousFormData;
+    }
+  });
+});
+
+test("real project view keeps task, file and refresh events single across rerender", async () => {
+  const container = projectDetailElement();
+  const workspace = {
+    project: { slug: "events-demo", sequence: 2, sourceDirectory: "videos/events-demo", remotionDirectory: "src/videos/events-demo", status: "ready", initialized: true, currentStage: "remotion", progress: 80, next: { action: "run-stage", message: "执行 Remotion" }, stages: [{ order: 0, stage: "remotion", label: "Remotion", objective: "制作", status: "ready", artifacts: [] }] },
+    files: [{ path: "videos/events-demo/source.md", stage: "source", label: "原始内容", present: true }, { path: "videos/events-demo/missing.md", stage: "source", label: "缺失资料", present: false }],
+    jobs: [], activeJob: null, agentJobs: [{ id: "agent-failed", stage: "visual-script", status: "failed", error: { message: "失败" } }],
+    remotionTasks: [{ id: "task-ready", slug: "events-demo", status: "ready", createdAt: "now", updatedAt: "now" }],
+  };
+  const remotionGate = deferred();
+  const agentGate = deferred();
+  const fileGate = deferred();
+  const refreshGate = deferred();
+  let reads = 0;
+  let remotionCalls = 0;
+  let agentCalls = 0;
+  let fileCalls = 0;
+  const view = createProjectView({
+    elements: { container },
+    api: {
+      async getProjectWorkspace() { reads += 1; return reads >= 4 ? refreshGate.promise : workspace; },
+      runRemotionTaskAction() { remotionCalls += 1; return remotionGate.promise; },
+      runAgentJobAction() { agentCalls += 1; return agentGate.promise; },
+      getProjectFile() { fileCalls += 1; return fileGate.promise; },
+    },
+    polling: { stop() {}, start() {} },
+  });
+  view.mount();
+  await view.open("events-demo");
+
+  const taskButton = container.querySelectorAll("[data-remotion-task-action]")[0];
+  taskButton.dispatch("click");
+  taskButton.dispatch("click");
+  assert.equal(remotionCalls, 1);
+  remotionGate.resolve({});
+  await flush();
+  taskButton.dispatch("click");
+  assert.equal(remotionCalls, 1);
+
+  const agentButton = container.querySelectorAll("[data-agent-job-retry]")[0];
+  agentButton.dispatch("click");
+  agentButton.dispatch("click");
+  assert.equal(agentCalls, 1);
+  agentGate.resolve({});
+  await flush();
+
+  const fileButton = container.querySelectorAll("[data-path]").find((button) => button.dataset.path.endsWith("source.md"));
+  fileButton.dispatch("click");
+  fileButton.dispatch("click");
+  assert.equal(fileCalls, 1);
+  fileGate.resolve({ content: "真实文件内容" });
+  await flush();
+  assert.equal(container.querySelector("#file-content").textContent, "真实文件内容");
+  assert.match(container.innerHTML, /缺失资料当前缺失，不能查看文件内容/);
+
+  const refresh = container.querySelector("#refresh-project-jobs");
+  refresh.dispatch("click");
+  refresh.dispatch("click");
+  assert.equal(reads, 4);
+  refreshGate.resolve(workspace);
+  await flush();
+  refresh.dispatch("click");
+  assert.equal(reads, 4);
+});
+
+test("project view ignores stale project responses and keeps polling cleanup rules", async () => {
+  const container = projectDetailElement();
+  const requests = new Map([["project-a", deferred()], ["project-b", deferred()]]);
+  const starts = [];
+  const stops = [];
+  const workspace = (slug, activeJob = null) => ({ project: { slug, sequence: 1, sourceDirectory: `videos/${slug}`, remotionDirectory: `src/videos/${slug}`, status: "ready", initialized: true, currentStage: "remotion", progress: 80, next: { action: "run-stage", message: "继续" }, stages: [{ order: 0, stage: "remotion", label: "Remotion", objective: "制作", status: "ready", artifacts: [] }] }, files: [], jobs: [], agentJobs: [], remotionTasks: [], activeJob });
+  const view = createProjectView({ elements: { container }, api: { getProjectWorkspace(slug) { return requests.get(slug).promise; } }, polling: { stop(key) { stops.push(key); }, start(key, callback, interval) { starts.push({ key, callback, interval }); } } });
+  view.mount();
+  const first = view.open("project-a");
+  const second = view.open("project-b");
+  requests.get("project-b").resolve(workspace("project-b"));
+  await second;
+  requests.get("project-a").resolve(workspace("project-a"));
+  await first;
+  assert.match(container.innerHTML, /project-b/);
+  assert.doesNotMatch(container.innerHTML, /project-a/);
+  assert.equal(starts.length, 0);
+
+  const running = deferred();
+  const runningStops = [];
+  const runningView = createProjectView({ elements: { container: projectDetailElement() }, api: { getProjectWorkspace() { return running.promise; } }, polling: { stop(key) { runningStops.push(key); }, start(key, callback, interval) { starts.push({ key, callback, interval }); } } });
+  runningView.mount();
+  const openRunning = runningView.open("running-demo");
+  running.resolve(workspace("running-demo", { id: "remote-1", stage: "remotion", status: "running" }));
+  await openRunning;
+  assert.equal(starts.at(-1).interval, 5000);
+  runningView.unmount();
+  assert.deepEqual(runningStops.slice(-2), ["project", "remotion-task"]);
 });
 
 test("application routes mount, refresh, unmount, and clear project polling", async () => {

@@ -460,3 +460,175 @@
   background: #613344;
   color: #ffb1c1;
 }
+
+/* Phase 4: keep the project decision and its evidence together before the full history. */
+.project-console {
+  display: grid;
+  gap: var(--webui-space-5);
+}
+
+.project-identity {
+  border-color: var(--webui-border-strong);
+  background: var(--webui-surface-raised);
+  box-shadow: var(--webui-shadow-panel);
+}
+
+.project-decision {
+  margin: 0;
+  border-color: color-mix(in srgb, var(--webui-state-ready) 38%, var(--webui-border-strong));
+  background: var(--webui-surface-panel);
+}
+
+.decision-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--webui-space-4);
+}
+
+.decision-header h2,
+.evidence-card h3,
+.supporting-materials h3 {
+  margin: 0;
+}
+
+.decision-stage {
+  max-width: 42%;
+  padding: var(--webui-space-2) var(--webui-space-3);
+  border: 1px solid var(--webui-border-subtle);
+  border-radius: var(--webui-radius-sm);
+  color: var(--webui-text-secondary);
+  font: 12px ui-monospace, SFMono-Regular, Menlo, monospace;
+  overflow-wrap: anywhere;
+  text-align: right;
+}
+
+.project-decision .detail-summary {
+  margin: var(--webui-space-5) 0;
+}
+
+.project-decision .detail-summary > div {
+  border-color: var(--webui-border-subtle);
+  background: var(--webui-surface-inset);
+}
+
+.project-decision progress {
+  display: block;
+  width: 100%;
+  height: 6px;
+  margin-top: var(--webui-space-3);
+  accent-color: var(--webui-state-ready);
+}
+
+.decision-message {
+  padding: var(--webui-space-4);
+  border-left: 3px solid var(--webui-state-ready);
+  background: var(--webui-surface-inset);
+}
+
+.decision-message p {
+  margin: 0;
+  color: var(--webui-text-primary);
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.evidence-section,
+.pipeline-section,
+.supporting-materials {
+  min-width: 0;
+}
+
+.evidence-section > .section-heading,
+.supporting-materials > .section-heading {
+  margin-top: 0;
+}
+
+.task-evidence-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--webui-space-4);
+}
+
+.evidence-card,
+.supporting-panel {
+  min-width: 0;
+  padding: var(--webui-space-4);
+  border: 1px solid var(--webui-border-subtle);
+  border-radius: var(--webui-radius);
+  background: var(--webui-surface-panel);
+}
+
+.evidence-card .section-heading,
+.supporting-panel .section-heading {
+  margin: 0 0 var(--webui-space-3);
+}
+
+.evidence-card .job-card {
+  background: var(--webui-surface-inset);
+}
+
+.evidence-card .jobs-list {
+  min-width: 0;
+}
+
+.supporting-materials {
+  display: grid;
+  gap: var(--webui-space-4);
+}
+
+.supporting-materials > .section-heading {
+  margin-bottom: 0;
+}
+
+.supporting-materials .artifacts-section,
+.supporting-materials .prototype-section {
+  padding-bottom: 0;
+}
+
+.stage-current {
+  border-color: color-mix(in srgb, var(--webui-state-ready) 64%, var(--webui-border-strong));
+  box-shadow: inset 3px 0 0 var(--webui-state-ready);
+}
+
+.stage-pending .stage-marker {
+  background: var(--webui-surface-raised);
+  color: var(--webui-state-disabled);
+}
+
+.stage-meta {
+  flex-wrap: wrap;
+  color: var(--webui-text-muted);
+}
+
+@media (max-width: 1100px) {
+  .task-evidence-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .task-evidence-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .decision-header {
+    display: block;
+  }
+
+  .decision-stage {
+    display: inline-block;
+    max-width: 100%;
+    margin-top: var(--webui-space-3);
+    text-align: left;
+  }
+
+  .project-decision .detail-summary {
+    display: grid;
+  }
+
+  .evidence-card,
+  .supporting-panel {
+    padding: var(--webui-space-3);
+  }
+}
