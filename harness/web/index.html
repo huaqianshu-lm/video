@@ -35,6 +35,14 @@
             <button id="refresh-projects" class="button button-secondary" type="button">刷新</button>
           </div>
         </div>
+        <section class="dashboard-section attention-section" aria-labelledby="attention-heading">
+          <div class="section-heading">
+            <div><p class="eyebrow">ATTENTION</p><h2 id="attention-heading">待处理摘要</h2><p class="page-description">优先查看需要人工确认、恢复或等待中的项目。</p></div>
+          </div>
+          <ul id="attention-summary" class="attention-summary" aria-label="待处理项目摘要"></ul>
+          <div id="attention-project-state" class="loading-state" role="status" aria-live="polite">正在读取待处理项目……</div>
+          <div id="attention-project-grid" class="attention-project-grid"></div>
+        </section>
         <section class="batch-create-panel">
           <div>
             <p class="eyebrow">BATCH WORKFLOW</p>

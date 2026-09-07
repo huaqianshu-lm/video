@@ -31,6 +31,19 @@ async function flush() {
   await Promise.resolve();
 }
 
+function projectCollectionElement() {
+  return new FakeElement({
+    onInnerHTML: (html, element) => {
+      const inputs = [...html.matchAll(/<input[^>]*data-project-select="([^"]+)"[^>]*>/g)]
+        .map((match) => new FakeElement({ dataset: { projectSelect: match[1] } }));
+      const buttons = [...html.matchAll(/<button[^>]*class="[^"]*project-open[^"]*"[^>]*data-slug="([^"]+)"[^>]*>/g)]
+        .map((match) => new FakeElement({ dataset: { slug: match[1] } }));
+      element.setQuery("[data-project-select]", inputs);
+      element.setQuery(".project-open", buttons);
+    },
+  });
+}
+
 class FakeElement {
   constructor({ dataset = {}, onInnerHTML } = {}) {
     this.dataset = { ...dataset };
@@ -455,7 +468,7 @@ test("real dashboard view ignores duplicate mount and submits one batch request 
       async getJobs() { return []; },
     };
     const view = createDashboardView({
-      elements: { projectGrid, projectListState, batchSelectionState, batchButtons: [batchButton] },
+      elements: { projectGrid, projectListState, attentionSummary: new FakeElement(), attentionProjectsState: new FakeElement(), attentionProjectGrid: projectCollectionElement(), batchSelectionState, batchButtons: [batchButton] },
       refreshButton,
       api,
       onCreateBatch(type, slugs) { createCalls += 1; createInput = { type, slugs }; return createGate.promise; },
@@ -476,6 +489,110 @@ test("real dashboard view ignores duplicate mount and submits one batch request 
     view.unmount();
     batchButton.dispatch("click");
     assert.equal(createCalls, 1);
+  });
+});
+
+test("real dashboard view renders attention summary, pending projects and complete project list", async () => {
+  await withBrowserGlobals(async () => {
+    const projects = [
+      { sequence: 1, slug: "waiting-project", currentStage: "visual-script", status: "waiting", progress: 40, succeededCount: 6, stageCount: 15, next: { message: "等待人工确认" } },
+      { sequence: 2, slug: "failed-project", currentStage: "content-analysis", status: "failed", progress: 13, succeededCount: 2, stageCount: 15, next: { message: "修复执行失败" } },
+      { sequence: 3, slug: "running-project", currentStage: "video-narrative", status: "running", progress: 20, succeededCount: 3, stageCount: 15, next: { message: "正在执行当前阶段" } },
+      { sequence: 4, slug: "completed-project", currentStage: "completed", status: "completed", progress: 100, succeededCount: 15, stageCount: 15, next: { message: "所有阶段已完成" } },
+    ];
+    const projectGrid = projectCollectionElement();
+    const attentionProjectGrid = projectCollectionElement();
+    const elements = {
+      projectGrid,
+      projectListState: new FakeElement(),
+      attentionSummary: new FakeElement(),
+      attentionProjectsState: new FakeElement(),
+      attentionProjectGrid,
+      batchSelectionState: new FakeElement(),
+      batchButtons: [new FakeElement()],
+    };
+    const refreshButton = new FakeElement();
+    let projectReads = 0;
+    const opened = [];
+    const view = createDashboardView({
+      elements,
+      refreshButton,
+      api: {
+        async getProjects() { projectReads += 1; return projects; },
+        async getSeries() { return []; },
+        async getJobs() { return []; },
+      },
+      onOpenProject(slug) { opened.push(slug); },
+    });
+
+    view.mount();
+    view.mount();
+    await flush();
+
+    assert.equal(projectReads, 1);
+    assert.match(elements.attentionSummary.innerHTML, /data-attention-count="waiting">1/);
+    assert.match(elements.attentionSummary.innerHTML, /data-attention-count="failure">1/);
+    assert.match(elements.attentionSummary.innerHTML, /data-attention-count="running">1/);
+    assert.match(elements.attentionSummary.innerHTML, /data-attention-count="total">4/);
+    assert.equal(attentionProjectGrid.querySelectorAll(".project-open").length, 3);
+    assert.equal(attentionProjectGrid.innerHTML.includes("data-project-select"), false);
+    assert.equal(projectGrid.querySelectorAll(".project-open").length, 4);
+    assert.equal(projectGrid.querySelectorAll("[data-project-select]").length, 4);
+    for (const value of ["01", "waiting-project", "等待确认", "40%", "等待人工确认", "查看详情", "04", "completed-project", "已完成", "100%", "所有阶段已完成"]) {
+      assert.match(projectGrid.innerHTML, new RegExp(value));
+    }
+
+    const firstAttentionButton = attentionProjectGrid.querySelectorAll(".project-open")[0];
+    firstAttentionButton.dispatch("click");
+    assert.deepEqual(opened, ["waiting-project"]);
+
+    view.refresh();
+    await flush();
+    assert.equal(projectReads, 2);
+    firstAttentionButton.dispatch("click");
+    assert.deepEqual(opened, ["waiting-project"]);
+    attentionProjectGrid.querySelectorAll(".project-open")[0].dispatch("click");
+    assert.deepEqual(opened, ["waiting-project", "waiting-project"]);
+    view.unmount();
+    refreshButton.dispatch("click");
+    assert.equal(projectReads, 2);
+  });
+});
+
+test("real dashboard view explains empty and failed project reads", async () => {
+  await withBrowserGlobals(async () => {
+    const makeView = (api) => {
+      const elements = {
+        projectGrid: projectCollectionElement(),
+        projectListState: new FakeElement(),
+        attentionSummary: new FakeElement(),
+        attentionProjectsState: new FakeElement(),
+        attentionProjectGrid: projectCollectionElement(),
+        batchSelectionState: new FakeElement(),
+        batchButtons: [new FakeElement()],
+      };
+      const view = createDashboardView({ elements, refreshButton: new FakeElement(), api });
+      return { elements, view };
+    };
+    const empty = makeView({ async getProjects() { return []; }, async getSeries() { return []; }, async getJobs() { return []; } });
+    empty.view.mount();
+    await flush();
+    assert.match(empty.elements.projectListState.textContent, /暂时没有发现视频项目/);
+    assert.match(empty.elements.attentionProjectsState.textContent, /当前没有等待处理的项目/);
+    assert.match(empty.elements.attentionSummary.innerHTML, /data-attention-count="total">0/);
+    empty.view.unmount();
+
+    const failed = makeView({
+      async getProjects() { throw new Error("服务端不可用"); },
+      async getSeries() { return []; },
+      async getJobs() { return []; },
+    });
+    failed.view.mount();
+    await flush();
+    assert.match(failed.elements.projectListState.textContent, /读取失败：服务端不可用/);
+    assert.match(failed.elements.attentionProjectsState.textContent, /读取失败：服务端不可用/);
+    assert.match(failed.elements.attentionSummary.innerHTML, /data-attention-count="total">—/);
+    failed.view.unmount();
   });
 });
 
