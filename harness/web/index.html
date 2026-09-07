@@ -20,7 +20,7 @@
             <a href="#/series" data-route="series">系列与导入</a>
             <a href="#/remote-jobs" data-route="remote-jobs">远程任务</a>
           </nav>
-          <span id="service-status" class="status status-pending">正在检查服务</span>
+          <span id="service-status" class="status status-pending" role="status" aria-live="polite">正在检查服务</span>
         </div>
       </header>
 
@@ -42,12 +42,12 @@
             <p class="batch-help">先勾选视频，再选择批次目标。系统会逐个执行，并在 Gate 2、TTS 质检、Gate 3 或 Smoke Render 检查前暂停。</p>
           </div>
           <div class="batch-actions">
-            <button id="batch-to-gate2" class="button button-primary" data-batch-type="to-gate-2" type="button" disabled>批量到 Gate 2</button>
-            <button id="batch-to-tts" class="button button-secondary" data-batch-type="to-tts" type="button" disabled>批量完成 TTS</button>
-            <button id="batch-to-remotion" class="button button-secondary" data-batch-type="to-remotion" type="button" disabled>批量完成 Remotion</button>
-            <button id="batch-to-render" class="button button-secondary" data-batch-type="to-render" type="button" disabled>批量渲染</button>
+            <button id="batch-to-gate2" class="button button-primary" data-batch-type="to-gate-2" type="button" aria-describedby="batch-selection-state" disabled>批量到 Gate 2</button>
+            <button id="batch-to-tts" class="button button-secondary" data-batch-type="to-tts" type="button" aria-describedby="batch-selection-state" disabled>批量完成 TTS</button>
+            <button id="batch-to-remotion" class="button button-secondary" data-batch-type="to-remotion" type="button" aria-describedby="batch-selection-state" disabled>批量完成 Remotion</button>
+            <button id="batch-to-render" class="button button-secondary" data-batch-type="to-render" type="button" aria-describedby="batch-selection-state" disabled>批量渲染</button>
           </div>
-          <p id="batch-selection-state" class="batch-selection-state">已选择 0 个视频</p>
+          <p id="batch-selection-state" class="batch-selection-state" role="status" aria-live="polite">已选择 0 个视频。请先选择视频后再发起批量任务。</p>
         </section>
         <div class="section-heading">
           <div>
@@ -55,7 +55,7 @@
             <h2>视频项目</h2>
           </div>
         </div>
-        <div id="project-list-state" class="loading-state">正在读取视频项目……</div>
+        <div id="project-list-state" class="loading-state" role="status" aria-live="polite">正在读取视频项目……</div>
         <div id="project-grid" class="project-grid"></div>
       </section>
 
@@ -68,14 +68,14 @@
           <div class="section-heading">
             <div><p class="eyebrow">BATCH HISTORY</p><h2>批次记录</h2></div>
           </div>
-          <div id="batch-list" class="batch-list loading-state">正在读取批次……</div>
+          <div id="batch-list" class="batch-list loading-state" role="status" aria-live="polite">正在读取批次……</div>
         </section>
 
         <section class="dashboard-section batch-list-section">
           <div class="section-heading">
             <div><p class="eyebrow">REMOTION TASKS</p><h2>Remotion 制作任务</h2></div>
           </div>
-          <div id="remotion-task-list" class="batch-list loading-state">正在读取 Remotion 制作任务……</div>
+          <div id="remotion-task-list" class="batch-list loading-state" role="status" aria-live="polite">正在读取 Remotion 制作任务……</div>
         </section>
       </section>
 
@@ -98,12 +98,12 @@
               <fieldset class="series-videos"><legend>关联视频</legend><div id="series-video-list" class="series-video-list">正在读取视频……</div></fieldset>
               <button class="button button-primary" type="submit">保存系列设置</button>
             </form>
-            <div class="series-cover-panel"><div id="series-cover-preview" class="series-cover-preview"><span>尚未上传系列封面</span></div><label class="form-field"><span>上传封面（PNG、JPEG 或 WebP；接近 16:9 时自动居中裁切为 1920×1080；最大 10 MB）</span><input id="series-cover-file" type="file" accept="image/png,image/jpeg,image/webp" /></label><button id="upload-series-cover" class="button button-secondary" type="button" disabled>上传并保存封面</button><p id="series-state" class="series-state">选择或创建系列后上传封面。</p></div>
+            <div class="series-cover-panel"><div id="series-cover-preview" class="series-cover-preview"><span>尚未上传系列封面</span></div><label class="form-field"><span>上传封面（PNG、JPEG 或 WebP；接近 16:9 时自动居中裁切为 1920×1080；最大 10 MB）</span><input id="series-cover-file" type="file" accept="image/png,image/jpeg,image/webp" /></label><button id="upload-series-cover" class="button button-secondary" type="button" aria-describedby="series-state" disabled>上传并保存封面</button><p id="series-state" class="series-state" role="status" aria-live="polite">选择或创建系列后上传封面。</p></div>
           </div>
         </section>
         <section class="source-import-panel">
           <div><p class="eyebrow">SOURCE IMPORT</p><h2>导入原文件</h2><p class="source-import-help">先选择系列以锁定视觉风格与原型基线，再上传 Markdown 或纯文本原文件。系统会创建视频项目并保存为 <code>videos/&lt;slug&gt;/source.md</code>。</p></div>
-          <form id="source-import-form" class="source-import-form"><label class="form-field"><span>原文件（.md、.markdown 或 .txt；最大 10 MB）</span><input id="source-import-file" type="file" accept=".md,.markdown,.txt,text/markdown,text/plain" required /></label><label class="form-field"><span>视频 slug（可选；留空时从文件名生成）</span><input id="source-import-slug" type="text" pattern="[a-z0-9]+(?:-[a-z0-9]+)*" placeholder="例如：02-what-is-agents" autocomplete="off" /></label><label class="form-field"><span>所属系列与视觉基线</span><select id="source-import-series" required><option value="">请选择系列</option></select></label><div class="source-import-actions"><button id="source-import-submit" class="button button-primary" type="submit" disabled>上传并创建项目</button><p id="source-import-state" class="source-import-state" role="status" aria-live="polite">请选择一个原文件。</p></div></form>
+          <form id="source-import-form" class="source-import-form"><label class="form-field"><span>原文件（.md、.markdown 或 .txt；最大 10 MB）</span><input id="source-import-file" type="file" accept=".md,.markdown,.txt,text/markdown,text/plain" required /></label><label class="form-field"><span>视频 slug（可选；留空时从文件名生成）</span><input id="source-import-slug" type="text" pattern="[a-z0-9]+(?:-[a-z0-9]+)*" placeholder="例如：02-what-is-agents" autocomplete="off" /></label><label class="form-field"><span>所属系列与视觉基线</span><select id="source-import-series" required><option value="">请选择系列</option></select></label><div class="source-import-actions"><button id="source-import-submit" class="button button-primary" type="submit" aria-describedby="source-import-state" disabled>上传并创建项目</button><p id="source-import-state" class="source-import-state" role="status" aria-live="polite">请选择一个原文件和所属系列。</p></div></form>
         </section>
       </section>
 
@@ -112,7 +112,7 @@
           <div><p class="eyebrow">REMOTE JOBS</p><h2>远程任务</h2><p class="page-description">查看 GitHub Actions 诊断、Run、Artifact 和任务状态。</p></div>
           <div class="section-actions"><button id="check-github-config" class="button button-secondary" type="button">检查 GitHub 配置</button><button id="refresh-jobs-dashboard" class="button button-secondary" type="button">刷新任务</button></div>
         </div>
-        <section class="dashboard-section"><div id="github-diagnostics" class="loading-state" hidden></div><div id="global-jobs-list" class="jobs-list loading-state">正在读取远程任务……</div></section>
+        <section class="dashboard-section"><div id="github-diagnostics" class="loading-state" role="status" aria-live="polite" hidden></div><div id="global-jobs-list" class="jobs-list loading-state" role="status" aria-live="polite">正在读取远程任务……</div></section>
       </section>
 
       <section id="detail-view" hidden>

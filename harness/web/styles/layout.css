@@ -1,5 +1,5 @@
 .shell {
-  width: min(1280px, calc(100% - 48px));
+  width: min(var(--webui-content-max-width), calc(100% - 48px));
   margin: 0 auto;
   padding: 32px 0 64px;
 }
@@ -9,7 +9,7 @@
   justify-content: space-between;
   gap: 32px;
   padding: 18px 0 28px;
-  border-bottom: 1px solid var(--webui-color-border);
+  border-bottom: 1px solid var(--webui-border-subtle);
 }
 .topbar-brand {
   min-width: 0;
@@ -24,27 +24,30 @@
   flex-wrap: wrap;
   justify-content: flex-end;
   gap: 6px;
+  max-width: var(--webui-nav-width);
 }
 .primary-nav a {
   padding: 8px 12px;
   border: 1px solid transparent;
+  min-height: var(--webui-control-height);
   border-radius: var(--webui-radius-sm);
-  color: var(--webui-color-text-muted);
+  color: var(--webui-text-muted);
   text-decoration: none;
   white-space: nowrap;
+  transition: background-color var(--webui-transition-fast) var(--webui-ease-standard), border-color var(--webui-transition-fast) var(--webui-ease-standard), color var(--webui-transition-fast) var(--webui-ease-standard);
 }
 .primary-nav a:hover,
 .primary-nav a[aria-current="page"] {
-  border-color: var(--webui-color-border-strong);
-  background: var(--webui-color-surface-raised);
-  color: var(--webui-color-text);
+  border-color: var(--webui-border-strong);
+  background: var(--webui-surface-raised);
+  color: var(--webui-text-primary);
 }
 .page-view {
   min-width: 0;
 }
 .page-description {
   margin: 8px 0 0;
-  color: var(--webui-color-text-muted);
+  color: var(--webui-text-muted);
   line-height: 1.6;
 }
 

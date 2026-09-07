@@ -7,8 +7,28 @@ export function createSeriesView({ elements, api, getProjects, onImported } = {}
   let projects = [];
   let activeId = "";
   let previewUrl = null;
+  let saving = false;
+  let uploading = false;
+  let importing = false;
+  let newSeriesHandler;
+  let seriesSelectHandler;
+  let seriesSubmitHandler;
+  let coverFileHandler;
+  let uploadCoverHandler;
+  let importFileHandler;
+  let importSeriesHandler;
+  let importSubmitHandler;
   const active = () => series.find((item) => item.id === activeId) ?? null;
   const clearPreview = () => { if (previewUrl) URL.revokeObjectURL(previewUrl); previewUrl = null; };
+
+  function updateImportAvailability(updateMessage = true) {
+    const hasFile = Boolean(elements.importFile.files?.[0]);
+    const hasSeries = Boolean(elements.importSeries.value);
+    elements.importSubmit.disabled = importing || !hasFile || !hasSeries;
+    if (updateMessage && !importing && (!hasFile || !hasSeries)) {
+      elements.importState.textContent = !hasFile && !hasSeries ? "请选择一个原文件和所属系列。" : !hasFile ? "已选择系列，请再选择一个原文件。" : "已选择原文件，请再选择所属系列。";
+    }
+  }
 
   function renderImportOptions() {
     const selected = elements.importSeries.value;
@@ -23,10 +43,11 @@ export function createSeriesView({ elements, api, getProjects, onImported } = {}
     elements.seriesTitle.value = current?.title ?? ""; elements.seriesStyle.value = current?.style ?? "current";
     elements.seriesCoverFrames.value = String(current?.coverDurationFrames ?? 45);
     elements.seriesVideoList.innerHTML = projects.map((project) => `<label><input type="checkbox" name="series-video" value="${escapeHtml(project.slug)}"${current?.videos.includes(project.slug) ? " checked" : ""} /><span>${escapeHtml(project.slug)}</span></label>`).join("") || "暂无视频项目。";
-    if (current?.cover) { elements.seriesCoverPreview.innerHTML = `<img src="/${escapeHtml(current.cover)}?v=${encodeURIComponent(current.updatedAt ?? "")}" alt="${escapeHtml(current.title)}封面" />`; elements.seriesState.textContent = `当前封面：${current.cover} · ${current.coverDurationFrames} 帧`; }
-    else { elements.seriesCoverPreview.innerHTML = "<span>尚未上传系列封面</span>"; elements.seriesState.textContent = current ? "系列已建立，可以上传 16:9 封面。" : "选择或创建系列后上传封面。"; }
-    elements.uploadSeriesCover.disabled = !current || !elements.seriesCoverFile.files?.[0];
+    if (current?.cover) { elements.seriesCoverPreview.innerHTML = `<img src="/${escapeHtml(current.cover)}?v=${encodeURIComponent(current.updatedAt ?? "")}" alt="${escapeHtml(current.title)}封面" />`; elements.seriesState.textContent = elements.seriesCoverFile.files?.[0] ? `当前封面：${current.cover} · ${current.coverDurationFrames} 帧，已选择新封面。` : `当前封面：${current.cover} · ${current.coverDurationFrames} 帧。请选择新的封面文件后上传。`; }
+    else { elements.seriesCoverPreview.innerHTML = "<span>尚未上传系列封面</span>"; elements.seriesState.textContent = current ? "系列已建立，请选择封面文件后上传。" : "选择或创建系列后上传封面。"; }
+    elements.uploadSeriesCover.disabled = uploading || !current || !elements.seriesCoverFile.files?.[0];
     renderImportOptions();
+    updateImportAvailability(false);
   }
 
   async function refresh() {
@@ -57,13 +78,14 @@ export function createSeriesView({ elements, api, getProjects, onImported } = {}
   }
 
   async function save(event) {
-    event.preventDefault(); const current = active();
+    event.preventDefault(); if (saving) return; saving = true; const current = active();
     const videos = [...elements.seriesVideoList.querySelectorAll('input[name="series-video"]:checked')].map((input) => input.value);
     const removed = (current?.videos ?? []).filter((slug) => !videos.includes(slug));
-    if (removed.length > 0 && !window.confirm(`将从系列中移除已有视频：${removed.join(", ")}。\n\n确认继续吗？`)) return;
+    if (removed.length > 0 && !window.confirm(`将从系列中移除已有视频：${removed.join(", ")}。\n\n确认继续吗？`)) { saving = false; return; }
     elements.seriesState.textContent = "正在保存系列设置……";
     try { const result = await api.saveSeries({ id: elements.seriesId.value.trim(), title: elements.seriesTitle.value.trim(), style: elements.seriesStyle.value, coverDurationFrames: Number(elements.seriesCoverFrames.value), videos, confirmVideoRemoval: removed.length > 0 }); activeId = result.series.id; await refresh(); elements.seriesState.textContent = "系列设置已保存。"; }
     catch (error) { elements.seriesState.textContent = `保存失败：${error.message}`; }
+    finally { saving = false; }
   }
 
   async function previewCover() {
@@ -74,23 +96,35 @@ export function createSeriesView({ elements, api, getProjects, onImported } = {}
   }
 
   async function uploadCover() {
-    const file = elements.seriesCoverFile.files?.[0]; const current = active(); if (!file || !current) return;
+    const file = elements.seriesCoverFile.files?.[0]; const current = active(); if (uploading || !file || !current) return;
+    uploading = true; elements.uploadSeriesCover.disabled = true;
     try { const normalized = await normalizeCover(file); const result = await api.uploadSeriesCover(current.id, normalized.blob); clearPreview(); elements.seriesCoverFile.value = ""; await refresh(); elements.seriesState.textContent = `封面已从 ${normalized.sourceWidth}×${normalized.sourceHeight} 居中裁切并保存为 ${result.image.width}×${result.image.height}。`; }
     catch (error) { elements.seriesState.textContent = `上传失败：${error.message}`; }
+    finally { uploading = false; elements.uploadSeriesCover.disabled = !active() || !elements.seriesCoverFile.files?.[0]; }
   }
 
   async function importSource(event) {
-    event.preventDefault(); const file = elements.importFile.files?.[0]; if (!file) return;
-    elements.importSubmit.disabled = true; elements.importState.textContent = "正在上传并创建视频项目……";
-    try { if (file.size > 10 * 1024 * 1024) throw new Error("原文件不能超过 10 MB"); const result = await api.importSource(file, { slug: elements.importSlug.value.trim(), seriesId: elements.importSeries.value }); elements.importForm.reset(); renderImportOptions(); elements.importState.textContent = `已创建项目 ${result.result.slug}，正在打开项目详情……`; await onImported?.(result.result.slug); }
-    catch (error) { elements.importState.textContent = `导入失败：${error.message}`; elements.importSubmit.disabled = false; }
+    event.preventDefault(); const file = elements.importFile.files?.[0]; if (importing || !file) return;
+    importing = true; elements.importSubmit.disabled = true; elements.importState.textContent = "正在上传并创建视频项目……";
+    let completed = false;
+    try { if (file.size > 10 * 1024 * 1024) throw new Error("原文件不能超过 10 MB"); const result = await api.importSource(file, { slug: elements.importSlug.value.trim(), seriesId: elements.importSeries.value }); elements.importForm.reset(); renderImportOptions(); elements.importState.textContent = `已创建项目 ${result.result.slug}，正在打开项目详情……`; completed = true; await onImported?.(result.result.slug); }
+    catch (error) { elements.importState.textContent = `导入失败：${error.message}`; }
+    finally { importing = false; if (!completed) updateImportAvailability(false); }
   }
 
   function mount() {
     if (mounted) return; mounted = true;
-    elements.newSeries.addEventListener("click", () => { activeId = ""; clearPreview(); render(); });
-    elements.seriesSelect.addEventListener("change", () => { activeId = elements.seriesSelect.value; clearPreview(); render(); });
-    elements.seriesForm.addEventListener("submit", save); elements.seriesCoverFile.addEventListener("change", previewCover); elements.uploadSeriesCover.addEventListener("click", uploadCover); elements.importForm.addEventListener("submit", importSource); void refresh();
+    newSeriesHandler = () => { activeId = ""; clearPreview(); render(); };
+    seriesSelectHandler = () => { activeId = elements.seriesSelect.value; clearPreview(); render(); };
+    seriesSubmitHandler = save;
+    coverFileHandler = (event) => { void previewCover(event); };
+    uploadCoverHandler = () => { void uploadCover(); };
+    importFileHandler = () => updateImportAvailability();
+    importSeriesHandler = () => updateImportAvailability();
+    importSubmitHandler = importSource;
+    elements.newSeries.addEventListener("click", newSeriesHandler);
+    elements.seriesSelect.addEventListener("change", seriesSelectHandler);
+    elements.seriesForm.addEventListener("submit", seriesSubmitHandler); elements.seriesCoverFile.addEventListener("change", coverFileHandler); elements.uploadSeriesCover.addEventListener("click", uploadCoverHandler); elements.importFile.addEventListener("change", importFileHandler); elements.importSeries.addEventListener("change", importSeriesHandler); elements.importForm.addEventListener("submit", importSubmitHandler); elements.uploadSeriesCover.setAttribute?.("aria-describedby", "series-state"); elements.importSubmit.setAttribute?.("aria-describedby", "source-import-state"); updateImportAvailability(); void refresh();
   }
-  return { mount, unmount() { mounted = false; clearPreview(); }, refresh, setProjects(next) { projects = next; render(); } };
+  return { mount, unmount() { if (!mounted) return; mounted = false; elements.newSeries.removeEventListener("click", newSeriesHandler); elements.seriesSelect.removeEventListener("change", seriesSelectHandler); elements.seriesForm.removeEventListener("submit", seriesSubmitHandler); elements.seriesCoverFile.removeEventListener("change", coverFileHandler); elements.uploadSeriesCover.removeEventListener("click", uploadCoverHandler); elements.importFile.removeEventListener("change", importFileHandler); elements.importSeries.removeEventListener("change", importSeriesHandler); elements.importForm.removeEventListener("submit", importSubmitHandler); clearPreview(); }, refresh, setProjects(next) { projects = next; render(); } };
 }

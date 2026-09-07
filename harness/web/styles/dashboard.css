@@ -227,7 +227,10 @@
 
 .batch-actions .button:disabled {
   cursor: not-allowed;
-  opacity: 0.45;
+  border-color: var(--webui-border-subtle);
+  background: var(--webui-surface-inset);
+  color: var(--webui-state-disabled);
+  opacity: 1;
 }
 
 .batch-list-section {

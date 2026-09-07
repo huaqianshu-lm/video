@@ -1,6 +1,6 @@
 .eyebrow {
   margin: 0 0 8px;
-  color: var(--webui-color-accent);
+  color: var(--webui-text-link);
   font-size: 12px;
   letter-spacing: 0.16em;
 }
@@ -9,46 +9,139 @@
   align-items: center;
   min-height: 34px;
   padding: 0 14px;
-  border: 1px solid var(--webui-color-border-strong);
+  border: 1px solid var(--webui-border-strong);
   border-radius: 999px;
-  color: var(--webui-color-text-muted);
+  color: var(--webui-text-muted);
   font-size: 13px;
   white-space: nowrap;
 }
 
 .status-ok {
-  border-color: #2f8a67;
-  color: var(--webui-color-success);
+  border-color: color-mix(in srgb, var(--webui-state-success) 48%, var(--webui-border-strong));
+  color: var(--webui-state-success);
 }
 
 .status-error {
-  border-color: #a94b60;
-  color: #ff9db0;
+  border-color: color-mix(in srgb, var(--webui-state-failure) 48%, var(--webui-border-strong));
+  color: var(--webui-state-failure);
 }
 
 .status-succeeded,
 .status-completed,
-.status-success {
-  border-color: #2f8a67;
-  color: var(--webui-color-success);
+.status-success,
+.status-available {
+  border-color: color-mix(in srgb, var(--webui-state-success) 48%, var(--webui-border-strong));
+  color: var(--webui-state-success);
+}
+
+.status-running,
+.status-in-progress,
+.status-queued,
+.status-dispatching,
+.status-submitted,
+.status-waiting-run {
+  border-color: color-mix(in srgb, var(--webui-state-running) 48%, var(--webui-border-strong));
+  color: var(--webui-state-running);
 }
 
 .status-waiting,
-.status-ready,
-.status-in-progress,
-.status-running,
-.status-queued,
-.status-pending {
-  border-color: #4d89c7;
-  color: #a6d6ff;
+.status-waiting-gate,
+.status-waiting-tts-qc,
+.status-waiting-smoke-qc,
+.status-waiting-agent-job,
+.status-waiting-remotion-task,
+.status-waiting-config {
+  border-color: color-mix(in srgb, var(--webui-state-waiting) 48%, var(--webui-border-strong));
+  color: var(--webui-state-waiting);
+}
+
+.status-ready {
+  border-color: color-mix(in srgb, var(--webui-state-ready) 60%, var(--webui-border-strong));
+  color: var(--webui-state-ready);
+}
+
+.status-completed-with-errors,
+.status-recoverable {
+  border-color: color-mix(in srgb, var(--webui-state-warning) 48%, var(--webui-border-strong));
+  color: var(--webui-state-warning);
 }
 
 .status-failed,
 .status-blocked,
 .status-invalidated,
-.status-error {
-  border-color: #a94b60;
-  color: var(--webui-color-danger);
+.status-error,
+.status-missing,
+.status-timeout,
+.status-invalid {
+  border-color: color-mix(in srgb, var(--webui-state-failure) 48%, var(--webui-border-strong));
+  color: var(--webui-state-failure);
+}
+
+.status-pending,
+.status-uninitialized,
+.status-skipped {
+  border-color: var(--webui-border-subtle);
+  color: var(--webui-state-disabled);
+}
+
+.status-ok,
+.status-succeeded,
+.status-completed,
+.status-success,
+.status-available {
+  --webui-status-color: var(--webui-state-success);
+}
+
+.status-running,
+.status-in-progress,
+.status-queued,
+.status-dispatching,
+.status-submitted,
+.status-waiting-run {
+  --webui-status-color: var(--webui-state-running);
+}
+
+.status-waiting,
+.status-waiting-gate,
+.status-waiting-tts-qc,
+.status-waiting-smoke-qc,
+.status-waiting-agent-job,
+.status-waiting-remotion-task,
+.status-waiting-config {
+  --webui-status-color: var(--webui-state-waiting);
+}
+
+.status-ready {
+  --webui-status-color: var(--webui-state-ready);
+}
+
+.status-completed-with-errors,
+.status-recoverable {
+  --webui-status-color: var(--webui-state-warning);
+}
+
+.status-failed,
+.status-blocked,
+.status-invalidated,
+.status-error,
+.status-missing,
+.status-timeout,
+.status-invalid {
+  --webui-status-color: var(--webui-state-failure);
+}
+
+.status-pending,
+.status-uninitialized,
+.status-skipped {
+  --webui-status-color: var(--webui-state-disabled);
+}
+
+.stage-status.status {
+  min-height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--webui-border-subtle);
+  border-radius: 999px;
+  color: var(--webui-status-color, var(--webui-text-muted));
 }
 
 .empty-state {
@@ -65,10 +158,10 @@
   width: 72px;
   height: 72px;
   margin-bottom: 22px;
-  border: 1px solid #4d89c7;
+  border: 1px solid var(--webui-border-strong);
   border-radius: 20px;
-  background: #152541;
-  color: #8ac8ff;
+  background: var(--webui-surface-inset);
+  color: var(--webui-focus-ring);
   font-weight: 700;
   letter-spacing: 0.08em;
 }
@@ -81,7 +174,7 @@
 .empty-state p {
   max-width: 520px;
   margin-bottom: 0;
-  color: #9eabc4;
+  color: var(--webui-text-muted);
   line-height: 1.7;
 }
 
@@ -90,21 +183,23 @@
 }
 
 .button {
+  min-height: var(--webui-control-height);
   border: 1px solid transparent;
   border-radius: var(--webui-radius-sm);
   padding: 9px 14px;
-  color: var(--webui-color-text);
+  color: var(--webui-text-primary);
   cursor: pointer;
   font: inherit;
+  transition: background-color var(--webui-transition-fast) var(--webui-ease-standard), border-color var(--webui-transition-fast) var(--webui-ease-standard), filter var(--webui-transition-fast) var(--webui-ease-standard);
 }
 
 .button-primary {
-  background: var(--webui-color-accent-strong);
+  background: var(--webui-accent-strong);
 }
 
 .button-secondary {
-  border-color: var(--webui-color-border-strong);
-  background: var(--webui-color-surface-raised);
+  border-color: var(--webui-border-strong);
+  background: var(--webui-surface-raised);
 }
 
 .button:hover:not(:disabled) {
@@ -113,15 +208,20 @@
 
 .button:disabled {
   cursor: not-allowed;
-  opacity: 0.5;
+  border-color: var(--webui-border-subtle);
+  background: var(--webui-surface-inset);
+  color: var(--webui-state-disabled);
+  opacity: 1;
 }
 
 .loading-state,
 .next-action {
-  border: 1px solid var(--webui-color-border);
+  position: relative;
+  z-index: var(--webui-z-panel);
+  border: 1px solid var(--webui-border-subtle);
   border-radius: var(--webui-radius);
-  background: rgba(17, 27, 47, 0.72);
-  color: var(--webui-color-text-muted);
+  background: var(--webui-surface-inset);
+  color: var(--webui-text-muted);
 }
 
 .remotion-task-error {
@@ -147,7 +247,7 @@
 .dialog-close {
   border: 0;
   background: transparent;
-  color: #9eabc4;
+  color: var(--webui-text-muted);
   cursor: pointer;
   font-size: 26px;
   line-height: 1;
@@ -165,7 +265,7 @@
   min-height: 360px;
   place-items: center;
   padding: 24px;
-  color: #8190ab;
+  color: var(--webui-state-disabled);
   text-align: center;
 }
 
@@ -175,8 +275,20 @@
   margin: 0;
   overflow: auto;
   padding: 18px;
-  color: #dce5f4;
+  color: var(--webui-text-secondary);
   font: 12px/1.65 ui-monospace, SFMono-Regular, Menlo, monospace;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
+}
+
+.visually-hidden {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
 }

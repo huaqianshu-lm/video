@@ -92,6 +92,7 @@
 }
 
 .reject-dialog {
+  z-index: var(--webui-z-dialog);
   width: min(560px, calc(100% - 32px));
   padding: 0;
   border: 1px solid #33415f;
@@ -102,6 +103,7 @@
 }
 
 .reject-dialog::backdrop {
+  z-index: var(--webui-z-overlay);
   background: rgba(4, 7, 14, 0.72);
 }
 

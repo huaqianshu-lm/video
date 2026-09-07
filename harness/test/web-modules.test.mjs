@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { ApiError, createApiClient } from "../web/api/client.js";
 import { createPollingRegistry } from "../web/core/polling.js";
@@ -8,10 +9,146 @@ import { formatError } from "../web/shared/feedback.js";
 import { escapeHtml } from "../web/shared/html.js";
 import { labelFor } from "../web/shared/labels.js";
 import { startApplication } from "../web/views/application.js";
+import { createBatchView } from "../web/views/batches/index.js";
+import { createDashboardView } from "../web/views/dashboard/index.js";
+import { createRemoteJobsView } from "../web/views/remote-jobs/index.js";
+import { createSeriesView } from "../web/views/series/index.js";
 import { matchProjectRoute } from "../src/web/routes/projects.mjs";
 import { matchTaskRoute } from "../src/web/routes/tasks.mjs";
 import { isSupportedProjectAction, normalizeProjectAction } from "../src/web/services/project-actions.mjs";
 import { createProjectView } from "../web/views/project/index.js";
+
+function deferred() {
+  let resolve;
+  let reject;
+  const promise = new Promise((resolvePromise, rejectPromise) => { resolve = resolvePromise; reject = rejectPromise; });
+  return { promise, resolve, reject };
+}
+
+async function flush() {
+  await Promise.resolve();
+  await Promise.resolve();
+  await Promise.resolve();
+}
+
+class FakeElement {
+  constructor({ dataset = {}, onInnerHTML } = {}) {
+    this.dataset = { ...dataset };
+    this.listeners = new Map();
+    this.queries = new Map();
+    this.matchesSelectors = new Set();
+    this.attributes = new Map();
+    this.classNames = new Set();
+    this.classList = {
+      add: (...names) => names.forEach((name) => this.classNames.add(name)),
+      remove: (...names) => names.forEach((name) => this.classNames.delete(name)),
+    };
+    this.hidden = false;
+    this.disabled = false;
+    this.checked = false;
+    this.files = [];
+    this.options = [];
+    this.value = "";
+    this.textContent = "";
+    this.isConnected = true;
+    this.onInnerHTML = onInnerHTML;
+  }
+
+  set innerHTML(value) {
+    this._innerHTML = String(value);
+    const optionMatches = [...this._innerHTML.matchAll(/<option\s+value="([^"]*)"/g)];
+    if (optionMatches.length) this.options = optionMatches.map((match) => ({ value: match[1] }));
+    this.onInnerHTML?.(this._innerHTML, this);
+  }
+
+  get innerHTML() {
+    return this._innerHTML ?? "";
+  }
+
+  setQuery(selector, values) {
+    this.queries.set(selector, values);
+    return values;
+  }
+
+  querySelector(selector) {
+    return this.queries.get(selector)?.[0] ?? null;
+  }
+
+  querySelectorAll(selector) {
+    return this.queries.get(selector) ?? [];
+  }
+
+  addEventListener(type, handler) {
+    const handlers = this.listeners.get(type) ?? [];
+    handlers.push(handler);
+    this.listeners.set(type, handlers);
+  }
+
+  removeEventListener(type, handler) {
+    const handlers = this.listeners.get(type) ?? [];
+    this.listeners.set(type, handlers.filter((item) => item !== handler));
+  }
+
+  dispatch(type, init = {}) {
+    const event = typeof init === "object" ? { ...init, type } : { type };
+    event.target ??= this;
+    event.currentTarget = this;
+    for (const handler of [...(this.listeners.get(type) ?? [])]) handler(event);
+    return event;
+  }
+
+  setAttribute(name, value) {
+    this.attributes.set(name, String(value));
+  }
+
+  getAttribute(name) {
+    return this.attributes.get(name) ?? null;
+  }
+
+  closest(selector) {
+    return this.matchesSelectors.has(selector) ? this : null;
+  }
+
+  reset() {
+    this.resetCount = (this.resetCount ?? 0) + 1;
+  }
+}
+
+function setGlobal(name, value) {
+  if (value === undefined) delete globalThis[name];
+  else globalThis[name] = value;
+}
+
+async function withBrowserGlobals(callback) {
+  const previous = { window: globalThis.window, document: globalThis.document, Image: globalThis.Image, URL: globalThis.URL };
+  const alerts = [];
+  setGlobal("window", { confirm: () => true, alert: (message) => alerts.push(message) });
+  setGlobal("document", {
+    querySelectorAll: () => [],
+    createElement(tag) {
+      if (tag !== "canvas") return new FakeElement();
+      return {
+        getContext: () => ({ drawImage() {} }),
+        toBlob: (resolve) => resolve(new Blob(["cover"], { type: "image/png" })),
+      };
+    },
+  });
+  setGlobal("Image", class TestImage {
+    naturalWidth = 1920;
+    naturalHeight = 1080;
+
+    set src(value) {
+      this._src = value;
+      queueMicrotask(() => this.onload?.());
+    }
+  });
+  setGlobal("URL", { createObjectURL: () => "blob:test", revokeObjectURL() {} });
+  try {
+    return await callback({ alerts });
+  } finally {
+    for (const [name, value] of Object.entries(previous)) setGlobal(name, value);
+  }
+}
 
 test("API client applies no-store and normalizes server errors", async () => {
   const calls = [];
@@ -243,6 +380,339 @@ test("application mounts top-level views once and toggles page and navigation st
   assert.equal(pages.batches.hidden, false);
   application.destroy();
   assert.equal(hashListeners.size, 0);
+});
+
+test("real dashboard view ignores duplicate mount and submits one batch request per click", async () => {
+  await withBrowserGlobals(async () => {
+    let renderedInput;
+    const projectGrid = new FakeElement({
+      onInnerHTML: (_, element) => {
+        renderedInput = new FakeElement({ dataset: { projectSelect: "demo" } });
+        const openButton = new FakeElement({ dataset: { slug: "demo" } });
+        element.setQuery("[data-project-select]", [renderedInput]);
+        element.setQuery(".project-open", [openButton]);
+      },
+    });
+    const projectListState = new FakeElement();
+    const batchSelectionState = new FakeElement();
+    const batchButton = new FakeElement({ dataset: { batchType: "to-gate-2" } });
+    const refreshButton = new FakeElement();
+    const createGate = deferred();
+    let createCalls = 0;
+    let createInput;
+    const api = {
+      async getProjects() { return [{ slug: "demo", currentStage: "visual-script", status: "waiting-gate", progress: 40, succeededCount: 6, stageCount: 15, next: { message: "等待 Gate 2 确认" } }]; },
+      async getSeries() { return []; },
+      async getJobs() { return []; },
+    };
+    const view = createDashboardView({
+      elements: { projectGrid, projectListState, batchSelectionState, batchButtons: [batchButton] },
+      refreshButton,
+      api,
+      onCreateBatch(type, slugs) { createCalls += 1; createInput = { type, slugs }; return createGate.promise; },
+    });
+
+    view.mount();
+    view.mount();
+    await flush();
+    renderedInput.checked = true;
+    renderedInput.dispatch("change");
+    batchButton.dispatch("click");
+    batchButton.dispatch("click");
+    assert.equal(createCalls, 1);
+    assert.deepEqual(createInput, { type: "to-gate-2", slugs: ["demo"] });
+    createGate.resolve({ batch: { id: "batch-1" } });
+    await flush();
+
+    view.unmount();
+    batchButton.dispatch("click");
+    assert.equal(createCalls, 1);
+  });
+});
+
+test("real batch view binds refresh once and deduplicates concurrent navigation refreshes", async () => {
+  await withBrowserGlobals(async () => {
+    const batchList = new FakeElement();
+    const taskList = new FakeElement();
+    const refreshButton = new FakeElement();
+    const batchesGate = deferred();
+    const tasksGate = deferred();
+    let batchReads = 0;
+    let taskReads = 0;
+    const view = createBatchView({
+      elements: { batchList, taskList },
+      refreshButton,
+      api: {
+        getBatches() { batchReads += 1; return batchesGate.promise; },
+        getRemotionTasks() { taskReads += 1; return tasksGate.promise; },
+      },
+    });
+
+    view.mount();
+    view.mount();
+    refreshButton.dispatch("click");
+    refreshButton.dispatch("click");
+    assert.equal(batchReads, 1);
+    assert.equal(taskReads, 1);
+    batchesGate.resolve({ batches: [] });
+    tasksGate.resolve([]);
+    await flush();
+    view.unmount();
+    refreshButton.dispatch("click");
+    assert.equal(batchReads, 1);
+    assert.equal(taskReads, 1);
+  });
+});
+
+test("real series and import view deduplicates save, cover upload and source import after repeated mount", async () => {
+  await withBrowserGlobals(async () => {
+    const elements = {
+      seriesSelect: new FakeElement(),
+      seriesId: new FakeElement(),
+      seriesTitle: new FakeElement(),
+      seriesStyle: new FakeElement(),
+      seriesCoverFrames: new FakeElement(),
+      seriesVideoList: new FakeElement(),
+      seriesForm: new FakeElement(),
+      seriesCoverFile: new FakeElement(),
+      seriesCoverPreview: new FakeElement(),
+      seriesState: new FakeElement(),
+      newSeries: new FakeElement(),
+      uploadSeriesCover: new FakeElement(),
+      importForm: new FakeElement(),
+      importFile: new FakeElement(),
+      importSlug: new FakeElement(),
+      importSeries: new FakeElement(),
+      importSubmit: new FakeElement(),
+      importState: new FakeElement(),
+    };
+    const series = { id: "demo-series", title: "Demo", style: "current", coverDurationFrames: 45, videos: [] };
+    const saveGate = deferred();
+    const uploadGate = deferred();
+    const importGate = deferred();
+    let seriesReads = 0;
+    let saveCalls = 0;
+    let uploadCalls = 0;
+    let importCalls = 0;
+    const imported = [];
+    const view = createSeriesView({
+      elements,
+      getProjects: () => [],
+      api: {
+        async getSeries() { seriesReads += 1; return [series]; },
+        saveSeries(input) { saveCalls += 1; assert.equal(input.id, "demo-series"); return saveGate.promise; },
+        uploadSeriesCover(id, blob) { uploadCalls += 1; assert.equal(id, "demo-series"); assert.ok(blob instanceof Blob); return uploadGate.promise; },
+        importSource(file, input) { importCalls += 1; assert.equal(file.name, "source.md"); assert.equal(input.seriesId, "none"); return importGate.promise; },
+      },
+      onImported: (slug) => imported.push(slug),
+    });
+
+    view.mount();
+    view.mount();
+    await flush();
+    assert.equal(seriesReads, 1);
+
+    elements.seriesId.value = "demo-series";
+    elements.seriesTitle.value = "Demo";
+    elements.seriesForm.dispatch("submit", { preventDefault() {}, currentTarget: elements.seriesForm });
+    elements.seriesForm.dispatch("submit", { preventDefault() {}, currentTarget: elements.seriesForm });
+    assert.equal(saveCalls, 1);
+    saveGate.resolve({ series });
+    await flush();
+
+    series.videos = ["existing-video"];
+    const confirmationMessages = [];
+    const previousConfirm = globalThis.window.confirm;
+    globalThis.window.confirm = (message) => { confirmationMessages.push(message); return false; };
+    elements.seriesForm.dispatch("submit", { preventDefault() {}, currentTarget: elements.seriesForm });
+    await flush();
+    assert.equal(saveCalls, 1);
+    assert.equal(confirmationMessages.length, 1);
+    assert.match(confirmationMessages[0], /existing-video/);
+    globalThis.window.confirm = previousConfirm;
+    series.videos = [];
+
+    elements.seriesCoverFile.files = [{ size: 1, type: "image/png", name: "cover.png" }];
+    elements.uploadSeriesCover.dispatch("click");
+    elements.uploadSeriesCover.dispatch("click");
+    await flush();
+    assert.equal(uploadCalls, 1);
+    uploadGate.resolve({ image: { width: 1920, height: 1080 } });
+    await flush();
+
+    elements.seriesCoverFile.files = [{ size: 10 * 1024 * 1024 + 1, type: "image/png", name: "oversized.png" }];
+    elements.seriesCoverFile.dispatch("change");
+    await flush();
+    assert.equal(elements.uploadSeriesCover.disabled, true);
+    assert.match(elements.seriesState.textContent, /图片超过 10 MB/);
+
+    elements.importFile.files = [{ size: 1, name: "source.md", type: "text/markdown" }];
+    elements.importSeries.value = "none";
+    elements.importFile.dispatch("change");
+    elements.importSeries.dispatch("change");
+    assert.equal(elements.importSubmit.disabled, false);
+    elements.importForm.dispatch("submit", { preventDefault() {}, currentTarget: elements.importForm });
+    elements.importForm.dispatch("submit", { preventDefault() {}, currentTarget: elements.importForm });
+    assert.equal(importCalls, 1);
+    importGate.resolve({ result: { slug: "new-video" } });
+    await flush();
+    assert.deepEqual(imported, ["new-video"]);
+
+    elements.importFile.files = [{ size: 10 * 1024 * 1024 + 1, name: "too-large.md", type: "text/markdown" }];
+    elements.importForm.dispatch("submit", { preventDefault() {}, currentTarget: elements.importForm });
+    await flush();
+    assert.equal(importCalls, 1);
+    assert.match(elements.importState.textContent, /原文件不能超过 10 MB/);
+
+    view.unmount();
+    elements.seriesForm.dispatch("submit", { preventDefault() {}, currentTarget: elements.seriesForm });
+    elements.importForm.dispatch("submit", { preventDefault() {}, currentTarget: elements.importForm });
+    assert.equal(saveCalls, 1);
+    assert.equal(importCalls, 1);
+  });
+});
+
+test("real remote jobs view sends one refresh and one diagnostics request after repeated mount", async () => {
+  await withBrowserGlobals(async () => {
+    const list = new FakeElement();
+    const diagnostics = new FakeElement();
+    const refreshButton = new FakeElement();
+    const diagnosticsButton = new FakeElement();
+    const jobsGate = deferred();
+    const diagnosticsGate = deferred();
+    let jobReads = 0;
+    let diagnosticReads = 0;
+    const view = createRemoteJobsView({
+      elements: { list, diagnostics },
+      refreshButton,
+      diagnosticsButton,
+      api: {
+        getJobs() { jobReads += 1; return jobsGate.promise; },
+        getGitHubDiagnostics() { diagnosticReads += 1; return diagnosticsGate.promise; },
+      },
+    });
+
+    view.mount();
+    view.mount();
+    refreshButton.dispatch("click");
+    refreshButton.dispatch("click");
+    diagnosticsButton.dispatch("click");
+    diagnosticsButton.dispatch("click");
+    assert.equal(jobReads, 1);
+    assert.equal(diagnosticReads, 1);
+    jobsGate.resolve([]);
+    diagnosticsGate.resolve({ ok: true, checks: [{ status: "ok", name: "token", message: "已配置" }] });
+    await flush();
+    assert.equal(list.innerHTML.includes("token"), false);
+    view.unmount();
+    refreshButton.dispatch("click");
+    diagnosticsButton.dispatch("click");
+    assert.equal(jobReads, 1);
+    assert.equal(diagnosticReads, 1);
+  });
+});
+
+test("application keeps real top-level view listeners single across hash navigation and destroy", async () => {
+  const hashListeners = new Set();
+  let hash = "#/projects";
+  const windowObject = {
+    location: {
+      get hash() { return hash; },
+      set hash(value) { hash = value; for (const listener of hashListeners) listener(); },
+    },
+    addEventListener(type, listener) { if (type === "hashchange") hashListeners.add(listener); },
+    removeEventListener(type, listener) { if (type === "hashchange") hashListeners.delete(listener); },
+  };
+  const page = (buttons = {}) => {
+    const element = new FakeElement();
+    for (const [selector, button] of Object.entries(buttons)) element.setQuery(selector, [button]);
+    return element;
+  };
+  const refreshProjects = new FakeElement();
+  const refreshBatches = new FakeElement();
+  const refreshJobs = new FakeElement();
+  const diagnosticsButton = new FakeElement();
+  const pages = {
+    projects: page({ "#refresh-projects": refreshProjects }),
+    batches: page({ "#refresh-batches": refreshBatches }),
+    series: page(),
+    "remote-jobs": page({ "#refresh-jobs-dashboard": refreshJobs, "#check-github-config": diagnosticsButton }),
+  };
+  const seriesElements = {
+    seriesSelect: new FakeElement(), seriesId: new FakeElement(), seriesTitle: new FakeElement(), seriesStyle: new FakeElement(), seriesCoverFrames: new FakeElement(),
+    seriesVideoList: new FakeElement(), seriesForm: new FakeElement(), seriesCoverFile: new FakeElement(), seriesCoverPreview: new FakeElement(), seriesState: new FakeElement(),
+    newSeries: new FakeElement(), uploadSeriesCover: new FakeElement(), importForm: new FakeElement(), importFile: new FakeElement(), importSlug: new FakeElement(),
+    importSeries: new FakeElement(), importSubmit: new FakeElement(), importState: new FakeElement(),
+  };
+  const ui = {
+    status: new FakeElement(), dashboard: pages.projects, detail: new FakeElement(), projectDetail: new FakeElement(), pages, navLinks: [],
+    projectGrid: new FakeElement(), projectListState: new FakeElement(), batchSelectionState: new FakeElement(),
+    batchButtons: [new FakeElement(), new FakeElement(), new FakeElement(), new FakeElement()], batchList: new FakeElement(), taskList: new FakeElement(),
+    globalJobs: new FakeElement(), diagnostics: new FakeElement(), ...seriesElements,
+  };
+  const calls = { batches: 0, tasks: 0, jobs: 0, diagnostics: 0 };
+  const application = startApplication({
+    windowObject,
+    router: createRouter({ windowObject }),
+    ui,
+    api: {
+      async getHealth() { return { harnessVersion: "test" }; },
+      async getProjects() { return []; },
+      async getSeries() { return []; },
+      async getJobs() { calls.jobs += 1; return []; },
+      async getBatches() { calls.batches += 1; return { batches: [] }; },
+      async getRemotionTasks() { calls.tasks += 1; return []; },
+      async getGitHubDiagnostics() { calls.diagnostics += 1; return { ok: true, checks: [] }; },
+    },
+  });
+  await flush();
+  const initialBatches = calls.batches;
+  const initialJobs = calls.jobs;
+  application.router.navigate({ name: "batches" });
+  application.router.navigate({ name: "projects" });
+  application.router.navigate({ name: "batches" });
+  refreshBatches.dispatch("click");
+  await flush();
+  assert.equal(calls.batches, initialBatches + 1);
+  refreshJobs.dispatch("click");
+  diagnosticsButton.dispatch("click");
+  await flush();
+  assert.equal(calls.jobs, initialJobs + 1);
+  assert.equal(calls.diagnostics, 1);
+  application.destroy();
+  refreshBatches.dispatch("click");
+  refreshJobs.dispatch("click");
+  diagnosticsButton.dispatch("click");
+  assert.equal(calls.batches, initialBatches + 1);
+  assert.equal(calls.jobs, initialJobs + 1);
+  assert.equal(calls.diagnostics, 1);
+  assert.equal(hashListeners.size, 0);
+});
+
+test("WebUI semantic tokens, state classes and accessibility hooks are present and used", async () => {
+  const root = new URL("../web/", import.meta.url);
+  const [tokens, base, layout, components, html] = await Promise.all([
+    readFile(new URL("styles/tokens.css", root), "utf8"),
+    readFile(new URL("styles/base.css", root), "utf8"),
+    readFile(new URL("styles/layout.css", root), "utf8"),
+    readFile(new URL("styles/components.css", root), "utf8"),
+    readFile(new URL("index.html", root), "utf8"),
+  ]);
+  for (const token of [
+    "surface-page", "surface-panel", "surface-raised", "surface-inset", "text-primary", "text-secondary", "text-muted", "text-link",
+    "border-subtle", "border-strong", "focus-ring", "state-success", "state-running", "state-waiting", "state-ready", "state-warning", "state-failure", "state-disabled",
+    "content-max-width", "nav-width", "control-height", "z-panel", "z-overlay", "z-dialog", "transition-fast", "ease-standard",
+  ]) assert.match(tokens, new RegExp(`--webui-${token}\\s*:`));
+  assert.match(base, /var\(--webui-surface-panel\)/);
+  assert.match(layout, /var\(--webui-content-max-width\)/);
+  assert.match(components, /var\(--webui-state-success\)/);
+  assert.match(base, /prefers-reduced-motion/);
+  assert.match(base, /var\(--webui-focus-ring\)/);
+  assert.match(layout, /var\(--webui-nav-width\)/);
+  for (const status of ["completed", "succeeded", "available", "running", "queued", "dispatching", "in-progress", "waiting", "waiting-gate", "waiting-tts-qc", "waiting-smoke-qc", "ready", "failed", "blocked", "invalidated", "missing", "timeout", "pending", "uninitialized"]) assert.match(components, new RegExp(`\\.status-${status}(?:[,\\s{])`));
+  assert.match(html, /id="batch-to-gate2"[^>]*aria-describedby="batch-selection-state"/);
+  assert.match(html, /id="upload-series-cover"[^>]*aria-describedby="series-state"/);
+  assert.match(html, /id="source-import-submit"[^>]*aria-describedby="source-import-state"/);
 });
 
 test("shared presentation helpers are deterministic", () => {
