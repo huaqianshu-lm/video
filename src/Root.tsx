@@ -30,6 +30,8 @@ import {PricingVideo} from './videos/04-pricing/PricingVideo';
 import {videoConfig as pricingConfig} from './videos/04-pricing/video.config';
 import {ThirdPartyModelsVideo} from './videos/05-third-party-models/ThirdPartyModelsVideo';
 import {videoConfig as thirdPartyModelsConfig} from './videos/05-third-party-models/video.config';
+import {FirstTaskVideo} from './videos/06-first-task/FirstTaskVideo';
+import {videoConfig as firstTaskConfig} from './videos/06-first-task/video.config';
 
 export const Root = () => {
   return (
@@ -153,6 +155,14 @@ export const Root = () => {
         fps={thirdPartyModelsConfig.fps}
         width={thirdPartyModelsConfig.width}
         height={thirdPartyModelsConfig.height}
+      />
+      <Composition
+        id={firstTaskConfig.slug}
+        component={FirstTaskVideo}
+        durationInFrames={getTotalDurationFrames(firstTaskConfig)}
+        fps={firstTaskConfig.fps}
+        width={firstTaskConfig.width}
+        height={firstTaskConfig.height}
       />
     </>
   );
