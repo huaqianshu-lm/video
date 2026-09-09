@@ -56,6 +56,9 @@
 
 ## 已完成（最近 10 条）
 
+- 2026-09-09：修复批次记录与 Remotion 任务卡片滚动失效；两个页面改为页眉固定、列表区唯一滚动，列表高度受限且横向溢出隔离，WebUI 模块测试 32/32、类型检查、前后端语法和差异检查通过。
+- 2026-09-09：完成《WebUI 批次与工作台布局问题修复实施方案》六项改造：批量选择详情入口、四按钮统一、批次／Remotion 任务拆页、批次卡片化、工作台密度调整和系列／导入左右布局；模块测试 32/32、类型检查、前后端语法和差异检查通过，Web Server 监听回归受当前沙箱限制。
+- 2026-09-09：完成 WebUI 一屏布局、桌面与移动端内容区内部滚动和独立批量创建入口；工作台不再承载批量选择，`#/batches` 与工作台均可进入 `#/batches/new`，未改变 Harness 批量状态模型或视频内容。
 - 2026-09-02：WebUI Fixture 已验证原文件导入、连续执行到 Gate 2、持久化 Agent Job 编排和人工 Gate 停止点；WebUI 定向回归 15/15 通过，未上传真实原文件，未调用真实 Agent／TTS／Remotion，未生成 Fixture 正式视频。
 - 2026-09-02：Remotion 音画同步契约、Agent 任务包、12 个有口播配置和 Alignment Schema 2 完成总体验证；Harness 全量 `127/127`、`npm run check`、关键脚本语法检查和 `git diff --check` 全部通过，未调用真实 Agent／TTS／Remotion／渲染。
 - 2026-09-02：最小 Fixture 已验证 Remotion Agent 任务包、Timeline Scene／Segment／Subtitle Cue 时间映射、音频时长不一致阻断和 Alignment 绑定；相关 11 项定向回归全部通过，未调用真实 Agent／TTS／Remotion／渲染，未生成正式视频，工作区状态未被测试改变。
@@ -161,7 +164,7 @@
 2. 由用户确认新增 33 个视频的 Gate 2；通过后按四类批次逐段推进，历史完成视频不再回溯。
 3. 继续按 `todo.md` 统一改造 Web UI 的其他异步／业务按钮；Smoke Render 一键交付已完成，完整 Render 继续保持 Smoke 检查后的独立入口。
 4. 《WebUI 视觉与交互整改实施规范》的阶段一至五已完成；管理页面测试已补齐，全站回归通过，未改变 Harness 核心语义。
-5. WebUI 批次、系列与导入、远程任务页面已完成视觉与交互整改；当前进入页面人工使用和后续问题修复阶段。
+5. 由用户按《WebUI 批次与工作台布局问题修复实施方案》第 10 节完成人工视觉验收；在允许监听 `127.0.0.1` 的环境重跑 Web Server 回归。
 
 ## 阻塞
 
@@ -188,6 +191,12 @@
 - 远程渲染完成后，Agent 只检查 GitHub Actions Run 结论和 Artifact 是否存在、非空、未过期；Artifact 下载、视频播放和最终 Gate 4 内容检查由用户完成。
 
 ## 最近验证（最近 10 条）
+
+- 2026-09-09：批次记录与 Remotion 任务滚动修复定向回归 32/32 通过；`find harness/web harness/src ... node --check` 和 `git diff --check` 通过，未触发真实 Agent／TTS／Remotion／渲染。
+- 2026-09-09：WebUI 六项布局与交互改造定向回归 32/32 通过；`npm run check`、`find harness/web harness/src ... node --check` 和 `git diff --check` 通过；Harness 全量 143/160，17 项因沙箱禁止监听 `127.0.0.1` 失败，未触发真实 Agent／TTS／Remotion／渲染。
+- 2026-09-09：WebUI 完成一屏布局和内部滚动改造；桌面与移动端的工作台项目列表、待处理列表、批次记录和 Remotion 任务均独立滚动，新增 `#/batches/new` 批量创建页面并保留四类批量目标；WebUI 模块测试 31/31、`npm run check`、前后端语法检查和 `git diff --check` 通过。完整 Harness 回归的 Web Server 用例仍受当前沙箱禁止监听 `127.0.0.1` 影响，未触发真实 Agent／TTS／Remotion／渲染。
+
+## 历史验证（旧记录）
 
 - 2026-09-02：Remotion 音画同步最小 Fixture 3/3 通过；任务包包含统一 Scene／Segment／Cue 帧计划，音频／Timeline 时长偏差会被阻断；Harness 全量 127/127、`npm run check`、前后端语法和 `git diff --check` 通过，未生成正式视频。
 - 2026-09-02：Smoke Render 一键交付专项通过；未确认时不提交、不推送、不创建远程任务，确认后只提交渲染文件并验证远程分支指向新提交；Harness 全量 124/124、`npm run check`、前后端语法和 `git diff --check` 通过，未访问真实远程仓库。

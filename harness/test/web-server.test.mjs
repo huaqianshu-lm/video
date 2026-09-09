@@ -72,10 +72,12 @@ test("serves the Web UI shell and health endpoint on localhost", async () => {
     assert.match(page.contentType, /text\/html/);
     assert.match(page.body, /视频项目管理/);
     assert.match(page.body, /href="#\/projects"[^>]*>工作台/);
-    assert.match(page.body, /href="#\/batches"[^>]*>批次/);
+    assert.match(page.body, /href="#\/batches"[^>]*>批次记录/);
+    assert.match(page.body, /href="#\/remotion-tasks"[^>]*>Remotion 任务/);
     assert.match(page.body, /href="#\/series"[^>]*>系列与导入/);
     assert.match(page.body, /href="#\/remote-jobs"[^>]*>远程任务/);
     assert.match(page.body, /id="batches-view"/);
+    assert.match(page.body, /id="remotion-tasks-view"/);
     assert.match(page.body, /id="series-view"/);
     assert.match(page.body, /id="remote-jobs-view"/);
     assert.match(page.body, /id="batch-summary"/);
@@ -87,6 +89,11 @@ test("serves the Web UI shell and health endpoint on localhost", async () => {
     assert.match(page.body, /id="github-diagnostics"/);
     assert.match(page.body, /尚未检查，请点击“检查 GitHub 配置”/);
     assert.match(page.body, /id="global-jobs-list"/);
+    const batchViewStart = page.body.indexOf('<section id="batches-view"');
+    const remotionViewStart = page.body.indexOf('<section id="remotion-tasks-view"');
+    assert.ok(batchViewStart >= 0 && remotionViewStart > batchViewStart);
+    assert.doesNotMatch(page.body.slice(batchViewStart, remotionViewStart), /remotion-task-list|Remotion 制作任务/);
+    assert.match(page.body.slice(remotionViewStart), /id="remotion-task-list"/);
 
     const app = await request(webServer, "/app.js");
     assert.equal(app.status, 200);

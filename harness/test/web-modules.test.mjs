@@ -10,7 +10,9 @@ import { escapeHtml } from "../web/shared/html.js";
 import { labelFor } from "../web/shared/labels.js";
 import { startApplication } from "../web/views/application.js";
 import { createBatchView } from "../web/views/batches/index.js";
+import { createBatchCreationView } from "../web/views/batches/create.js";
 import { createDashboardView } from "../web/views/dashboard/index.js";
+import { createRemotionTasksView } from "../web/views/remotion-tasks/index.js";
 import { createRemoteJobsView } from "../web/views/remote-jobs/index.js";
 import { createSeriesView } from "../web/views/series/index.js";
 import { matchProjectRoute } from "../src/web/routes/projects.mjs";
@@ -236,6 +238,8 @@ test("store keeps the declared cross-page state and notifies subscribers", () =>
 test("router accepts both current and legacy project hashes", () => {
   assert.deepEqual(parseRoute("#/projects"), { name: "projects", slug: null });
   assert.deepEqual(parseRoute("#/batches"), { name: "batches", slug: null });
+  assert.deepEqual(parseRoute("#/batches/new"), { name: "batch-create", slug: null });
+  assert.deepEqual(parseRoute("#/remotion-tasks"), { name: "remotion-tasks", slug: null });
   assert.deepEqual(parseRoute("#/series"), { name: "series", slug: null });
   assert.deepEqual(parseRoute("#/remote-jobs"), { name: "remote-jobs", slug: null });
   assert.deepEqual(parseRoute("#/projects/demo-video"), { name: "project", slug: "demo-video" });
@@ -247,10 +251,11 @@ test("router navigates every top-level entry and keeps listeners in sync without
   const routes = [];
   router.subscribe((route) => routes.push(route));
   router.navigate({ name: "batches" });
+  router.navigate({ name: "remotion-tasks" });
   router.navigate({ name: "series" });
   router.navigate({ name: "remote-jobs" });
   router.navigate({ name: "projects" });
-  assert.deepEqual(routes.map((route) => route.name), ["batches", "series", "remote-jobs", "projects"]);
+  assert.deepEqual(routes.map((route) => route.name), ["batches", "remotion-tasks", "series", "remote-jobs", "projects"]);
   assert.deepEqual(router.current(), { name: "projects", slug: null });
 });
 
@@ -605,12 +610,13 @@ test("application routes mount, refresh, unmount, and clear project polling", as
     router: createRouter({ windowObject }),
     polling,
     ui,
-    views: { dashboard: view("dashboard"), batches: view("batches"), series: view("series"), remote: view("remote"), project },
+    views: { dashboard: view("dashboard"), batches: view("batches"), remotionTasks: view("remotion-tasks"), series: view("series"), remote: view("remote"), project },
   });
 
   assert.equal(application.router.current().name, "projects");
   assert.ok(lifecycle.includes("dashboard:mount"));
   assert.ok(lifecycle.includes("batches:mount"));
+  assert.ok(lifecycle.includes("remotion-tasks:mount"));
   assert.ok(lifecycle.includes("series:mount"));
   assert.ok(lifecycle.includes("remote:mount"));
 
@@ -648,7 +654,7 @@ test("application mounts top-level views once and toggles page and navigation st
   };
   const lifecycle = [];
   const page = () => ({ hidden: false, querySelector() { return null; } });
-  const pages = { projects: page(), batches: page(), series: page(), "remote-jobs": page() };
+  const pages = { projects: page(), batches: page(), "remotion-tasks": page(), series: page(), "remote-jobs": page() };
   const navLinks = Object.keys(pages).map((name) => ({ dataset: { route: name }, setAttribute(name, value) { this[name] = value; } }));
   const view = (name) => ({
     mount() { lifecycle.push(`${name}:mount`); },
@@ -674,19 +680,23 @@ test("application mounts top-level views once and toggles page and navigation st
     api: { async getHealth() { return { harnessVersion: "test" }; } },
     router: createRouter({ windowObject }),
     ui,
-    views: { dashboard: view("dashboard"), batches: view("batches"), series: view("series"), remote: view("remote"), project },
+    views: { dashboard: view("dashboard"), batches: view("batches"), remotionTasks: view("remotion-tasks"), series: view("series"), remote: view("remote"), project },
   });
 
-  for (const name of ["dashboard", "batches", "series", "remote"]) assert.equal(lifecycle.filter((item) => item === `${name}:mount`).length, 1);
+  for (const name of ["dashboard", "batches", "remotion-tasks", "series", "remote"]) assert.equal(lifecycle.filter((item) => item === `${name}:mount`).length, 1);
   application.router.navigate({ name: "batches" });
+  application.router.navigate({ name: "remotion-tasks" });
   application.router.navigate({ name: "series" });
   application.router.navigate({ name: "remote-jobs" });
   application.router.navigate({ name: "projects" });
-  assert.deepEqual(lifecycle.filter((item) => item.endsWith(":mount")), ["dashboard:mount", "series:mount", "batches:mount", "remote:mount"]);
+  assert.deepEqual(lifecycle.filter((item) => item.endsWith(":mount")), ["dashboard:mount", "series:mount", "batches:mount", "remotion-tasks:mount", "remote:mount"]);
   assert.equal(pages.projects.hidden, false);
   assert.equal(pages.batches.hidden, true);
   assert.equal(navLinks.find((link) => link.dataset.route === "projects")["aria-current"], "page");
   assert.equal(navLinks.find((link) => link.dataset.route === "remote-jobs")["aria-current"], "false");
+  application.router.navigate({ name: "remotion-tasks" });
+  assert.equal(pages["remotion-tasks"].hidden, false);
+  assert.equal(navLinks.find((link) => link.dataset.route === "remotion-tasks")["aria-current"], "page");
   application.router.navigate({ name: "project", slug: "demo" });
   assert.equal(ui.detail.hidden, false);
   assert.equal(pages.projects.hidden, true);
@@ -697,51 +707,174 @@ test("application mounts top-level views once and toggles page and navigation st
   assert.equal(hashListeners.size, 0);
 });
 
-test("real dashboard view ignores duplicate mount and submits one batch request per click", async () => {
+test("real dashboard view keeps project cards focused on opening project details", async () => {
   await withBrowserGlobals(async () => {
-    let renderedInput;
     const projectGrid = new FakeElement({
       onInnerHTML: (_, element) => {
-        renderedInput = new FakeElement({ dataset: { projectSelect: "demo" } });
         const openButton = new FakeElement({ dataset: { slug: "demo" } });
-        element.setQuery("[data-project-select]", [renderedInput]);
         element.setQuery(".project-open", [openButton]);
       },
     });
     const projectListState = new FakeElement();
-    const batchSelectionState = new FakeElement();
-    const batchButton = new FakeElement({ dataset: { batchType: "to-gate-2" } });
     const refreshButton = new FakeElement();
-    const createGate = deferred();
-    let createCalls = 0;
-    let createInput;
     const api = {
       async getProjects() { return [{ slug: "demo", currentStage: "visual-script", status: "waiting-gate", progress: 40, succeededCount: 6, stageCount: 15, next: { message: "等待 Gate 2 确认" } }]; },
       async getSeries() { return []; },
       async getJobs() { return []; },
     };
     const view = createDashboardView({
-      elements: { projectGrid, projectListState, attentionSummary: new FakeElement(), attentionProjectsState: new FakeElement(), attentionProjectGrid: projectCollectionElement(), batchSelectionState, batchButtons: [batchButton] },
+      elements: { projectGrid, projectListState, attentionSummary: new FakeElement(), attentionProjectsState: new FakeElement(), attentionProjectGrid: projectCollectionElement() },
       refreshButton,
       api,
-      onCreateBatch(type, slugs) { createCalls += 1; createInput = { type, slugs }; return createGate.promise; },
     });
 
     view.mount();
     view.mount();
     await flush();
-    renderedInput.checked = true;
-    renderedInput.dispatch("change");
-    batchButton.dispatch("click");
-    batchButton.dispatch("click");
-    assert.equal(createCalls, 1);
-    assert.deepEqual(createInput, { type: "to-gate-2", slugs: ["demo"] });
-    createGate.resolve({ batch: { id: "batch-1" } });
-    await flush();
+    assert.equal(projectGrid.querySelectorAll("[data-project-select]").length, 0);
+    projectGrid.querySelectorAll(".project-open")[0].dispatch("click");
 
     view.unmount();
-    batchButton.dispatch("click");
-    assert.equal(createCalls, 1);
+  });
+});
+
+test("batch creation view loads selectable projects and submits one confirmed batch", async () => {
+  await withBrowserGlobals(async () => {
+    let renderedInput;
+    let renderedOpenButton;
+    const list = new FakeElement({
+      onInnerHTML: (_, element) => {
+        renderedInput = new FakeElement({ dataset: { batchProjectSelect: "demo" }, matchesSelectors: ["[data-batch-project-select]"] });
+        renderedOpenButton = new FakeElement({ dataset: { batchProjectOpen: "demo" }, matchesSelectors: ["[data-batch-project-open]"] });
+        element.setQuery("[data-batch-project-select]", [renderedInput]);
+        element.setQuery("[data-batch-project-open]", [renderedOpenButton]);
+      },
+    });
+    const listState = new FakeElement();
+    const selectionState = new FakeElement();
+    const state = new FakeElement();
+    const actions = new FakeElement();
+    const batchButtons = ["to-gate-2", "to-tts", "to-remotion", "to-render"].map((batchType) => new FakeElement({ dataset: { batchType }, matchesSelectors: ["[data-batch-type]"] }));
+    actions.setQuery("[data-batch-type]", batchButtons);
+    const createGate = deferred();
+    const created = [];
+    const opened = [];
+    const view = createBatchCreationView({
+      elements: { list, listState, selectionState, state, actions },
+      api: { async getProjects() { return [{ slug: "demo", currentStage: "visual-script", status: "waiting-gate", next: { message: "等待 Gate 2 确认" } }]; } },
+      onCreateBatch(type, slugs) { created.push({ type, slugs }); return createGate.promise; },
+      onCreated() { created.push("navigated"); },
+      onOpenProject(slug) { opened.push(slug); },
+    });
+
+    view.mount();
+    await view.refresh();
+    assert.equal(batchButtons.every((button) => button.disabled), true);
+    renderedInput.checked = true;
+    list.dispatch("change", { target: renderedInput });
+    assert.equal(batchButtons.every((button) => !button.disabled), true);
+    assert.match(list.innerHTML, /data-batch-project-open="demo"/);
+    assert.match(list.innerHTML, /<article class="batch-project-option">/);
+    assert.match(list.innerHTML, /<label class="batch-project-select"[^>]*for="batch-project-select-demo"><input[^>]*data-batch-project-select="demo"/);
+    assert.match(list.innerHTML, /<\/label><div class="batch-project-option-copy">[\s\S]*<button[^>]*data-batch-project-open="demo"/);
+    list.dispatch("click", { target: renderedOpenButton });
+    assert.deepEqual(opened, ["demo"]);
+    assert.match(selectionState.textContent, /已选择 1 个视频/);
+    actions.dispatch("click", { target: batchButtons[0] });
+    actions.dispatch("click", { target: batchButtons[0] });
+    assert.deepEqual(created, [{ type: "to-gate-2", slugs: ["demo"] }]);
+    assert.equal(batchButtons.every((button) => button.disabled), true);
+    createGate.resolve({ batch: { id: "batch-1" } });
+    await flush();
+    assert.deepEqual(created, [{ type: "to-gate-2", slugs: ["demo"] }, "navigated"]);
+    view.unmount();
+  });
+});
+
+test("application returns from batch project details with the selected project preserved", async () => {
+  await withBrowserGlobals(async () => {
+    let renderedInput;
+    let renderedOpenButton;
+    const batchProjectList = new FakeElement({
+      onInnerHTML: (html, element) => {
+        renderedInput = new FakeElement({ dataset: { batchProjectSelect: "demo" }, matchesSelectors: ["[data-batch-project-select]"] });
+        renderedInput.checked = /data-batch-project-select="demo" checked/.test(html);
+        renderedOpenButton = new FakeElement({ dataset: { batchProjectOpen: "demo" }, matchesSelectors: ["[data-batch-project-open]"] });
+        element.setQuery("[data-batch-project-select]", [renderedInput]);
+        element.setQuery("[data-batch-project-open]", [renderedOpenButton]);
+      },
+    });
+    const batchActions = new FakeElement();
+    batchActions.setQuery("[data-batch-type]", [new FakeElement({ dataset: { batchType: "to-gate-2" } })]);
+    const page = () => new FakeElement();
+    const pages = {
+      projects: page(), batches: page(), "batch-create": page(), "remotion-tasks": page(), series: page(), "remote-jobs": page(),
+    };
+    pages.projects.setQuery("#refresh-projects", [new FakeElement()]);
+    pages.batches.setQuery("#refresh-batches", [new FakeElement()]);
+    pages["remotion-tasks"].setQuery("#refresh-remotion-tasks", [new FakeElement()]);
+    pages["remote-jobs"].setQuery("#refresh-jobs-dashboard", [new FakeElement()]);
+    pages["remote-jobs"].setQuery("#check-github-config", [new FakeElement()]);
+    const navLinks = Object.keys(pages).map((name) => ({ dataset: { route: name }, setAttribute(name, value) { this[name] = value; } }));
+    const detailBack = new FakeElement();
+    const detail = new FakeElement();
+    detail.setQuery("#back-to-projects", [detailBack]);
+    const projectDetail = projectDetailElement();
+    const seriesElements = {
+      seriesSelect: new FakeElement(), seriesId: new FakeElement(), seriesTitle: new FakeElement(), seriesStyle: new FakeElement(), seriesCoverFrames: new FakeElement(),
+      seriesVideoList: new FakeElement(), seriesForm: new FakeElement(), seriesCoverFile: new FakeElement(), seriesCoverPreview: new FakeElement(), seriesState: new FakeElement(),
+      newSeries: new FakeElement(), uploadSeriesCover: new FakeElement(), importForm: new FakeElement(), importFile: new FakeElement(), importSlug: new FakeElement(),
+      importSeries: new FakeElement(), importSubmit: new FakeElement(), importState: new FakeElement(),
+    };
+    const workspace = {
+      project: { slug: "demo", sequence: 1, status: "waiting-gate", initialized: true, currentStage: "visual-script", progress: 40, next: { action: "approve-or-reject-gate", message: "等待确认", returnToStages: [] }, stages: [] },
+      files: [], jobs: [], agentJobs: [], remotionTasks: [], activeJob: null,
+    };
+    let hash = "#/projects";
+    const hashListeners = new Set();
+    const windowObject = {
+      location: { get hash() { return hash; }, set hash(value) { hash = value; for (const listener of hashListeners) listener(); } },
+      addEventListener(type, listener) { if (type === "hashchange") hashListeners.add(listener); },
+      removeEventListener(type, listener) { if (type === "hashchange") hashListeners.delete(listener); },
+    };
+    const ui = {
+      status: new FakeElement(), dashboard: pages.projects, detail, projectDetail, pages, navLinks,
+      projectGrid: projectCollectionElement(), projectListState: new FakeElement(), attentionSummary: new FakeElement(), attentionProjectsState: new FakeElement(), attentionProjectGrid: projectCollectionElement(),
+      batchSummary: new FakeElement(), batchList: new FakeElement(), taskList: new FakeElement(), globalJobs: new FakeElement(), diagnostics: new FakeElement(),
+      batchCreateList: batchProjectList, batchCreateListState: new FakeElement(), batchCreateSelectionState: new FakeElement(), batchCreateState: new FakeElement(), batchCreateActions: batchActions,
+      ...seriesElements,
+    };
+    const projects = [{ slug: "demo", currentStage: "visual-script", status: "waiting-gate", progress: 40, succeededCount: 6, stageCount: 15, next: { message: "等待 Gate 2 确认" } }];
+    const application = startApplication({
+      windowObject,
+      router: createRouter({ windowObject }),
+      ui,
+      api: {
+        async getHealth() { return { harnessVersion: "test" }; },
+        async getProjects() { return projects; },
+        async getSeries() { return []; },
+        async getJobs() { return []; },
+        async getBatches() { return { batches: [] }; },
+        async getRemotionTasks() { return []; },
+        async getProjectWorkspace() { return workspace; },
+      },
+    });
+    await flush();
+    application.router.navigate({ name: "batch-create" });
+    await flush();
+    renderedInput.checked = true;
+    batchProjectList.dispatch("change", { target: renderedInput });
+    batchProjectList.dispatch("click", { target: renderedOpenButton });
+    assert.equal(application.router.current().name, "project");
+    assert.equal(detailBack.textContent, "← 返回批量选择");
+    detailBack.dispatch("click");
+    await flush();
+    assert.equal(application.router.current().name, "batch-create");
+    assert.match(ui.batchCreateSelectionState.textContent, /已选择 1 个视频/);
+    assert.equal(renderedInput.checked, true);
+    application.router.navigate({ name: "project", slug: "demo" });
+    assert.equal(detailBack.textContent, "← 返回工作台");
+    application.destroy();
   });
 });
 
@@ -761,8 +894,6 @@ test("real dashboard view renders attention summary, pending projects and comple
       attentionSummary: new FakeElement(),
       attentionProjectsState: new FakeElement(),
       attentionProjectGrid,
-      batchSelectionState: new FakeElement(),
-      batchButtons: [new FakeElement()],
     };
     const refreshButton = new FakeElement();
     let projectReads = 0;
@@ -790,7 +921,7 @@ test("real dashboard view renders attention summary, pending projects and comple
     assert.equal(attentionProjectGrid.querySelectorAll(".project-open").length, 3);
     assert.equal(attentionProjectGrid.innerHTML.includes("data-project-select"), false);
     assert.equal(projectGrid.querySelectorAll(".project-open").length, 4);
-    assert.equal(projectGrid.querySelectorAll("[data-project-select]").length, 4);
+    assert.equal(projectGrid.querySelectorAll("[data-project-select]").length, 0);
     for (const value of ["01", "waiting-project", "等待确认", "40%", "等待人工确认", "查看详情", "04", "completed-project", "已完成", "100%", "所有阶段已完成"]) {
       assert.match(projectGrid.innerHTML, new RegExp(value));
     }
@@ -821,8 +952,6 @@ test("real dashboard view explains empty and failed project reads", async () => 
         attentionSummary: new FakeElement(),
         attentionProjectsState: new FakeElement(),
         attentionProjectGrid: projectCollectionElement(),
-        batchSelectionState: new FakeElement(),
-        batchButtons: [new FakeElement()],
       };
       const view = createDashboardView({ elements, refreshButton: new FakeElement(), api });
       return { elements, view };
@@ -852,18 +981,14 @@ test("real dashboard view explains empty and failed project reads", async () => 
 test("real batch view binds refresh once and deduplicates concurrent navigation refreshes", async () => {
   await withBrowserGlobals(async () => {
     const batchList = new FakeElement();
-    const taskList = new FakeElement();
     const refreshButton = new FakeElement();
     const batchesGate = deferred();
-    const tasksGate = deferred();
     let batchReads = 0;
-    let taskReads = 0;
     const view = createBatchView({
-      elements: { batchList, taskList },
+      elements: { batchList },
       refreshButton,
       api: {
         getBatches() { batchReads += 1; return batchesGate.promise; },
-        getRemotionTasks() { taskReads += 1; return tasksGate.promise; },
       },
     });
 
@@ -872,14 +997,11 @@ test("real batch view binds refresh once and deduplicates concurrent navigation 
     refreshButton.dispatch("click");
     refreshButton.dispatch("click");
     assert.equal(batchReads, 1);
-    assert.equal(taskReads, 1);
     batchesGate.resolve({ batches: [] });
-    tasksGate.resolve([]);
     await flush();
     view.unmount();
     refreshButton.dispatch("click");
     assert.equal(batchReads, 1);
-    assert.equal(taskReads, 1);
   });
 });
 
@@ -955,8 +1077,8 @@ test("real batch view covers batch and Remotion actions with exact requests and 
     const previousCSS = globalThis.CSS;
     setGlobal("CSS", { escape: (value) => value });
     try {
-      const view = createBatchView({
-        elements: { batchList, taskList, summary },
+      const batchView = createBatchView({
+        elements: { batchList, summary },
         refreshButton,
         api: {
           getBatches() { batchReads += 1; return { batches }; },
@@ -968,9 +1090,25 @@ test("real batch view covers batch and Remotion actions with exact requests and 
         getActiveProject: () => ({ slug: "active-video" }),
         onOpenProject(slug) { openedProjects.push(slug); },
       });
-      view.mount();
+      const taskView = createRemotionTasksView({
+        elements: { taskList },
+        refreshButton,
+        api: {
+          getRemotionTasks() { taskReads += 1; return tasks; },
+          runRemotionTaskAction(id, body) { const gate = deferred(); taskActionGates.push(gate); taskActions.push({ id, body }); return gate.promise; },
+        },
+        onRefreshProjects() { projectRefreshes += 1; },
+        getActiveProject: () => ({ slug: "active-video" }),
+        onOpenProject(slug) { openedProjects.push(slug); },
+      });
+      batchView.mount();
+      taskView.mount();
       await flush();
       assert.match(batchList.innerHTML, /batch-9/);
+      assert.match(batchList.className, /batch-record-grid/);
+      assert.match(batchList.innerHTML, /class="batch-item-card"/);
+      assert.doesNotMatch(batchList.innerHTML, /class="batch-items"/);
+      assert.equal((batchList.innerHTML.match(/<article class="batch-card"/g) ?? []).length, 9);
       assert.ok(batchList.innerHTML.indexOf("batch-tts") < batchList.innerHTML.indexOf("batch-smoke"));
       assert.ok(batchList.innerHTML.indexOf("batch-smoke") < batchList.innerHTML.indexOf("batch-failed"));
       assert.ok(batchList.innerHTML.indexOf("batch-failed") < batchList.innerHTML.indexOf("batch-9"));
@@ -985,7 +1123,7 @@ test("real batch view covers batch and Remotion actions with exact requests and 
       assert.match(taskList.innerHTML, /status status-failed/);
       assert.match(taskList.innerHTML, /校验失败/);
       assert.match(summary.innerHTML, /<strong>9<\/strong>/);
-      assert.match(summary.innerHTML, /<strong>3<\/strong>/);
+      assert.doesNotMatch(summary.innerHTML, /Remotion 制作任务/);
 
       const ttsButton = batchList.querySelectorAll("[data-batch-action]").find((button) => button.dataset.batchAction === "approve-tts-qc");
       batchList.dispatch("click", { target: ttsButton });
@@ -1045,67 +1183,56 @@ test("real batch view covers batch and Remotion actions with exact requests and 
       await flush();
       assert.equal(projectRefreshes, 6);
       assert.deepEqual(openedProjects, ["active-video", "active-video", "active-video"]);
-      assert.ok(batchReads >= 7);
-      assert.ok(taskReads >= 7);
-      view.unmount();
+      assert.ok(batchReads >= 4);
+      assert.ok(taskReads >= 4);
+      batchView.unmount();
+      taskView.unmount();
     } finally {
       setGlobal("CSS", previousCSS);
     }
   });
 });
 
-test("real batch view keeps batch and task failures separate and preserves empty states", async () => {
+test("real batch view preserves batch failure and empty states without reading Remotion tasks", async () => {
   await withBrowserGlobals(async () => {
     const batchList = new FakeElement();
-    const taskList = new FakeElement();
     const view = createBatchView({
-      elements: { batchList, taskList },
+      elements: { batchList },
       api: {
         async getBatches() { throw new Error("批次服务不可用"); },
-        async getRemotionTasks() { return []; },
       },
     });
     view.mount();
     await flush();
     assert.match(batchList.textContent, /读取批次失败：批次服务不可用/);
-    assert.match(taskList.textContent, /暂无 Remotion 制作任务/);
     view.unmount();
   });
 });
 
-test("real batch view keeps the opposite batch and task empty/error states independent", async () => {
+test("batch and Remotion task views keep empty and error states independent", async () => {
   await withBrowserGlobals(async () => {
-    const makeView = (api) => {
-      const elements = { batchList: new FakeElement(), taskList: new FakeElement(), summary: new FakeElement() };
-      const view = createBatchView({ elements, refreshButton: new FakeElement(), api });
-      return { elements, view };
-    };
-
-    const emptyBatches = makeView({
-      async getBatches() { return { batches: [] }; },
-      async getRemotionTasks() { throw new Error("任务服务不可用"); },
+    const batchElements = { batchList: new FakeElement(), summary: new FakeElement() };
+    const batchView = createBatchView({
+      elements: batchElements,
+      refreshButton: new FakeElement(),
+      api: { async getBatches() { return { batches: [] }; } },
     });
-    emptyBatches.view.mount();
+    batchView.mount();
     await flush();
-    assert.match(emptyBatches.elements.batchList.textContent, /暂无批次记录/);
-    assert.match(emptyBatches.elements.taskList.textContent, /读取 Remotion 制作任务失败：任务服务不可用/);
-    assert.match(emptyBatches.elements.summary.innerHTML, /<strong>0<\/strong>/);
-    assert.match(emptyBatches.elements.summary.innerHTML, /<strong>—<\/strong>/);
-    assert.match(emptyBatches.elements.summary.innerHTML, /Remotion 任务：任务服务不可用/);
-    emptyBatches.view.unmount();
+    assert.match(batchElements.batchList.textContent, /暂无批次记录/);
+    assert.match(batchElements.summary.innerHTML, /<strong>0<\/strong>/);
+    batchView.unmount();
 
-    const emptyTasks = makeView({
-      async getBatches() { throw new Error("批次服务不可用"); },
-      async getRemotionTasks() { return []; },
+    const taskElements = { taskList: new FakeElement() };
+    const taskView = createRemotionTasksView({
+      elements: taskElements,
+      refreshButton: new FakeElement(),
+      api: { async getRemotionTasks() { throw new Error("任务服务不可用"); } },
     });
-    emptyTasks.view.mount();
+    taskView.mount();
     await flush();
-    assert.match(emptyTasks.elements.batchList.textContent, /读取批次失败：批次服务不可用/);
-    assert.match(emptyTasks.elements.taskList.textContent, /暂无 Remotion 制作任务/);
-    assert.match(emptyTasks.elements.summary.innerHTML, /<strong>—<\/strong>/);
-    assert.match(emptyTasks.elements.summary.innerHTML, /<strong>0<\/strong>/);
-    assert.match(emptyTasks.elements.summary.innerHTML, /批次：批次服务不可用/);
-    emptyTasks.view.unmount();
+    assert.match(taskElements.taskList.textContent, /读取 Remotion 制作任务失败：任务服务不可用/);
+    taskView.unmount();
   });
 });
 
@@ -1485,8 +1612,7 @@ test("application keeps real top-level view listeners single across hash navigat
   };
   const ui = {
     status: new FakeElement(), dashboard: pages.projects, detail: new FakeElement(), projectDetail: new FakeElement(), pages, navLinks: [],
-    projectGrid: new FakeElement(), projectListState: new FakeElement(), batchSelectionState: new FakeElement(),
-    batchButtons: [new FakeElement(), new FakeElement(), new FakeElement(), new FakeElement()], batchList: new FakeElement(), taskList: new FakeElement(),
+    projectGrid: new FakeElement(), projectListState: new FakeElement(), batchList: new FakeElement(), taskList: new FakeElement(),
     globalJobs: new FakeElement(), diagnostics: new FakeElement(), ...seriesElements,
   };
   const calls = { batches: 0, tasks: 0, jobs: 0, diagnostics: 0 };
@@ -1530,11 +1656,12 @@ test("application keeps real top-level view listeners single across hash navigat
 
 test("WebUI semantic tokens, state classes and accessibility hooks are present and used", async () => {
   const root = new URL("../web/", import.meta.url);
-  const [tokens, base, layout, components, html] = await Promise.all([
+  const [tokens, base, layout, components, dashboard, html] = await Promise.all([
     readFile(new URL("styles/tokens.css", root), "utf8"),
     readFile(new URL("styles/base.css", root), "utf8"),
     readFile(new URL("styles/layout.css", root), "utf8"),
     readFile(new URL("styles/components.css", root), "utf8"),
+    readFile(new URL("styles/dashboard.css", root), "utf8"),
     readFile(new URL("index.html", root), "utf8"),
   ]);
   for (const token of [
@@ -1549,7 +1676,26 @@ test("WebUI semantic tokens, state classes and accessibility hooks are present a
   assert.match(base, /var\(--webui-focus-ring\)/);
   assert.match(layout, /var\(--webui-nav-width\)/);
   for (const status of ["completed", "succeeded", "available", "running", "queued", "dispatching", "in-progress", "waiting", "waiting-gate", "waiting-tts-qc", "waiting-smoke-qc", "ready", "failed", "blocked", "invalidated", "missing", "timeout", "pending", "uninitialized"]) assert.match(components, new RegExp(`\\.status-${status}(?:[,\\s{])`));
-  assert.match(html, /id="batch-to-gate2"[^>]*aria-describedby="batch-selection-state"/);
+  assert.match(html, /href="#\/batches\/new"[^>]*>新建批次<\/a>/);
+  assert.match(html, /id="batch-create-view"/);
+  assert.match(html, /data-batch-type="to-gate-2"/);
+  const batchTargetButtons = [...html.matchAll(/<button class="([^"]+)"[^>]*data-batch-type="([^"]+)"/g)];
+  assert.equal(batchTargetButtons.length, 4);
+  assert.equal(new Set(batchTargetButtons.map((match) => match[1])).size, 1);
+  assert.match(batchTargetButtons[0][1], /button-secondary/);
+  assert.match(batchTargetButtons[0][1], /batch-target-button/);
+  assert.doesNotMatch(html, /button-primary[^>]*data-batch-type/);
+  assert.match(html, /class="series-import-layout"/);
+  assert.match(html, /class="series-panel"/);
+  assert.match(html, /class="source-import-panel"/);
+  assert.match(dashboard, /\.batch-record-grid\s*\{/);
+  assert.match(dashboard, /\.batches-page,\s*\.remotion-tasks-page\s*\{[\s\S]*?overflow:\s*hidden/);
+  assert.match(dashboard, /\.batch-record-section,\s*\.remotion-task-section\s*\{[\s\S]*?display:\s*flex[\s\S]*?min-height:\s*0/);
+  assert.match(dashboard, /\.batch-record-section \.batch-list-region,\s*\.remotion-task-section \.batch-list-region\s*\{[\s\S]*?overflow-x:\s*hidden[\s\S]*?overflow-y:\s*auto/);
+  assert.match(dashboard, /\.remotion-task-grid\s*\{[\s\S]*?grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/);
+  assert.match(dashboard, /\.series-import-layout\s*\{/);
+  assert.match(dashboard, /grid-template-columns:\s*minmax\(0, 1\.15fr\) minmax\(320px, 0\.85fr\)/);
+  assert.match(dashboard, /grid-template-rows:\s*minmax\(150px, 0\.55fr\) minmax\(320px, 1\.45fr\)/);
   assert.match(html, /id="upload-series-cover"[^>]*aria-describedby="series-state"/);
   assert.match(html, /id="source-import-submit"[^>]*aria-describedby="source-import-state"/);
 });

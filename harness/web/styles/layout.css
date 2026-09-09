@@ -1,7 +1,12 @@
 .shell {
   width: min(var(--webui-content-max-width), calc(100% - 48px));
+  height: 100dvh;
+  min-height: 100vh;
   margin: 0 auto;
-  padding: 32px 0 64px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 32px 0;
 }
 .topbar {
   display: flex;
@@ -10,6 +15,7 @@
   gap: 32px;
   padding: 18px 0 28px;
   border-bottom: 1px solid var(--webui-border-subtle);
+  flex: 0 0 auto;
 }
 .topbar-brand {
   min-width: 0;
@@ -44,6 +50,19 @@
 }
 .page-view {
   min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  overflow: auto;
+  padding-bottom: 12px;
+}
+
+.scroll-region {
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  overscroll-behavior: contain;
 }
 .page-description {
   margin: 8px 0 0;
@@ -68,6 +87,7 @@
 
 .section-heading {
   margin: 34px 0 20px;
+  flex: 0 0 auto;
 }
 
 .section-actions {
@@ -92,8 +112,7 @@
 }
 
 @media (max-width: 760px) {
-  .batch-create-panel,
-  .batch-item {
+  .batch-item-card {
     align-items: stretch;
     flex-direction: column;
   }
@@ -111,6 +130,11 @@
 .detail-toolbar {
   justify-content: flex-start;
   margin: 26px 0 24px;
+}
+
+#detail-view {
+  min-height: 0;
+  overflow: auto;
 }
 
 @media (max-width: 900px) {
@@ -161,5 +185,18 @@
   .stage-status {
     display: inline-flex;
     margin-top: 14px;
+  }
+}
+
+@media (max-width: 900px) {
+  .shell {
+    width: min(100% - 28px, 1180px);
+    padding-top: 18px;
+    padding-bottom: 18px;
+  }
+
+  .page-view,
+  #detail-view {
+    overflow: auto;
   }
 }

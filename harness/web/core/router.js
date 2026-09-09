@@ -4,7 +4,9 @@ export function parseRoute(hash = "") {
   if (legacy) return { name: "project", slug: decodeURIComponent(legacy[1]) };
   const project = normalized.match(/^\/projects\/([^/]+)$/);
   if (project) return { name: "project", slug: decodeURIComponent(project[1]) };
+  if (normalized === "/batches/new") return { name: "batch-create", slug: null };
   if (normalized === "/batches") return { name: "batches", slug: null };
+  if (normalized === "/remotion-tasks") return { name: "remotion-tasks", slug: null };
   if (normalized === "/series") return { name: "series", slug: null };
   if (normalized === "/remote-jobs") return { name: "remote-jobs", slug: null };
   return { name: "projects", slug: null };
@@ -33,7 +35,9 @@ export function createRouter({ windowObject = globalThis.window } = {}) {
     navigate(nextRoute) {
       const nextHash = nextRoute.name === "project"
         ? `#/projects/${encodeURIComponent(nextRoute.slug)}`
-        : `#/${nextRoute.name === "projects" ? "projects" : nextRoute.name}`;
+        : nextRoute.name === "batch-create"
+          ? "#/batches/new"
+          : `#/${nextRoute.name === "projects" ? "projects" : nextRoute.name}`;
       if (windowObject) windowObject.location.hash = nextHash.slice(1);
       else {
         route = parseRoute(nextHash);
