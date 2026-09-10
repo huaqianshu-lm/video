@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Video Harness</title>
-    <link rel="stylesheet" href="/styles.css" />
+    <link rel="stylesheet" href="/styles.css?v=20260909-webui-batch-layout-v2" />
   </head>
   <body>
     <main class="shell">
@@ -16,7 +16,8 @@
         <div class="topbar-tools">
           <nav class="primary-nav" aria-label="主导航">
             <a href="#/projects" data-route="projects">工作台</a>
-            <a href="#/batches" data-route="batches">批次</a>
+            <a href="#/batches" data-route="batches">批次记录</a>
+            <a href="#/remotion-tasks" data-route="remotion-tasks">Remotion 任务</a>
             <a href="#/series" data-route="series">系列与导入</a>
             <a href="#/remote-jobs" data-route="remote-jobs">远程任务</a>
           </nav>
@@ -24,70 +25,84 @@
         </div>
       </header>
 
-      <section id="dashboard-view" class="page-view" data-page="projects">
+      <section id="dashboard-view" class="page-view dashboard-page" data-page="projects">
         <div class="section-heading">
           <div>
             <p class="eyebrow">WORKBENCH</p>
             <h2>工作台</h2>
-            <p class="page-description">查看项目状态，选择视频并发起批量生产任务。</p>
+            <p class="page-description">查看项目状态，进入项目详情或发起批量生产任务。</p>
           </div>
           <div class="section-actions">
+            <a class="button button-primary" href="#/batches/new">新建批次</a>
             <button id="refresh-projects" class="button button-secondary" type="button">刷新</button>
           </div>
         </div>
-        <section class="dashboard-section attention-section" aria-labelledby="attention-heading">
-          <div class="section-heading">
-            <div><p class="eyebrow">ATTENTION</p><h2 id="attention-heading">待处理摘要</h2><p class="page-description">优先查看需要人工确认、恢复或等待中的项目。</p></div>
-          </div>
-          <ul id="attention-summary" class="attention-summary" aria-label="待处理项目摘要"></ul>
-          <div id="attention-project-state" class="loading-state" role="status" aria-live="polite">正在读取待处理项目……</div>
-          <div id="attention-project-grid" class="attention-project-grid"></div>
-        </section>
-        <section class="batch-create-panel">
-          <div>
-            <p class="eyebrow">BATCH WORKFLOW</p>
-            <h2>批量生产</h2>
-            <p class="batch-help">先勾选视频，再选择批次目标。系统会逐个执行，并在 Gate 2、TTS 质检、Gate 3 或 Smoke Render 检查前暂停。</p>
-          </div>
-          <div class="batch-actions">
-            <button id="batch-to-gate2" class="button button-primary" data-batch-type="to-gate-2" type="button" aria-describedby="batch-selection-state" disabled>批量到 Gate 2</button>
-            <button id="batch-to-tts" class="button button-secondary" data-batch-type="to-tts" type="button" aria-describedby="batch-selection-state" disabled>批量完成 TTS</button>
-            <button id="batch-to-remotion" class="button button-secondary" data-batch-type="to-remotion" type="button" aria-describedby="batch-selection-state" disabled>批量完成 Remotion</button>
-            <button id="batch-to-render" class="button button-secondary" data-batch-type="to-render" type="button" aria-describedby="batch-selection-state" disabled>批量渲染</button>
-          </div>
-          <p id="batch-selection-state" class="batch-selection-state" role="status" aria-live="polite">已选择 0 个视频。请先选择视频后再发起批量任务。</p>
-        </section>
-        <div class="section-heading">
-          <div>
-            <p class="eyebrow">PROJECTS</p>
-            <h2>视频项目</h2>
-          </div>
+        <div class="dashboard-workbench">
+          <section class="dashboard-section attention-section" aria-labelledby="attention-heading">
+            <div class="section-heading">
+              <div><p class="eyebrow">ATTENTION</p><h2 id="attention-heading">待处理摘要</h2><p class="page-description">优先查看需要人工确认、恢复或等待中的项目。</p></div>
+            </div>
+            <ul id="attention-summary" class="attention-summary" aria-label="待处理项目摘要"></ul>
+            <div class="scroll-region attention-project-region">
+              <div id="attention-project-state" class="loading-state" role="status" aria-live="polite">正在读取待处理项目……</div>
+              <div id="attention-project-grid" class="attention-project-grid"></div>
+            </div>
+          </section>
+          <section class="dashboard-section projects-section" aria-labelledby="projects-heading">
+            <div class="section-heading">
+              <div><p class="eyebrow">PROJECTS</p><h2 id="projects-heading">视频项目</h2></div>
+            </div>
+            <div id="project-list-state" class="loading-state" role="status" aria-live="polite">正在读取视频项目……</div>
+            <div class="scroll-region project-list-region">
+              <div id="project-grid" class="project-grid"></div>
+            </div>
+          </section>
         </div>
-        <div id="project-list-state" class="loading-state" role="status" aria-live="polite">正在读取视频项目……</div>
-        <div id="project-grid" class="project-grid"></div>
       </section>
 
-      <section id="batches-view" class="page-view" data-page="batches" hidden>
+      <section id="batches-view" class="page-view batches-page" data-page="batches" hidden>
         <div class="section-heading">
-          <div><p class="eyebrow">BATCHES</p><h2>批次</h2><p class="page-description">查看批次进度、人工检查点和 Remotion 制作任务。</p></div>
-          <button id="refresh-batches" class="button button-secondary" type="button">刷新</button>
+          <div><p class="eyebrow">BATCH HISTORY</p><h2>批次记录</h2><p class="page-description">查看批次进度、人工检查点和批次失败重试。</p></div>
+          <div class="section-actions"><a class="button button-primary" href="#/batches/new">新建批次</a><button id="refresh-batches" class="button button-secondary" type="button">刷新</button></div>
         </div>
-        <section class="dashboard-section batch-list-section">
-          <div class="section-heading">
-            <div><p class="eyebrow">BATCH HISTORY</p><h2>批次记录</h2></div>
-          </div>
+        <section class="dashboard-section batch-list-section batch-record-section">
           <div id="batch-summary" class="management-summary" aria-label="批次页面摘要" aria-live="polite">
             <span><strong>—</strong><small>批次记录</small></span>
-            <span><strong>—</strong><small>Remotion 制作任务</small></span>
           </div>
-          <div id="batch-list" class="batch-list loading-state" role="status" aria-live="polite">正在读取批次……</div>
+          <div class="scroll-region batch-list-region"><div id="batch-list" class="batch-list loading-state" role="status" aria-live="polite">正在读取批次……</div></div>
         </section>
+      </section>
 
-        <section class="dashboard-section batch-list-section">
-          <div class="section-heading">
-            <div><p class="eyebrow">REMOTION TASKS</p><h2>Remotion 制作任务</h2></div>
+      <section id="remotion-tasks-view" class="page-view remotion-tasks-page" data-page="remotion-tasks" hidden>
+        <div class="section-heading">
+          <div><p class="eyebrow">REMOTION TASKS</p><h2>Remotion 任务</h2><p class="page-description">查看本地 Agent 制作、重试和产物完成校验。</p></div>
+          <button id="refresh-remotion-tasks" class="button button-secondary" type="button">刷新任务</button>
+        </div>
+        <section class="dashboard-section batch-list-section remotion-task-section">
+          <div class="scroll-region batch-list-region"><div id="remotion-task-list" class="batch-list loading-state" role="status" aria-live="polite">正在读取 Remotion 制作任务……</div></div>
+        </section>
+      </section>
+
+      <section id="batch-create-view" class="page-view batch-create-page" data-page="batch-create" hidden>
+        <div class="section-heading">
+          <div><p class="eyebrow">BATCH WORKFLOW</p><h2>新建批次</h2><p class="page-description">选择需要处理的视频和批量目标。任务会在人工检查点暂停，不会自动通过 Gate。</p></div>
+          <a class="button button-secondary" href="#/batches">返回批次</a>
+        </div>
+        <section class="batch-create-content">
+          <div class="batch-create-heading">
+            <div><p class="eyebrow">PROJECT SELECTION</p><h3>选择视频项目</h3><p class="batch-help">已完成项目不能加入新的批次。列表区域可以独立滚动。</p></div>
+            <p id="batch-create-selection-state" class="batch-selection-state" role="status" aria-live="polite">已选择 0 个视频。</p>
           </div>
-          <div id="remotion-task-list" class="batch-list loading-state" role="status" aria-live="polite">正在读取 Remotion 制作任务……</div>
+          <div class="scroll-region batch-project-region"><div id="batch-project-list-state" class="loading-state" role="status" aria-live="polite">正在读取视频项目……</div><div id="batch-project-list" class="batch-project-list"></div></div>
+          <div class="batch-create-actions">
+            <p id="batch-create-state" class="batch-selection-state" role="status" aria-live="polite">请先选择视频，再选择批量目标。</p>
+            <div class="batch-actions">
+              <button class="button button-secondary batch-target-button" data-batch-type="to-gate-2" type="button" aria-describedby="batch-create-state" disabled>批量到 Gate 2</button>
+              <button class="button button-secondary batch-target-button" data-batch-type="to-tts" type="button" aria-describedby="batch-create-state" disabled>批量完成 TTS</button>
+              <button class="button button-secondary batch-target-button" data-batch-type="to-remotion" type="button" aria-describedby="batch-create-state" disabled>批量完成 Remotion</button>
+              <button class="button button-secondary batch-target-button" data-batch-type="to-render" type="button" aria-describedby="batch-create-state" disabled>批量渲染</button>
+            </div>
+          </div>
         </section>
       </section>
 
@@ -96,29 +111,31 @@
           <div><p class="eyebrow">SERIES &amp; IMPORT</p><h2>系列与导入</h2><p class="page-description">管理系列视觉基线、封面和原文件导入。</p></div>
           <button id="new-series" class="button button-secondary" type="button">新建系列</button>
         </div>
-        <section class="series-panel">
-          <div class="section-heading">
-            <div><p class="eyebrow">SERIES ASSETS</p><h2>系列资源</h2><p class="batch-help">系列封面保存到项目公共资源中，同系列视频共用一份。默认片头为 45 帧。</p></div>
-          </div>
-          <div class="series-layout">
-            <form id="series-form" class="series-form" aria-labelledby="series-settings-heading">
-              <p class="eyebrow">SERIES SETTINGS</p>
-              <h3 id="series-settings-heading">系列设置</h3>
-              <label class="form-field"><span>选择系列</span><select id="series-select"><option value="">新建系列</option></select></label>
-              <label class="form-field"><span>系列 ID</span><input id="series-id" name="id" required pattern="[a-z0-9]+(?:-[a-z0-9]+)*" placeholder="codex-guide" /></label>
-              <label class="form-field"><span>系列名称</span><input id="series-title" name="title" required placeholder="Codex 教程系列" /></label>
-              <label class="form-field"><span>视觉风格</span><select id="series-style" name="style"><option value="current">通用 current</option><option value="codex">Codex 青绿色</option><option value="claude-code">Claude Code 蓝紫</option></select></label>
-              <label class="form-field"><span>封面帧数</span><input id="series-cover-frames" name="coverDurationFrames" type="number" min="1" value="45" required /></label>
-              <fieldset class="series-videos"><legend>关联视频</legend><div id="series-video-list" class="series-video-list">正在读取视频……</div></fieldset>
-              <button class="button button-primary" type="submit">保存系列设置</button>
-            </form>
-            <div class="series-cover-panel" aria-labelledby="series-cover-heading"><p class="eyebrow">COVER PREVIEW</p><h3 id="series-cover-heading">封面预览与上传</h3><div id="series-cover-preview" class="series-cover-preview"><span>尚未上传系列封面</span></div><label class="form-field"><span>上传封面（PNG、JPEG 或 WebP；接近 16:9 时自动居中裁切为 1920×1080；最大 10 MB）</span><input id="series-cover-file" type="file" accept="image/png,image/jpeg,image/webp" /></label><button id="upload-series-cover" class="button button-secondary" type="button" aria-describedby="series-state" disabled>上传并保存封面</button><p id="series-state" class="series-state" role="status" aria-live="polite">选择或创建系列后上传封面。</p></div>
-          </div>
-        </section>
-        <section class="source-import-panel">
-          <div><p class="eyebrow">SOURCE IMPORT</p><h2>导入原文件</h2><p class="source-import-help">先选择系列以锁定视觉风格与原型基线，再上传 Markdown 或纯文本原文件。系统会创建视频项目并保存为 <code>videos/&lt;slug&gt;/source.md</code>。</p></div>
-          <form id="source-import-form" class="source-import-form"><label class="form-field"><span>原文件（.md、.markdown 或 .txt；最大 10 MB）</span><input id="source-import-file" type="file" accept=".md,.markdown,.txt,text/markdown,text/plain" required /></label><label class="form-field"><span>视频 slug（可选；留空时从文件名生成）</span><input id="source-import-slug" type="text" pattern="[a-z0-9]+(?:-[a-z0-9]+)*" placeholder="例如：02-what-is-agents" autocomplete="off" /></label><label class="form-field"><span>所属系列与视觉基线</span><select id="source-import-series" required><option value="">请选择系列</option></select></label><div class="source-import-actions"><button id="source-import-submit" class="button button-primary" type="submit" aria-describedby="source-import-state" disabled>上传并创建项目</button><p id="source-import-state" class="source-import-state" role="status" aria-live="polite">请选择一个原文件和所属系列。</p></div></form>
-        </section>
+        <div class="series-import-layout">
+          <section class="series-panel">
+            <div class="section-heading">
+              <div><p class="eyebrow">SERIES ASSETS</p><h2>系列资源</h2><p class="batch-help">系列封面保存到项目公共资源中，同系列视频共用一份。默认片头为 45 帧。</p></div>
+            </div>
+            <div class="series-layout">
+              <form id="series-form" class="series-form" aria-labelledby="series-settings-heading">
+                <p class="eyebrow">SERIES SETTINGS</p>
+                <h3 id="series-settings-heading">系列设置</h3>
+                <label class="form-field"><span>选择系列</span><select id="series-select"><option value="">新建系列</option></select></label>
+                <label class="form-field"><span>系列 ID</span><input id="series-id" name="id" required pattern="[a-z0-9]+(?:-[a-z0-9]+)*" placeholder="codex-guide" /></label>
+                <label class="form-field"><span>系列名称</span><input id="series-title" name="title" required placeholder="Codex 教程系列" /></label>
+                <label class="form-field"><span>视觉风格</span><select id="series-style" name="style"><option value="current">通用 current</option><option value="codex">Codex 青绿色</option><option value="claude-code">Claude Code 蓝紫</option></select></label>
+                <label class="form-field"><span>封面帧数</span><input id="series-cover-frames" name="coverDurationFrames" type="number" min="1" value="45" required /></label>
+                <fieldset class="series-videos"><legend>关联视频</legend><div id="series-video-list" class="series-video-list">正在读取视频……</div></fieldset>
+                <button class="button button-primary" type="submit">保存系列设置</button>
+              </form>
+              <div class="series-cover-panel" aria-labelledby="series-cover-heading"><p class="eyebrow">COVER PREVIEW</p><h3 id="series-cover-heading">封面预览与上传</h3><div id="series-cover-preview" class="series-cover-preview"><span>尚未上传系列封面</span></div><label class="form-field"><span>上传封面（PNG、JPEG 或 WebP；接近 16:9 时自动居中裁切为 1920×1080；最大 10 MB）</span><input id="series-cover-file" type="file" accept="image/png,image/jpeg,image/webp" /></label><button id="upload-series-cover" class="button button-secondary" type="button" aria-describedby="series-state" disabled>上传并保存封面</button><p id="series-state" class="series-state" role="status" aria-live="polite">选择或创建系列后上传封面。</p></div>
+            </div>
+          </section>
+          <section class="source-import-panel">
+            <div><p class="eyebrow">SOURCE IMPORT</p><h2>导入原文件</h2><p class="source-import-help">先选择系列以锁定视觉风格与原型基线，再上传 Markdown 或纯文本原文件。系统会创建视频项目并保存为 <code>videos/&lt;slug&gt;/source.md</code>。</p></div>
+            <form id="source-import-form" class="source-import-form"><label class="form-field"><span>原文件（.md、.markdown 或 .txt；最大 10 MB）</span><input id="source-import-file" type="file" accept=".md,.markdown,.txt,text/markdown,text/plain" required /></label><label class="form-field"><span>视频 slug（可选；留空时从文件名生成）</span><input id="source-import-slug" type="text" pattern="[a-z0-9]+(?:-[a-z0-9]+)*" placeholder="例如：02-what-is-agents" autocomplete="off" /></label><label class="form-field"><span>所属系列与视觉基线</span><select id="source-import-series" required><option value="">请选择系列</option></select></label><div class="source-import-actions"><button id="source-import-submit" class="button button-primary" type="submit" aria-describedby="source-import-state" disabled>上传并创建项目</button><p id="source-import-state" class="source-import-state" role="status" aria-live="polite">请选择一个原文件和所属系列。</p></div></form>
+          </section>
+        </div>
       </section>
 
       <section id="remote-jobs-view" class="page-view" data-page="remote-jobs" hidden>
@@ -143,6 +160,6 @@
         <div id="project-detail"></div>
       </section>
     </main>
-    <script type="module" src="/app.js?v=20260901-render-delivery-v1"></script>
+    <script type="module" src="/app.js?v=20260909-webui-batch-layout-v2"></script>
   </body>
 </html>

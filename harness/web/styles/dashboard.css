@@ -79,18 +79,6 @@
   white-space: nowrap;
 }
 
-.batch-create-panel {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 24px;
-  margin: 24px 0;
-  padding: 20px;
-  border: 1px solid #2d4164;
-  border-radius: 14px;
-  background: rgba(18, 31, 55, 0.84);
-}
-
 .source-import-panel {
   display: grid;
   grid-template-columns: minmax(260px, 0.8fr) minmax(360px, 1.2fr);
@@ -207,10 +195,6 @@
   line-height: 1.5;
 }
 
-.batch-create-panel h2 {
-  margin-bottom: 8px;
-}
-
 .batch-help,
 .batch-selection-state {
   margin: 0;
@@ -219,10 +203,11 @@
 }
 
 .batch-actions {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  flex: 1 1 760px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 10px;
-  justify-content: flex-end;
+  min-width: 0;
 }
 
 .batch-actions .button:disabled {
@@ -233,6 +218,14 @@
   opacity: 1;
 }
 
+.batch-target-button {
+  width: 100%;
+  min-width: 0;
+  min-height: var(--webui-control-height);
+  padding: 9px 12px;
+  white-space: nowrap;
+}
+
 .batch-list-section {
   margin-top: 42px;
 }
@@ -240,6 +233,52 @@
 .batch-list {
   display: grid;
   gap: 14px;
+}
+
+.batches-page,
+.remotion-tasks-page {
+  overflow: hidden;
+}
+
+.batch-record-section,
+.remotion-task-section {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  margin-top: 0;
+  padding: var(--webui-space-5);
+  overflow: hidden;
+  border: 1px solid var(--webui-border-subtle);
+  border-radius: var(--webui-radius);
+  background: color-mix(in srgb, var(--webui-surface-panel) 86%, transparent);
+}
+
+.batch-record-section .batch-list-region,
+.remotion-task-section .batch-list-region {
+  min-width: 0;
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  overscroll-behavior: contain;
+}
+
+.batch-record-section .batch-list,
+.remotion-task-section .batch-list {
+  min-width: 0;
+  align-content: start;
+}
+
+.remotion-task-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.batch-record-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
 }
 
 .batch-card {
@@ -252,7 +291,7 @@
 .batch-card-heading,
 .batch-card-status,
 .batch-meta,
-.batch-item,
+.batch-item-card-heading,
 .batch-item-actions {
   display: flex;
   align-items: center;
@@ -281,34 +320,50 @@
   font-size: 12px;
 }
 
-.batch-items {
+.batch-item-grid {
   display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 8px;
   margin: 16px 0 0;
-  padding: 0;
-  list-style: none;
 }
 
-.batch-item {
+.batch-item-card {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 8px;
   padding: 10px 12px;
   border: 1px solid #25304a;
   border-radius: 8px;
   background: rgba(10, 16, 29, 0.62);
 }
 
-.batch-item strong,
-.batch-item small {
-  display: block;
+.batch-item-card-heading {
+  align-items: flex-start;
 }
 
-.batch-item small {
-  margin-top: 4px;
+.batch-item-card-heading > strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.batch-item-message {
+  min-height: 38px;
+  margin: 0;
   color: #7f8eaa;
+  font-size: 12px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
 }
 
 .batch-item-actions {
   flex-wrap: wrap;
-  justify-content: flex-end;
+  justify-content: flex-start;
+  margin-top: auto;
+}
+
+.batch-item-actions:empty {
+  display: none;
 }
 
 .progress-track {
@@ -359,7 +414,7 @@
 .attention-summary {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: var(--webui-space-4);
+  gap: var(--webui-space-2);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -371,7 +426,7 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--webui-space-3);
-  padding: var(--webui-space-5);
+  padding: 10px 12px;
   border: 1px solid var(--webui-border-subtle);
   border-radius: var(--webui-radius);
   background: var(--webui-surface-panel);
@@ -381,12 +436,12 @@
 .attention-summary-item span {
   overflow-wrap: anywhere;
   color: var(--webui-text-muted);
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .attention-summary-item strong {
   color: var(--webui-text-primary);
-  font-size: 28px;
+  font-size: 22px;
   line-height: 1;
   font-variant-numeric: tabular-nums;
 }
@@ -422,11 +477,197 @@
   margin-top: var(--webui-space-4);
 }
 
+.dashboard-page {
+  overflow: hidden;
+}
+
+.dashboard-workbench {
+  min-height: 0;
+  display: grid;
+  flex: 1 1 auto;
+  grid-template-rows: minmax(150px, 0.55fr) minmax(320px, 1.45fr);
+  gap: var(--webui-space-5);
+}
+
+.dashboard-workbench > .dashboard-section {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: var(--webui-space-5);
+  border: 1px solid var(--webui-border-subtle);
+  border-radius: var(--webui-radius);
+  background: color-mix(in srgb, var(--webui-surface-panel) 86%, transparent);
+}
+
+.dashboard-workbench > .dashboard-section > .section-heading {
+  margin: 0 0 var(--webui-space-3);
+}
+
+.attention-section > .section-heading .page-description {
+  margin-top: 4px;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.attention-project-region,
+.project-list-region {
+  flex: 1 1 auto;
+}
+
+.attention-project-region {
+  padding-right: var(--webui-space-2);
+}
+
+.projects-section .loading-state {
+  flex: 0 0 auto;
+}
+
+.project-list-region {
+  padding: 2px var(--webui-space-2) 2px 0;
+}
+
+.batch-page-content {
+  min-height: 0;
+  display: grid;
+  flex: 1 1 auto;
+  grid-template-rows: minmax(0, 1.15fr) minmax(190px, 0.85fr);
+  gap: var(--webui-space-5);
+}
+
+.batch-page-content .batch-list-section {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  margin-top: 0;
+  padding: var(--webui-space-5);
+  overflow: hidden;
+  border: 1px solid var(--webui-border-subtle);
+  border-radius: var(--webui-radius);
+  background: color-mix(in srgb, var(--webui-surface-panel) 86%, transparent);
+}
+
+.batch-page-content .batch-list-section > .section-heading {
+  margin: 0 0 var(--webui-space-4);
+}
+
+.batch-list-region {
+  flex: 1 1 auto;
+  padding-right: var(--webui-space-2);
+}
+
+.batch-create-content {
+  min-height: 0;
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  overflow: hidden;
+  padding: var(--webui-space-5);
+  border: 1px solid var(--webui-border-strong);
+  border-radius: var(--webui-radius);
+  background: color-mix(in srgb, var(--webui-surface-panel) 88%, transparent);
+}
+
+.batch-create-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--webui-space-5);
+  flex: 0 0 auto;
+}
+
+.batch-create-heading h3 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.batch-project-region {
+  flex: 1 1 auto;
+  margin: var(--webui-space-5) 0;
+  padding-right: var(--webui-space-2);
+}
+
+.batch-project-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--webui-space-3);
+}
+
+.batch-project-option {
+  display: flex;
+  min-width: 0;
+  align-items: flex-start;
+  gap: var(--webui-space-3);
+  padding: var(--webui-space-4);
+  border: 1px solid var(--webui-border-subtle);
+  border-radius: var(--webui-radius-sm);
+  background: var(--webui-surface-raised);
+  cursor: pointer;
+}
+
+.batch-project-select {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: var(--webui-space-2);
+  color: var(--webui-text-muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.batch-project-select input {
+  margin: 0;
+}
+
+.batch-project-option:has(input:checked) {
+  border-color: var(--webui-text-link);
+  background: color-mix(in srgb, var(--webui-surface-raised) 80%, var(--webui-text-link));
+}
+
+.batch-project-option input {
+  flex: 0 0 auto;
+  margin-top: 3px;
+  accent-color: var(--webui-text-link);
+}
+
+.batch-project-option-copy {
+  display: grid;
+  flex: 1 1 auto;
+  min-width: 0;
+  gap: var(--webui-space-1);
+}
+
+.batch-project-option-copy strong,
+.batch-project-option-copy small {
+  overflow-wrap: anywhere;
+}
+
+.batch-project-option-copy small {
+  color: var(--webui-text-muted);
+  line-height: 1.5;
+}
+
+.batch-project-open {
+  flex: 0 0 auto;
+  align-self: center;
+  white-space: nowrap;
+}
+
+.batch-create-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--webui-space-4);
+  flex: 0 0 auto;
+  padding-top: var(--webui-space-4);
+  border-top: 1px solid var(--webui-border-subtle);
+}
+
 .attention-project-card {
   display: flex;
   min-width: 0;
   flex-direction: column;
-  padding: var(--webui-space-5);
+  padding: var(--webui-space-4);
   border: 1px solid var(--webui-border-strong);
   border-radius: var(--webui-radius);
   background: var(--webui-surface-raised);
@@ -467,21 +708,8 @@
   background: var(--webui-surface-raised);
 }
 
-.batch-create-panel {
-  display: grid;
-  grid-template-columns: minmax(220px, 1fr) minmax(0, 2fr);
-  margin: var(--webui-space-6) 0;
-  border-color: var(--webui-border-strong);
-  border-radius: var(--webui-radius);
-  background: var(--webui-surface-panel);
-}
-
 .batch-actions {
   min-width: 0;
-}
-
-.batch-selection-state {
-  grid-column: 1 / -1;
 }
 
 @media (max-width: 1024px) {
@@ -493,20 +721,66 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .batch-create-panel {
-    grid-template-columns: 1fr;
+  .batch-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .batch-actions {
-    justify-content: flex-start;
+  .batch-project-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 @media (max-width: 640px) {
   .attention-summary,
   .attention-project-grid,
-  .project-grid {
+  .project-grid,
+  .batch-project-list {
     grid-template-columns: 1fr;
+  }
+
+  .batch-actions {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 900px) {
+  .primary-nav {
+    max-width: 100%;
+  }
+
+  .dashboard-workbench {
+    grid-template-rows: minmax(150px, 0.45fr) minmax(220px, 1.55fr);
+  }
+
+  .batch-page-content {
+    grid-template-rows: minmax(0, 1.15fr) minmax(150px, 0.85fr);
+  }
+
+  .batch-create-heading,
+  .batch-create-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 640px) {
+  .dashboard-page {
+    overflow: visible;
+  }
+
+  .dashboard-workbench {
+    display: flex;
+    flex: 0 0 auto;
+    flex-direction: column;
+  }
+
+  .dashboard-workbench > .dashboard-section {
+    overflow: visible;
+  }
+
+  .attention-project-region,
+  .project-list-region {
+    overflow: visible;
   }
 }
 
@@ -572,7 +846,7 @@
 .job-id,
 .batch-description,
 .batch-meta,
-.batch-item,
+.batch-item-card,
 .job-card p,
 .job-meta,
 .diagnostics-list {
@@ -590,7 +864,7 @@
   color: var(--webui-text-muted);
 }
 
-.batch-item {
+.batch-item-card {
   border-color: var(--webui-border-subtle);
   background: var(--webui-surface-inset);
 }
@@ -640,6 +914,56 @@
 .source-import-form,
 .series-form {
   min-width: 0;
+}
+
+.series-import-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
+  align-items: start;
+  gap: var(--webui-space-5);
+  min-width: 0;
+  margin-top: var(--webui-space-6);
+}
+
+.series-import-layout > .series-panel,
+.series-import-layout > .source-import-panel {
+  align-self: start;
+  min-width: 0;
+  margin: 0;
+  padding: var(--webui-space-4);
+}
+
+.series-import-layout > .source-import-panel {
+  display: block;
+}
+
+.series-import-layout .series-panel .section-heading {
+  margin: 0 0 var(--webui-space-3);
+}
+
+.series-import-layout .series-layout {
+  grid-template-columns: minmax(0, 1.2fr) minmax(220px, 0.8fr);
+  gap: var(--webui-space-4);
+}
+
+.series-import-layout .series-cover-panel {
+  gap: var(--webui-space-2);
+}
+
+.series-import-layout .series-cover-preview {
+  max-width: 360px;
+}
+
+.series-import-layout .series-video-list {
+  max-height: 160px;
+}
+
+.series-import-layout .source-import-panel h2 {
+  margin-bottom: var(--webui-space-2);
+}
+
+.series-import-layout .source-import-form {
+  margin-top: var(--webui-space-4);
 }
 
 .remote-diagnostics-section,
@@ -725,6 +1049,14 @@
 }
 
 @media (max-width: 1024px) {
+  .series-import-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .batch-record-grid {
+    grid-template-columns: 1fr;
+  }
+
   .series-layout,
   .source-import-panel {
     grid-template-columns: 1fr;
@@ -742,7 +1074,12 @@
   }
 
   .batch-card-status,
+  .batch-item-card-heading,
   .batch-item-actions {
     justify-content: flex-start;
+  }
+
+  .batch-item-card-heading {
+    display: grid;
   }
 }
