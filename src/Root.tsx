@@ -32,6 +32,12 @@ import {ThirdPartyModelsVideo} from './videos/05-third-party-models/ThirdPartyMo
 import {videoConfig as thirdPartyModelsConfig} from './videos/05-third-party-models/video.config';
 import {FirstTaskVideo} from './videos/06-first-task/FirstTaskVideo';
 import {videoConfig as firstTaskConfig} from './videos/06-first-task/video.config';
+import {JetBrainsVideo} from './videos/jetbrains/JetBrainsVideo';
+import {videoConfig as jetBrainsConfig} from './videos/jetbrains/video.config';
+import {DesktopVideo} from './videos/desktop/DesktopVideo';
+import {videoConfig as desktopConfig} from './videos/desktop/video.config';
+import {WebAndCloudVideo} from './videos/web-and-cloud/WebAndCloudVideo';
+import {videoConfig as webAndCloudConfig} from './videos/web-and-cloud/video.config';
 
 export const Root = () => {
   return (
@@ -163,6 +169,30 @@ export const Root = () => {
         fps={firstTaskConfig.fps}
         width={firstTaskConfig.width}
         height={firstTaskConfig.height}
+      />
+      <Composition
+        id={jetBrainsConfig.slug}
+        component={JetBrainsVideo}
+        durationInFrames={getTotalDurationFrames(jetBrainsConfig)}
+        fps={jetBrainsConfig.fps}
+        width={jetBrainsConfig.width}
+        height={jetBrainsConfig.height}
+      />
+      <Composition
+        id={desktopConfig.slug}
+        component={DesktopVideo}
+        durationInFrames={getTotalDurationFrames(desktopConfig)}
+        fps={desktopConfig.fps}
+        width={desktopConfig.width}
+        height={desktopConfig.height}
+      />
+      <Composition
+        id={webAndCloudConfig.slug}
+        component={WebAndCloudVideo}
+        durationInFrames={getTotalDurationFrames(webAndCloudConfig)}
+        fps={webAndCloudConfig.fps}
+        width={webAndCloudConfig.width}
+        height={webAndCloudConfig.height}
       />
     </>
   );
