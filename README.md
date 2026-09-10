@@ -68,6 +68,10 @@ MP4／Artifact
 npm install
 ```
 
+### 配置 TTS
+
+有口播的视频需要安装独立 [TTS 模块](https://github.com/huaqianshu-lm/tts)，用于生成分段音频、字幕和 Timeline。完整要求和配置方式见 [TTS 安装与配置](./docs/TTS-SETUP.md)。
+
 ### 启动 Harness Web UI
 
 ```bash
@@ -177,6 +181,7 @@ export HARNESS_GITHUB_REF="<optional-explicit-branch>"
 
 - [Harness 详细说明](./harness/README.md)
 - [端到端视频生产方案](./docs/END-TO-END-VIDEO-PRODUCTION-PLAN.md)
+- [TTS 安装与配置](./docs/TTS-SETUP.md)
 - [视频生产流程](./docs/VIDEO-PROJECT-WORKFLOW.md)
 - [视频生产规范](./docs/VIDEO-PRODUCTION-RULES.md)
 - [Harness 校验矩阵](./harness/VALIDATION-MATRIX.md)

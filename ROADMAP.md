@@ -56,6 +56,7 @@
 
 ## 已完成（最近 10 条）
 
+- 2026-09-10：新增 `docs/TTS-SETUP.md`，说明独立 TTS 模块的仓库获取、Python／FFmpeg／ZIP 依赖、虚拟环境、安装验证、Harness 路径配置、产物和故障排查；根目录 README 已链接 `huaqianshu-lm/tts`。
 - 2026-09-10：补齐根目录 `README.md`，面向 GitHub 访客说明项目定位、批量视频制作、人工 Gate、可恢复工作流、快速启动、CLI、远程渲染和目录结构。
 - 2026-09-02：WebUI Fixture 已验证原文件导入、连续执行到 Gate 2、持久化 Agent Job 编排和人工 Gate 停止点；WebUI 定向回归 15/15 通过，未上传真实原文件，未调用真实 Agent／TTS／Remotion，未生成 Fixture 正式视频。
 - 2026-09-02：Remotion 音画同步契约、Agent 任务包、12 个有口播配置和 Alignment Schema 2 完成总体验证；Harness 全量 `127/127`、`npm run check`、关键脚本语法检查和 `git diff --check` 全部通过，未调用真实 Agent／TTS／Remotion／渲染。
