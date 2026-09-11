@@ -26,17 +26,30 @@ export async function diagnoseGitHubActions({
 } = {}) {
   const validation = validateGitHubActionsConfig(environment);
   const checks = [];
+  const renderInputUrl = typeof environment.HARNESS_RENDER_INPUT_URL === "string"
+    ? environment.HARNESS_RENDER_INPUT_URL.trim()
+    : "";
+  const renderInputSha256 = typeof environment.HARNESS_RENDER_INPUT_SHA256 === "string"
+    ? environment.HARNESS_RENDER_INPUT_SHA256.trim()
+    : "";
+  const renderInputConfigured = Boolean(renderInputUrl) && /^[a-f0-9]{64}$/.test(renderInputSha256);
   const config = {
     valid: validation.valid,
     tokenConfigured: Boolean(validation.config.token.trim()),
     repository: validation.config.repository,
     ref: validation.config.ref,
+    renderInputConfigured,
     issues: validation.issues,
   };
 
   if (!validation.valid) {
     checks.push(check("configuration", "failed", "GitHub Actions 配置不完整，未发起远程请求。"));
     return { ok: false, config, checks };
+  }
+  if (!renderInputConfigured) {
+    checks.push(check("render-input", "failed", "未配置有效的独立远程输入包 URL 和 SHA-256。"));
+  } else {
+    checks.push(check("render-input", "ok", "独立远程输入包配置完整，具体视频资料不会进入能力仓库。"));
   }
   if (typeof fetchImpl !== "function") {
     checks.push(check("configuration", "failed", "当前 Node 环境没有可用的 fetch。"));

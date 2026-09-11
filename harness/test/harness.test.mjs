@@ -164,10 +164,10 @@ test("adds the style-specific prototype baseline to the visual prototype task pa
   const packet = buildTaskPacket(project);
   assert.deepEqual(packet.context.referencePaths, [
     "styles/codex/STYLE.md",
-    "videos/01-what-is-codex/visual-prototype.html",
+    "templates/video-production/visual-prototype.html",
   ]);
   assert.ok(packet.context.readPaths.includes("styles/codex/STYLE.md"));
-  assert.ok(packet.context.readPaths.includes("videos/01-what-is-codex/visual-prototype.html"));
+  assert.ok(packet.context.readPaths.includes("templates/video-production/visual-prototype.html"));
   assert.match(packet.context.constraints.join("\n"), /shell、toolbar、stage、section\.scene、caption、controls、progress 和 meta/);
 });
 
@@ -175,7 +175,7 @@ test("requires the immutable Codex prototype shell and layout contract", () => {
   const { slug } = createFixture({ prototypeBaseline: "codex-v1" });
   const project = loadFixture(slug);
   const prototypePath = path.join(project.config.workspaceRoot, `videos/${slug}/visual-prototype.html`);
-  const baseline = fs.readFileSync(new URL("../../videos/01-what-is-codex/visual-prototype.html", import.meta.url), "utf8");
+  const baseline = fs.readFileSync(new URL("../../templates/video-production/visual-prototype.html", import.meta.url), "utf8");
   fs.writeFileSync(prototypePath, baseline, "utf8");
   const validIssues = validateStage(loadFixture(slug), "visual-prototype");
   assert.equal(validIssues.some((item) => item.code === "prototype-baseline-format-mismatch"), false);
@@ -191,15 +191,15 @@ test("requires one upper-left baseline title block in every prototype scene", ()
   const { slug } = createFixture({ prototypeBaseline: "codex-v1" });
   const project = loadFixture(slug);
   const prototypePath = path.join(project.config.workspaceRoot, `videos/${slug}/visual-prototype.html`);
-  const baseline = fs.readFileSync(new URL("../../videos/01-what-is-codex/visual-prototype.html", import.meta.url), "utf8");
+  const baseline = fs.readFileSync(new URL("../../templates/video-production/visual-prototype.html", import.meta.url), "utf8");
   fs.writeFileSync(prototypePath, baseline, "utf8");
   const validIssues = validateStage(loadFixture(slug), "visual-prototype");
   assert.equal(validIssues.some((item) => item.code === "prototype-baseline-scene-title-mismatch"), false);
   assert.equal(validIssues.some((item) => item.code === "prototype-baseline-scene-title-layout-mismatch"), false);
 
   const missingTitle = baseline.replace(
-    '<div class="eyebrow">Scene 04 · Routing</div>\n        <h1>三扇门在本机，一扇门去云端</h1>',
-    '<div class="eyebrow">Scene 04 · Routing</div>',
+    '<span class="eyebrow">SCENE 01</span><h1>[Scene 标题]</h1>',
+    '<span class="eyebrow">SCENE 01</span>',
   );
   fs.writeFileSync(prototypePath, missingTitle, "utf8");
   const missingTitleIssues = validateStage(loadFixture(slug), "visual-prototype");

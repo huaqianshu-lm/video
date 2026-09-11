@@ -11,6 +11,14 @@ on:
         description: Remotion Composition ID
         required: true
         type: string
+      render_input_url:
+        description: URL of the private render input package
+        required: true
+        type: string
+      render_input_sha256:
+        description: SHA-256 of the render input package
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -23,6 +31,9 @@ jobs:
     env:
       VIDEO_SLUG: ${{ inputs.video_slug }}
       COMPOSITION_ID: ${{ inputs.composition_id }}
+      RENDER_INPUT_URL: ${{ inputs.render_input_url }}
+      RENDER_INPUT_SHA256: ${{ inputs.render_input_sha256 }}
+      RENDER_INPUT_TOKEN: ${{ secrets.RENDER_INPUT_TOKEN }}
 
     steps:
       - name: Checkout
@@ -45,21 +56,48 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Download and verify render input package
+        run: |
+          [[ "$RENDER_INPUT_URL" =~ ^https?:// ]]
+          [[ "$RENDER_INPUT_SHA256" =~ ^[a-f0-9]{64}$ ]]
+          input_archive="$RUNNER_TEMP/render-input.zip"
+          input_root="$RUNNER_TEMP/render-input"
+          auth_args=()
+          if [[ -n "${RENDER_INPUT_TOKEN:-}" ]]; then
+            auth_args=(-H "Authorization: Bearer $RENDER_INPUT_TOKEN")
+          fi
+          curl --fail --location --retry 3 --retry-all-errors "${auth_args[@]}" "$RENDER_INPUT_URL" -o "$input_archive"
+          echo "$RENDER_INPUT_SHA256  $input_archive" | sha256sum --check --status
+          mkdir -p "$input_root"
+          unzip -q "$input_archive" -d "$input_root"
+          node harness/src/cli.mjs render-input validate-path "$input_root"
+
+      - name: Install render input into temporary workspace
+        run: |
+          input_root="$RUNNER_TEMP/render-input"
+          manifest_slug="$(node -e "console.log(require(process.argv[1]).videoSlug)" "$input_root/render-input.json")"
+          manifest_composition="$(node -e "console.log(require(process.argv[1]).compositionId)" "$input_root/render-input.json")"
+          test "$manifest_slug" = "$VIDEO_SLUG"
+          test "$manifest_composition" = "$COMPOSITION_ID"
+          mkdir -p videos src/videos assets
+          cp -R "$input_root/videos/$VIDEO_SLUG" "videos/$VIDEO_SLUG"
+          cp -R "$input_root/src/videos/$VIDEO_SLUG" "src/videos/$VIDEO_SLUG"
+          cp "$input_root/assets/$VIDEO_SLUG-assets.zip" "assets/$VIDEO_SLUG-assets.zip"
+          node harness/src/cli.mjs render-input entry \
+            --manifest "$input_root/render-input.json" \
+            --output src/RenderInputRoot.tsx
+          mkdir -p public/local-assets
+          unzip -q "assets/$VIDEO_SLUG-assets.zip" -d public/local-assets
+
       - name: Validate workflow inputs
         run: |
           [[ "$VIDEO_SLUG" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]]
           [[ "$COMPOSITION_ID" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]]
-          test -f "assets/${VIDEO_SLUG}-assets.zip"
           test -f "src/videos/${VIDEO_SLUG}/generated/audio-manifest.json"
           test -f "src/videos/${VIDEO_SLUG}/generated/subtitle-manifest.json"
           test -f "src/videos/${VIDEO_SLUG}/generated/timeline-manifest.json"
           test -f "src/videos/${VIDEO_SLUG}/video.config.ts"
-          test -n "$(find "src/videos/${VIDEO_SLUG}" -maxdepth 1 -type f -name '*Video.tsx' -print -quit)"
-
-      - name: Extract video assets
-        run: |
-          mkdir -p public/local-assets
-          unzip -q "assets/${VIDEO_SLUG}-assets.zip" -d public/local-assets
+          test -f src/RenderInputRoot.tsx
 
       - name: Verify render inputs
         run: |
@@ -90,12 +128,12 @@ jobs:
       - name: Render representative frames
         run: |
           mkdir -p smoke
-          npx remotion still "$COMPOSITION_ID" --frame="${{ steps.frames.outputs.early }}" --output=smoke/frame-early.png
-          npx remotion still "$COMPOSITION_ID" --frame="${{ steps.frames.outputs.middle }}" --output=smoke/frame-middle.png
-          npx remotion still "$COMPOSITION_ID" --frame="${{ steps.frames.outputs.late }}" --output=smoke/frame-late.png
+          npx remotion still src/RenderInputRoot.tsx "$COMPOSITION_ID" --frame="${{ steps.frames.outputs.early }}" --output=smoke/frame-early.png
+          npx remotion still src/RenderInputRoot.tsx "$COMPOSITION_ID" --frame="${{ steps.frames.outputs.middle }}" --output=smoke/frame-middle.png
+          npx remotion still src/RenderInputRoot.tsx "$COMPOSITION_ID" --frame="${{ steps.frames.outputs.late }}" --output=smoke/frame-late.png
 
       - name: Render first 10 seconds
-        run: npx remotion render "$COMPOSITION_ID" smoke/first-10-seconds.mp4 --frames=0-299
+        run: npx remotion render src/RenderInputRoot.tsx "$COMPOSITION_ID" smoke/first-10-seconds.mp4 --frames=0-299
 
       - name: Upload smoke-test artifacts
         uses: actions/upload-artifact@v6

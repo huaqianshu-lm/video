@@ -9,6 +9,14 @@ import { createTtsExecutorFromEnv } from "./tts-executor.mjs";
 import { createRemotionExecutorFromEnv } from "./remotion-executor.mjs";
 import { createRemoteRenderExecutor } from "./remote-executor.mjs";
 import { packageVideoAssets } from "./asset-bundler.mjs";
+import {
+  packageRenderInput,
+  prepareRenderInput,
+  renderInputDirectory,
+  validateRenderInputDirectory,
+  writeStudioCatalogEntryPoint,
+  writeRenderEntryPoint,
+} from "./render-input.mjs";
 import { runSingleStage } from "./single-runner.mjs";
 import { buildNextAction, buildProjectReport } from "./reports.mjs";
 import { buildTaskPacket } from "./context.mjs";
@@ -48,6 +56,12 @@ function usage() {
   node harness/src/cli.mjs run <slug> [stage]
   node harness/src/cli.mjs remote-run <slug> <smoke-render|render> [--json]
   node harness/src/cli.mjs assets package <slug> [--json]
+  node harness/src/cli.mjs render-input prepare <slug> [--composition-id <id>] [--component-file <file>] [--component-export <name>] [--json]
+  node harness/src/cli.mjs render-input validate <slug> [--json]
+  node harness/src/cli.mjs render-input package <slug> [--json]
+  node harness/src/cli.mjs render-input validate-path <directory> [--json]
+  node harness/src/cli.mjs render-input entry --manifest <file> --output <file> [--json]
+  node harness/src/cli.mjs render-input entry-all --output <file> [--json]
   node harness/src/cli.mjs approve <slug> <gate>
   node harness/src/cli.mjs reject <slug> <gate> --return-to <stage> --reason <text>
   node harness/src/cli.mjs retry <slug> [stage]
@@ -177,6 +191,7 @@ function printDiagnostics(result) {
   console.log(`Repository: ${result.config.repository || "未配置"}`);
   console.log(`Ref: ${result.config.ref || "未配置"}`);
   console.log(`Token: ${result.config.tokenConfigured ? "已配置" : "未配置"}`);
+  console.log(`Render input: ${result.config.renderInputConfigured ? "已配置" : "未配置"}`);
   for (const item of result.checks) {
     console.log(`  [${item.status}] ${item.name}: ${item.message}`);
   }
@@ -394,6 +409,77 @@ async function main(args) {
     if (options.includes("--json")) console.log(JSON.stringify(result, null, 2));
     else console.log(`Packaged ${result.archiveRelativePath} (${result.fileCount} files)`);
     return 0;
+  }
+
+  if (command === "render-input") {
+    const subcommand = slug;
+    const asJson = options.includes("--json");
+    if (subcommand === "entry") {
+      const manifestIndex = options.indexOf("--manifest");
+      const outputIndex = options.indexOf("--output");
+      const manifestPath = manifestIndex >= 0 ? options[manifestIndex + 1] : null;
+      const outputPath = outputIndex >= 0 ? options[outputIndex + 1] : null;
+      if (!manifestPath || !outputPath) throw new Error("render-input entry requires --manifest <file> --output <file>");
+      const result = writeRenderEntryPoint(manifestPath, outputPath);
+      if (asJson) console.log(JSON.stringify(result, null, 2));
+      else console.log(`Wrote render entry point: ${result.outputPath}`);
+      return 0;
+    }
+
+    if (subcommand === "entry-all") {
+      const outputIndex = options.indexOf("--output");
+      const outputPath = outputIndex >= 0 ? options[outputIndex + 1] : null;
+      if (!outputPath) throw new Error("render-input entry-all requires --output <file>");
+      const result = writeStudioCatalogEntryPoint(process.cwd(), outputPath);
+      if (asJson) console.log(JSON.stringify(result, null, 2));
+      else {
+        console.log(`Wrote Studio catalog entry point: ${result.outputPath}`);
+        console.log(`Registered ${result.entries.length} video(s)`);
+        for (const skipped of result.skipped) console.log(`Skipped ${skipped.slug}: ${skipped.reason}`);
+      }
+      return 0;
+    }
+
+    if (subcommand === "validate-path") {
+      const directory = options.find((value) => value !== "--json");
+      if (!directory) throw new Error("render-input validate-path requires <directory>");
+      const issues = validateRenderInputDirectory(directory);
+      if (asJson) console.log(JSON.stringify({ directory, issues }, null, 2));
+      else console.log(issues.length === 0 ? `Valid render input: ${directory}` : issues.map((issue) => `- ${issue}`).join("\n"));
+      return issues.length === 0 ? 0 : 1;
+    }
+
+    validateSlug(options.find((value) => !value.startsWith("--")) ?? "");
+    const inputSlug = options.find((value) => !value.startsWith("--"));
+    const project = loadProject(inputSlug, { refresh: true });
+    if (subcommand === "prepare") {
+      const compositionIndex = options.indexOf("--composition-id");
+      const componentFileIndex = options.indexOf("--component-file");
+      const componentExportIndex = options.indexOf("--component-export");
+      const result = prepareRenderInput(project, {
+        compositionId: compositionIndex >= 0 ? options[compositionIndex + 1] : undefined,
+        componentFile: componentFileIndex >= 0 ? options[componentFileIndex + 1] : undefined,
+        componentExport: componentExportIndex >= 0 ? options[componentExportIndex + 1] : undefined,
+      });
+      if (asJson) console.log(JSON.stringify(result, null, 2));
+      else console.log(`${result.status === "current" ? "Reused" : "Prepared"} render input: ${result.directory}`);
+      return 0;
+    }
+    if (subcommand === "validate") {
+      const directory = renderInputDirectory(project.config.workspaceRoot, inputSlug);
+      const issues = validateRenderInputDirectory(directory, { expectedSlug: inputSlug });
+      if (asJson) console.log(JSON.stringify({ directory, issues }, null, 2));
+      else console.log(issues.length === 0 ? `Valid render input: ${directory}` : issues.map((issue) => `- ${issue}`).join("\n"));
+      return issues.length === 0 ? 0 : 1;
+    }
+    if (subcommand === "package") {
+      const result = packageRenderInput(project.config.workspaceRoot, inputSlug);
+      if (asJson) console.log(JSON.stringify(result, null, 2));
+      else console.log(`Packaged ${result.archivePath} (sha256=${result.archiveSha256})`);
+      return 0;
+    }
+    usage();
+    return 1;
   }
 
   if (["validate", "run", "resume", "retry", "approve", "reject", "next", "report", "context", "plan"].includes(command)) {

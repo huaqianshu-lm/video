@@ -12,7 +12,7 @@ import { buildProjectPlan } from "../../plans.mjs";
 import { getVideoProject } from "../../project-view.mjs";
 import { buildNextAction, buildProjectReport } from "../../reports.mjs";
 import { ensureRemotionTask, listRemotionTasks } from "../../remotion-tasks.mjs";
-import { assertRemoteRenderDeliveryInputs, prepareRemoteRenderInputs, validateRemoteRenderInputs } from "../../remote-executor.mjs";
+import { assertRemoteRenderDeliveryInputs, prepareRemoteRenderInputs, validateRemoteRenderPackage } from "../../remote-executor.mjs";
 import { initializeProject, loadProject } from "../../storage.mjs";
 import { STAGE_DEFINITIONS } from "../../stages.mjs";
 import { approveGate, rejectGate, resumeProject, retryStage, runStage, validateStage } from "../../runner.mjs";
@@ -136,7 +136,7 @@ export function createProjectActionService(runtime) {
       requireGitHubActionsConfig();
       const active = findActiveJob(action.slug, action.stage);
       if (active) return { status: 200, result: { action: action.action, status: "already-running" }, job: active };
-      const project = loadProject(action.slug, { refresh: true }); prepareRemoteRenderInputs(project); const inputIssues = validateRemoteRenderInputs(project);
+      const project = loadProject(action.slug, { refresh: true }); prepareRemoteRenderInputs(project); const inputIssues = validateRemoteRenderPackage(project);
       if (inputIssues.length) { const error = new Error(`远程渲染输入预检失败：${inputIssues.join("；")}`); error.code = "remote-render-inputs-invalid"; error.issues = inputIssues; throw error; }
       const deliveryIssues = validateGitRenderDelivery(project);
       if (deliveryIssues.length && !(action.stage === "smoke-render" && action.commitAndPush && action.confirmDelivery)) {

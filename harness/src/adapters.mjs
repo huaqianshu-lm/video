@@ -83,6 +83,9 @@ export function createGitHubActionsAdapter({
   runTimeoutMs = DEFAULT_RUN_TIMEOUT_MS,
   runPollIntervalMs = DEFAULT_RUN_POLL_INTERVAL_MS,
   sleepImpl = sleep,
+  renderInputUrl = null,
+  renderInputSha256 = null,
+  requireRenderInput = false,
 } = {}) {
   requireAdapterValue(token, "token");
   requireAdapterValue(repository, "repository");
@@ -133,11 +136,22 @@ export function createGitHubActionsAdapter({
     const workflow = workflowPath(stage);
     const slug = project.state.slug;
     const compositionId = project.config.compositionId ?? slug;
-    return { workflow, ref, slug, compositionId, dispatchedAt, dispatchState: "pending" };
+    const dispatch = { workflow, ref, slug, compositionId, dispatchedAt, dispatchState: "pending" };
+    if (renderInputUrl && renderInputSha256) {
+      dispatch.renderInputUrl = renderInputUrl;
+      dispatch.renderInputSha256 = renderInputSha256;
+    }
+    return dispatch;
   }
 
   async function dispatchWorkflow({ stage, project, dispatchedAt = now().toISOString() }) {
     const dispatch = createDispatch({ stage, project, dispatchedAt });
+
+    if (requireRenderInput && (!dispatch.renderInputUrl || !dispatch.renderInputSha256)) {
+      const error = new Error("远程渲染需要 HARNESS_RENDER_INPUT_URL 和 HARNESS_RENDER_INPUT_SHA256");
+      error.code = "render-input-remote-config-invalid";
+      throw error;
+    }
 
     await request(`/repos/${repository}/actions/workflows/${encodeURIComponent(dispatch.workflow)}/dispatches`, {
       method: "POST",
@@ -147,6 +161,9 @@ export function createGitHubActionsAdapter({
         inputs: {
           video_slug: dispatch.slug,
           composition_id: dispatch.compositionId,
+          ...(dispatch.renderInputUrl && dispatch.renderInputSha256
+            ? { render_input_url: dispatch.renderInputUrl, render_input_sha256: dispatch.renderInputSha256 }
+            : {}),
         },
       }),
     });
@@ -360,8 +377,18 @@ export function createGitHubActionsAdapter({
 
 export function createGitHubActionsAdapterFromEnv(options = {}) {
   const config = requireGitHubActionsConfig();
+  const renderInputUrl = process.env.HARNESS_RENDER_INPUT_URL?.trim() ?? "";
+  const renderInputSha256 = process.env.HARNESS_RENDER_INPUT_SHA256?.trim() ?? "";
+  if (!renderInputUrl || !/^[a-f0-9]{64}$/.test(renderInputSha256)) {
+    const error = new Error("远程渲染需要 HARNESS_RENDER_INPUT_URL 和有效的 HARNESS_RENDER_INPUT_SHA256");
+    error.code = "render-input-remote-config-invalid";
+    throw error;
+  }
   return createGitHubActionsAdapter({
     ...config,
+    renderInputUrl,
+    renderInputSha256,
+    requireRenderInput: true,
     ...options,
   });
 }

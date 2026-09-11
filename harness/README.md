@@ -34,16 +34,16 @@
 
 ## 仓库边界
 
-Harness 的代码、测试夹具和实现文档放在当前仓库的顶层 `harness/` 目录。
+Harness 的代码、测试夹具和实现文档放在当前仓库的顶层 `harness/` 目录；通用视频模板放在 `templates/`，项目专项 Skill 放在 `.claude/skills/`。
 
 Harness 可以读取并调用现有的：
 
-- `videos/<video-slug>/` 生产资料；
-- `src/videos/<video-slug>/` 视频配置和组件；
+- 本地 `videos/<video-slug>/` 生产资料；
+- 本地 `src/videos/<video-slug>/` 视频配置和组件；
 - 现有检查脚本；
 - 项目既定的 TTS 和 GitHub Actions 入口。
 
-Harness 不直接修改已经完成的视频资料，也不重写共享 Remotion 场景。真实视频只用于只读回归，继续用最小测试项目验证 Harness 自身行为。
+这些具体视频目录不属于远端仓库能力，Harness 不应把它们当作唯一的通用模板来源。可复用的原型基线和脚本结构使用受 Git 跟踪的 `templates/`。Harness 不直接修改已经完成的视频资料，也不重写共享 Remotion 场景。真实视频只用于只读回归，继续用最小测试项目验证 Harness 自身行为。
 
 ## 0.2 范围
 
@@ -190,7 +190,8 @@ http://127.0.0.1:4173
 - Gate 2 通过时冻结 Visual Script／Visual Prototype 指纹，Remotion 阶段校验逐 Scene `remotion-alignment.json`，Gate 3 并排对照原型与 Remotion Studio；
 - 执行校验、阶段推进、Gate 通过／驳回、重试和断点续做；
 - 发起远程 Smoke Render／Render 后查看任务状态和 Artifact 元数据；
-- 在远程渲染阶段提供“准备远程渲染资源”动作：从 `public/local-assets/<video-slug>/` 幂等生成资源包，并在提交前检查资源包、Manifest、Remotion 代码、Git 跟踪状态和 dispatch 分支；不自动 commit 或 push；
+- 在远程渲染阶段提供“准备远程渲染资源”动作：从本地 `videos/<video-slug>/`、`src/videos/<video-slug>/` 和资源包整理独立输入包，并在提交前检查输入包、Manifest、能力代码和 dispatch 分支；不自动 commit 或 push；
+- 通过 `render-input` 命令把本地 `videos/<video-slug>/`、`src/videos/<video-slug>/` 和资源包整理为被 Git 忽略的独立输入包；远端只下载这个包到临时工作区，不把具体视频资料混入能力仓库；
 - 查看后台任务的 Run 链接、Run ID、Artifact 名称、最近检查时间和失败原因；
 - 在首页查看所有视频项目的远程任务，并手动执行 GitHub 配置诊断；
 - 对未初始化的旧视频执行 Legacy 只读检查。
@@ -241,7 +242,50 @@ node harness/src/cli.mjs next <video-slug> --json
 node harness/src/cli.mjs report <video-slug> --json
 node harness/src/cli.mjs doctor --json
 node harness/src/cli.mjs assets package <video-slug> --json
+node harness/src/cli.mjs render-input prepare <video-slug> --json
+node harness/src/cli.mjs render-input validate <video-slug> --json
+node harness/src/cli.mjs render-input package <video-slug> --json
+node harness/src/cli.mjs render-input entry-all --output src/RenderInputRoot.tsx --json
 ```
+
+远程渲染输入包位于被忽略的 `local/render-input/<video-slug>/`，压缩包位于同目录下的 `<video-slug>.zip`。准备输入包不会 commit 或 push：
+
+```bash
+node harness/src/cli.mjs render-input prepare <video-slug>
+node harness/src/cli.mjs render-input package <video-slug>
+export HARNESS_RENDER_INPUT_URL="<private-input-package-url>"
+export HARNESS_RENDER_INPUT_SHA256="<sha256-of-zip>"
+node harness/src/cli.mjs remote-run <video-slug> smoke-render
+```
+
+本地需要在 Studio 预览具体视频时，也使用同一个被忽略的输入包生成临时注册入口；它不会修改受跟踪的 `src/Root.tsx`：
+
+```bash
+node harness/src/cli.mjs render-input entry \
+  --manifest "local/render-input/<video-slug>/render-input.json" \
+  --output src/RenderInputRoot.tsx
+npx remotion studio src/RenderInputRoot.tsx
+```
+
+如果需要在 Studio 左侧同时查看本地所有视频，使用批量入口命令：
+
+```bash
+node harness/src/cli.mjs render-input entry-all \
+  --output src/RenderInputRoot.tsx
+npx remotion studio src/RenderInputRoot.tsx
+```
+
+该命令扫描本地 `src/videos/` 和 `videos/`，为每个可匹配的视频注册一个 Composition。一个视频目录存在多个版本时，优先选择组件与配置版本号匹配且修改时间较晚的一组；因此 `claude-code-what-is` 使用 `ClaudeCodeWhatIsVideo14.tsx`、`video14.config.ts` 和 `claude-code-what-is-v2`。入口文件仍被 Git 忽略，视频资料和资源不会因此进入仓库。
+
+如果一个视频目录中存在多个 `*Video.tsx`，准备时显式指定入口：
+
+```bash
+node harness/src/cli.mjs render-input prepare <video-slug> \
+  --component-file <VideoComponent.tsx> \
+  --component-export <VideoComponent>
+```
+
+远程输入包的实际托管位置由使用者选择，可以是独立私有 GitHub 仓库的 Release、私有对象存储或其他受控 HTTPS 地址。GitHub Actions 使用仓库 Secret `RENDER_INPUT_TOKEN`（如托管服务需要）下载它；Token 不进入仓库、输入参数或浏览器。
 
 阶段执行遵守当前阶段顺序；Gate 阶段会进入等待状态：
 
@@ -259,12 +303,14 @@ node harness/src/cli.mjs resume <video-slug>
 export GITHUB_TOKEN="<token>"
 export GITHUB_REPOSITORY="<owner>/<repo>"
 export HARNESS_GITHUB_REF="<optional-explicit-branch>"
+export HARNESS_RENDER_INPUT_URL="<private-input-package-url>"
+export HARNESS_RENDER_INPUT_SHA256="<sha256-of-zip>"
 node harness/src/cli.mjs run <video-slug> smoke-render
 node harness/src/cli.mjs run <video-slug> render
 ```
 
 `HARNESS_GITHUB_REF` 是显式覆盖项；未设置时，本地 Harness 默认使用当前 Git 工作区分支。只有无法从当前工作区解析分支时，才回退到 `GITHUB_REF_NAME`。
 
-远程渲染提交前，Web UI 会要求资源包和渲染相关代码已提交，并确认 dispatch 分支包含当前提交。已有视频可以先点击“准备远程渲染资源”；命令行等价操作为 `node harness/src/cli.mjs assets package <video-slug>`。如果资源包或代码随后变为未提交状态，提交按钮会继续保持阻塞，直到用户完成 commit 和 push。
+远程渲染提交前，Web UI 会要求输入包和渲染能力代码已准备，并确认 dispatch 分支包含当前能力代码提交。已有视频可以先点击“准备远程渲染资源”；命令行等价操作为 `node harness/src/cli.mjs render-input prepare <video-slug>` 和 `node harness/src/cli.mjs render-input package <video-slug>`。输入包上传到独立受控地址后，再配置 `HARNESS_RENDER_INPUT_URL` 与 `HARNESS_RENDER_INPUT_SHA256`。如果输入包或能力代码随后发生变化，提交动作必须重新准备并校验，不能继续使用旧输入包。
 
 真实渲染使用 GitHub Actions，不使用本机 Remotion 渲染；Web UI 后台监控器会持续查询对应 Run，完成后检查 Artifact 并推进 Harness 阶段。CLI 的 `run` 保留一次性等待模式；`jobs` 可查看已经持久化的远程任务。

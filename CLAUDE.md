@@ -1,443 +1,114 @@
 # CLAUDE.md
 
-本文件用于约束 Claude Code 在当前目录实现和维护 Remotion AI Video MVP 工程。若与历史 demo 约束文档 `remotion-video-demo-constraints.md` 冲突，以本文件为当前执行规范；需要调整实践时，先更新本文件，再改代码。
+本文件是当前 Remotion AI Video MVP 工程的项目级核心规范。全局约束来自 `~/.claude/CLAUDE.md`；本文件只保留所有项目任务都需要知道的边界、不可变约束和按需加载入口。
 
 ## 项目定位
 
-当前目录是 Remotion AI Video MVP 工程目录，用于验证「原始内容 → Content Analysis → Video Narrative → Scene Script → Narration Script → Visual Script → Visual Prototype → 人工确认 → Remotion 场景实现 → Studio 预览 → 人工确认 → MP4 渲染」的可复用视频生产流程。
+本项目用于验证并产品化一套可复用的视频生产 Harness：
 
-当前目标不是完整视频平台、剪辑软件、素材管理系统或自动化视频工厂。Harness Web UI 第一版只作为本地视频生产流程的查看和控制界面，并在明确选择的视频范围内编排四类可暂停、可恢复的批量任务，不改变这个范围。
+`原始内容 → Content Analysis → Video Narrative → Scene Script → Narration Script → Visual Script → Visual Prototype → 人工确认 → Remotion → Studio 预览 → 人工确认 → GitHub Actions 渲染`
 
-长期产品目标：将本项目中验证过的 AI 视频生产流程，逐步产品化为一个专门的视频生产 Harness，最终让其他人可以安装、配置和使用。该 Harness 只服务于视频生产，不扩展为能够处理代码、数据或其他任务的通用 Harness。后续所有架构、工具和功能取舍，都必须优先服务于视频生产流程的可复用、可配置、可检查、可恢复和可交付；只对单条视频一次性有效、无法沉淀为复用能力的工作，不作为长期建设方向，除非它是完成当前视频交付的必要步骤。
-
-历史说明：`HelloIntro` 只是早期 Remotion 技术 spike，用于确认环境可运行；它不再作为后续架构、组件或视觉设计基础。
-
-「源文档 → 分阶段生产资料 → TTS → 音频／字幕回传 → Remotion 音画同步 → 人工确认 → GitHub Actions 渲染与轮询」端到端方案记录在 `docs/END-TO-END-VIDEO-PRODUCTION-PLAN.md`。当前第一条真实验证视频已完成 TTS、Remotion 接入和 Gate 3，GitHub Actions 已支持通过受控输入渲染不同视频；批量任务仅负责编排既定 Agent／适配器和断点恢复，不绕过人工 Gate 或把 Harness 变成自动内容生成平台，具体真实进度以 `ROADMAP.md` 为准。
-
-## Harness 0.1 实施边界
-
-- 第一版 Harness 使用独立顶层目录 `harness/`，作为现有视频生产流程的编排层；不直接重写已完成视频的生产资料、TTS 资源、字幕、时间轴或 Remotion 场景。
-- Harness 先实现单视频项目的阶段状态、产物记录、校验、人工 Gate、失败重试和断点续做；批量任务只在这些契约之上编排多个独立视频，不改变单视频状态模型。
-- Harness 通过适配器调用现有 TTS、字幕／时间轴、Remotion 和 GitHub Actions 能力；不得绕过 `narration-script.md`、冻结后的 `tts-script.json` 及其校验边界。
-- 第一版必须先用最小测试视频完成自动化验收，再用已有视频做只读回归；真实视频的人工内容和画面确认仍属于用户 Gate，不由 Harness 自动替代。
+Harness 只服务于视频生产，不扩展为处理代码、数据或其他任务的通用 Harness。一次性的视频内容和具体视频产物属于本地工作资料，不属于仓库长期能力。
 
-## Harness Web UI 第一版范围
+## 规则分层与按需加载
 
-Harness Web UI 第一版建立在 Harness 0.4 之上，只提供本地管理界面，不重新实现视频生产逻辑：
+- 本文件：项目定位、仓库边界、核心不变量、Skill 路由和验证要求。
+- `.claude/skills/`：只在对应任务发生时加载的操作流程和专项规则。
+- `docs/`：稳定、可共享的详细规则和工作流参考，不在本文件中重复全文。
+- `drafts/`：实施方案、讨论结果、临时设计和被替代方案，不具有规范效力。
+- `notes/`：本地问题记录和经验沉淀，不作为远端执行的唯一规则来源。
 
-- 通过本地 Web Server 展示视频项目列表、15 个生产阶段、当前状态、校验问题和下一步动作。
-- 查看七层生产资料、TTS／字幕／Timeline Manifest、Remotion 配置、Visual Prototype 和远程渲染结果。
-- 调用现有 Harness 核心完成校验、`next`、`report`、`context`、`plan`、Gate 通过／驳回、重试和断点续做。
-- 通过后台任务触发并查看 GitHub Actions Smoke Render、完整 Render 和 Artifact；浏览器不得接触 GitHub Token。
-- 本地 Web UI 提交 GitHub Actions 任务时，目标分支优先使用显式 `HARNESS_GITHUB_REF`；未配置时必须从当前 Git 工作区解析分支，只有不在 Git 工作区或处于 detached HEAD 时才允许回退到 `GITHUB_REF_NAME`。不得把本机残留的 `GITHUB_REF_NAME` 当作普通启动时的默认分支。
-- 提交 Smoke Render 或完整 Render 前，必须校验 `assets/<video-slug>-assets.zip` 本身可完整解压、顶层目录为 `<video-slug>/`、包含 `subtitles/captions.vtt` 和 `subtitles/captions.srt`，并逐项确认 ZIP 内 MP3 路径和数量与 Audio Manifest 一致；不得只检查 ZIP 文件存在。
-- TTS 适配器完成音频、字幕和 Timeline 同步后，必须自动生成或更新 `assets/<video-slug>-assets.zip`；资源包必须从 `public/local-assets/<video-slug>/` 打包，资源目录变化后旧资源包不得继续用于远程渲染。
-- 远程渲染交付预检除资源和 Manifest 外，必须检查渲染所需代码、配置和资源包已被 Git 跟踪、没有未提交修改，并且 dispatch 分支包含当前工作区对应的提交；不满足时 Web UI 必须阻止提交并显示具体文件和修复动作。
-- 对已有视频或资源包缺失的视频，Web UI 必须提供幂等的“准备远程渲染资源”动作，完成资源打包和交付预检，但不得替用户 commit、push 或绕过人工 Gate。
-- “提交并执行 Smoke Render”是 Git 操作的唯一例外入口：用户一次明确确认后，Web UI 可以只对当前视频的渲染交付文件执行定向 commit 和 push，再提交 Smoke Render；不得使用 `git add .`，不得提交其他视频、文档或无关改动。单独准备资源、完整 Render 以及其他入口仍不得自动 commit 或 push；Smoke Render 的人工检查和后续 Gate 仍不可绕过。
-- Web UI 只绑定 `127.0.0.1`，第一版不引入数据库、登录、多用户或公网部署；批量编排使用本地批次文件，不引入数据库。
-- Agent 阶段仍由既定生产流程和 Agent 完成；批量入口只编排已配置的 Agent／TTS／Remotion／GitHub Actions 执行器，不复制生产逻辑、不自动通过 Gate。Remotion 没有配置自动执行器时，必须创建可恢复的 Remotion 制作任务并明确等待 Agent 产出，不能把“等待制作”伪装成失败或把校验通过伪装成真实产物完成。
-- Web UI 执行 Agent 阶段时，必须创建持久化后台 Agent Job，由本地 Server 调用已配置的 Agent 执行器；浏览器只提交任务、轮询状态和查看有界日志。Agent 进程退出后，Harness 必须重新读取并校验真实产物，校验通过才推进阶段；未配置执行器、进程失败或产物校验失败都必须保留为可重试任务，不得退化为“只校验已有文件”。
-- Web UI 的 Remotion Agent 使用项目内适配器作为默认执行器，普通 `npm run harness:web` 启动必须自动加载该默认配置；环境变量只用于显式覆盖，不应要求用户每次重启 Server 后手工重新配置。默认适配器必须继续使用任务包声明的输入、输出路径、Gate 2 冻结基线和校验契约，不得自动通过 Gate 3。
-- Remotion 制作必须以已校验的 `timeline-manifest.json` 作为 narrated 视频的唯一时间基准：Agent 先读取 Audio／Subtitle／Timeline Manifest，再据此确定 Scene 时长、音频起点、字幕位置和视觉事件时间；不得先用估算时长或任意硬编码时间完成画面后再适配音频。缺少 Scene／Segment／Cue 映射时必须停止制作并报告原因。
-- Gate 3 驳回后重新提交 Remotion Agent 时，任务包必须携带本次驳回原因、回退阶段和“必须产生新的 Remotion 产物”的修改要求；重试旧任务前必须刷新任务包，不能让 Agent 只重新校验旧产物后再次触发“产物未变化”阻塞。
-- Remotion Agent 的运行／重试动作必须幂等：任务已处于 `in-progress` 时，重复提交应返回当前任务状态而不是报错；Web UI 提交后必须立即禁用同一任务的操作按钮。项目内默认适配器调用 Codex CLI 时必须使用当前版本兼容的审批参数组合。
-- Web UI 代码放在 `harness/` 内，Remotion 的 `src/Root.tsx` 和现有视频目录不承担管理后台职责。
-- 视频 slug 按用户指定的源文件名保留序号时，序号视为系列内编号；不同教程系列可以出现相同序号。Web UI 必须以 slug 唯一标识项目，同序号项目按 slug 稳定排序，不得为维持全局连续序号而改写 source 或 slug。
-
-Web UI 必须复用 Harness 的阶段契约和状态文件，不能在前端复制一套阶段判断、Gate 规则或渲染状态模型。真实视频内容、画面质量和 Gate 人工判断仍以现有生产资料和项目规范为准。
-
-## 端到端试点的人工 Gate 与内部审查
-
-端到端试点不在每份 Markdown 生成后单独停下来确认。Gate 1 默认由 Agent 完成内容一致性、事实边界、叙事关系和基线结构审查；只有遇到无法从源文档判断的重大取舍，才向用户提出单点问题。需要用户直接判断画面和交付质量的阶段，仍保留人工确认：
-
-- Gate 1：完成 `content-analysis.md`、`video-narrative.md` 和 `scene-script.md`，由 Agent 完成核心命题、信息取舍、叙事路径、Scene 拆分、Video Value 和基线结构审查；默认不暂停等待用户逐篇确认。
-- Gate 2：完成 `narration-script.md`、`visual-script.md` 和 `visual-prototype.html`，统一确认口播、视觉表达、声音与画面的互补关系、构图和信息密度；同时逐项检查所有画面文字是否能在当前视频的生产资料中找到依据，并检查每个 Scene 均有符合基线的左上标题区。任一 Scene 缺失标题、标题数量异常、标题未处于统一左上锚点或被 Scene 专属样式改位时，必须阻断 Gate 2。口播在生成阶段就必须按可独立观看的视频来写，不得把原始材料作为视频中的叙事对象或对话对象；禁止出现“原文档”“源文档”“本文”“这篇文章”“上文”“下文”“文中”“原文”等来源指代表达。参考视频只允许提供格式、风格和交互结构参考，不得把其业务语义、固定文案或状态文字带入当前视频。Gate 2 通过时，Harness 必须冻结 Visual Script 与 Visual Prototype 指纹及 Scene 清单，作为后续 Remotion 对齐基线。
-- `tts-script.json` 内部审查：由 Agent 自动完成 Scene／Segment 数量、ID、空文本、口播覆盖和内部制作文字检查；不单独暂停等待用户确认。
-- TTS 质检：确认发音、声音自然度、目标语速、停顿、字幕文本和字幕时间；这是进入 Remotion 前的阻塞性检查点，不单独计入正式 Gate 数量。
-- Gate 3：确认 Remotion 音画预览中的同步、字幕、动画节奏、信息密度和溢出情况；必须结合 `remotion-alignment.json` 逐 Scene 对照 Gate 2 冻结的原型布局、视觉事件、屏幕文字和实现文件，原型发生变化时旧 Remotion 结果失效。确认所有进入 Composition 的画面文字都与当前视频内容相关，并完成最终输出清洁画面检查，移除或隔离预览导航、调试文字、辅助说明和其他不应进入 MP4 的内容。
-- Smoke Render 检查：确认远程冒烟结果、代表帧、字体、资源和音轨后，才允许进入完整渲染；代表帧和短片还必须通过画面文字相关性与清洁输出检查。这是远程渲染流程中的阻塞性检查点。
-- Gate 4：确认最终完整 MP4 的内容、声音、字幕、画面和交付质量；再次确认最终文件不包含预览辅助控件、调试信息、参考视频残留文案或其他无关画面文字。
-
-Gate 不通过时，依据问题回退到对应的内部生产阶段；不默认从源文档重新开始。`content-analysis.md` 单独生成完成后，不要求用户单独确认，必须与后续两份内容方案资料一起完成 Gate 1 内部审查。
-
-- WebUI 中 Gate 3 驳回回退到 Remotion Agent 阶段时，服务端必须在同一次驳回请求中创建并提交可恢复的后台任务，直接进入 Remotion 修改阶段；不得要求用户再手工点击“重试”来启动首次修改。只有后台任务实际失败或校验阻塞后，才显示重试入口。
-
-## Narration Script 与 TTS 输入边界
-
-- `narration-script.md` 是面向人工确认的口播文档，Scene 下只能放实际需要朗读的内容；不得把“本段口播作用”、视觉说明、制作备注、Gate 检查清单或其他内部说明放进 Scene 的口播段落中。
-- 生成 `narration-script.md` 时，口播必须直接面向观众讲解当前主题，默认假设观众没有看到任何原始材料；不得使用“原文档”“源文档”“本文”“这篇文章”“上文”“下文”“文中”“原文”等来源关联表达，也不得用“根据这篇文章”“接下来回到原文”等方式解释内容来源。这里禁止的是来源指代，不是对主题本身的专业对象命名；例如讲解工具能力时，只有在语义确实指向外部资料或工具目标时才可使用“文档”等领域词。
-- 口播生成完成后、派生 `tts-script.json` 之前，必须先做一次来源指代语义检查；发现来源关联表达时，回到口播生成阶段重写并重新检查，不得等到 TTS、字幕或 Remotion 阶段再补救。内部 `source.md`、`content-analysis.md` 等制作资料可以保留来源关系，但这些内部说明不得复制进 Scene 口播正文。
-- TTS 不直接消费整份制作文档。Gate 2 通过后，必须先从纯口播的 `narration-script.md` 派生独立的 `tts-script.json`，完成 Scene／Segment 拆分和 TTS 文本清理，再把 `tts-script.json` 交给 TTS。
-- `tts-script.json` 的派生必须复用既有 TTS 项目的标准生成器 `scripts/build_tts_script.py`；CLI、Harness WebUI 和其他入口不得各自维护一套 Markdown 解析或口播清洗规则。Harness 只负责调用该生成器、保存结果并校验结果，不能以自有解析器替代标准生成器。
-- narrated 视频的 TTS 默认语速为 `+25%`；调用 TTS 前必须显式检查并传入 `--rate +25%`，除非用户明确指定其他语速。当前 `claude-code-third-party-models` 已生成的 `+0%` 音频保持不变，不回溯重做。
-- 本项目内经过 Gate 2 冻结并通过校验的 `tts-script.json`，默认获准发送到项目既定的 Microsoft Edge TTS 服务（`speech.platform.bing.com`），使用既定语音生成视频配音、Word Boundary、字幕和 Timeline；Agent 执行或断点续跑时不得再次询问外发授权。该长期授权仅覆盖当前 `video` 项目、冻结口播文本、既定 Edge TTS 服务和回传当前项目的视频生产产物；项目、输入范围、外部服务或数据目的地发生变化时才需要重新确认。
-- 生成字幕时，去掉每条字幕文本句末的标点符号；句内标点符号保留。该清理只作用于字幕展示文本，不得修改 TTS 朗读文本、音频或时间轴；字幕来源一致性校验应按“应用此规则后的字幕文本”进行。
-- 音频、字幕和时间轴只能从经过 Agent 校验并在 Gate 2 冻结的 `tts-script.json` 生成；交给 TTS 前必须检查生成的 Segment 中没有内部制作文字。
-- 参考格式以 `videos/claude-code-what-is/narration-script.md` 为准：标题和分隔线可以存在，但每个 Scene 下的正文必须全部是实际口播。
-
-## 单条视频生产资料的基线复用
-
-- 制作新视频的目标是复用已经验证的视频生产方法和交付格式，不是为每条视频重新设计文档层级、描述风格、视觉语言或原型交互。
-- 在没有经过用户确认的新基线前，`videos/claude-code-what-is/` 中同名文件是七层生产资料的格式基线。新主题可以改变知识内容、Scene 数量和具体画面，但各文件的职责、标题层级、描述粒度和上下游边界应保持一致。
-- 当前全项目新视频的 Visual Prototype 统一以 `videos/01-what-is-codex/visual-prototype.html` 为原型外壳和排版基线；已有历史视频不因本规则自动回溯，但之后新建或重跑的任何视频都必须继承该基线，除非用户明确确认新的全局基线。
-- Visual Prototype 的 `.shell`、`.toolbar`、`.stage`、`.scene`、`.caption`、`.controls`、`.progress` 和 `.meta` 是不可自行改版的固定骨架。系列标题和每个 Scene 的标题区都必须从基线安全边距的左上角开始，右上保留基线导航区，幕内字幕和底部进度／Scene 信息使用基线位置；新主题只能替换内容、Scene 数量和 Scene 内部视觉事件，不得移动、缩放、重排或另起一套外壳。
-- 每个 Scene 必须且只能有一个可见标题区，标题区至少包含一个 `.eyebrow` 和一个 `h1`／`.title`，并按基线顺序位于该 Scene 的左上区域、先于主体视觉内容。所有 Scene 使用同一标题锚点和排版规则；不得缺失标题、把标题居中、将标题放到右侧或底部，或通过 Scene 专属 CSS／内联样式单独移动、缩放标题。标题规则适用于之后新建和重跑的所有视频，不因主题或画面类型变化而放宽。
-- `narration-script.md` 沿用基线中的纯口播结构；`visual-script.md` 沿用“全局视觉原则 → 逐 Scene 视觉设计 → 全片视觉类型／组件／动画标准 → 下一步”的结构；`visual-prototype.html` 沿用统一外壳、Scene 容器、幕内预览字幕、上一幕／下一幕／自动播放和进度提示的原型结构。
-- 不允许因为新主题内容不同就另起一套生产资料模板、页面外壳或定位规则。现有基线确实无法表达需求时，必须先指出缺口、说明准备新增的结构及其影响，获得用户确认后再扩展。
-- Harness 校验必须检查原型固定骨架、关键区域顺序、每个 Scene 的唯一左上标题区和基线布局令牌；只存在几个同名 class、Scene 数量正确或 Markdown／HTML 能打开，都不能视为复用基线。标题缺失、重复、居中或被 Scene 专属样式改位时必须报告具体 Scene 和修复动作，校验不通过时不得进入 Gate 2。
-- 每个 Gate 提交人工确认或完成内部审查前，必须把新视频的同名文件与基线文件做一次结构和交付边界对照；不能只检查 Scene 数量或 Markdown 是否能打开。
-- 每个 Gate 进入下一阶段前，必须执行画面文字语义归属检查：所有标题、标签、按钮、状态、终端输出和卡片文案都必须能追溯到当前视频的 Source、Content Analysis、Video Narrative、Scene Script 或 Visual Script；参考视频中的业务语义、固定文案和状态文字不得复用。
-
-## MVP 验证目标
-
-第一阶段只验证一件事：
-
-> 能否用固定 Remotion 工程、固定单条视频生产资料规范、横屏 Visual Prototype 和通用场景组件，稳定做出一条 Claude Code 教程横屏预览样片，并为后续视频复用打基础。
-
-第一条样片：
-
-- 视频 slug：`claude-code-what-is`
-- 视频主题：`Claude Code 到底是什么？`
-- Composition ID：`claude-code-what-is`
-- 输出路径：`out/claude-code-what-is.mp4`
-
-成功标准：
-
-- 先产出一版横屏 Visual Prototype，用于确认整体画面语言、构图、信息密度和每个 Scene 的视觉事件。
-- 静态预览确认前，不继续修改正式 Remotion 视频逻辑。
-- 用户确认静态预览后，再进入 Remotion 横屏实现。
-- 能启动 Remotion Studio 预览。
-- 能看到一条 16:9 横屏教程预览样片。
-- 视频时长由内容决定：无音频版本按逐句字幕的正常口播时长、必要停顿和画面主要元素完成入场时间确定；有本地人工音频时，以音频真实时长和 SRT 时间轴为准，不用固定总时长反推内容。
-- 画面优先复用基础场景组件，但视频 Scene 数量按视觉事件和认知变化决定。
-- 字幕和主文字在 1920 × 1080 下可读、不明显溢出。
-- 能根据自然语言反馈优先修改静态预览、配置或文案，并在预览中看到变化。
-- 用户确认 Remotion 预览后，再渲染出 `out/claude-code-what-is.mp4`。
-
-## 第一阶段范围
-
-本节约束现有 MVP 样片的范围，不阻止已经启动的单条端到端验证视频。端到端试点允许在 Gate 2 通过后使用项目既定 TTS 入口接入 TTS，但仍只验证一条 `narrated` 视频，不代表通用自动 TTS 或自动化视频平台已经实现。
-
-只做：
-
-- 16:9 横屏教程视频。
-- 1920 × 1080。
-- 30fps。
-- 正式 Remotion 实现前，先做无依赖 HTML + CSS Visual Prototype。
-- Visual Prototype 用于确认横屏构图、视觉事件、屏幕文字、状态变化和动画说明，不追求最终动画还原。
-- 时长根据内容确定，不设置固定总时长；无音频预览样片优先按字幕正常口播时长、场景尾部短暂停顿和画面元素入场下限来确定节奏，不为了满足某个秒数硬拉静止画面或压缩讲解。
-- 用户提供的本地人工音频和 SRT 字幕，用于 Remotion Studio 预览同步。
-- Claude Code / AI 工具教程类内容。
-- Markdown 视频脚本文档。
-- Visual Prototype 文档。
-- TypeScript 视频配置。
-- 场景级字幕。
-- 无真实配音版本。
-- 软件界面、终端、文件树、代码编辑器、diff、任务状态、对比画面等过程化表达。
-
-不做：
-
-- 9:16 竖屏继续优化。
-- 方屏 1:1。
-- 真实配音录制和剪辑。
-- 通用自动 TTS 平台；但允许在项目既定 TTS 服务和冻结 `tts-script.json` 边界内，由明确的批量 TTS 执行器生成本项目视频资源。
-- 逐字字幕高亮。
-- 自动字幕对齐。
-- 无边界的批量自动生成；只支持由用户明确选择视频的四类批量编排：到 Gate 2、完成 TTS、完成 Remotion、批量渲染。批次必须在 Gate 2、TTS 质检、Gate 3、Smoke Render 检查和 Gate 4 等人工确认点暂停或等待。
-- 后端服务。
-- 数据库。
-- 登录系统。
-- 云渲染。
-- 可视化编辑器。
-- 拖拽时间轴。
-- 自动素材搜索。
-- 复杂录屏剪辑。
-- 真人实拍精剪。
-- 复杂 3D、粒子或电影级转场。
-
-## 内容与配置规则
-
-采用七层生产资料结构：
-
-1. Source：保存原始文章、文档或输入材料。
-2. Content Analysis：提取核心命题、知识骨架、关系和可视觉化内容。
-3. Video Narrative：按观众认知过程重新组织视频叙事。
-4. Scene Script：拆分 Scene，并明确每个 Scene 的认知任务和 Video Value。
-5. Narration Script：基于 Scene Script 生成口播稿。
-6. Visual Script / Visual Prototype：描述并验证画面结构、视觉动作、状态变化和信息密度。
-7. TypeScript 视频配置：描述「如何被 Remotion 渲染」。
-
-第一阶段允许手工从单条视频生产资料同步到 TypeScript 配置，不做自动解析器。
-
-时长规则：
-
-- 视频总时长不在初期固定规定，由内容自然决定。
-- 有明确口播的视频，优先采用音频驱动流程：先确定脚本文案，再生成或录制音频，再制作逐句字幕时间轴，然后用音频真实时长和逐句字幕时间轴反推场景时长，最后生成 `video.config.ts`。
-- 有明确口播且用户提供本地人工音频和 SRT 字幕时，视频总时长以音频真实时长为准，字幕显示以逐句 SRT 时间轴为准，不再用预设场景时长去硬配音频和字幕。
-- 进入 Remotion 制作时，必须把已校验的 Audio／Subtitle／Timeline Manifest 映射成同一套 Scene／Segment／Cue 时间坐标，并让 Scene、音频、字幕和动画事件共同使用这套坐标；TypeScript 配置必须复用 `src/lib/timing.ts` 的 `createNarratedTiming`，不得在视频目录内重复实现时间映射；Gate 3 仍检查最终同步，但不应成为音画同步问题的首次发现点。
-- 无明确口播的视频，沿用原始内容驱动方案：按画面内容、逐句字幕的正常阅读或口播估算时长、必要停顿和画面主要元素完成入场时间确定每个场景时长。
-- 场景时长不能短于画面主要元素完成入场所需时间，避免列表、终端输出或总结要点还没出现就切走。
-- 如果无明确口播视频估算后的总时长不适合短视频，优先调整脚本文案的信息密度，而不是强行拉长静止画面或压缩正常讲解节奏。
-- 本地原始素材放在 `local/<video-slug>/`；单条视频的 Remotion 可播放资源放在 `public/local-assets/<video-slug>/`，并保持不提交到 Git。系列共享封面等公共视觉资源放在 `public/series-assets/<series-id>/`，必须提交到 Git，供本地预览和 GitHub Actions 共同读取。
-
-约定路径：
-
-- 单条视频生产资料目录：`videos/<video-slug>/`
-- 原始内容：`videos/<video-slug>/source.md`
-- 内容分析：`videos/<video-slug>/content-analysis.md`
-- 视频叙事：`videos/<video-slug>/video-narrative.md`
-- Scene 脚本：`videos/<video-slug>/scene-script.md`
-- 口播稿：`videos/<video-slug>/narration-script.md`
-- 视觉脚本：`videos/<video-slug>/visual-script.md`
-- 视觉原型：`videos/<video-slug>/visual-prototype.html`
-- Remotion 对齐清单：`videos/<video-slug>/remotion-alignment.json`
-- 单条视频审查记录：`videos/<video-slug>/reviews/*.md`
-- 视频配置：`src/videos/<video-slug>/video.config.ts`
-- 视频主组件：`src/videos/<video-slug>/<VideoName>Video.tsx`
-- 通用场景组件：`src/scenes/*.tsx`
-- 通用基础组件：`src/components/*.tsx`
-- 类型和时间工具：`src/lib/*.ts`
-
-制作新视频时，优先只新增或修改：
-
-- `videos/<video-slug>/source.md`
-- `videos/<video-slug>/content-analysis.md`
-- `videos/<video-slug>/video-narrative.md`
-- `videos/<video-slug>/scene-script.md`
-- `videos/<video-slug>/narration-script.md`
-- `videos/<video-slug>/visual-script.md`
-- `videos/<video-slug>/visual-prototype.html`
-- 用户确认视觉原型后的 `videos/<video-slug>/remotion-alignment.json`
-- 用户确认视觉原型后的 `src/videos/<video-slug>/video.config.ts`
-- 必要素材目录
-- 本地人工音频和 SRT 字幕对应的静态预览资源
-
-除非现有场景表达不了需求，否则不要新增场景组件。用户确认 Visual Prototype 前，不继续修改正式 Remotion 视频逻辑。
-
-## 第一阶段场景组件
-
-第一阶段只实现并优先复用以下 6 个场景：
-
-- `OpeningScene`：开场问题或标题钩子。
-- `ConceptScene`：解释一个核心概念。
-- `ComparisonScene`：左右对比或两种工作方式对比。
-- `StepListScene`：步骤、流程、方法论逐项展示。
-- `TerminalScene`：模拟终端命令和输出。
-- `SummaryScene`：结尾总结和核心观点收束。
-
-不要为了第一条样片额外创建大量场景组件。需要新增组件时，先确认现有 6 个组件确实表达不了。
-
-## 系列视频结尾规则
-
-- 每条系列视频的最后必须加入下一集预告，并把它作为最后一个视觉事件规划，不能只在口播或制作备注中顺带提及。
-- 下一集预告必须同步进入 `scene-script.md`、`narration-script.md`、`visual-script.md` 和 `visual-prototype.html`；进入 TTS、字幕、时间轴或 Remotion 后，也必须保持同一条预告的内容和顺序。
-- 预告文案必须有当前系列源文档或叙事资料依据；如果源文档已经给出下一集主题，优先沿用其主题，再根据视频口播和画面密度确定最终表达。
-- 优先在 `SummaryScene` 中承载预告，不为预告单独创建场景组件；应为观众留出约 2～3 秒的可读和停留时间，并检查预告卡片与字幕区域不叠放。
-
-## 系列封面规则
-
-- 系列共享信息保存在 `series/<series-id>/series.json`，系列封面保存在 `public/series-assets/<series-id>/cover.<ext>`；同一系列的视频只引用一份封面，不得复制到各自的 `public/local-assets/<video-slug>/`。
-- Harness Web UI 可以创建系列、上传或替换系列封面、设置封面帧数并关联视频；上传接口必须限制本地访问、校验 series ID、文件类型和文件大小，并使用临时文件完成原子替换，不引入数据库或通用素材管理系统。
-- 已有系列的视频关联不得静默移除；保存关联列表时，服务端必须检测被移除的既有成员并拒绝未明确确认的移除，Web UI 必须在移除前展示二次确认。
-- 默认系列封面从 Composition 第 0 帧开始展示 45 帧。正文音频、字幕和所有 Scene 必须共同使用同一个 `contentStartFrame` 后移，总时长增加相同帧数；不得分别修改 TTS、字幕或各 Scene 的源时间数据。
-- 系列封面不进入七层生产资料、TTS、字幕和 Timeline Manifest 的内容生成链路，也不触发 TTS 重做；新增或替换封面后，受影响视频必须回到 Gate 3 重新检查封面显示、正文起点、音画同步和清洁输出。
-- 系列封面必须保持当前视频规格的 16:9 构图。Web UI 应在上传前展示预览并校验宽高比；与 16:9 的相对偏差不超过 1% 时，使用居中 `cover` 裁切并标准化为 1920 × 1080 后上传，不得拉伸；偏差超过 1% 时拒绝上传，避免自动裁掉重要主体。图片进入仓库前不得包含密钥、私人信息或无关调试内容。
-
-## 技术约束
-
-- 使用 Remotion。
-- 使用 React / TypeScript。
-- Node.js 版本必须为 18 或更高。
-- 项目应能通过 `npm install` 安装依赖。
-- Visual Prototype 应优先使用无依赖 HTML + CSS，直接用浏览器打开查看。
-- 项目应能通过 `npm run preview` 或 `npx remotion studio` 启动 Remotion Studio 预览。
-- 项目应能在用户明确要求渲染时通过 `npm run render` 渲染视频。
-- 不引入与 MVP 无关的新依赖。
-- 不引入数据库、后端服务、登录系统、部署配置。
-- 不引入复杂状态管理。
-- TypeScript 版本继续固定为 `~5.8.3`，不要随意升级。
-
-## 代码约束
-
-- 代码优先简单清晰，不要过度抽象。
-- 每个场景组件只解决一种表达形式。
-- 视觉方向优先通过 Visual Prototype 确认。
-- 自然语言反馈优先转成单条视频生产资料、视觉原型或 `video.config.ts` 修改。
-- 内容问题优先改 `videos/<video-slug>/` 下的生产资料。
-- 视觉表达能力不足时才改场景组件。
-- 不要每条视频重新设计目录结构、视觉风格或动画体系。
-- 不为一次性样片创建复杂配置系统。
-- 不引入图标库、动画库、UI 组件库，除非用户确认。
-- Composition ID 必须明确，并在最终说明里写出来。
-- 关键动画优先使用 Remotion 基础能力：
-  - `useCurrentFrame()`：获取当前帧。
-  - `interpolate()`：做淡入、位移、缩放等过渡。
-  - `spring()`：做弹性进入效果。
-  - `Sequence`：组织场景时间线。
-- 如果使用延迟动画，必须避免传给 `spring()` 的帧数为负数。
-
-## 视觉约束
-
-- 整体风格：干净、科技感、克制、教程感。
-- 背景优先深色，不要花哨。
-- 字体层级清楚：标题最大，副标题次之，字幕和说明文字更小。
-- 横屏主文案控制在 1-2 行，给软件界面、终端、文件树和代码区域留出主体空间。
-- 字幕控制在 1-2 行，避免贴边。
-- 列表项不超过 5-6 个。
-- 动画不要过快，避免一闪而过。
-- 发光效果要轻，不要刺眼。
-- 画面元素不要太多，优先保证可读和节奏清楚。
-
-## 工作流程
-
-必须按以下顺序执行：
-
-1. 更新项目规范：先改 `CLAUDE.md`，再按新规范执行。
-2. 更新真实进度：同步维护 `ROADMAP.md`。
-3. 查阅 `docs/VIDEO-PRODUCTION-RULES.md` 和 `docs/VIDEO-PROJECT-WORKFLOW.md`；`docs/article-to-video-complete-workflow-summary.md` 作为完整流程说明书，只有需要了解完整背景时再查阅，不作为日常执行规则。
-4. 在 `videos/<video-slug>/` 中编写或更新 `source.md`。
-5. 连续编写或更新 `content-analysis.md`、`video-narrative.md` 和 `scene-script.md`，运行内容资料一致性检查并完成 Gate 1 内部审查，不默认暂停等待用户确认。
-6. Gate 1 通过后，连续编写或更新 `narration-script.md`、`visual-script.md` 和 Visual Prototype：`videos/<video-slug>/visual-prototype.html`，完成后进入 Gate 2。
-7. Gate 2 通过后，冻结 Narration Script；`narrated` 视频由 Agent 派生并校验 `tts-script.json`，再调用项目既定 TTS，`visual-only` 视频跳过 TTS，按视觉事件建立内容驱动时间轴。
-8. `narrated` 视频接收并校验 TTS 音频、字幕和时间数据，完成人工 TTS 质检；校验或质检未通过时，回退到对应的 TTS Segment 或 Narration Script。
-9. 编写或更新 TypeScript 视频配置，必要时实现或修改场景组件和基础组件。
-10. 检查 Node.js 版本：`node --version`。
-11. 安装或同步依赖：`npm install`。
-12. 运行类型检查和资源、Manifest 校验：`npm run check` 及对应确定性校验命令。
-13. 启动 Remotion Studio 预览：`npm run preview`。
-14. 在 Remotion Studio 中检查画面、节奏、字幕、音频同步和文字溢出，进入 Gate 3。
-15. 根据用户反馈优先修改单条视频生产资料、Visual Prototype 或配置；修改后从最早受影响阶段恢复。
-16. 用户明确要求渲染时，按 Smoke Render 检查和最终 Gate 流程执行远程渲染。
-
-重要规则：
-
-- Visual Prototype 阶段用于低成本确认画面语言、横屏构图、信息密度和状态变化。
-- 用户确认 Visual Prototype 前，不继续修改正式 Remotion 视频逻辑。
-- Gate 2 通过后，Remotion Agent 必须以冻结的 Visual Script／Visual Prototype 为约束生成 `remotion-alignment.json`；schemaVersion 2 的每个 Scene 除布局、视觉事件、屏幕文字和实现文件外，还要声明 Timeline 来源、Scene 起止秒／帧、关联 Audio Segment、关联 Subtitle Cue，以及每个视觉事件绑定的 Cue／Segment 和时间点。未覆盖全部 Scene、时间映射不一致、引用旧指纹或实现文件不存在时，不得完成 Remotion 阶段。
-- Remotion Studio 预览阶段用于调动画、字幕、音频同步和最终画面效果。
-- 预览页面中的上一幕／下一幕、自动播放、进度提示、调试标记和制作辅助说明只服务于预览，不得进入最终 Composition 或 MP4；渲染前必须执行一次清洁画面检查。
-- 默认不讨论、不建议、不执行渲染；只有当用户明确说需要渲染时，才说明渲染命令、渲染前提或执行渲染。
-- 渲染只在最后执行，不要每改一次就渲染一次。
-- 用户明确要求渲染时，统一使用 GitHub Actions；本机不执行 Remotion MP4 渲染。触发远程渲染后，不持续高频轮询或逐分钟汇报，默认等待约 20 分钟后再检查一次 Run 状态和 Artifact；除非用户另有要求，不改变这个检查节奏。
-- 如果 Composition ID 不确定，先查代码或 Remotion Studio，不要猜。
-- 如果渲染阶段需要下载 Chromium 组件，网络卡住时说明原因，不要瞎改代码。
-
-## Claude Code 上下文管理
-
-为避免 Claude Code 反复出现 `API Error: 422 Your input exceeds the context window of this model`，工作时必须控制上下文体积：
-
-- 长驻命令必须谨慎使用，尤其是 `npm run preview`、`npx remotion studio`、`npm run dev`、watch 模式、开发服务器和可能持续输出日志的命令。
-- 启动预览类命令只用于确认服务能启动或供浏览器检查，不要让 Claude 持续读取无限日志；检查完成后应停止仍在运行的后台任务。
-- 不要把完整构建日志、完整渲染日志、超长终端输出、大型 JSON、大段 diff、整段 transcript 或无关文件全文塞进上下文。
-- 排查失败时优先保留关键错误、失败用例、错误栈和最后 50-100 行日志；需要更多信息时再按关键词精准检索和局部读取。
-- 读取文件时优先读取目标文件和相关片段，不做无目的全项目扫描；本项目常规优先读取 `CLAUDE.md`、`ROADMAP.md`、目标脚本、目标视频配置、对应主组件和相关场景组件。
-- 不读取或粘贴 `node_modules`、构建产物、`out` 中的大文件、无关缓存文件和大体积媒体内容，除非用户明确要求且确有必要。
-- 使用图片、截图、浏览器快照时只保留与判断相关的信息；不要反复把多张大图或完整页面快照带入同一会话。
-- 长任务应分阶段总结当前状态、已完成事项、阻塞和下一步；会话变长或读过大量内容后，优先用简短状态摘要接续，而不是继续堆叠旧上下文。
-- 一旦出现 422 上下文超限错误，不要在原会话里反复重试；应先停止仍在运行的 shell 任务，再新开会话，用简短状态摘要恢复工作。
-- 新会话恢复时不要复制上个会话全文，只提供目标、已完成、当前阻塞、必要路径和下一步，并让 Claude 重新读取必要文件。
-- 最终汇报只保留关键结论、改动路径、验证结果和必要下一步，避免长篇复述中间过程。
-
-## 常用命令
-
-检查 Node.js：
+按任务加载 Skill：
+
+- 新建或修改视频生产资料：读取 `.claude/skills/video-production/SKILL.md`。
+- 处理口播、TTS、字幕或 Timeline：读取 `.claude/skills/narrated-video-tts/SKILL.md`。
+- 处理 Visual Prototype、Remotion、音画对齐或 Gate 3：读取 `.claude/skills/visual-prototype-remotion/SKILL.md`。
+- 处理 Harness Web UI、后台 Job、批量任务或远程渲染：读取 `.claude/skills/harness-webui-render/SKILL.md`。
+
+只读取当前任务需要的 Skill reference，不默认加载所有 Skill 和长文档。Skill 不得复制已经在 `docs/` 中维护的整套手册；如果规则发生变化，应修改唯一的权威来源并同步更新路由。
+
+## 仓库边界
+
+应提交并维护的内容：
+
+- `harness/`：视频生产 Harness 代码和测试。
+- `src/components/`、`src/scenes/`、`src/lib/`：通用 Remotion 能力。
+- `styles/`：可复用视觉风格。
+- `.claude/skills/`：项目内专项工作流。
+- `templates/`：不包含具体视频内容的通用模板和基线。
+- `docs/`：稳定规则、架构说明和使用文档。
+- `README.md`：项目介绍和使用方式。
+- `ROADMAP.md`：当前真实进度、阻塞和下一步。
+
+只保存在本地、不提交到 Git 的内容：
+
+- `videos/`：具体视频的七层生产资料、原型和审核记录。
+- `src/videos/`：具体视频配置和 Remotion 主组件。
+- `assets/`、`series/`、`local/`、`out/`：视频资源、系列资料、本地运行资料和渲染产物。
+- `drafts/`、`notes/`：过程方案、项目笔记和经验记录。
+- `*.mp4`、`*.mp3`、`*.wav`、`*.m4a`、`*.webm` 等本地媒体。
+
+具体视频目录不得成为远端仓库唯一的模板或规范来源；需要复用的结构必须提取到 `templates/` 或 Skill 的 `references/`。
+
+## 不可变核心约束
+
+- 视频默认采用 16:9、1920 × 1080、30fps；视频时长由内容或真实音频决定，不用固定总时长硬拉或压缩内容。
+- 视频生产保留人工 Gate。Agent、Harness 和远程任务不得自动通过 Gate，不得用“已有文件校验”伪装成真实制作完成。
+- `narration-script.md` 的 Scene 正文只能是实际口播；Gate 2 后必须先生成并校验独立的 `tts-script.json`，音频、字幕和 Timeline 只能从它生成。
+- narrated 视频默认显式使用 TTS `+25%` 语速；字幕展示文本去掉句末标点，但不能修改朗读文本、音频或时间轴。
+- Remotion 必须使用已校验的 Timeline Manifest 作为 narrated 视频的时间基准，并保持 Scene、Audio、Subtitle 和视觉事件的映射一致。
+- Visual Prototype 先于正式 Remotion 实现；原型和 Remotion 必须使用统一的可复用外壳、左上标题区、字幕区、导航区和进度区。
+- 进入 Gate 3 前必须对照冻结的 Visual Script、Visual Prototype 和 `remotion-alignment.json`；最终输出必须通过清洁画面检查。
+- 画面中的标题、标签、按钮、状态、终端输出和卡片文案必须能追溯到当前视频资料，不得复制参考视频的业务语义或固定文案。
+- 每条系列视频的最后一个视觉事件必须包含有资料依据的下一集预告；系列封面、风格和成员关系按需读取对应 Skill。
+- 远程渲染前必须验证代码、配置和资源包的提交状态；不得使用 `git add .`。自动 commit／push 只允许在用户明确确认的 Smoke Render 入口中进行定向操作。
+- 具体视频的远程渲染输入必须通过被 Git 忽略的 `local/render-input/<video-slug>/` 整理，并以独立输入包 URL 和 SHA-256 交给 GitHub Actions；不得把 `videos/`、`src/videos/` 或视频资源重新加入能力代码仓库。
+- 本地 Studio 预览具体视频时，必须从独立输入包生成被忽略的 `src/RenderInputRoot.tsx` 临时入口；该入口支持注册单条视频或本地扫描后批量注册全部可匹配视频。受跟踪的 `src/Root.tsx` 只保留通用 Composition，不重新硬编码具体视频。
+
+## 高层工作流
+
+1. 确认任务涉及的 Skill 和参考文档。
+2. 新建或更新本地视频的 Source、Content Analysis、Video Narrative 和 Scene Script，完成 Gate 1 内部审查。
+3. 更新 Narration Script、Visual Script 和 Visual Prototype，完成 Gate 2。
+4. narrated 视频在 Gate 2 后派生并校验 `tts-script.json`，再生成音频、字幕和 Timeline，并完成 TTS 质检。
+5. 按冻结原型和 Timeline Manifest 实现 Remotion，完成 Gate 3。
+6. 通过 Smoke Render 检查后，才进入完整渲染和 Gate 4。
+7. 每次完成开发、修复、文档补齐或重要调研后，更新 `ROADMAP.md`；重要阶段变化使用 `record-project-event` Skill 记录。
+
+详细流程按需查阅：
+
+- `docs/VIDEO-PRODUCTION-RULES.md`：视频内容、Scene、视觉和质量规则。
+- `docs/VIDEO-PROJECT-WORKFLOW.md`：七层资料和 Video／TTS／Remotion 职责流程。
+- `docs/END-TO-END-VIDEO-PRODUCTION-PLAN.md`：人工 Gate、TTS 回传和远程渲染架构。
+- `docs/article-to-video-complete-workflow-summary.md`：文章到视频的完整背景说明。
+- `docs/TTS-SETUP.md`：本地 TTS 环境和依赖配置。
+- `harness/README.md`、`harness/VALIDATION-MATRIX.md`：Harness 使用和验证入口。
+
+## 工程约束
+
+- 使用 React、TypeScript 和 Remotion；Node.js 18+；TypeScript 继续固定为 `~5.8.3`。
+- 优先复用 `src/scenes/` 的通用场景和 `src/lib/timing.ts` 的时间工具，不为单条视频重复实现公共能力。
+- 不引入数据库、登录系统、后端服务、复杂状态管理或与 MVP 无关的新依赖。
+- Visual Prototype 优先使用无依赖 HTML + CSS；正式视频逻辑在用户确认原型后再修改。
+- 执行长驻命令、预览和渲染时控制日志体积，不读取 `node_modules/`、缓存、构建产物和大型媒体，除非任务确有必要。
+- 修改完成后主动运行适用的检查；未验证的事项不得写成已完成。
+
+## 进度与清单
+
+- `ROADMAP.md` 是项目当前阶段的真实进度源，只保留当前阶段、下一步、阻塞和最近有价值的验证。
+- `docs/MVP-FEATURE-CHECKLIST.md` 记录仓库能力的 MVP 功能状态；完成能力后同步更新验证依据。
+- `notes/` 中的经验只在排查对应问题时按需读取；不把临时经验直接提升为所有视频都适用的硬规则。
+
+## 常用检查
 
 ```bash
 node --version
-```
-
-安装依赖：
-
-```bash
-npm install
-```
-
-类型检查：
-
-```bash
 npm run check
+git diff --check
 ```
 
-启动预览：
+`npm run preview` 只用于 Studio 预览；`npm run render` 只能在用户明确确认渲染后执行。
 
-```bash
-npm run preview
-```
+## 交付说明
 
-渲染视频：
-
-```bash
-npm run render
-```
-
-渲染命令只能在用户确认预览后执行。
-
-## 验证清单
-
-完成第一阶段实现后必须确认：
-
-- [ ] 已生成 `videos/claude-code-what-is/visual-prototype.html` 横屏 Visual Prototype。
-- [ ] 静态预览为 16:9 横屏，按 1920 × 1080 构图设计。
-- [ ] 静态预览符合真实任务、展示过程、状态变化、屏幕文字克制的设计原则。
-- [ ] 用户确认 Visual Prototype 后，再进入正式 Remotion 横屏实现。
-- [ ] `node --version` 显示 Node.js 18+。
-- [ ] `npm install` 成功或现有依赖可用。
-- [ ] `npm run check` 通过。
-- [ ] `npm run preview` 能启动 Remotion Studio。
-- [ ] Remotion Studio 中能看到 Composition ID：`claude-code-what-is`。
-- [ ] 正式视频规格为 1920 × 1080、30fps，场景时长与字幕口播节奏匹配。
-- [ ] 各视觉事件按顺序出现。
-- [ ] 字幕可读，主文字不明显溢出。
-- [ ] 所有画面文字都能追溯到当前视频生产资料，未带入参考视频的业务语义、固定文案或状态文字。
-- [ ] 最终输出清洁画面检查通过，预览导航、调试标记、辅助说明和其他无关内容不会进入 MP4。
-- [ ] 至少根据一句自然语言反馈修改过一个明确细节。
-- [ ] 修改后预览能看到变化。
-- [ ] 用户明确要求渲染后，再执行 `npm run render`。
-- [ ] Smoke Render 的代表帧和短片已通过画面文字相关性与清洁输出检查后，才进入完整渲染。
-- [ ] `out/claude-code-what-is.mp4` 文件存在。
-- [ ] 最终说明里写清楚 Composition ID、预览命令和验证结果；只有已渲染时才写渲染命令和输出路径。
-
-## Roadmap、清单与制作沉淀维护规则
-
-每次完成开发、修复、文档补齐或重要调研后，必须同步更新 `ROADMAP.md`。
-
-`ROADMAP.md` 只用于快速恢复当前项目上下文，不作为永久历史日志。内容应优先回答：当前进行到哪里、下一步做什么、有哪些阻塞、哪些坑需要避免。
-
-- 「已完成」只保留最近 10 条关键完成记录，新增第 11 条时删除最旧且已失去当前参考价值的一条。
-- 「最近验证」只保留最近 10 条验证记录，新增第 11 条时删除最旧的一条。
-- 「当前阶段」「进行中」「下一步」各自最多保留 5 条，每条只表达一个必要结论；只保留足以让新会话判断当前位置和后续动作的信息，不记录实现过程。
-- 「当前阶段」「进行中」「下一步」中的事项完成、失效或被替代后直接更新或删除，不转为冗长的阶段历史。
-- 已被后续方案替代、与当前执行无关或在其他文档已有完整记录的历史，不继续堆积在 `ROADMAP.md`。
-- 可复用的制作问题、根因和解决方案写入 `docs/video-production-notes.md`；`ROADMAP.md` 只保留当前阶段仍需注意的简短避坑提示和对应文档入口。
-- 「进行中」「下一步」「阻塞」必须保持为当前真实状态，确保新会话只读 `CLAUDE.md` 和 `ROADMAP.md` 就能继续工作。
-
-`local/mvp-feature-checklist.md` 记录第一版最小 MVP 主要功能清单。之后每完成一个功能，必须同步更新该文档，把对应功能标记为已完成，并补充完成依据或验证状态。
-
-`docs/video-production-notes.md` 记录视频制作过程中遇到的问题、根因、解决方案、复用流程和可写成教程文章的经验。遇到字幕同步、音频处理、场景节奏、Remotion 配置、渲染问题或形成新流程时，先查阅该文档；如果本次工作产生了可复用经验，完成后必须补充进去。
-
-只有已经实现并验证过的事项才能放进「已完成」。做完代码但未验证时，不得把事项标为已完成。
-
-## 后续扩展边界
-
-只有当第一条横屏样片完成并用第二条视频验证复用价值后，才考虑扩展。系列封面和系列目录已由用户确认进入当前实现范围，其他扩展仍包括：
-
-- 第二条 Claude Code 教程视频。
-- `CodeBlockScene`。
-- `ScreenshotScene`。
-- 人工配音导入。
-- 字幕时间轴。
-- 不受控的批量渲染或通用自动 TTS；项目范围内的批量渲染和既定 TTS 执行器不属于本条限制。
-- 逐字字幕高亮。
-
-不要在第一阶段就做这些扩展。
-
-## 交付说明要求
-
-每次完成开发或重要修改后，最终回复必须包含：
-
-- 改了什么。
-- 如何预览。
-- Composition ID。
-- 哪些验证已完成，哪些因为环境或用户确认未完成。
-- 只有已经执行渲染时，才说明渲染命令和输出文件路径；默认不主动提渲染。
+每次完成重要修改后，说明改动范围、预览方式、Composition ID、已完成和未完成的验证。只有实际执行过渲染时，才说明渲染命令和输出路径。

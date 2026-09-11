@@ -4,7 +4,7 @@
 
 ## 项目简介
 
-这个项目用于把 AI 视频从原始内容推进到最终 MP4。它既包含 Remotion 视频工程，也包含一套本地 Harness，用来管理生产阶段、校验产物、执行人工 Gate、恢复失败任务和编排批量制作。
+这个项目用于把 AI 视频从原始内容推进到最终 MP4。仓库只提交可复用的 Remotion／Harness 能力、规则、模板和测试；具体视频生产资料、资源和渲染产物保存在本地，不混入 GitHub 仓库。
 
 Harness 不替代内容与画面判断。口播、视觉原型、Remotion 预览、Smoke Render 和最终视频仍在关键节点等待人工确认，批量任务不会绕过这些检查点。
 
@@ -92,6 +92,8 @@ Web UI 仅监听本机 `127.0.0.1`。你可以在首页导入 Markdown／纯文�
 npm run preview
 ```
 
+仓库默认只注册通用 `video-production-template` Composition，用于检查 Remotion 工程和共享能力是否可运行。具体视频 Composition 属于本地视频工作区，不由仓库根入口自动注册。
+
 ### 运行检查
 
 ```bash
@@ -138,6 +140,16 @@ node harness/src/cli.mjs report <video-slug>
 
 完整的 Gate、任务、资源打包和执行器配置命令见 [Harness 使用文档](./harness/README.md)。
 
+## 规则与 Skill 分层
+
+- `CLAUDE.md`：项目核心边界和按需加载入口。
+- `.claude/skills/`：视频生产、TTS、Remotion 和 Harness 远程渲染的专项流程。
+- `templates/video-production/`：不包含具体主题内容的通用脚本和 Visual Prototype 模板。
+- `docs/`：稳定的详细规则、架构和使用说明。
+- `drafts/`、`notes/`：本地实施方案、讨论记录和经验沉淀，不提交到 Git。
+
+处理具体视频时，只加载当前任务涉及的 Skill 和参考文档；不要把某一条视频目录当作远端仓库的唯一模板来源。
+
 ## 远程渲染
 
 远程 Smoke Render 和完整 Render 通过 GitHub Actions 执行。启动前配置：
@@ -146,25 +158,32 @@ node harness/src/cli.mjs report <video-slug>
 export GITHUB_TOKEN="<token>"
 export GITHUB_REPOSITORY="<owner>/<repo>"
 export HARNESS_GITHUB_REF="<optional-explicit-branch>"
+export HARNESS_RENDER_INPUT_URL="<private-input-package-url>"
+export HARNESS_RENDER_INPUT_SHA256="<sha256-of-zip>"
 ```
 
-未设置 `HARNESS_GITHUB_REF` 时，Harness 优先读取当前 Git 工作区分支。提交远程任务前，它会检查资源 ZIP、Manifest、Remotion 代码、Git 跟踪状态，以及目标分支是否包含当前提交。
+未设置 `HARNESS_GITHUB_REF` 时，Harness 优先读取当前 Git 工作区分支。提交远程任务前，它会检查独立输入包、Manifest、能力代码的 Git 跟踪状态，以及目标分支是否包含当前提交。具体视频资料不会重新提交到本仓库。
 
 ## 项目结构
 
 ```text
 .
 ├── harness/                 # Harness 核心、Web UI、任务状态和测试
-├── videos/<video-slug>/     # 单条视频的七层生产资料与 Manifest
-├── src/videos/<video-slug>/ # Remotion 配置和视频主组件
+├── .claude/skills/          # 项目内专项 Skill
+├── templates/               # 通用脚本和 Visual Prototype 模板
+├── videos/<video-slug>/     # 本地单条视频的七层生产资料，不提交
+├── src/videos/<video-slug>/ # 本地 Remotion 配置和视频主组件，不提交
 ├── src/scenes/              # 通用场景组件
 ├── src/components/          # 通用基础组件
 ├── src/lib/                 # 类型、时间轴和同步工具
-├── series/                  # 系列配置
-├── public/series-assets/    # Git 跟踪的系列共享素材
+├── src/TemplateVideo.tsx    # 通用 Remotion 运行检查 Composition
+├── series/                  # 本地系列配置，不提交
+├── public/series-assets/    # 本地系列视觉资源，不提交
 ├── public/local-assets/     # 本地视频播放资源，不提交 Git
-├── assets/                  # 远程渲染资源包
-└── docs/                    # 生产流程、规范和经验文档
+├── assets/                  # 本地远程渲染资源包，不提交
+├── docs/                    # 稳定生产流程、规范和使用文档
+├── drafts/                  # 本地方案和讨论过程，不提交
+└── notes/                   # 本地经验和项目笔记，不提交
 ```
 
 ## 设计边界

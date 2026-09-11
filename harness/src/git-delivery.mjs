@@ -1,7 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
-import { assetArchiveRelativePath } from "./asset-bundler.mjs";
 import { readGitHubActionsConfig } from "./github-config.mjs";
 
 const RENDER_RELEVANT_PREFIXES = [
@@ -48,23 +47,17 @@ function isRenderRelevantPath(relativePath) {
 }
 
 export function renderRequiredPaths(project) {
-  const workspaceRoot = path.resolve(project.config.workspaceRoot);
-  const slug = project.config.slug;
-  const videoDirectory = path.join(workspaceRoot, "src", "videos", slug);
-  const componentPaths = fs.existsSync(videoDirectory) && fs.statSync(videoDirectory).isDirectory()
-    ? fs.readdirSync(videoDirectory)
-      .filter((entry) => entry.endsWith("Video.tsx"))
-      .sort()
-      .map((entry) => `src/videos/${slug}/${entry}`)
-    : [];
   return [
-    assetArchiveRelativePath(slug),
     "src/Root.tsx",
-    `src/videos/${slug}/video.config.ts`,
-    `src/videos/${slug}/generated/audio-manifest.json`,
-    `src/videos/${slug}/generated/subtitle-manifest.json`,
-    `src/videos/${slug}/generated/timeline-manifest.json`,
-    ...componentPaths,
+    "src/TemplateVideo.tsx",
+    "src/lib/timing.ts",
+    "harness/src/cli.mjs",
+    "harness/src/render-input.mjs",
+    "harness/src/remote-executor.mjs",
+    "package.json",
+    "package-lock.json",
+    ".github/workflows/smoke-test-video.yml",
+    ".github/workflows/render-video.yml",
   ];
 }
 

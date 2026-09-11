@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>[视频标题]｜Visual Prototype</title>
+    <style>
+      :root { color-scheme: dark; --bg: #071017; --panel: #0e1c27; --line: rgba(155, 200, 220, .2); --text: #f4f9fb; --muted: #9bb0bd; --accent: #39d7c2; }
+      * { box-sizing: border-box; }
+      body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 26px; background: #03080c; color: var(--text); font-family: Inter, system-ui, sans-serif; }
+      button { font: inherit; }
+      .shell { width: min(1420px, 96vw); }
+      .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; color: var(--muted); }
+      .stage { position: relative; aspect-ratio: 16 / 9; overflow: hidden; border: 1px solid var(--line); border-radius: 22px; background: radial-gradient(circle at 15% 10%, rgba(57, 215, 194, .14), transparent 30%), linear-gradient(145deg, #08131c, #050b10 68%); }
+      .scene { position: absolute; inset: 0; display: none; padding: 5.2% 6% 13.8%; }
+      .scene.active { display: flex; flex-direction: column; }
+      .eyebrow { color: var(--accent); font-size: clamp(12px, 1.15vw, 18px); letter-spacing: .16em; text-transform: uppercase; font-weight: 800; }
+      h1 { margin: 9px 0 6px; font-size: clamp(30px, 4vw, 62px); line-height: 1.08; }
+      .content { flex: 1; min-height: 0; margin-top: 3.2%; }
+      .caption { position: absolute; z-index: 4; left: 8%; right: 8%; bottom: 4.2%; min-height: 7%; display: grid; place-items: center; padding: 10px 26px; border: 1px solid var(--line); border-radius: 12px; background: rgba(2, 7, 11, .82); text-align: center; }
+      .controls { display: flex; gap: 8px; }
+      .controls button { border: 1px solid var(--line); border-radius: 10px; background: var(--panel); color: var(--text); padding: 9px 15px; cursor: pointer; }
+      .progress { display: flex; justify-content: center; gap: 7px; margin-top: 16px; }
+      .progress button { width: 28px; height: 5px; border: 0; border-radius: 99px; background: #263946; }
+      .progress button.active { width: 48px; background: var(--accent); }
+      .meta { display: flex; justify-content: space-between; margin-top: 10px; color: var(--muted); font-size: 13px; }
+    </style>
+  </head>
+  <body>
+    <main class="shell">
+      <header class="toolbar"><span>[系列／视频标题]</span><div class="controls"><button type="button">上一幕</button><button type="button">下一幕</button><button type="button">自动播放</button></div></header>
+      <div class="stage" aria-label="Visual Prototype">
+        <section class="scene active" data-scene="1"><span class="eyebrow">SCENE 01</span><h1>[Scene 标题]</h1><div class="content">[主体视觉内容]</div></section>
+        <div class="caption">[幕内预览字幕]</div>
+      </div>
+      <div class="progress" aria-label="Scene 进度"><button class="active" type="button"></button></div>
+      <div class="meta"><span>[当前 Scene]</span><span>[总 Scene 数]</span></div>
+    </main>
+  </body>
+</html>

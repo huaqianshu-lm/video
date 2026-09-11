@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "preview": "remotion studio",
+    "preview": "node harness/src/cli.mjs render-input entry-all --output src/RenderInputRoot.tsx && remotion studio src/RenderInputRoot.tsx",
     "check": "tsc --noEmit",
-    "render": "remotion render claude-code-install out/claude-code-install.mp4",
+    "render": "remotion render video-production-template out/video-production-template.mp4",
     "harness:web": "npm run web --prefix harness"
   },
   "dependencies": {

@@ -10,21 +10,21 @@ export const STYLE_DEFINITIONS = Object.freeze({
     version: 1,
     path: "styles/current/STYLE.md",
     description: "深色、克制、教程型的 16:9 横屏视频视觉基线。",
-    prototypeBaselinePath: "videos/01-what-is-codex/visual-prototype.html",
+    prototypeBaselinePath: "templates/video-production/visual-prototype.html",
   }),
   "claude-code": Object.freeze({
     id: "claude-code",
     version: 1,
     path: "styles/current/STYLE.md",
     description: "蓝紫深色、克制、教程型的 Claude Code 系列视觉基线。",
-    prototypeBaselinePath: "videos/01-what-is-codex/visual-prototype.html",
+    prototypeBaselinePath: "templates/video-production/visual-prototype.html",
   }),
   codex: Object.freeze({
     id: "codex",
     version: 1,
     path: "styles/codex/STYLE.md",
     description: "近黑网格、青绿主色与多入口状态卡片的 Codex 系列视觉基线。",
-    prototypeBaselinePath: "videos/01-what-is-codex/visual-prototype.html",
+    prototypeBaselinePath: "templates/video-production/visual-prototype.html",
   }),
 });
 

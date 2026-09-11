@@ -1,7 +1,7 @@
 import { isGateStage, previousStage, returnToStages, STAGE_DEFINITIONS, STAGES } from "./stages.mjs";
 import { validateStage } from "./runner.mjs";
 import { hasAssetSource } from "./asset-bundler.mjs";
-import { validateRemoteRenderInputs } from "./remote-executor.mjs";
+import { validateRemoteRenderPackage } from "./remote-executor.mjs";
 import { isGitWorkspace, validateGitRenderDelivery } from "./git-delivery.mjs";
 
 function commandFor(project, command, stage = null) {
@@ -27,7 +27,7 @@ function isBlockingPreExecutionIssue(stage, issue) {
 function remoteDeliveryIssues(project, stage) {
   if (!(["smoke-render", "render"].includes(stage) && isGitWorkspace(project.config.workspaceRoot))) return [];
   return [
-    ...validateRemoteRenderInputs(project).map((message) => ({
+    ...validateRemoteRenderPackage(project).map((message) => ({
       code: "remote-render-inputs-invalid",
       stage,
       path: null,
@@ -103,7 +103,7 @@ export function buildNextAction(project) {
         preparation: ["smoke-render", "render"].includes(stage) && hasAssetSource(project)
         ? {
           action: "prepare-remote-render",
-          message: "本地资源已存在，可以先自动生成或更新资源包；随后仍需 commit/push 才能提交远程任务。",
+          message: "本地视频资料和资源已存在，可以先整理独立远程输入包；随后仍需配置输入包地址并完成能力代码交付预检。",
         }
         : null,
     };

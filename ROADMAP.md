@@ -7,6 +7,12 @@
 
 ## 当前阶段
 
+- 仓库规则已按“核心 `CLAUDE.md`、专项 Skill、稳定 `docs/`、本地 `drafts/` 与 `notes/`”完成分层；四个项目内 Skill、通用视频模板和受跟踪 MVP 能力清单已创建并通过适用验证。仓库资料与代码分离的四阶段计划已保存到 `drafts/REPOSITORY-CLEANUP-FOUR-PHASE-PLAN.md`，第二阶段 Git 索引清理和本地能力代码基线提交已完成，下一步是历史清理。
+- `videos/` 和 `src/videos/` 已由用户移出本地工作区；根 Remotion 入口已切换为通用 `video-production-template`，仓库不再因具体视频目录缺失而无法通过 TypeScript 检查。
+- 仓库正在收敛为只提交 Harness 和通用视频制作能力；具体视频项目、生产资源及讨论过程文档已转入本地忽略目录，当前索引已不再跟踪这些资料，但旧 Git 历史仍待清理。
+- 已实现 `render-input prepare／validate／package`：具体视频资料、Remotion 配置和资源包先整理到被忽略的 `local/render-input/<slug>/`，以 Manifest 和 SHA-256 校验后交给远程输入源，不再要求它们进入能力仓库。
+- 已实现 `render-input entry-all`：本地扫描全部 `videos/` 与 `src/videos/`，按组件／配置版本匹配和修改时间选择入口，并生成被忽略的多 Composition Studio 入口；`claude-code-what-is` 当前选择 v2 入口，生成入口会显式调用 `registerRoot`。
+- 两个 GitHub Actions 渲染 Workflow 已改为接收独立输入包 URL／SHA-256，在 Runner 临时工作区恢复资料并生成临时 Remotion 入口；真实私有输入源和远程 Smoke Render 尚未执行。
 - Web UI 已支持从 Source 一键连续执行到 Gate 2：源文档自动登记，六个内容／脚本／视觉 Agent 阶段逐个创建持久化 Job，Gate 1 自动内部审查，最终停在 Gate 2 等待人工确认。
 - Web UI 已增加原文件导入入口：支持 Markdown／纯文本上传，按文件名或显式 slug 创建并初始化新视频项目，保存为 `videos/<slug>/source.md`，不覆盖已有项目。
 - Web UI 原文件导入现在要求先选择系列（或明确选择通用风格）；项目会锁定系列 Style，视觉原型 Agent 会读取对应的已验证原型基线，既有项目加入系列时会回退到 `visual-script` 重新生成后续资料。所有新视频统一继承 `01-what-is-codex` 的 Visual Prototype 外壳和排版基线，Harness 会阻断只复用 class 名称但改变标题区、导航区、字幕区、Scene 标题锚点或进度区布局的原型。
@@ -181,11 +187,11 @@
 - 总结画面要预留读完文字后的 2～3 秒思考时间，并使用足够不透明的背景避免后方内容干扰。
 - narrated 视频 TTS 默认使用 `+25%` 语速；生成前显式校验 TTS 参数，字幕和时间轴必须基于加速后的实际音频重新生成。当前 `claude-code-third-party-models` 的 `+0%` 资源保持不变。
 - Linux 渲染必须安装并校验 CJK 字体；字幕必须放在明确的顶层 overlay；字幕 Cue 应按帧边界判断，不直接依赖浮点秒数。
-- 字幕、音频、场景节奏和 Remotion 配置的完整经验统一查阅 `docs/video-production-notes.md`，不在 Roadmap 重复记录。
-- 画面文字必须能追溯到当前视频生产资料；预览导航、调试标记和辅助说明不得进入最终 MP4，具体检查要求见 `CLAUDE.md` 和 `docs/video-production-notes.md`。
+- 字幕、音频、场景节奏和 Remotion 配置的完整经验统一按需查阅本地 `notes/video-production-notes.md`，不在 Roadmap 重复记录。
+- 画面文字必须能追溯到当前视频生产资料；预览导航、调试标记和辅助说明不得进入最终 MP4，具体检查要求见 `CLAUDE.md` 及对应专项 Skill。
 - 新视频口播必须在生成阶段按独立视频表达，禁止把原始材料作为口播叙事对象；来源指代检查必须在派生 `tts-script.json` 前完成，已完成视频不回溯修改。
 - Web UI 提交远程任务前必须确认 GitHub Actions 适配器所需环境变量已配置；缺少 Token 时应在提交前给出明确配置提示，不应创建一个立即失败的远程任务。
-- 本地 Harness 的分支优先级必须保持为显式 `HARNESS_GITHUB_REF`、当前 Git 工作区分支、`GITHUB_REF_NAME`；远程渲染提交前还必须确认资源包、代码已提交且 dispatch 分支已包含当前提交。
+- 本地 Harness 的分支优先级必须保持为显式 `HARNESS_GITHUB_REF`、当前 Git 工作区分支、`GITHUB_REF_NAME`；远程渲染提交前必须确认独立输入包已准备、能力代码已提交且 dispatch 分支已包含当前提交。
 - 远程渲染资产检查不能停在“ZIP 文件存在”；必须在提交前验证 ZIP 可解压、顶层目录、VTT／SRT、逐个 MP3 路径和数量，并与三份 Manifest 的视频及 Scene 对齐。
 - 批量“完成 TTS”只有在音频、字幕和 Timeline Manifest 都实际存在并通过校验后才能进入 TTS 质检；“批量渲染”必须先等待 Smoke Render 检查，不能直接进入完整渲染。
 - 批量 Remotion 不应把缺少 `video.config.ts` 或 `*Video.tsx` 直接当作批次失败；应创建 Remotion 制作任务，等待 Agent 产出后重新校验并恢复批次。
@@ -194,6 +200,8 @@
 
 ## 最近验证（最近 10 条）
 
+- 2026-09-11：完成仓库视频资料与功能代码分离第一阶段盘点；确认 `.gitignore` 已覆盖本地资料，Git 当前仍跟踪 `videos/` 445 个、`src/videos/` 108 个、`assets/` 15 个、`series/` 1 个和 `public/series-assets/` 1 个，未执行索引删除、历史重写或远端操作。
+- 2026-09-11：完成仓库视频资料与功能代码分离第二阶段；本地目录仍保留，Git 索引不再跟踪 `videos/`、`src/videos/`、`assets/`、`series/` 和 `public/series-assets/`，能力代码暂存范围通过 `git diff --cached --check` 和 `npm run check`，已准备创建本地基线提交，未执行历史重写或远端操作。
 - 2026-09-09：批次记录与 Remotion 任务滚动修复定向回归 32/32 通过；`find harness/web harness/src ... node --check` 和 `git diff --check` 通过，未触发真实 Agent／TTS／Remotion／渲染。
 - 2026-09-09：WebUI 六项布局与交互改造定向回归 32/32 通过；`npm run check`、`find harness/web harness/src ... node --check` 和 `git diff --check` 通过；Harness 全量 143/160，17 项因沙箱禁止监听 `127.0.0.1` 失败，未触发真实 Agent／TTS／Remotion／渲染。
 - 2026-09-09：WebUI 完成一屏布局和内部滚动改造；桌面与移动端的工作台项目列表、待处理列表、批次记录和 Remotion 任务均独立滚动，新增 `#/batches/new` 批量创建页面并保留四类批量目标；WebUI 模块测试 31/31、`npm run check`、前后端语法检查和 `git diff --check` 通过。完整 Harness 回归的 Web Server 用例仍受当前沙箱禁止监听 `127.0.0.1` 影响，未触发真实 Agent／TTS／Remotion／渲染。

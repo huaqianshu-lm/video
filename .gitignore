@@ -1,16 +1,41 @@
 node_modules/
 .DS_Store
 .playwright-mcp/
+.claude/worktrees/
+
+# Local video projects and production assets
+videos/
+src/videos/
+assets/
+series/
 local/
 public/local-assets/
+public/series-assets/
+out/
 build/
+
+# Local Harness state
 harness/projects/
 harness/.cache/
 harness/batches/
 harness/remotion-tasks/
+
+# Generated temporary Remotion entry for an isolated render input
+src/RenderInputRoot.tsx
 harness/agent-jobs/
-src/videos/*/generated/audio/
-src/videos/*/generated/subtitles/
+
+# Local production media and previews
+*.mp4
+*.mp3
+*.wav
+*.m4a
+*.webm
+docs/preview.png
+
+# Local drafts and project notes
+drafts/
+notes/
+
 *.local
 *.local.*
 doc/

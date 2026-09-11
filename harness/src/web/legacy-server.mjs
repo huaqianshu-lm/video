@@ -10,7 +10,7 @@ import { findActiveJob, listAllJobs, listJobs } from "../jobs.mjs";
 import { requireGitHubActionsConfig } from "../github-config.mjs";
 import { diagnoseGitHubActions } from "../diagnostics.mjs";
 import { createRemoteJobMonitor } from "../remote-jobs.mjs";
-import { assertRemoteRenderDeliveryInputs, prepareRemoteRenderInputs, validateRemoteRenderInputs } from "../remote-executor.mjs";
+import { assertRemoteRenderDeliveryInputs, prepareRemoteRenderInputs, validateRemoteRenderPackage } from "../remote-executor.mjs";
 import { buildGitRenderCommitPlan, commitAndPushRenderDelivery, validateGitRenderDelivery } from "../git-delivery.mjs";
 import { artifactManifestFor } from "../artifacts.mjs";
 import { approveGate, rejectGate, resumeProject, retryStage, runStage, validateStage } from "../runner.mjs";
@@ -570,7 +570,7 @@ async function serveAction(response, request, pathname, runtime) {
     try {
       const renderProject = loadProject(slug, { refresh: true });
       prepareRemoteRenderInputs(renderProject);
-      const inputIssues = validateRemoteRenderInputs(renderProject);
+      const inputIssues = validateRemoteRenderPackage(renderProject);
       if (inputIssues.length > 0) {
         const error = new Error(`远程渲染输入预检失败：${inputIssues.join("；")}`);
         error.code = "remote-render-inputs-invalid";

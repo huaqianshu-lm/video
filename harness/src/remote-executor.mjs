@@ -1,7 +1,8 @@
 import fs from "node:fs";
 import path from "node:path";
-import { archiveEntries, archiveMatchesAssetDirectory, assetArchivePath, assetArchiveRelativePath, assetSourcePath, ensureAssetArchive } from "./asset-bundler.mjs";
+import { archiveEntries, archiveMatchesAssetDirectory, assetSourcePath } from "./asset-bundler.mjs";
 import { validateGitRenderDelivery } from "./git-delivery.mjs";
+import { packageRenderInput, prepareRenderInput, renderInputDirectory, validateRenderInputDirectory } from "./render-input.mjs";
 
 const REMOTE_STAGES = new Set(["smoke-render", "render"]);
 
@@ -123,7 +124,7 @@ export function assertRemoteRenderInputs(project, options) {
 
 export function assertRemoteRenderDeliveryInputs(project, options = {}) {
   const issues = [
-    ...validateRemoteRenderInputs(project, options),
+    ...validateRemoteRenderPackage(project),
     ...validateGitRenderDelivery(project, { requireRepository: options.requireRepository ?? true }),
   ];
   if (issues.length === 0) return;
@@ -137,20 +138,35 @@ export function prepareRemoteRenderInputs(project, options = {}) {
   if (typeof project?.config?.workspaceRoot !== "string" || !project.config.workspaceRoot.trim()) {
     return { status: "skipped", sourceIssues: [], archivePath: null, archiveRelativePath: null, sourcePath: null };
   }
-  const result = ensureAssetArchive(project, options);
+  const result = prepareRenderInput(project, options);
+  const packageResult = packageRenderInput(project.config.workspaceRoot, project.config.slug);
   return {
     ...result,
-    sourceIssues: result.status === "source-missing" ? [`缺少 public/local-assets/${project.config.slug}`] : [],
-    archivePath: result.archivePath ?? assetArchivePath(project),
-    archiveRelativePath: result.archiveRelativePath ?? assetArchiveRelativePath(project),
-    sourcePath: result.sourcePath ?? path.relative(project.config.workspaceRoot, assetSourcePath(project)),
+    ...packageResult,
+    sourceIssues: [],
+    archivePath: packageResult.archivePath,
+    archiveRelativePath: path.relative(project.config.workspaceRoot, packageResult.archivePath),
+    sourcePath: result.directory,
   };
 }
 
-export function createRemoteRenderExecutor({ monitor, validateInputs = assertRemoteRenderDeliveryInputs, prepareInputs = prepareRemoteRenderInputs } = {}) {
+export function validateRemoteRenderPackage(project) {
+  const workspaceRoot = project?.config?.workspaceRoot;
+  const slug = project?.config?.slug;
+  if (typeof workspaceRoot !== "string" || !workspaceRoot.trim() || typeof slug !== "string") {
+    return ["缺少视频工作区路径或 slug，无法检查独立远程输入包"];
+  }
+  const directory = renderInputDirectory(workspaceRoot, slug);
+  if (!fs.existsSync(directory)) return [`缺少 local/render-input/${slug}，请先准备远程渲染输入包`];
+  return validateRenderInputDirectory(directory, { expectedSlug: slug });
+}
+
+export function createRemoteRenderExecutor({ monitor, validateInputs = null, prepareInputs = null } = {}) {
   if (!monitor || typeof monitor.submit !== "function") {
     throw new Error("Remote render executor requires a remote job monitor");
   }
+  const effectiveValidateInputs = validateInputs ?? assertRemoteRenderDeliveryInputs;
+  const effectivePrepareInputs = prepareInputs ?? (validateInputs === null ? prepareRemoteRenderInputs : () => {});
 
   return {
     run({ stage, project }) {
@@ -160,8 +176,8 @@ export function createRemoteRenderExecutor({ monitor, validateInputs = assertRem
       if (project.state.currentStage !== stage || project.state.stages[stage]?.status !== "ready") {
         throw new Error(`${project.config.slug} 当前不在可执行的 ${stage} 阶段`);
       }
-      prepareInputs(project);
-      validateInputs(project);
+      effectivePrepareInputs(project);
+      effectiveValidateInputs(project);
       const job = monitor.submit({ slug: project.config.slug, stage });
       return {
         deferred: true,
