@@ -7,7 +7,7 @@
 
 ## 当前阶段
 
-- 仓库规则已按“核心 `CLAUDE.md`、专项 Skill、稳定 `docs/`、本地 `drafts/` 与 `notes/`”完成分层；四个项目内 Skill、通用视频模板和受跟踪 MVP 能力清单已创建并通过适用验证。仓库资料与代码分离的四阶段计划已保存到 `drafts/REPOSITORY-CLEANUP-FOUR-PHASE-PLAN.md`，第二阶段 Git 索引清理和本地能力代码基线提交已完成，第三阶段本地历史重写和现有远端分支强制更新已完成，下一步是第四阶段运行链路验证。
+- 仓库规则已按“核心 `CLAUDE.md`、专项 Skill、稳定 `docs/`、本地 `drafts/` 与 `notes/`”完成分层；四个项目内 Skill、通用视频模板和受跟踪 MVP 能力清单已创建并通过适用验证。仓库资料与代码分离的四阶段计划已保存到 `drafts/REPOSITORY-CLEANUP-FOUR-PHASE-PLAN.md`，第二阶段 Git 索引清理、第三阶段历史重写和现有远端分支强制更新已完成，第四阶段本地验证已完成，真实远程 Smoke Render 待配置独立输入源后执行。
 - `videos/` 和 `src/videos/` 已由用户移出本地工作区；根 Remotion 入口已切换为通用 `video-production-template`，仓库不再因具体视频目录缺失而无法通过 TypeScript 检查。
 - 仓库正在收敛为只提交 Harness 和通用视频制作能力；具体视频项目、生产资源及讨论过程文档已转入本地忽略目录，当前索引和可见 Git 历史均已不再跟踪这些资料。
 - 已实现 `render-input prepare／validate／package`：具体视频资料、Remotion 配置和资源包先整理到被忽略的 `local/render-input/<slug>/`，以 Manifest 和 SHA-256 校验后交给远程输入源，不再要求它们进入能力仓库。
@@ -63,6 +63,7 @@
 ## 已完成（最近 10 条）
 
 - 2026-09-11：完成仓库资料与能力代码分离的第三阶段；重写全部本地分支及现有远端跟踪分支历史，移除视频资料、资源目录、渲染输入目录和已迁移过程文档，清理 `refs/original/` 后以 `force-with-lease` 原子强制更新 GitHub 现有分支；当前索引和可见历史均不再包含这些路径，未创建本地独有远端分支。
+- 2026-09-11：完成第四阶段本地验证；`npm run preview` 成功注册 18 个视频，`vscode` 独立远程输入包准备、校验和打包通过，资源 ZIP 顶层为 `vscode/` 且包含字幕两种格式和 9 个 MP3，相关 10 项定向回归与 TypeScript 检查通过；真实 GitHub Smoke Render 尚待独立输入源 URL、SHA-256 和凭据。
 
 - 2026-09-10：新增 `docs/TTS-SETUP.md`，说明独立 TTS 模块的仓库获取、Python／FFmpeg／ZIP 依赖、虚拟环境、安装验证、Harness 路径配置、产物和故障排查；根目录 README 已链接 `huaqianshu-lm/tts`。
 - 2026-09-10：补齐根目录 `README.md`，面向 GitHub 访客说明项目定位、批量视频制作、人工 Gate、可恢复工作流、快速启动、CLI、远程渲染和目录结构。
