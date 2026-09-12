@@ -66,7 +66,7 @@ jobs:
           if [[ -n "${RENDER_INPUT_TOKEN:-}" ]]; then
             auth_args=(-H "Authorization: Bearer $RENDER_INPUT_TOKEN")
           fi
-          curl --fail --location --retry 3 --retry-all-errors "${auth_args[@]}" "$RENDER_INPUT_URL" -o "$input_archive"
+          curl --fail --location --retry 3 --retry-all-errors -H 'Accept: application/octet-stream' "${auth_args[@]}" "$RENDER_INPUT_URL" -o "$input_archive"
           echo "$RENDER_INPUT_SHA256  $input_archive" | sha256sum --check --status
           mkdir -p "$input_root"
           unzip -q "$input_archive" -d "$input_root"
