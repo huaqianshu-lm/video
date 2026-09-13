@@ -126,6 +126,23 @@ export type NarratedTiming = {
   subtitleCues: SubtitleCue[];
 };
 
+export type VisualTimingSource = {
+  type: 'cue' | 'segment';
+  id: string;
+};
+
+export type VisualTimingBinding = {
+  id: string;
+  sceneId: string;
+  source?: VisualTimingSource;
+  dependsOn?: string[];
+};
+
+export type VisualTiming = {
+  frame: (id: string) => number;
+  after: (...ids: string[]) => number;
+};
+
 const TIMING_EPSILON_SECONDS = 0.02;
 
 const assertTimingClose = (left: number, right: number, label: string) => {
@@ -228,7 +245,7 @@ export const createNarratedTiming = ({
       durationSeconds: timelineScene.duration,
       startFrame: secondsToFrames(sceneStart, fps),
       endFrame: secondsToFrames(sceneEnd, fps),
-      durationFrames: secondsToFrames(timelineScene.duration, fps),
+      durationFrames: secondsToFrames(sceneEnd, fps) - secondsToFrames(sceneStart, fps),
       segments,
     };
   });
@@ -257,6 +274,72 @@ export const createNarratedTiming = ({
     'Timeline 最后一幕与总时长',
   );
   return result;
+};
+
+/**
+ * 把视觉事件绑定到已校验的 Cue／Segment 时间，依赖事件取所有依赖项的最晚帧。
+ *
+ * 视觉组件只应通过这个入口获取出现帧，不能再自行维护 Cue 下标或 fallback 帧。
+ */
+export const createVisualTiming = (
+  timing: NarratedTiming,
+  bindings: VisualTimingBinding[],
+): VisualTiming => {
+  const bindingById = new Map<string, VisualTimingBinding>();
+  for (const binding of bindings) {
+    if (!binding.id.trim()) throw new Error('视觉事件 ID 不能为空');
+    if (bindingById.has(binding.id)) throw new Error(`视觉事件 ID 重复：${binding.id}`);
+    if (!binding.source && (!binding.dependsOn || binding.dependsOn.length === 0)) {
+      throw new Error(`视觉事件 ${binding.id} 缺少 Cue／Segment 来源或依赖项`);
+    }
+    bindingById.set(binding.id, binding);
+  }
+
+  const sceneById = new Map(timing.scenes.map((scene) => [scene.sceneId, scene]));
+  const resolved = new Map<string, number>();
+  const resolving = new Set<string>();
+
+  const resolve = (id: string): number => {
+    const cached = resolved.get(id);
+    if (cached !== undefined) return cached;
+    const binding = bindingById.get(id);
+    if (!binding) throw new Error(`视觉事件依赖不存在：${id}`);
+    if (resolving.has(id)) throw new Error(`视觉事件存在循环依赖：${id}`);
+    const scene = sceneById.get(binding.sceneId);
+    if (!scene) throw new Error(`视觉事件 ${id} 关联的 Scene 不存在：${binding.sceneId}`);
+
+    resolving.add(id);
+    let frame: number | undefined;
+    if (binding.source) {
+      const sourceTiming = binding.source.type === 'cue'
+        ? scene.segments.flatMap((segment) => segment.cues).find((cue) => cue.id === binding.source?.id)
+        : scene.segments.find((segment) => segment.segmentId === binding.source?.id);
+      if (!sourceTiming) {
+        throw new Error(`视觉事件 ${id} 找不到 ${binding.source.type} 来源：${binding.source.id}`);
+      }
+      frame = sourceTiming.startFrame - scene.startFrame;
+    }
+
+    for (const dependencyId of binding.dependsOn ?? []) {
+      const dependency = bindingById.get(dependencyId);
+      if (!dependency) throw new Error(`视觉事件 ${id} 依赖不存在：${dependencyId}`);
+      if (dependency.sceneId !== binding.sceneId) {
+        throw new Error(`视觉事件 ${id} 不能依赖其他 Scene：${dependencyId}`);
+      }
+      frame = Math.max(frame ?? 0, resolve(dependencyId));
+    }
+    resolving.delete(id);
+    resolved.set(id, frame ?? 0);
+    return frame ?? 0;
+  };
+
+  return {
+    frame: resolve,
+    after: (...ids: string[]) => {
+      if (ids.length === 0) throw new Error('视觉事件 after 至少需要一个依赖项');
+      return Math.max(...ids.map(resolve));
+    },
+  };
 };
 
 type DistributedRevealOptions = {
@@ -404,3 +487,9 @@ export const getSceneStartFrame = (
 
   return secondsToFrames(previousDuration, fps);
 };
+
+export const getSceneDurationFrames = (
+  scenes: SceneConfig[],
+  sceneIndex: number,
+  fps: number,
+) => getSceneStartFrame(scenes, sceneIndex + 1, fps) - getSceneStartFrame(scenes, sceneIndex, fps);
