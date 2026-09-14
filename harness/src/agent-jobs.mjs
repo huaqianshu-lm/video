@@ -3,7 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { buildTaskPacket } from "./context.mjs";
 import { retryStage, runStage } from "./runner.mjs";
-import { loadProject, projectsRoot, readJson, writeJson } from "./storage.mjs";
+import { assertProjectMutable, assertProjectSlugMutable, isCompletedProject, loadProject, projectsRoot, readJson, writeJson } from "./storage.mjs";
 import { STAGE_DEFINITIONS } from "./stages.mjs";
 
 const ACTIVE_STATUSES = new Set(["queued", "running"]);
@@ -17,6 +17,7 @@ function jobPath(id) {
 }
 
 function saveJob(job) {
+  assertProjectSlugMutable(job.slug, "写入 Agent Job");
   job.updatedAt = new Date().toISOString();
   writeJson(jobPath(job.id), job);
   return job;
@@ -42,6 +43,7 @@ export function findActiveAgentJob(slug, stage) {
 }
 
 export function createAgentJob({ slug, stage, batchId = null }) {
+  assertProjectSlugMutable(slug, "创建 Agent Job");
   const existing = findActiveAgentJob(slug, stage);
   if (existing) {
     if (batchId && !existing.batchId) {
@@ -90,6 +92,7 @@ export async function runAgentJob(id, { executor } = {}) {
   const job = getAgentJob(id);
   if (!job) throw new Error(`Agent Job not found: ${id}`);
   if (job.status === "running") throw new Error(`Agent Job is already running: ${id}`);
+  assertProjectSlugMutable(job.slug, "执行 Agent Job");
   if (!executor || typeof executor.run !== "function") {
     job.status = "failed";
     job.completedAt = new Date().toISOString();
@@ -144,6 +147,7 @@ export function retryAgentJob(id) {
   if (!job) throw new Error(`Agent Job not found: ${id}`);
   if (job.status !== "failed") throw new Error(`Agent Job is not retryable: ${job.status}`);
   const project = loadProject(job.slug, { refresh: true });
+  assertProjectMutable(project, "重试 Agent Job");
   if (project.state.currentStage !== job.stage) throw new Error("Agent Job 已经过期，项目阶段已变化");
   if (project.state.stages[job.stage].status === "failed") retryStage(project, job.stage);
   job.status = "queued";
@@ -156,6 +160,7 @@ export function retryAgentJob(id) {
 export function recoverInterruptedAgentJobs() {
   for (const job of listAgentJobs()) {
     if (job.status !== "running") continue;
+    if (isCompletedProject(job.slug)) continue;
     job.status = "failed";
     job.completedAt = new Date().toISOString();
     job.error = { code: "server-restarted", message: "Web Server 重启导致任务中断，可以安全重试。" };

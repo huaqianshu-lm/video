@@ -52,3 +52,60 @@ test("blocks dispatch when the remote ref is behind the local commit", async () 
     fs.rmSync(workspaceRoot, { recursive: true, force: true });
   }
 });
+
+test("uses the per-video delivery binding when creating a render dispatch", () => {
+  const { workspaceRoot, project } = fixture();
+  const slug = "bound-render-video";
+  project.config.slug = slug;
+  const deliveryRoot = path.join(workspaceRoot, "local", "render-input");
+  fs.mkdirSync(deliveryRoot, { recursive: true });
+  fs.writeFileSync(path.join(deliveryRoot, `${slug}.delivery.json`), `${JSON.stringify({
+    schemaVersion: 1,
+    kind: "video-render-input-delivery",
+    videoSlug: slug,
+    compositionId: slug,
+    packageFingerprint: "a".repeat(64),
+    archiveSha256: "b".repeat(64),
+    url: "https://inputs.example.test/bound-render.zip",
+    boundAt: "2026-09-14T00:00:00.000Z",
+  }, null, 2)}\n`, "utf8");
+  try {
+    const adapter = createGitHubActionsAdapter({
+      token: "test-token",
+      repository: "example/video",
+      ref: "main",
+      requireRenderInput: true,
+      fetchImpl: async () => ({ ok: true, status: 204, text: async () => "" }),
+    });
+    const dispatch = adapter.createDispatch({
+      stage: "render",
+      project: { config: { ...project.config, compositionId: slug }, state: { slug } },
+    });
+    assert.equal(dispatch.renderInputUrl, "https://inputs.example.test/bound-render.zip");
+    assert.equal(dispatch.renderInputSha256, "b".repeat(64));
+  } finally {
+    fs.rmSync(workspaceRoot, { recursive: true, force: true });
+  }
+});
+
+test("a legacy global render URL cannot bypass a missing per-video binding", async () => {
+  const { workspaceRoot, project } = fixture();
+  project.config.slug = "missing-binding-video";
+  try {
+    const adapter = createGitHubActionsAdapter({
+      token: "test-token",
+      repository: "example/video",
+      ref: "main",
+      renderInputUrl: "https://inputs.example.test/legacy.zip",
+      renderInputSha256: "c".repeat(64),
+      requireRenderInput: true,
+      fetchImpl: async () => ({ ok: true, status: 204, text: async () => "" }),
+    });
+    await assert.rejects(
+      () => adapter.dispatchWorkflow({ stage: "render", project: { ...project, state: { slug: project.config.slug } } }),
+      (error) => error.code === "render-input-remote-config-invalid",
+    );
+  } finally {
+    fs.rmSync(workspaceRoot, { recursive: true, force: true });
+  }
+});

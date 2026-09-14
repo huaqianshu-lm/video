@@ -7,32 +7,35 @@
 
 ## 当前阶段
 
+- `product-promo-v1` 多工作流架构提案与工程计划已归档到本地忽略的 `drafts/`，尚未实施；后续仅在当前 main 工作目录按 Phase 0 核对规范与实现基线，不使用旧 `product-promo-workflow` 工作树开发。
 - 仓库规则已按“核心 `CLAUDE.md`、专项 Skill、稳定 `docs/`、本地 `drafts/` 与 `notes/`”完成分层；四个项目内 Skill、通用视频模板和受跟踪 MVP 能力清单已创建并通过适用验证。仓库资料与代码分离的四阶段计划已保存到 `drafts/REPOSITORY-CLEANUP-FOUR-PHASE-PLAN.md`，第二阶段 Git 索引清理、第三阶段历史重写和现有远端分支强制更新已完成，第四阶段本地验证已完成，独立私有输入源已配置，`vscode` Smoke Render、完整 Render 和 Gate 4 人工验收均已完成。
-- `videos/` 和 `src/videos/` 已由用户移出本地工作区；根 Remotion 入口已切换为通用 `video-production-template`，仓库不再因具体视频目录缺失而无法通过 TypeScript 检查。
+- 2026-09-14：按 `drafts/VIDEO-PRODUCTION-FLOW-CLOSURE-PLAN.md` 顺序完成四步流程收口，并分别通过单步回归；随后按用户确认的 7 个渲染必要文件定向提交并推送，GitHub Actions 完整 Render Run `34836232221` 成功，Artifact `08-cli` 未过期，用户已完成 Gate 4 人工验收，Harness 状态进入 `completed`。
 - 仓库正在收敛为只提交 Harness 和通用视频制作能力；具体视频项目、生产资源及讨论过程文档已转入本地忽略目录，当前索引和可见 Git 历史均已不再跟踪这些资料。
 - 已实现 `render-input prepare／validate／package`：具体视频资料、Remotion 配置和资源包先整理到被忽略的 `local/render-input/<slug>/`，以 Manifest 和 SHA-256 校验后交给远程输入源，不再要求它们进入能力仓库。
-- 已实现 `render-input entry-all`：本地扫描全部 `videos/` 与 `src/videos/`，按组件／配置版本匹配和修改时间选择入口，并生成被忽略的多 Composition Studio 入口；`claude-code-what-is` 当前选择 v2 入口，生成入口会显式调用 `registerRoot`。
+- 已实现 `render-input entry-all`：本地扫描可用视频并只读取逐视频已校验输入包 Manifest 中明确的组件、配置和 Composition ID，生成被忽略的多 Composition Studio 入口；不再按文件修改时间猜版本，`completed` 视频缺包时只读跳过并说明原因。
 - 两个 GitHub Actions 渲染 Workflow 已改为接收独立输入包 URL／SHA-256，在 Runner 临时工作区恢复资料并生成临时 Remotion 入口；工作流已支持通过 API 下载私有 Release 资产，`vscode` 输入包已发布到独立私有仓库 Release，主仓库 `RENDER_INPUT_TOKEN` Secret 和本地远程配置均已通过诊断；Smoke Run `34687581072` 和完整 Render `34688325027` 均成功，最终 Artifact `vscode` 未过期且已通过 Gate 4 人工验收。
 - Web UI 已支持从 Source 一键连续执行到 Gate 2：源文档自动登记，六个内容／脚本／视觉 Agent 阶段逐个创建持久化 Job，Gate 1 自动内部审查，最终停在 Gate 2 等待人工确认。
 - Web UI 已增加原文件导入入口：支持 Markdown／纯文本上传，按文件名或显式 slug 创建并初始化新视频项目，保存为 `videos/<slug>/source.md`，不覆盖已有项目。
 - Web UI 原文件导入现在要求先选择系列（或明确选择通用风格）；项目会锁定系列 Style，视觉原型 Agent 会读取对应的已验证原型基线，既有项目加入系列时会回退到 `visual-script` 重新生成后续资料。所有新视频统一继承 `01-what-is-codex` 的 Visual Prototype 外壳和排版基线，Harness 会阻断只复用 class 名称但改变标题区、导航区、字幕区、Scene 标题锚点或进度区布局的原型。
-- `03-install` 已通过 Gate 2 和 TTS 质检，Gate 3 驳回后当前回到 `remotion / ready`；已有 Remotion 任务曾因旧任务包缺少驳回上下文而阻塞，现已修复任务包刷新和重试路径，等待用户重新提交验证。
+- 2026-09-13：新增永久只读规则：任何已标记为 `completed` 的视频及其内容、状态和相关产物均不可再修改；后续变更只能针对未完成视频或新建独立视频标识。
+- 2026-09-14：按 Smoke Render 独立化方案完成流程调整：当前 Workflow 收敛为 14 个生产阶段，Gate 3 后直接进入完整 Render 并停在 Gate 4；Smoke Render 仅保留为新系列或渲染环境变化时手动触发的独立 GitHub Actions 检查，历史旧阶段只读展示；Harness 全量回归、类型检查和差异检查通过，未执行真实渲染，`web-and-cloud` 未处理。
+- 2026-09-13：按用户明确确认，将有完整渲染成功或历史已渲染确认记录的 15 个视频统一为 `completed`：Codex 01–06、7 个 Claude Code 历史视频、`project-init`、`vscode`；本次恢复 14 个，06 保持原样，其余 47 个视频不变。修改前状态和证据清单保存在 `local/state-recovery/2026-09-13T07-19-51-846Z-rendered-completion.json`；未修改代码、视频资料或触发渲染。
 - Web UI 普通 Agent 阶段已默认复用项目内 Codex CLI 适配器；只有需要替换执行器时才配置 `HARNESS_AGENT_EXECUTOR_*`，不再要求普通启动前手工配置。
 - Web UI TTS 阶段已默认加载项目内 TTS 适配器；普通启动不再因缺少 `HARNESS_TTS_EXECUTOR_*` 阻塞，非标准 TTS 工程仍可用环境变量覆盖。
 - `02-core-concepts` 已完成 Smoke Run `33403378772`、完整 Render `33403831520` 和 Gate 4 人工验收；两个 Artifact 均存在且未过期，当前视频流程完成。
 - `project-init` 已完成 Smoke Run `33479568851`、完整 Render `33480194796` 和 Gate 4 人工验收；两个 Artifact 均存在且未过期，Harness 当前状态为 `completed`。
-- Web UI 已对运行中的 Smoke／完整 Render 远程任务锁定重复提交入口：按钮显示“远程任务执行中”并说明任务状态和 ID，详情页每 5 秒同步状态；旧页面或竞态产生的重复请求由服务端幂等返回已有任务，不再报错或创建第二条任务。
+- Web UI 已对运行中的完整 Render 远程任务锁定重复提交入口：按钮显示“远程任务执行中”并说明任务状态和 ID，详情页每 5 秒同步状态；旧页面或竞态产生的重复请求由服务端幂等返回已有任务，不再报错或创建第二条任务，历史 Smoke 任务仅保留只读展示。
 - Codex 系列风格已配置为独立 `codex` 基线；01、02 共享 Codex 令牌，Harness 会解析系列风格并在原型／Remotion 校验阶段阻止风格漂移。
 - `codex-guide` 系列清单已恢复为同时关联 `01-what-is-codex` 和 `02-core-concepts`；系列关联保存现在禁止未经确认的成员移除，Web UI 会在移除前二次确认。
-- Web UI 已修复项目级“执行当前阶段”与 Remotion 任务状态不同步的问题：按接口真实的 `result.taskId` 进入轮询，`ready / in-progress / failed` 分别显示执行、制作中或重试状态，已完成的历史任务不再遮蔽当前 `run-stage` 操作，任务完成前不提供 Gate 3 通过入口。`02-core-concepts` 已重新冻结 Codex 风格 Gate 2 指纹，Remotion 对齐清单已同步，当前为 `remotion / ready`，可执行当前阶段并进入 Gate 3。
+- Web UI 已修复项目级“执行当前阶段”与 Remotion 任务状态不同步的问题：按接口真实的 `result.taskId` 进入轮询，`ready / in-progress / failed` 分别显示执行、制作中或重试状态，已完成的历史任务不再遮蔽当前 `run-stage` 操作，任务完成前不提供 Gate 3 通过入口。`02-core-concepts` 已按用户确认的历史完整渲染记录恢复为 `completed`。
 - TTS Harness 适配器已补齐并通过不联网契约测试：可从 stdin 接收 `video-tts-execution`，调用既有 TTS 三段 Python 脚本并回写音频／字幕／Timeline；`02-core-concepts` 已完成真实 TTS、字幕和 Timeline 产物并通过质检。
 - `02-core-concepts` TTS 已完成并通过 TTS 质检；Remotion 报告已修正为允许在缺少待生成 `remotion-alignment.json` 时创建制作任务，任务完成后仍严格校验对齐清单。
 - Harness Web UI 已接入持久化后台 Agent Job、Gate 2 冻结原型、Remotion 逐 Scene 对齐清单和 Gate 3 同屏对照；远程渲染现已补齐资源包自动准备、资源／Manifest／代码交付预检和 dispatch 分支提交一致性校验。
 - Web UI 远程渲染交付预检已区分“准备资源”和“提交阻塞”两类提示；资源准备会明确说明不会 commit/push，Git 或资源问题会单独说明修复后重新校验的下一步。
-- Smoke Render 入口已支持一次确认后定向提交当前视频渲染文件、推送当前分支并排队远程任务；不使用 `git add .`，不提交无关改动，单独资源准备和完整 Render 仍不自动 commit/push。
+- 完整 Render 入口已支持一次确认后定向提交当前视频渲染文件、推送当前分支并排队远程任务；不使用 `git add .`，不提交无关改动，独立 Smoke Render 不经过 Harness 交付入口。
 - `vscode` 已重新执行 Remotion Agent，生成并校验 `remotion-alignment.json`，Gate 3 已通过；远程输入包位于独立仓库 `huaqianshu-lm/video-render-inputs` 的 Release `vscode-input-v1`，未进入能力仓库。Smoke Run `34687581072` 经人工检查通过，完整 Render `34688325027` 已成功，Artifact `vscode` 已通过 Gate 4 最终确认。
 - narrated 视频的 Remotion 音频驱动契约已完成统一实施：任务包显式读取 `tts-script.json`、Audio／Subtitle／Timeline Manifest；12 个现有有口播配置已迁移到 `src/lib/timing.ts` 的 Manifest 驱动入口，Alignment 2.0 已要求逐 Scene 时间映射，不回溯重做已完成视频。
-- 新视频 `01-what-is-codex` 已关联 `codex-guide` 系列并接入45帧共享封面片头；用户确认已有完整 Render 结果，已按历史完成接管为 Harness `completed`，不再回溯当前资料指纹。
+- 新视频 `01-what-is-codex` 已关联 `codex-guide` 系列并接入45帧共享封面片头；用户确认已有完整 Render 结果，已按历史完成接管并于 2026-09-13 恢复为 Harness `completed`；本次重建当前资料指纹基线，后续按永久只读规则不得触碰该视频内容、状态或相关产物。
 - Harness 0.4 已完成本地实现、测试和推送，PR #3 已合并到 `main`（`5fcefb89`）；Harness 0.5 已完成实现、远程 render／Gate 4 闭环修复、已提交任务自动找回 Run／Artifact、全量测试、文档收尾和受控真实 Smoke Render 监控验收（Run `32632006287`、Artifact `vscode-smoke-test`），PR #4 已合并到 `main`（`bd991479`），不改现有视频内容。
 - Harness Web UI 第一版已合入待处理视频集成分支；视频项目按原文件的系列内序号展示和排序，同序号项目以 slug 唯一标识并稳定排序，目录索引已补齐，项目卡片以完整项目名称为主信息。
 - 新视频 `remotion-video` 已完成七层生产资料、Gate 1、Gate 2 和 12 Scene 横屏 Visual Prototype；源文档与指定文章字节一致，按任务边界停止在原型阶段，未生成 TTS 或 Remotion 资料。
@@ -43,11 +46,11 @@
 - `claude-code-coding-plan`、`claude-code-third-party-models`、`claude-code-api-config` 和 `claude-code-first-run` 已完成 TTS、字幕／Timeline、Remotion、远程 Smoke Render、完整 Render 及 Gate 4 最终人工确认。
 - 新视频 `vscode` 和 `claude-code-first-run` 已完成 TTS、字幕／Timeline、Remotion 接入及完整 GitHub Actions Render，最终 MP4 均通过用户 Gate 4 人工验收。
 - Harness 0.6 已在独立分支 `feat/video-harness-v0.6` 完成实现和人工回归；已补齐远程任务状态分类、可恢复错误、超时终态、GitHub 环境诊断、全局远程任务视图和 Gate 审查记录，48 项 Harness 回归、类型检查、差异检查及 GitHub 配置／全局任务／项目详情页人工检查均通过，未修改视频内容；PR #5 已合并到 `main`，合并提交为 `a37cd7e`。
-- 批量生产已拆为四类目标：到 Gate 2、完成 TTS、完成 Remotion、批量渲染；批次会在 TTS 质检和 Smoke Render 检查前暂停，旧批次类型保留只读兼容。
+- 批量生产已拆为四类目标：到 Gate 2、完成 TTS、完成 Remotion、批量渲染；批次会在 TTS 质检、Gate 3 和 Gate 4 停留，批量渲染从 Gate 3 直接提交完整 Render，旧 Smoke 批次记录保留只读兼容。
 - Remotion 制作任务层已接入：TTS 质检后的批量 Remotion 在产物缺失时创建可恢复任务，等待 Agent 生成配置／主组件，完成后自动校验并继续到 Gate 3；当前仍未配置自动 Remotion 生成器。
 - 单条 TTS 执行器已接入 Harness 核心：执行器通过无 shell 的 JSON stdin 协议调用外部 TTS，固定传入冻结 `tts-script.json`、`+25%` 和输出契约；执行结束后由 Harness 校验音频、字幕和 Timeline，失败不会推进阶段。
-- 单条 Remotion Agent 和远程 Smoke／Render 执行器已接入统一单条入口；Remotion 任务完成后自动校验并停在 Gate 3，远程渲染创建持久化任务并交给现有 GitHub Actions 监控，均未自动通过人工 Gate。
-- 批量 TTS、Remotion 和远程渲染已改为复用统一单条入口；批量任务支持执行器产物验收、Remotion 任务关联、远程任务等待、Smoke 质检暂停和避免重复提交，均未触发真实外部执行器。
+- 单条 Remotion Agent 和完整 Render 执行器已接入统一单条入口；Remotion 任务完成后自动校验并停在 Gate 3，完整渲染创建持久化任务并交给现有 GitHub Actions 监控，Smoke Render 保留为独立手动工作流，均未自动通过人工 Gate。
+- 批量 TTS、Remotion 和完整渲染已改为复用统一单条入口；批量任务支持执行器产物验收、Remotion 任务关联、远程任务等待、Gate 4 停留和避免重复提交，均未触发真实外部执行器。
 - Web UI 单视频详情页已增加 TTS 质检确认入口；确认后复用 Harness 审核逻辑，并同步当前等待中的 TTS 批次。
 - Web UI 的 Gate 3 驳回回退到 Remotion 时，服务端会在同一次请求中自动创建并提交持久化修改任务；首次修改不再要求用户手动点击“重试 Agent”，只有任务失败或校验阻塞后才显示重试入口。
 - 批量页面的每条视频现在统一展示 Harness 项目当前状态；批次自身的历史执行记录与视频当前状态分开保存，避免同一视频在不同批次中显示过期状态。
@@ -63,6 +66,22 @@
 
 ## 已完成（最近 10 条）
 
+- 2026-09-14：用户完成 `08-cli` Gate 4 人工验收；GitHub Actions Run `34836232221` 的 Artifact `08-cli` 存在、非空且未过期，Harness 已将项目状态登记为 `completed`，后续按永久只读规则保护该视频。
+- 2026-09-14：完成流程收口第四步；Remotion Agent、单条／批量任务、校验、Studio 和远程入口均改为从逐视频已校验输入包生成被忽略的 `src/RenderInputRoot.tsx`，不再把具体视频写入或回退到受跟踪的 `src/Root.tsx`；临时入口严格检查组件、配置和 Composition ID。第四步定向回归 27/27，未执行真实远程渲染。
+- 2026-09-14：完成流程收口第三步；输入包会对当前源目录和资源归档做快照校验，逐视频交付记录固定 URL、包指纹、Composition ID 和 SHA-256，远程 Job 重试沿用同一绑定，旧全局 URL／SHA 不能绕过校验；第三步定向回归 32/32，未执行真实远程渲染。
+- 2026-09-14：完成流程收口第二步；受跟踪 `src/Root.tsx` 仅保留通用 Template Composition，Git 交付计划改为明确的通用能力白名单，返回分支／当前提交／文件哈希／`planId`，确认时要求精确清单一致，文件变化或分支不一致会在 commit/push 前阻断；Git、Web UI 和 Web Server 定向回归 64/64，`npm run check`、`git diff --check` 通过，未执行真实 push。
+- 2026-09-14：完成流程收口第一步；`completed` 视频的状态、刷新回写、阶段执行、Gate、重试、后台任务、批次、系列资料、远程任务和输入包写入均被统一永久只读保护，恢复和查询只读返回；新增永久只读回归 3/3，Harness 全量回归 182/182、`npm run check` 和 `git diff --check` 通过，未修改已完成视频资料，未执行远程渲染。
+- 2026-09-13：将私有 GitHub Release 输入包地址规则固化到 Harness 的诊断、交付预检和 GitHub Actions 适配器；`/releases/download/` 网页地址会在本地直接阻塞并提示 `/releases/assets/<asset-id>` API 地址，新增配置与预检回归通过。
+- 2026-09-13：已按当前 `07-desktop-app` Remotion 代码重新生成并校验独立输入包，新的归档 SHA-256 为 `685e5873b71095ecfa0ad6f42652dc8fc79488944ca78f644495cb5362829f10`，并上传到 `video-render-inputs` 的 Release `07-desktop-app-input-v2`；首次 Smoke 因使用 Release 网页下载地址返回 404，改用 API 资产地址后 Run `34762493598` 成功，输入包下载、校验和 Smoke 代表帧／短片检查均通过。
+- 2026-09-13：修复 `07-desktop-app` 当前 Remotion 交付预检的 41 个阻塞；10 个 Scene 已补齐命名 `visualBindings`、`visualElements` 和 `implementationSymbols`，场景实现移除固定间隔时间推算，Composition 校验改为识别本地 `RenderInputRoot.tsx`；Remotion 校验阻塞清零，未提交远程任务，等待 Gate 3 人工确认。
+- 2026-09-13：为 `07-desktop-app` 生成并通过远程输入包完整校验，上传到独立私有仓库 Release `07-desktop-app-input-v1`，配置 API URL 与 SHA-256 并通过 GitHub Actions `doctor`；未执行 Smoke Render 或完整渲染。
+- 2026-09-13：修正 Harness Web UI 启动时未继承远程输入包配置的问题；`harness:web` 现在显式加载持久化 Shell 配置，重启后的 Web UI 诊断已确认 Token、仓库、输入包 URL/SHA 和两个 workflow 全部可用；未执行 Smoke Render 或完整渲染。
+- 2026-09-13：配置修复后的 `07-desktop-app` Smoke Run `34755740712` 已完成输入包下载、SHA-256 校验和临时工作区恢复，但在 TypeScript 阶段因 `main` 分支缺少 `src/videos/desktop` 具体视频代码而失败；未生成 Smoke Artifact，未擅自提交／推送或重新渲染。
+- 2026-09-13：修复 Web UI 项目详情页空闲 Gate 3 仍持续轮询的问题；仅在远程任务、Agent 任务或 Remotion `in-progress` 时自动刷新，避免刷新重建驳回对话框；WebUI 定向回归 32/32、`npm run check`、脚本语法检查和 `git diff --check` 通过，未渲染。
+- 2026-09-13：修正已有 Remotion 产物与状态记录失配的问题；后台刷新时会校验规则变更后仍有效的当前产物，自动恢复为 `Remotion succeeded → Gate 3 waiting`，不新增生产步骤、不自动通过人工 Gate 3，Gate 3 驳回后的重制仍要求新产物；Harness 核心与 WebUI 回归 86/86、`npm run check` 和 `git diff --check` 通过，未渲染。
+- 2026-09-13：新视频 Remotion 项目启用视觉时间硬门禁；每个 Scene 必须提供逐元素 `visualElements`、`bindingId`、`visualBindings` 和 `implementationSymbols`，实现中使用 Cue 下标、fallback 或固定间隔推算会直接校验失败；历史兼容项目保持原规则，回归测试 10/10、`web-and-cloud` 校验、`npm run check` 和 `git diff --check` 通过。
+- 2026-09-13：修复 `web-and-cloud` Scene 10 取舍卡提前出现；四张卡分别绑定 `10-01-c/d/f/g`，原则提示改为四卡全部出现后显示，预告绑定 `10-01-h`；Alignment 校验新增逐元素 `visualElements`／`bindingId` 和实现时间模式检查，禁止 Cue 下标、fallback 与固定间隔推算。Scene 10 Remotion 校验、定向回归、`npm run check` 和 `git diff --check` 通过，未渲染，等待 Gate 3 人工确认。
+- 2026-09-13：为 `web-and-cloud` 建立视觉事件统一时间入口；Scene 05／07／08 及同类连接箭头改为 Cue／依赖驱动，补齐 visualBindings 校验，禁止箭头默认从 Scene 起始帧显示；新产物校验通过，Harness 已同步到 `gate-3 / waiting`，未渲染，等待人工 Gate 3 试听画面确认。
 - 2026-09-11：完成仓库资料与能力代码分离的第三阶段；重写全部本地分支及现有远端跟踪分支历史，移除视频资料、资源目录、渲染输入目录和已迁移过程文档，清理 `refs/original/` 后以 `force-with-lease` 原子强制更新 GitHub 现有分支；当前索引和可见历史均不再包含这些路径，未创建本地独有远端分支。
 - 2026-09-11：完成第四阶段本地验证；`npm run preview` 成功注册 18 个视频，`vscode` 独立远程输入包准备、校验和打包通过，资源 ZIP 顶层为 `vscode/` 且包含字幕两种格式和 9 个 MP3，相关 10 项定向回归与 TypeScript 检查通过；后续已将输入包发布到独立私有仓库并配置 Actions Secret，真实 Smoke Render 等待 Gate 3。
 - 2026-09-12：完成 `vscode` Remotion 恢复执行；Agent 重新读取 TTS／字幕／Timeline Manifest 和 Visual Prototype，生成并校验 Alignment 2.0 对齐清单，`npm run check`、Remotion 校验和差异检查通过；当前等待 Gate 3 人工确认，未自动通过 Gate。
@@ -166,6 +185,7 @@
 
 ## 进行中
 
+- `web-and-cloud` 已从 Gate 3 驳回状态恢复到 `gate-3 / waiting`；视觉时间绑定已完成代码和自动校验，仍需用户在带音频 Studio 预览中确认 2:12—2:28 的口播与画面语义，以及箭头／连线没有提前出现。
 - Web UI Agent Job 和 Prototype→Remotion 对齐契约已完成自动化验证；Remotion 任务支持 Server 重启恢复、未配置或进程失败时保留可重试状态，详情页和任务列表显示具体错误。
 - 四个视频的 TTS 批次 `b16cceae-8ebc-4619-ba21-b472653e8fb4` 已停在 TTS 质检；需要确认发音、自然度、语速、停顿、字幕文本和字幕时间。
 - 四个视频的 Remotion 制作任务层已可用；实际 Remotion 配置和主组件仍需 Agent 逐视频生成，完成后由 Harness 校验并续做批次。
@@ -174,11 +194,9 @@
 
 ## 下一步
 
-1. 由用户完成四个视频批次的 TTS 质检；确认发音、自然度、语速、停顿、字幕文本和字幕时间。
-2. 在 Web UI 导入实际新视频原文件并跑通 Source 到 Gate 2；默认使用项目内 Codex CLI 适配器，执行失败时通过持久化 Job 重试。
-3. 由用户确认新增 33 个视频的 Gate 2；通过后按四类批次逐段推进，历史完成视频不再回溯。
-4. 继续按 `todo.md` 统一改造 Web UI 的其他异步／业务按钮；Smoke Render 一键交付和完整 Render 独立入口均已完成。
-5. 由用户按《WebUI 批次与工作台布局问题修复实施方案》第 10 节完成人工视觉验收；在允许监听 `127.0.0.1` 的环境重跑 Web Server 回归。
+1. 当前生产阶段表已与 Gate 3 后直接完整 Render 的流程同步；`08-cli` 已完成，不要再次渲染或修改它。
+2. 继续处理其他未完成视频的人工 Gate 和生产阶段；已完成视频永久只读。
+3. 新系列或渲染环境变化时，另行手动运行 Smoke Render；它不推进生产阶段，也不创建 Harness 生产 Job。
 
 ## 阻塞
 
@@ -195,17 +213,34 @@
 - Linux 渲染必须安装并校验 CJK 字体；字幕必须放在明确的顶层 overlay；字幕 Cue 应按帧边界判断，不直接依赖浮点秒数。
 - 字幕、音频、场景节奏和 Remotion 配置的完整经验统一按需查阅本地 `notes/video-production-notes.md`，不在 Roadmap 重复记录。
 - 画面文字必须能追溯到当前视频生产资料；预览导航、调试标记和辅助说明不得进入最终 MP4，具体检查要求见 `CLAUDE.md` 及对应专项 Skill。
-- 新视频口播必须在生成阶段按独立视频表达，禁止把原始材料作为口播叙事对象；来源指代检查必须在派生 `tts-script.json` 前完成，已完成视频不回溯修改。
+- 新视频口播必须在生成阶段按独立视频表达，禁止把原始材料作为口播叙事对象；来源指代检查必须在派生 `tts-script.json` 前完成。已标记为 `completed` 的视频永久只读，后续任何改动不得触碰其内容、状态或相关产物。
 - Web UI 提交远程任务前必须确认 GitHub Actions 适配器所需环境变量已配置；缺少 Token 时应在提交前给出明确配置提示，不应创建一个立即失败的远程任务。
 - 本地 Harness 的分支优先级必须保持为显式 `HARNESS_GITHUB_REF`、当前 Git 工作区分支、`GITHUB_REF_NAME`；远程渲染提交前必须确认独立输入包已准备、能力代码已提交且 dispatch 分支已包含当前提交。
 - 远程渲染资产检查不能停在“ZIP 文件存在”；必须在提交前验证 ZIP 可解压、顶层目录、VTT／SRT、逐个 MP3 路径和数量，并与三份 Manifest 的视频及 Scene 对齐。
-- 批量“完成 TTS”只有在音频、字幕和 Timeline Manifest 都实际存在并通过校验后才能进入 TTS 质检；“批量渲染”必须先等待 Smoke Render 检查，不能直接进入完整渲染。
+- 批量“完成 TTS”只有在音频、字幕和 Timeline Manifest 都实际存在并通过校验后才能进入 TTS 质检；“批量渲染”必须先通过 Gate 3，再直接进入完整渲染并等待 Gate 4，不能自动通过人工确认。
 - 批量 Remotion 不应把缺少 `video.config.ts` 或 `*Video.tsx` 直接当作批次失败；应创建 Remotion 制作任务，等待 Agent 产出后重新校验并恢复批次。
 - 单条执行器必须先完成副作用，再由 Harness 重新校验产物和推进状态；未配置外部命令或 Agent 时必须明确报错，不能生成占位产物或把任务创建显示为完成。
 - 远程渲染完成后，Agent 只检查 GitHub Actions Run 结论和 Artifact 是否存在、非空、未过期；Artifact 下载、视频播放和最终 Gate 4 内容检查由用户完成。`vscode` 已完成该人工确认。
+- 本次 `08-cli` 首次本地 `remote-run` 在远程 dispatch 成功后，曾因旧版 `harness/src/stages.mjs` 仍要求 Smoke Render 而无法推进本地阶段；阶段表及相关单条、批量和 WebUI 入口现已统一为 Gate 3 后直接完整 Render。此前失败记录只是本地状态推进失败，没有重复创建渲染。
 
 ## 最近验证（最近 10 条）
 
+- 2026-09-14：`08-cli` Gate 4 人工验收已登记；Harness `status 08-cli` 显示 `currentStage: completed`、Gate 4 `approved`，远程 Run `34836232221` 结论为 `success`，Artifact `08-cli` 为 13,761,241 bytes 且未过期。
+- 2026-09-14：修复旧版阶段表导致的远程 Render 本地推进失败；当前 Workflow 为 14 个生产阶段，Gate 3 后直接进入 Render，Smoke 仅保留历史只读展示；单条、批量、WebUI 和旧记录兼容回归随 Harness 全量 196/196 通过，`npm run check`、`git diff --check` 通过。
+- 2026-09-14：`08-cli` 完整 Render 闭环验证通过；7 个确认的渲染必要文件提交为 `68ceb6f5301d9746bc4b4748968c97aea9232eb3` 并推送到 `main`，GitHub Actions Run `34836232221` 成功，Artifact `08-cli` 为 13,761,241 bytes 且未过期，Harness 已进入 Gate 4 等待人工验收。Artifact 下载和成片播放由用户执行。
+- 2026-09-14：四步流程收口最终本地整体验收通过；`npm run check`、`npm test --prefix harness`（196/196）、`git diff --check` 和仓库边界检查均通过，确认 `src/Root.tsx` 无具体视频导入，视频资料／资源／输入包仍未入仓；15 条 `completed` 视频只读回归 15/15，受保护目标指纹 105/105 未变。未执行真实远程渲染、提交／推送和 Gate 4。
+- 2026-09-14：流程收口第四步定向回归 27/27；单条／批量 Remotion、临时入口、对齐校验和 Studio 入口选择均通过，未执行真实 Agent 或远程渲染。
+- 2026-09-14：流程收口第三步定向回归 32/32；源文件变更重建、逐视频 URL／SHA 绑定、错误资源阻断、Job 绑定持久化和全局变量绕过检查均通过，未创建真实远程 Job。
+- 2026-09-14：第二步 Git 交付回归通过；Git 交付与确认 Web Server 7/7、Web UI 模块与 Web Server 合计 57/57，`src/Root.tsx` 本地导入检查、计划过期、精确清单、分支不一致和忽略目录检查均通过；`npm run check`、`git diff --check` 通过，未执行真实远端 push。
+- 2026-09-14：完成视频永久只读边界回归；新增 3 项覆盖阶段／Gate／任务／批次／系列／远程／输入包入口和轮询恢复，既有核心回归 71 项与相关 WebUI／远程任务用例合并后 Harness 全量 182/182 通过。首次沙箱执行只因本地监听权限受限，提升同一测试命令权限后 Web Server 用例正常通过；未渲染。
+- 2026-09-14：定位并修复 `09-ide` Studio 的 `registerRoot()` 入口问题；`src/Root.tsx` 仅导出 Root，Studio 统一使用带 `registerRoot()` 的被忽略 `src/RenderInputRoot.tsx`。同时补齐 09 配置的 `format` 和 Timeline 时长导出，刷新入口后注册 21 个本地视频；`validate 09-ide remotion`、`npm run check`、`git diff --check` 通过，Studio 已在 `http://localhost:3000` 启动，未执行渲染。
+- 2026-09-13：`07-desktop-app` Smoke Render Run `34760847271` 成功，生成未过期 Artifact `07-desktop-app-smoke-test`（4,221,285 bytes）；当前可执行完整 Render，未下载 Artifact，等待后续人工检查。
+- 2026-09-13：`07-desktop-app` Remotion 对齐校验从 41 个阻塞降为 0；定向 Harness 回归 10/10、`npm run check`、Remotion 脚本语法和 `git diff --check` 通过，当前状态为 `gate-3 / waiting`，未渲染。
+- 2026-09-13：修复 WebUI“准备远程渲染资源”完成后反馈被重渲染清掉的问题；按钮请求期间显示提交中，完成后明确显示资源准备结果和剩余 render 阻塞数量，WebUI 模块测试 33/33、`npm run check`、前端语法和 `git diff --check` 通过，未提交远程任务。
+- 2026-09-13：WebUI 项目轮询条件回归通过；Gate 3 空闲项目不启动轮询，Remotion `in-progress` 保持 3 秒轮询，远程任务保持 5 秒轮询；WebUI 模块测试 32/32、`npm run check`、前端语法检查和 `git diff --check` 通过，未渲染。
+- 2026-09-13：历史完成状态恢复验证通过；15/15 目标视频经 `refreshProject` 和 Web UI 数据视图读取后仍为 `completed`、15/15 阶段成功、100%，62 个视频的生产资料指纹不变，357 个受保护文件按预期核对通过；原有通过审核、输出和尝试次数保留，全部 Job 未改，06 及其余 47 个视频状态未改。仅依据本地历史渲染证据与本次人工确认，未重新验证远端 Artifact 有效期或成片画面。
+- 2026-09-13：视觉事件契约定向回归 9/9、`npm run check`、`web-and-cloud` 字幕／Timeline／Remotion 校验和 `git diff --check` 通过；完整 Harness 为 148/167，通过项未受本次改动影响，19 项仍因现有 GitHub 诊断／沙箱禁止监听 `127.0.0.1` 失败；未渲染。
+- 2026-09-12：修复 narrated Scene 边界独立取整造成的单帧空档；共享时间入口、Harness 帧计划和已确认受影响的视频主组件改为相邻边界计算，10 份 Remotion 对齐清单同步时长帧。定向测试 10/10、`npm run check`、11 份清单核对及 `07-desktop-app`／`vscode`／`web-and-cloud` 的 Remotion 校验通过；未渲染，音画不同步待单独排查。
 - 2026-09-11：完成仓库视频资料与功能代码分离第一阶段盘点；确认 `.gitignore` 已覆盖本地资料，Git 当前仍跟踪 `videos/` 445 个、`src/videos/` 108 个、`assets/` 15 个、`series/` 1 个和 `public/series-assets/` 1 个，未执行索引删除、历史重写或远端操作。
 - 2026-09-11：完成仓库视频资料与功能代码分离第二阶段；本地目录仍保留，Git 索引不再跟踪 `videos/`、`src/videos/`、`assets/`、`series/` 和 `public/series-assets/`，能力代码暂存范围通过 `git diff --cached --check` 和 `npm run check`，已准备创建本地基线提交，未执行历史重写或远端操作。
 - 2026-09-09：批次记录与 Remotion 任务滚动修复定向回归 32/32 通过；`find harness/web harness/src ... node --check` 和 `git diff --check` 通过，未触发真实 Agent／TTS／Remotion／渲染。

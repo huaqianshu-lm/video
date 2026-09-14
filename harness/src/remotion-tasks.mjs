@@ -2,9 +2,10 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { buildTaskPacket } from "./context.mjs";
-import { loadProject, projectsRoot, readJson, writeJson } from "./storage.mjs";
+import { assertProjectMutable, assertProjectSlugMutable, isCompletedProject, loadProject, projectsRoot, readJson, writeJson } from "./storage.mjs";
 import { validateStage } from "./runner.mjs";
 import { fingerprintStageArtifacts } from "./fingerprints.mjs";
+import { prepareRenderInputEntry } from "./render-input.mjs";
 
 const TASK_STATUSES = new Set(["ready", "in-progress", "blocked", "completed", "failed"]);
 
@@ -17,6 +18,7 @@ function taskPath(id) {
 }
 
 function saveTask(task) {
+  assertProjectSlugMutable(task.slug, "写入 Remotion 任务");
   task.updatedAt = new Date().toISOString();
   writeJson(taskPath(task.id), task);
   return task;
@@ -57,6 +59,7 @@ export function getRemotionTask(id) {
 }
 
 export function ensureRemotionTask({ slug, batchId }) {
+  assertProjectSlugMutable(slug, "创建 Remotion 任务");
   const existing = listRemotionTasks({ slug, batchId })
     .find((task) => TASK_STATUSES.has(task.status) && task.status !== "failed" && task.status !== "completed");
   if (existing) return existing;
@@ -94,6 +97,7 @@ export function ensureRemotionTask({ slug, batchId }) {
 export function startRemotionTask(id) {
   const task = getRemotionTask(id);
   if (!task) throw new Error(`Remotion task not found: ${id}`);
+  assertProjectSlugMutable(task.slug, "启动 Remotion 任务");
   if (!["ready", "blocked"].includes(task.status)) {
     if (task.status === "in-progress") return task;
     throw new Error(`Remotion task is not startable: ${task.status}`);
@@ -107,6 +111,7 @@ export function startRemotionTask(id) {
 function blockedTask(id, error) {
   const task = getRemotionTask(id);
   if (!task) throw new Error(`Remotion task not found: ${id}`);
+  assertProjectSlugMutable(task.slug, "阻塞 Remotion 任务");
   task.status = "blocked";
   task.error = {
     code: error?.code ?? "remotion-task-blocked",
@@ -123,6 +128,7 @@ export function blockRemotionTask(id, error) {
 function failRemotionTask(id, error) {
   const task = getRemotionTask(id);
   if (!task) throw new Error(`Remotion task not found: ${id}`);
+  assertProjectSlugMutable(task.slug, "记录 Remotion 任务失败");
   task.status = "failed";
   task.error = {
     code: error?.code ?? "remotion-executor-failed",
@@ -137,6 +143,7 @@ function failRemotionTask(id, error) {
 export async function runRemotionTask(id, { executor } = {}) {
   const task = getRemotionTask(id);
   if (!task) throw new Error(`Remotion task not found: ${id}`);
+  assertProjectSlugMutable(task.slug, "执行 Remotion 任务");
   if (task.status === "completed") return { task, completed: true, issues: [] };
   if (task.status === "in-progress") {
     throw new Error(`Remotion task is already in progress: ${id}`);
@@ -166,6 +173,7 @@ export async function runRemotionTask(id, { executor } = {}) {
 export function recoverInterruptedRemotionTasks() {
   for (const task of listRemotionTasks()) {
     if (task.status !== "in-progress") continue;
+    if (isCompletedProject(task.slug)) continue;
     blockedTask(task.id, {
       code: "server-restarted",
       message: "Web Server 重启导致 Remotion 任务中断，可以安全重试。",
@@ -176,12 +184,27 @@ export function recoverInterruptedRemotionTasks() {
 export function completeRemotionTask(id) {
   const task = getRemotionTask(id);
   if (!task) throw new Error(`Remotion task not found: ${id}`);
+  assertProjectSlugMutable(task.slug, "完成 Remotion 任务");
   if (task.status === "completed") return { task, issues: [], completed: true };
   if (!["ready", "in-progress"].includes(task.status)) {
     throw new Error(`Remotion task cannot be completed from status: ${task.status}`);
   }
 
   const project = loadProject(task.slug, { refresh: true });
+  let renderInput;
+  try {
+    renderInput = prepareRenderInputEntry(project);
+  } catch (error) {
+    task.status = "blocked";
+    task.error = {
+      code: error?.code ?? "render-input-preparation-failed",
+      message: error instanceof Error ? error.message : String(error),
+      ...(error?.issues ? { issues: error.issues } : {}),
+    };
+    task.completedAt = null;
+    saveTask(task);
+    return { task, issues: [error], completed: false };
+  }
   const issues = validateStage(project, "remotion");
   if (issues.length > 0) {
     task.status = "blocked";
@@ -212,13 +235,21 @@ export function completeRemotionTask(id) {
   task.status = "completed";
   task.completedAt = new Date().toISOString();
   task.error = null;
+  task.renderInput = {
+    compositionId: renderInput.manifest.compositionId,
+    packageFingerprint: renderInput.manifest.packageFingerprint,
+    archiveSha256: renderInput.archiveSha256,
+    entry: renderInput.manifest.entry,
+    entryPath: "src/RenderInputRoot.tsx",
+  };
   saveTask(task);
-  return { task, issues: [], completed: true };
+  return { task, issues: [], completed: true, renderInput: task.renderInput };
 }
 
 export function retryRemotionTask(id) {
   const task = getRemotionTask(id);
   if (!task) throw new Error(`Remotion task not found: ${id}`);
+  assertProjectSlugMutable(task.slug, "重试 Remotion 任务");
   if (!["blocked", "failed"].includes(task.status)) {
     throw new Error(`Remotion task is not retryable: ${task.status}`);
   }

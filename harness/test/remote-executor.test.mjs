@@ -23,15 +23,15 @@ test("submits a single remote render job without waiting for the remote Run", ()
   const project = {
     config: { slug: "single-render-video" },
     state: {
-      currentStage: "smoke-render",
-      stages: { "smoke-render": { status: "ready" } },
+      currentStage: "render",
+      stages: { render: { status: "ready" } },
     },
   };
 
-  const result = executor.run({ stage: "smoke-render", project });
+  const result = executor.run({ stage: "render", project });
   assert.equal(result.deferred, true);
   assert.equal(result.job.id, "job-1");
-  assert.deepEqual(calls, [{ slug: "single-render-video", stage: "smoke-render" }]);
+  assert.deepEqual(calls, [{ slug: "single-render-video", stage: "render" }]);
 });
 
 test("does not submit a remote job when the single project is not ready", () => {
@@ -43,14 +43,30 @@ test("does not submit a remote job when the single project is not ready", () => 
     config: { slug: "blocked-render-video" },
     state: {
       currentStage: "gate-3",
-      stages: { "smoke-render": { status: "pending" } },
+      stages: { render: { status: "pending" } },
     },
   };
 
   assert.throws(
-    () => executor.run({ stage: "smoke-render", project }),
-    /当前不在可执行的 smoke-render 阶段/,
+    () => executor.run({ stage: "render", project }),
+    /当前不在可执行的 render 阶段/,
   );
+});
+
+test("rejects Smoke Render without creating a Harness remote job", () => {
+  let submissions = 0;
+  const executor = createRemoteRenderExecutor({
+    validateInputs() {},
+    monitor: { submit() { submissions += 1; } },
+  });
+  assert.throws(
+    () => executor.run({
+      stage: "smoke-render",
+      project: { config: { slug: "standalone-smoke-video" }, state: { currentStage: "smoke-render", stages: { "smoke-render": { status: "ready" } } } },
+    }),
+    (error) => error.code === "standalone-smoke-render" && /GitHub Actions/.test(error.message),
+  );
+  assert.equal(submissions, 0);
 });
 
 function renderProjectFixture() {

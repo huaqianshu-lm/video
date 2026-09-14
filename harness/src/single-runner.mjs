@@ -1,8 +1,9 @@
-import { loadProject } from "./storage.mjs";
+import { assertProjectMutable, loadProject } from "./storage.mjs";
 import { runStage, validateStage } from "./runner.mjs";
 import { ensureRemotionTask, getRemotionTask, runRemotionTask } from "./remotion-tasks.mjs";
+import { prepareRenderInputEntry } from "./render-input.mjs";
 
-const REMOTE_STAGES = new Set(["smoke-render", "render"]);
+const REMOTE_STAGES = new Set(["render"]);
 
 export async function runSingleStage(project, stage, {
   ttsExecutor = null,
@@ -12,9 +13,17 @@ export async function runSingleStage(project, stage, {
   remoteExecutor = null,
   adapters = {},
 } = {}) {
+  assertProjectMutable(project, "执行视频阶段");
   if (stage === "remotion") {
     if (!remotionExecutor) {
-      const issues = validateStage(project, "remotion");
+      try {
+        prepareRenderInputEntry(project);
+      } catch (error) {
+        error.code ??= "render-input-preparation-failed";
+        throw error;
+      }
+      const refreshed = loadProject(project.config.slug, { refresh: true });
+      const issues = validateStage(refreshed, "remotion");
       if (issues.length > 0) {
         const error = new Error("Remotion executor is not configured and Remotion artifacts are not valid");
         error.code = "executor-not-configured";
@@ -35,6 +44,12 @@ export async function runSingleStage(project, stage, {
     const stageResult = runStage(loadProject(project.config.slug), "remotion");
     const gateResult = runStage(loadProject(project.config.slug), "gate-3");
     return { ...taskResult, stageResult, gateResult };
+  }
+
+  if (stage === "smoke-render") {
+    const error = new Error("Smoke Render 已退出 Harness 生产流程，请从 GitHub Actions 手动触发独立环境检查。");
+    error.code = "standalone-smoke-render";
+    throw error;
   }
 
   if (REMOTE_STAGES.has(stage)) {

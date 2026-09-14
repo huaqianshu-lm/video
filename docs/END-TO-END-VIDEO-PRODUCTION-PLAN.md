@@ -1,10 +1,10 @@
 # 视频端到端生产流程方案
 
-> 状态：第一条有口播视频已完成内容生产、TTS 回传、Remotion 接入和 Gate 3，正在验证参数化 GitHub Actions 冒烟与完整渲染。本文继续作为人工确认闸门、Video 与 TTS 交付契约、远程渲染回路和无音频分支的实施依据。
+> 状态：日常生产链路已调整为 Gate 3 后直接完整渲染；Smoke Render 仅作为新系列或渲染环境变化时的独立手动环境检查。本文继续作为人工确认闸门、Video 与 TTS 交付契约、远程渲染回路和无音频分支的实施依据。
 
 ## 1. 目标
 
-输入一份源文档后，由 Video 项目按照现有生产规则分阶段生成视频资料；口播和视觉方案确认后，将标准化的 TTS Script 交给独立 TTS 项目；TTS 生成 1.25 倍目标语速的音频、字幕和时间数据并回传；Video 项目再以真实声音时间轴完成 Remotion 音画同步。用户确认最终预览后，才进入 GitHub Actions 冒烟渲染和完整渲染，并持续检查远程任务直到成功或需要用户补充外部错误信息。
+输入一份源文档后，由 Video 项目按照现有生产规则分阶段生成视频资料；口播和视觉方案确认后，将标准化的 TTS Script 交给独立 TTS 项目；TTS 生成 1.25 倍目标语速的音频、字幕和时间数据并回传；Video 项目再以真实声音时间轴完成 Remotion 音画同步。用户确认 Gate 3 预览后，进入 GitHub Actions 完整渲染，并持续检查远程任务直到成功或需要用户补充外部错误信息。Smoke Render 不再是每条视频的必经步骤。
 
 第一版只打通一条有口播的视频，不建设复杂平台、数据库或通用任务编排系统。连续验证多条视频后，再判断是否需要进一步自动化。
 
@@ -33,7 +33,7 @@ productionMode: narrated | visual-only
 - `narrated`：有明确口播，进入 TTS，使用音频和逐句字幕驱动时间线。
 - `visual-only`：无口播，跳过 TTS，按视觉事件、屏幕文字阅读时间、动画完成时间和必要停顿确定 Scene 时长。
 
-两种模式在 Remotion 实现、人工预览、GitHub 冒烟渲染和完整渲染阶段重新汇合。
+两种模式在 Remotion 实现、人工预览和完整渲染阶段重新汇合；必要时再单独运行 Smoke Render 检查渲染环境。
 
 ## 3. 推荐流程
 
@@ -64,12 +64,22 @@ Visual Prototype
                                 ↓
                          Studio／预览检查
                                 ↓ 人工确认 G
-                         GitHub 冒烟渲染
-                                ↓ 人工确认 H
                          GitHub 完整渲染
                                 ↓ 每 20 分钟检查
                       下载并验证最终 Artifact
-                                ↓ 人工验收 I
+                                ↓ 人工验收 H
+```
+
+独立环境检查（按需）
+
+```text
+新系列首次渲染／渲染环境变化
+              ↓
+选择未完成视频或独立副本，准备并校验独立输入包
+              ↓
+GitHub Actions 手动触发 Smoke test video
+              ↓
+查看代表帧、短片和 Artifact；不写 Harness 阶段、审核或 Job
 ```
 
 ## 4. 阶段和人工闸门
@@ -85,8 +95,10 @@ Visual Prototype
 | Visual Prototype | `visual-prototype.html` | 构图、信息密度、视觉事件和统一性 | Visual Script／Prototype |
 | TTS 质检 | 音频、字幕、Manifest | 声音、发音、停顿、语速、字幕文本 | 指定 Segment 或 Narration Script |
 | Remotion 预览 | 完整音画预览 | 字幕、音频、动画、溢出和节奏 | 配置／Scene／必要的生产资料 |
-| 冒烟渲染 | 代表帧、短片 | Linux 字体、字幕层级、音轨和关键画面 | 渲染环境或 Remotion 实现 |
+| 完整渲染 | 完整 MP4 Artifact | 远程构建、资源、音轨和最终文件生成 | 渲染环境或 Remotion 实现 |
 | 最终验收 | 完整 MP4 | 完整内容和成片质量 | 依据问题回退到对应阶段 |
+
+Smoke Render 不在此表的生产阶段中。它是按需的独立环境检查，检查结果不能替代 Gate 3 或 Gate 4，也不改变视频当前阶段。
 
 Narration Script 一旦通过并交给 TTS，应视为冻结版本。若后续修改口播，只重新生成受影响的 Segment，并重新计算相应 Manifest 和后续时间线，避免无意中让旧音频、旧字幕和新文案混用。
 
@@ -187,20 +199,22 @@ src/videos/<video-slug>/generated/
 
 ## 9. GitHub Actions 渲染流程
 
-用户确认 Remotion 音画预览后，才允许进入远程渲染：
+用户确认 Remotion 音画预览后，才允许进入完整远程渲染：
 
 1. 确认 Composition ID、资源包、Manifest 和本次代码版本。
 2. 运行本地类型检查和资源一致性检查。
-3. 经用户授权后提交并推送需要远程渲染的版本。
-4. 触发 `Smoke test video`。
-5. 下载并检查代表帧和短片 Artifact。
-6. 冒烟结果经人工确认后，触发 `Render full video`。
-7. 记录 Workflow、Run ID、Commit SHA 和启动时间。
-8. 立即检查一次运行状态，之后约每 20 分钟检查一次，直至成功、失败或取消。
-9. 成功后下载最终 Artifact，并使用 `ffprobe` 验证分辨率、帧率、视频编码、音频编码、采样率、声道和总时长。
-10. 将最终 MP4 交给用户验收。
+3. 经用户明确确认后，只定向提交并推送需要完整渲染的版本。
 
-当前 `.github/workflows/` 中的两条工作流已接收受控的 `video_slug` 和 `composition_id` 输入，资源包按 `assets/<video-slug>-assets.zip` 解析，音频数量从对应 Audio Manifest 自动读取，冒烟代表帧从 Timeline Manifest 的首个、中间和最后一个 Scene 自动选择，并取各 Scene 约 65% 的位置，确保主要视觉元素已有充分时间展开。当前仍需通过 `claude-code-api-config` 的真实 Run 验证这套参数化契约，验证前不能视为已完成通用渲染闭环。
+Remotion 制作、Gate 3 和 Studio 预览必须使用同一个视频输入版本：Agent 只写当前视频目录的配置、组件和对齐清单，Harness 在产物校验通过后从独立输入包生成被忽略的 `src/RenderInputRoot.tsx`。受跟踪的 `src/Root.tsx` 只注册通用模板，不作为具体视频入口或校验回退；输入包清单中的组件、配置和 Composition ID 发生变化时，必须重新准备并校验。
+4. 触发 `Render full video`。
+5. 记录 Workflow、Run ID、Commit SHA 和启动时间。
+6. 立即检查一次运行状态，之后约每 20 分钟检查一次，直至成功、失败或取消。
+7. 成功后下载最终 Artifact，并使用 `ffprobe` 验证分辨率、帧率、视频编码、音频编码、采样率、声道和总时长。
+8. 将最终 MP4 交给用户进行 Gate 4 验收。
+
+如果是新系列首次渲染，或字体、Runner、依赖和资源链路发生变化，应在独立视频或副本上额外手动触发 `Smoke test video`。手动输入为 `video_slug`、`composition_id`、`render_input_url` 和 `render_input_sha256`；该 Run 只用于环境判断，不推进 Harness，也不写审核记录。
+
+当前 `.github/workflows/` 中的两条工作流已接收受控的 `video_slug` 和 `composition_id` 输入，资源包按 `assets/<video-slug>-assets.zip` 解析，音频数量从对应 Audio Manifest 自动读取，冒烟代表帧从 Timeline Manifest 的首个、中间和最后一个 Scene 自动选择，并取各 Scene 约 65% 的位置，确保主要视觉元素已有充分时间展开。流程收口后，Workflow 还必须使用该视频已绑定的输入包 URL／SHA-256；本地自动化契约已验证，真实远程 Run 和 Artifact／Gate 4 仍需在用户确认精确交付清单后单独验收。
 
 ## 10. 远程渲染失败回路
 
@@ -212,7 +226,7 @@ src/videos/<video-slug>/generated/
 | GitHub 临时故障 | 先确认与代码无关，再重跑失败任务 |
 | 外部服务器只提供模糊状态 | 暂停猜测，提示用户提供错误文本、截图或关键日志 |
 
-修复后不能直接跳回完整渲染。凡改动可能影响画面、字幕、音频、资源或环境，都应重新通过本地检查和冒烟渲染，再进入完整渲染。
+修复后应重新通过本地检查再进入完整渲染。只有改动涉及渲染环境、依赖、字体、Runner 或资源链路时，才需要额外运行独立 Smoke Render；内容或 Remotion 修复不自动增加 Smoke 阶段。
 
 连续两轮没有获得新证据或有效进展时，停止盲目重试，说明已知结论、当前阻塞和需要用户补充的信息。
 
@@ -228,7 +242,9 @@ src/videos/<video-slug>/generated/
 - 1.25 倍目标语速下的时间一致性。
 - Video 项目导入资源并生成音频驱动的 Remotion 时间线。
 - 人工预览确认。
-- GitHub 冒烟、完整渲染、20 分钟检查和 Artifact 验证。
+- GitHub 完整渲染、20 分钟检查和 Artifact 验证。
+
+新系列或渲染环境变化时，可另外执行一次 GitHub Actions 独立 Smoke Render 环境检查。
 
 第一版暂不建设：
 

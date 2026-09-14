@@ -19,7 +19,7 @@
 - GitHub Actions 适配器支持独立的 dispatch、Run 发现、Run 状态查询和 Artifact 校验。
 - 远程任务保存为可恢复记录，包含阶段、Workflow、分支、Run、Artifact、检查时间和错误信息。
 - Web 服务启动时恢复未完成任务；页面关闭或服务重启后，任务仍可继续监控。
-- 远程 Smoke Render／Render 成功后自动推进对应 Harness 阶段，失败时同时记录任务和阶段错误。
+- 完整 Render 成功后自动推进 Harness 到 Gate 4；Smoke Render 不进入 Harness 阶段推进，只保留 GitHub Actions 独立手动检查。
 - CLI 新增 `jobs` 命令，Web UI 展示 Run 链接、Artifact、最近检查时间和后台状态。
 
 ## 0.4 新增能力
@@ -57,7 +57,7 @@ Harness 可以读取并调用现有的：
 6. 失败重试和断点续做。
 7. TTS、字幕／时间轴、Remotion 和远程渲染适配器接口。
 8. Mock 适配器和自动化验收测试。
-9. 15 阶段统一 Workflow 元数据。
+9. 14 个当前生产阶段的统一 Workflow 元数据；历史 15 阶段记录只读展示。
 10. Scene／口播／TTS／字幕／Timeline 的确定性资料校验。
 11. SHA-256 产物指纹和上游变化后的下游失效。
 12. `next` 和 `report` 状态报告。
@@ -90,10 +90,11 @@ source
 → subtitle-timeline
 → remotion
 → gate-3
-→ smoke-render
 → render
 → gate-4
 ```
+
+Smoke Render 不属于当前生产 Workflow。新系列首次渲染或字体、Runner、依赖、资源链路等渲染环境发生变化时，使用 GitHub Actions 页面手动运行 `Smoke test video`；它不推进 Harness 阶段、不创建 Harness Job，也不写入视频审核记录。
 
 其中 Gate 1 是 `content-analysis`、`video-narrative` 和 `scene-script` 的组合审查；Gate 2 是口播、视觉脚本和原型的组合审查。TTS、字幕和时间轴必须从 Gate 2 冻结后的 `tts-script.json` 派生。
 
@@ -102,6 +103,7 @@ source
 - 阶段只有在输入存在、前置校验通过且上游状态有效时才能执行。
 - 已成功且输入未变化的阶段不得重复生成。
 - 上游输入变化时，受影响的下游产物必须标记为失效，不能静默复用。
+- 项目进入 `completed` 后永久只读。状态刷新、阶段执行、Gate 审核、重试、后台任务、批次、系列资料、远程任务和输入包操作都会先检查这个状态；写入会返回 `completed-project-readonly`，查询和恢复只返回只读结果。
 - 失败只影响当前阶段及其未完成的下游阶段；恢复时从最近成功阶段继续。
 - 所有外部工具调用都通过适配器，核心流程不绑定某一个 TTS 或渲染实现。
 - 真实视频的内容质量、视觉效果和最终交付仍由人工 Gate 确认。
@@ -181,7 +183,7 @@ http://127.0.0.1:4173
 
 当前 Web UI 支持：
 
-- 查看视频项目列表、15 个生产阶段和下一步动作；
+- 查看视频项目列表、14 个当前生产阶段和下一步动作；历史 Smoke 阶段只读展示；
 - 在首页导入 Markdown 或纯文本原文件；系统按文件名或手工填写的 slug 创建新项目，保存为 `videos/<slug>/source.md`，已存在项目不会被覆盖；
 - 查看生产资料、TTS／字幕／Timeline Manifest 和 Remotion 文件；
 - 预览 Visual Prototype；
@@ -189,7 +191,8 @@ http://127.0.0.1:4173
 - 为 Agent 阶段创建持久化后台任务，查看状态、有界日志并在失败后重试；Agent 退出后只有真实产物通过 Harness 校验才推进阶段；
 - Gate 2 通过时冻结 Visual Script／Visual Prototype 指纹，Remotion 阶段校验逐 Scene `remotion-alignment.json`，Gate 3 并排对照原型与 Remotion Studio；
 - 执行校验、阶段推进、Gate 通过／驳回、重试和断点续做；
-- 发起远程 Smoke Render／Render 后查看任务状态和 Artifact 元数据；
+- 发起完整 Render 后查看远程任务状态和 Artifact 元数据；Smoke Render 只从 GitHub Actions 手动触发，不经过项目阶段按钮；
+- 已完成视频仍可查看和做只读校验，但不能执行阶段、Gate、重试、刷新回写、批次、系列或远程任务写入；如需新版本，使用新的 video slug；
 - 在远程渲染阶段提供“准备远程渲染资源”动作：从本地 `videos/<video-slug>/`、`src/videos/<video-slug>/` 和资源包整理独立输入包，并在提交前检查输入包、Manifest、能力代码和 dispatch 分支；不自动 commit 或 push；
 - 通过 `render-input` 命令把本地 `videos/<video-slug>/`、`src/videos/<video-slug>/` 和资源包整理为被 Git 忽略的独立输入包；远端只下载这个包到临时工作区，不把具体视频资料混入能力仓库；
 - 查看后台任务的 Run 链接、Run ID、Artifact 名称、最近检查时间和失败原因；
@@ -245,6 +248,7 @@ node harness/src/cli.mjs assets package <video-slug> --json
 node harness/src/cli.mjs render-input prepare <video-slug> --json
 node harness/src/cli.mjs render-input validate <video-slug> --json
 node harness/src/cli.mjs render-input package <video-slug> --json
+node harness/src/cli.mjs render-input bind <video-slug> --url <published-zip-url> --sha256 <zip-sha256> --json
 node harness/src/cli.mjs render-input entry-all --output src/RenderInputRoot.tsx --json
 ```
 
@@ -253,10 +257,13 @@ node harness/src/cli.mjs render-input entry-all --output src/RenderInputRoot.tsx
 ```bash
 node harness/src/cli.mjs render-input prepare <video-slug>
 node harness/src/cli.mjs render-input package <video-slug>
-export HARNESS_RENDER_INPUT_URL="<private-input-package-url>"
-export HARNESS_RENDER_INPUT_SHA256="<sha256-of-zip>"
-node harness/src/cli.mjs remote-run <video-slug> smoke-render
+node harness/src/cli.mjs render-input bind <video-slug> \
+  --url "<private-input-package-url>" \
+  --sha256 "<sha256-of-zip>"
+node harness/src/cli.mjs remote-run <video-slug> render
 ```
+
+如果输入包托管在私有 GitHub Release，绑定时传入的 URL 必须是 API 资产地址 `https://api.github.com/repos/<owner>/<repo>/releases/assets/<asset-id>`；不要填写 `https://github.com/<owner>/<repo>/releases/download/...` 网页下载地址。绑定和提交前的 Harness 预检都会直接拦截后者，避免任务运行到 Runner 才因重定向返回 404。
 
 本地需要在 Studio 预览具体视频时，也使用同一个被忽略的输入包生成临时注册入口；它不会修改受跟踪的 `src/Root.tsx`：
 
@@ -275,7 +282,7 @@ node harness/src/cli.mjs render-input entry-all \
 npx remotion studio src/RenderInputRoot.tsx
 ```
 
-该命令扫描本地 `src/videos/` 和 `videos/`，为每个可匹配的视频注册一个 Composition。一个视频目录存在多个版本时，优先选择组件与配置版本号匹配且修改时间较晚的一组；因此 `claude-code-what-is` 使用 `ClaudeCodeWhatIsVideo14.tsx`、`video14.config.ts` 和 `claude-code-what-is-v2`。入口文件仍被 Git 忽略，视频资料和资源不会因此进入仓库。
+该命令只读取每条视频已经校验过的 `local/render-input/<video-slug>/render-input.json`，按清单中记录的组件、配置和 Composition ID 注册 Composition，不根据文件修改时间猜版本。未完成视频没有有效输入包时会先尝试生成并校验；`completed` 视频只读取已有包，缺包或包损坏会跳过并说明原因。入口文件仍被 Git 忽略，视频资料和资源不会因此进入仓库。
 
 如果一个视频目录中存在多个 `*Video.tsx`，准备时显式指定入口：
 
@@ -297,20 +304,31 @@ node harness/src/cli.mjs retry <video-slug> [stage]
 node harness/src/cli.mjs resume <video-slug>
 ```
 
-执行真实 GitHub Actions 的 Smoke Render 或完整 Render 时，需要提供：
+执行 Harness 管理的完整 Render 时，需要提供：
 
 ```bash
 export GITHUB_TOKEN="<token>"
 export GITHUB_REPOSITORY="<owner>/<repo>"
 export HARNESS_GITHUB_REF="<optional-explicit-branch>"
-export HARNESS_RENDER_INPUT_URL="<private-input-package-url>"
-export HARNESS_RENDER_INPUT_SHA256="<sha256-of-zip>"
-node harness/src/cli.mjs run <video-slug> smoke-render
+node harness/src/cli.mjs render-input bind <video-slug> \
+  --url "<private-input-package-url>" \
+  --sha256 "<sha256-of-zip>"
 node harness/src/cli.mjs run <video-slug> render
 ```
 
+完整 Render 的 URL 和 SHA-256 不再从全局环境变量读取，而是来自该视频的绑定记录；绑定时会核对当前本地 ZIP 和远端内容。输入包或 Remotion 产物变化后，必须重新准备、打包和绑定。
+
+如需独立 Smoke Render 环境检查，请在 GitHub Actions 页面手动选择 `Smoke test video`，填写以下输入：
+
+- `video_slug`：未完成视频或独立副本的 slug；不要选择 `completed` 视频。
+- `composition_id`：目标 Remotion Composition ID。
+- `render_input_url`：独立远程输入包地址。
+- `render_input_sha256`：输入包 SHA-256。
+
+先使用 `render-input prepare／validate／package` 准备并校验输入包，再确认目标分支和能力代码版本。Smoke Run 及 Artifact 只作为这次环境检查的外部证据，不回写 Harness 阶段、审核或 Job。
+
 `HARNESS_GITHUB_REF` 是显式覆盖项；未设置时，本地 Harness 默认使用当前 Git 工作区分支。只有无法从当前工作区解析分支时，才回退到 `GITHUB_REF_NAME`。
 
-远程渲染提交前，Web UI 会要求输入包和渲染能力代码已准备，并确认 dispatch 分支包含当前能力代码提交。已有视频可以先点击“准备远程渲染资源”；命令行等价操作为 `node harness/src/cli.mjs render-input prepare <video-slug>` 和 `node harness/src/cli.mjs render-input package <video-slug>`。输入包上传到独立受控地址后，再配置 `HARNESS_RENDER_INPUT_URL` 与 `HARNESS_RENDER_INPUT_SHA256`。如果输入包或能力代码随后发生变化，提交动作必须重新准备并校验，不能继续使用旧输入包。
+远程渲染提交前，Web UI 会要求输入包和渲染能力代码已准备，并确认 dispatch 分支包含当前能力代码提交。Git 交付预检会返回本次选中的相对路径、当前分支、当前提交、文件哈希和 `planId`；确认请求必须原样带回 `planId` 与 `selectedPaths`，文件、分支或清单变化后必须重新预检，服务端不会接受旧确认。提交范围只允许明确列出的通用能力文件（通用 `src/components/`、`src/scenes/`、`src/lib/`、`src/styles/`、`styles/`、两个渲染 Workflow、以及渲染所需的少量根文件和 Harness 适配器）；`src/Root.tsx`、`src/videos/`、`videos/`、`assets/`、`local/` 和无关源文件不会被自动加入。准备资源不会 commit 或 push。
 
 真实渲染使用 GitHub Actions，不使用本机 Remotion 渲染；Web UI 后台监控器会持续查询对应 Run，完成后检查 Artifact 并推进 Harness 阶段。CLI 的 `run` 保留一次性等待模式；`jobs` 可查看已经持久化的远程任务。

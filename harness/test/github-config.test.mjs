@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { requireGitHubActionsConfig, validateGitHubActionsConfig } from "../src/github-config.mjs";
+import { requireGitHubActionsConfig, validateGitHubActionsConfig, validateRenderInputUrl } from "../src/github-config.mjs";
 
 test("accepts the supported GitHub Actions environment variables", () => {
   const result = validateGitHubActionsConfig({
@@ -80,4 +80,14 @@ test("throws a structured preflight error without exposing token values", () => 
       return true;
     },
   );
+});
+
+test("accepts API asset URLs and blocks GitHub Release webpage download URLs", () => {
+  assert.equal(
+    validateRenderInputUrl("https://api.github.com/repos/owner/video-render-inputs/releases/assets/123"),
+    null,
+  );
+  const issue = validateRenderInputUrl("https://github.com/owner/video-render-inputs/releases/download/video-v1/video.zip");
+  assert.equal(issue.code, "github-release-download-url");
+  assert.match(issue.message, /API 资产地址/);
 });

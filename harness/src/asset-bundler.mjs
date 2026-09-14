@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
+import { assertProjectMutable, assertProjectSlugMutable } from "./storage.mjs";
 
 const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
@@ -151,7 +152,9 @@ export function packageVideoAssets(
   project,
   { zipCommand = "zip", execFile = execFileSync } = {},
 ) {
+  assertProjectMutable(project, "打包视频资源");
   const slug = requireProjectSlug(project);
+  assertProjectSlugMutable(slug, "打包视频资源");
   const workspaceRoot = workspaceRootFor(project);
   const sourceRoot = assetSourcePath(project);
   const sourceIssues = assetSourceIssues(project);

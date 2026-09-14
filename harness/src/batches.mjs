@@ -1,7 +1,7 @@
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
-import { loadProject, projectsRoot, readJson, writeJson } from "./storage.mjs";
+import { assertProjectSlugMutable, isCompletedProject, loadProject, projectsRoot, readJson, writeJson } from "./storage.mjs";
 import { retryStage, runStage, validateStage } from "./runner.mjs";
 import { buildNextAction } from "./reports.mjs";
 import { stageIndex, STAGE_DEFINITIONS } from "./stages.mjs";
@@ -51,13 +51,10 @@ const BATCH_DEFINITIONS = Object.freeze({
     type: "to-render",
     label: "批量渲染",
     targetStage: "gate-4",
-    description: "批量执行 Smoke Render 和完整渲染，等待 Gate 4 最终确认。",
+    description: "从已通过 Gate 3 的项目直接提交完整渲染，等待 Gate 4 最终确认。",
     requiresGate2Approval: false,
     requiresTtsQc: false,
     requiresGate3Approval: true,
-    pauseAfterStage: "smoke-render",
-    waitingStatus: "waiting-smoke-qc",
-    waitingMessage: "Smoke Render 已完成，等待确认代表帧、短片、字体、资源和音轨。",
   }),
 });
 
@@ -98,6 +95,7 @@ function batchPath(id) {
 }
 
 function saveBatch(batch) {
+  for (const batchItem of batch.items ?? []) assertProjectSlugMutable(batchItem.slug, "写入视频批次记录");
   batch.updatedAt = new Date().toISOString();
   writeJson(batchPath(batch.id), batch);
   return batch;
@@ -161,6 +159,12 @@ function preflightItem(type, slug) {
   }
 
   const current = project.state.currentStage;
+  if (current !== "completed" && !STAGE_DEFINITIONS[current]) {
+    return item(slug, "skipped", "项目仍处于旧版阶段，未自动迁移；请只读查看或建立独立新项目。", {
+      preflight: "legacy-stage",
+      phase: current,
+    });
+  }
   if (current === "completed" || stageIndex(current) > stageIndex(definition.targetStage)) {
     return item(slug, "succeeded", `已超过批次目标阶段 ${definition.targetStage}，不重复执行。`, {
       preflight: "already-reached",
@@ -224,6 +228,7 @@ export function createBatch({ type, slugs }) {
   }
   if (!Array.isArray(slugs) || slugs.length === 0) throw new Error("A batch requires at least one video slug");
   const uniqueSlugs = [...new Set(slugs)];
+  for (const slug of uniqueSlugs) assertProjectSlugMutable(slug, "创建视频批次");
   const now = new Date().toISOString();
   const batch = {
     schemaVersion: 2,
@@ -340,6 +345,7 @@ function agentJobState(batchItem) {
 
 function recordGate1Review(batch, batchItem) {
   const project = loadProject(batchItem.slug, { refresh: true });
+  assertProjectSlugMutable(batchItem.slug, "记录 Gate 1 审查");
   const stages = ["content-analysis", "video-narrative", "scene-script"];
   const issues = stages.flatMap((stage) => validateStage(project, stage));
   if (issues.length > 0) {
@@ -417,17 +423,10 @@ async function resolveWaitingRemoteItem(batch, batchItem) {
   }
 
   if (job.status === "succeeded") {
-    if (batchItem.phase === "smoke-render") {
-      updateItem(batch, batchItem, {
-        status: "waiting-smoke-qc",
-        message: "Smoke Render 已完成，等待确认代表帧、短片、字体、资源和音轨。",
-      });
-    } else {
-      updateItem(batch, batchItem, {
-        status: "queued",
-        message: `远程 ${batchItem.phase} 已完成，继续执行下一阶段。`,
-      });
-    }
+    updateItem(batch, batchItem, {
+      status: "queued",
+      message: `远程 ${batchItem.phase} 已完成，继续执行下一阶段。`,
+    });
     return;
   }
 
@@ -470,6 +469,9 @@ async function executeItem(batch, batchItem, definition, options) {
       if (currentStage === "completed" || stageIndex(currentStage) > stageIndex(definition.targetStage)) {
         updateItem(batch, batchItem, { status: "succeeded", phase: currentStage, message: "已到达或超过批次目标阶段。", completedAt: new Date().toISOString() });
         return;
+      }
+      if (!STAGE_DEFINITIONS[currentStage]) {
+        throw new Error("项目处于旧版阶段 " + currentStage + "，批次不会自动迁移该项目。");
       }
 
       if (currentStage === definition.targetStage && project.state.stages[currentStage].status === "waiting") {
@@ -582,6 +584,7 @@ export async function runBatch(id, options = {}) {
     return batch;
   }
   const definition = validateType(batch.type);
+  for (const batchItem of batch.items ?? []) assertProjectSlugMutable(batchItem.slug, "执行视频批次");
   const executionOptions = mergeExecutionOptions(options);
   activeBatchIds.add(id);
   batch.startedAt ??= new Date().toISOString();
@@ -647,6 +650,7 @@ function isCurrentBatchItem(batchItem, type) {
 }
 
 export function stopBatchesAfterGateRejection({ slug, gate, returnTo, reason }) {
+  if (isCompletedProject(slug)) return [];
   const stopped = [];
   for (const batch of listBatches()) {
     if (batch.type !== "to-gate-2") continue;
@@ -671,6 +675,7 @@ export function stopBatchesAfterGateRejection({ slug, gate, returnTo, reason }) 
 
 function approveProjectReview(slug, stage, kind) {
   const project = loadProject(slug, { refresh: true });
+  assertProjectSlugMutable(project, "记录视频质检");
   if (project.state.stages[stage]?.status !== "succeeded") {
     throw new Error(`${slug} 的 ${stage} 尚未完成，不能确认质检`);
   }
@@ -717,26 +722,13 @@ export async function approveTtsQcForProject(slug) {
   };
 }
 
-export function approveSmokeQc(id, slug) {
-  const batch = getBatch(id);
-  if (!batch) throw new Error(`Batch not found: ${id}`);
-  const target = batch.items.find((entry) => entry.slug === slug);
-  if (!target) throw new Error(`Video is not part of batch: ${slug}`);
-  if (target.status !== "waiting-smoke-qc") throw new Error(`${slug} is not waiting for Smoke Render review`);
-  approveProjectReview(slug, "smoke-render", "smoke-qc");
-  target.smokeQcApprovedAt = new Date().toISOString();
-  target.status = "queued";
-  target.message = "Smoke Render 已确认，等待继续完整渲染。";
-  saveBatch(batch);
-  return batch;
-}
-
 export function retryFailedBatchItems(id) {
   const batch = getBatch(id);
   if (!batch) throw new Error(`Batch not found: ${id}`);
   for (const target of batch.items) {
     if (target.status !== "failed") continue;
     const project = loadProject(target.slug, { refresh: true });
+    assertProjectSlugMutable(project, "重试视频批次项目");
     const failedStage = project.state.currentStage;
     if (project.state.stages[failedStage]?.status === "failed") retryStage(project, failedStage);
     if (target.remotionTaskId) {

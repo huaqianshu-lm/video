@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { artifactManifestFor } from "./artifacts.mjs";
 import { fingerprintStageArtifacts } from "./fingerprints.mjs";
-import { projectFiles, initializeProject, loadProject, writeJson } from "./storage.mjs";
+import { assertProjectMutable, projectFiles, initializeProject, loadProject, writeJson } from "./storage.mjs";
 import { GATE_STAGES, STAGES, stageIndex } from "./stages.mjs";
 import { matchesArtifactPath } from "./artifact-paths.mjs";
 import { validateProjectStage, validateStageArtifacts } from "./validation.mjs";
@@ -61,6 +61,7 @@ function isFreshInitializedProject(project) {
 }
 
 function completeGate2Adoption(project, method) {
+  assertProjectMutable(project, "接管视频项目");
   const files = project.files;
   const now = new Date().toISOString();
   project.config.adoption = {
@@ -154,6 +155,7 @@ export function markHistoricalProjectCompleted(slug, reason = "user-confirmed-hi
   if (existingFiles.length === 0) initializeProject(slug);
 
   const project = loadProject(slug, { refresh: false });
+  assertProjectMutable(project, "标记视频为已完成");
   const now = new Date().toISOString();
   project.config.historical = {
     completed: true,
@@ -186,8 +188,8 @@ export function markHistoricalProjectCompleted(slug, reason = "user-confirmed-hi
   project.state.currentStage = "completed";
   project.state.updatedAt = now;
   writeJson(files.config, project.config);
-  writeJson(files.state, project.state);
   writeJson(files.artifacts, project.artifacts);
+  writeJson(files.state, project.state);
 
   return {
     slug,

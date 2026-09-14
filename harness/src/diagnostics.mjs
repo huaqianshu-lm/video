@@ -1,4 +1,5 @@
 import { validateGitHubActionsConfig } from "./github-config.mjs";
+import { validateRenderInputDelivery } from "./render-input.mjs";
 
 const DEFAULT_API_URL = "https://api.github.com";
 const WORKFLOWS = Object.freeze([
@@ -23,16 +24,12 @@ export async function diagnoseGitHubActions({
   environment = process.env,
   apiUrl = DEFAULT_API_URL,
   fetchImpl = globalThis.fetch,
+  project = null,
 } = {}) {
   const validation = validateGitHubActionsConfig(environment);
   const checks = [];
-  const renderInputUrl = typeof environment.HARNESS_RENDER_INPUT_URL === "string"
-    ? environment.HARNESS_RENDER_INPUT_URL.trim()
-    : "";
-  const renderInputSha256 = typeof environment.HARNESS_RENDER_INPUT_SHA256 === "string"
-    ? environment.HARNESS_RENDER_INPUT_SHA256.trim()
-    : "";
-  const renderInputConfigured = Boolean(renderInputUrl) && /^[a-f0-9]{64}$/.test(renderInputSha256);
+  const deliveryIssues = project ? validateRenderInputDelivery(project) : ["远程输入包必须按视频绑定 URL、Composition ID 和 SHA-256"];
+  const renderInputConfigured = deliveryIssues.length === 0;
   const config = {
     valid: validation.valid,
     tokenConfigured: Boolean(validation.config.token.trim()),
@@ -47,7 +44,11 @@ export async function diagnoseGitHubActions({
     return { ok: false, config, checks };
   }
   if (!renderInputConfigured) {
-    checks.push(check("render-input", "failed", "未配置有效的独立远程输入包 URL 和 SHA-256。"));
+    checks.push(check(
+      "render-input",
+      "failed",
+      deliveryIssues.join("；"),
+    ));
   } else {
     checks.push(check("render-input", "ok", "独立远程输入包配置完整，具体视频资料不会进入能力仓库。"));
   }

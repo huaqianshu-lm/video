@@ -139,27 +139,16 @@ const rawStageDefinitions = [
     fallbackStage: "remotion",
   },
   {
-    stage: "smoke-render",
-    label: "Smoke Render",
-    requiresAdapter: true,
-    artifacts: [],
-    objective: "在远程环境验证代表帧、短片、字体、资源和音轨。",
-    inputStages: ["gate-3"],
-    executor: "adapter",
-    validation: ["adapter-result", "smoke-artifact-metadata", "clean-output-review"],
-    fallbackStage: "gate-3",
-  },
-  {
     stage: "render",
     label: "完整渲染",
     requiresAdapter: true,
     remoteOutput: true,
     artifacts: ["out/{slug}.mp4"],
     objective: "在远程环境生成最终完整 MP4。",
-    inputStages: ["smoke-render"],
+    inputStages: ["gate-3"],
     executor: "adapter",
     validation: ["adapter-result", "render-artifact-metadata"],
-    fallbackStage: "smoke-render",
+    fallbackStage: "gate-3",
   },
   {
     stage: "gate-4",
@@ -209,6 +198,41 @@ export const STAGE_DEFINITIONS = Object.freeze(
 
 export const STAGES = Object.freeze(stageDefinitions.map(({ stage }) => stage));
 
+const RETIRED_SMOKE_RENDER_DEFINITION = Object.freeze({
+  stage: "smoke-render",
+  label: "Smoke Render（历史记录）",
+  kind: "retired",
+  requiresApproval: false,
+  requiresAdapter: false,
+  artifacts: [],
+  objective: "历史流程中用于验证代表帧、短片、字体、资源和音轨的独立检查。",
+  inputStages: ["gate-3"],
+  executor: "adapter",
+  validation: ["adapter-result", "smoke-artifact-metadata", "clean-output-review"],
+  manualChecks: [
+    "历史记录只用于查看 Smoke Render 的 Run 和 Artifact，不作为当前生产阶段操作。",
+  ],
+  fallbackStage: "gate-3",
+  order: 12,
+  previousStage: "gate-3",
+  nextStage: "render",
+  contract: Object.freeze({
+    label: "Smoke Render（历史记录）",
+    objective: "历史流程中用于验证代表帧、短片、字体、资源和音轨的独立检查。",
+    inputStages: Object.freeze(["gate-3"]),
+    outputArtifacts: Object.freeze([]),
+    executor: "adapter",
+    validation: Object.freeze(["adapter-result", "smoke-artifact-metadata", "clean-output-review"]),
+    manualChecks: Object.freeze(["历史记录只用于查看 Smoke Render 的 Run 和 Artifact，不作为当前生产阶段操作。"]),
+    fallbackStage: "gate-3",
+    nextStage: "render",
+  }),
+});
+
+export const RETIRED_STAGE_DEFINITIONS = Object.freeze({
+  "smoke-render": RETIRED_SMOKE_RENDER_DEFINITION,
+});
+
 export const STAGE_STATUSES = Object.freeze([
   "pending",
   "ready",
@@ -247,10 +271,11 @@ export const ADAPTER_REQUIRED_STAGES = new Set(
 );
 
 export const DEFAULT_WORKFLOW_ID = "default";
+export const CURRENT_WORKFLOW_VERSION = 2;
 export const WORKFLOW_DEFINITIONS = Object.freeze({
   [DEFAULT_WORKFLOW_ID]: Object.freeze({
     id: DEFAULT_WORKFLOW_ID,
-    version: 1,
+    version: CURRENT_WORKFLOW_VERSION,
     description: "单条视频的标准生产 Workflow。",
     stages: STAGES,
   }),
@@ -262,6 +287,14 @@ export function getStageDefinition(stage) {
 
 export function getWorkflowDefinition(workflow = DEFAULT_WORKFLOW_ID) {
   return WORKFLOW_DEFINITIONS[workflow] ?? null;
+}
+
+export function stagesForProjectView(project) {
+  const workflowVersion = Number(project?.config?.workflowVersion ?? 1);
+  const hasRetiredSmokeRecord = workflowVersion < CURRENT_WORKFLOW_VERSION
+    && Boolean(project?.state?.stages?.["smoke-render"]);
+  if (!hasRetiredSmokeRecord) return STAGES;
+  return Object.freeze(STAGES.flatMap((stage) => stage === "render" ? ["smoke-render", stage] : [stage]));
 }
 
 export function isGateStage(stage) {

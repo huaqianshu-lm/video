@@ -1,14 +1,41 @@
 import fs from "node:fs";
 import path from "node:path";
+import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
 import { readGitHubActionsConfig } from "./github-config.mjs";
 
 const RENDER_RELEVANT_PREFIXES = [
   "src/",
-  "assets/",
+  "harness/src/",
+  "styles/",
   ".github/workflows/",
 ];
-const RENDER_RELEVANT_FILES = new Set(["package.json", "package-lock.json"]);
+const RENDER_RELEVANT_FILES = new Set([
+  "package.json",
+  "package-lock.json",
+  "remotion.config.ts",
+]);
+const RENDER_ALLOWED_PREFIXES = [
+  "src/components/",
+  "src/scenes/",
+  "src/lib/",
+  "src/styles/",
+  "styles/",
+  ".github/workflows/",
+];
+const RENDER_ALLOWED_FILES = new Set([
+  "src/TemplateVideo.tsx",
+  "src/HelloIntro.tsx",
+  "src/index.ts",
+  "harness/src/cli.mjs",
+  "harness/src/render-input.mjs",
+  "harness/src/remote-executor.mjs",
+  "harness/src/remote-jobs.mjs",
+  "harness/src/adapters.mjs",
+  "package.json",
+  "package-lock.json",
+  "remotion.config.ts",
+]);
 
 function gitCommand(workspaceRoot, args, { trim = true } = {}) {
   const output = execFileSync("git", ["-C", workspaceRoot, ...args], {
@@ -48,7 +75,6 @@ function isRenderRelevantPath(relativePath) {
 
 export function renderRequiredPaths(project) {
   return [
-    "src/Root.tsx",
     "src/TemplateVideo.tsx",
     "src/lib/timing.ts",
     "harness/src/cli.mjs",
@@ -63,12 +89,31 @@ export function renderRequiredPaths(project) {
 
 function isAutoCommitPath(relativePath, requiredPaths) {
   return requiredPaths.includes(relativePath)
-    || relativePath.startsWith("src/components/")
-    || relativePath.startsWith("src/lib/")
-    || relativePath.startsWith("src/scenes/")
-    || relativePath.startsWith("src/styles/")
-    || relativePath.startsWith(".github/workflows/")
-    || RENDER_RELEVANT_FILES.has(relativePath);
+    || RENDER_ALLOWED_FILES.has(relativePath)
+    || RENDER_ALLOWED_PREFIXES.some((prefix) => relativePath.startsWith(prefix));
+}
+
+function sha256File(workspaceRoot, relativePath) {
+  const filePath = path.join(workspaceRoot, relativePath);
+  try {
+    if (!fs.statSync(filePath).isFile()) return null;
+    return createHash("sha256").update(fs.readFileSync(filePath)).digest("hex");
+  } catch {
+    return null;
+  }
+}
+
+function planIdFor(plan) {
+  return createHash("sha256").update(JSON.stringify({
+    version: 1,
+    branch: plan.branch,
+    ref: plan.ref,
+    headCommit: plan.headCommit,
+    requiredPaths: plan.requiredPaths,
+    commitPaths: plan.commitPaths,
+    outOfScopePaths: plan.outOfScopePaths,
+    fileHashes: plan.fileHashes,
+  })).digest("hex");
 }
 
 function currentBranchFor(workspaceRoot) {
@@ -110,14 +155,20 @@ export function buildGitRenderCommitPlan(project, { environment = process.env } 
   const relevantPaths = statusPaths.filter((relativePath) => isRenderRelevantPath(relativePath));
   const commitPaths = relevantPaths.filter((relativePath) => isAutoCommitPath(relativePath, requiredPaths));
   const outOfScopePaths = relevantPaths.filter((relativePath) => !isAutoCommitPath(relativePath, requiredPaths));
-
-  return {
+  const snapshotPaths = [...new Set([...requiredPaths, ...relevantPaths])].sort();
+  const plan = {
+    version: 1,
     branch,
     ref: config.ref,
+    headCommit: localGitCommit(workspaceRoot),
     requiredPaths,
     commitPaths: [...new Set(commitPaths)],
     outOfScopePaths: [...new Set(outOfScopePaths)],
+    fileHashes: Object.fromEntries(snapshotPaths.map((relativePath) => [relativePath, sha256File(workspaceRoot, relativePath)])),
   };
+  plan.selectedPaths = [...plan.commitPaths];
+  plan.planId = planIdFor(plan);
+  return plan;
 }
 
 function commitError(message, code) {
@@ -128,10 +179,25 @@ function commitError(message, code) {
 
 export function commitAndPushRenderDelivery(
   project,
-  { environment = process.env, commitMessage = `chore: prepare ${project.config.slug} smoke render delivery` } = {},
+  {
+    environment = process.env,
+    commitMessage = `chore: prepare ${project.config.slug} complete render delivery`,
+    deliveryPlanId = null,
+    selectedPaths = null,
+  } = {},
 ) {
   const workspaceRoot = path.resolve(project.config.workspaceRoot);
   const plan = buildGitRenderCommitPlan(project, { environment });
+  if (!deliveryPlanId) {
+    throw commitError("缺少交付计划标识，请先展示并确认当前精确文件清单", "git-render-commit-plan-required");
+  }
+  if (deliveryPlanId !== plan.planId) {
+    throw commitError("渲染交付计划已变化，请重新执行预检并确认新的文件清单", "git-render-commit-plan-stale");
+  }
+  const requestedPaths = Array.isArray(selectedPaths) ? [...new Set(selectedPaths)] : null;
+  if (!requestedPaths || JSON.stringify(requestedPaths) !== JSON.stringify(plan.commitPaths)) {
+    throw commitError("确认的渲染文件清单与当前交付计划不一致，请重新确认", "git-render-commit-plan-selection-mismatch");
+  }
   if (plan.ref !== plan.branch) {
     throw commitError(`dispatch 分支 ${plan.ref} 与当前工作区分支 ${plan.branch} 不一致，无法自动推送`, "git-render-commit-branch-mismatch");
   }

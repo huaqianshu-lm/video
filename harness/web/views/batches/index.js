@@ -7,9 +7,7 @@ function itemCard(batch, item) {
   const message = project?.message ?? item.message;
   const action = item.status === "waiting-tts-qc" && project?.ttsQcApproved !== true
     ? `<button class="button button-secondary" type="button" data-batch-action="approve-tts-qc" data-batch-id="${escapeHtml(batch.id)}" data-slug="${escapeHtml(item.slug)}">确认 TTS 质检</button>`
-    : item.status === "waiting-smoke-qc"
-      ? `<button class="button button-secondary" type="button" data-batch-action="approve-smoke-qc" data-batch-id="${escapeHtml(batch.id)}" data-slug="${escapeHtml(item.slug)}">确认 Smoke 检查</button>`
-      : "";
+    : "";
   return `<article class="batch-item-card"><div class="batch-item-card-heading"><strong>${escapeHtml(item.slug)}</strong><span class="stage-status status status-${escapeHtml(status)}">${escapeHtml(labelFor(status, batchItemStatusLabels))}</span></div><p class="batch-item-message">${escapeHtml(message ?? "暂无服务端消息")}</p><div class="batch-item-actions">${action}</div></article>`;
 }
 

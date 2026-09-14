@@ -5,7 +5,9 @@ import os from "node:os";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
 import { createWebServer } from "../src/server.mjs";
+import { bindRenderInputDelivery, packageRenderInput, prepareRenderInput } from "../src/render-input.mjs";
 import { initializeProject, loadProject, writeJson } from "../src/storage.mjs";
+import { buildGitRenderCommitPlan, commitAndPushRenderDelivery, validateGitRenderDelivery } from "../src/git-delivery.mjs";
 
 function git(workspaceRoot, args) {
   return execFileSync("git", ["-C", workspaceRoot, ...args], { encoding: "utf8" }).trim();
@@ -27,8 +29,11 @@ function request(server, pathname, options = {}) {
 
 function createRenderWorkspace(slug) {
   const workspaceRoot = fs.mkdtempSync(path.join(os.tmpdir(), "video-harness-git-delivery-workspace-"));
+  write(workspaceRoot, `videos/${slug}/source.md`, "source\n");
   write(workspaceRoot, "src/Root.tsx", "export default function Root() { return null; }\n");
-  write(workspaceRoot, `src/videos/${slug}/TestVideo.tsx`, "export default function TestVideo() { return null; }\n");
+  write(workspaceRoot, "src/TemplateVideo.tsx", "export default function TemplateVideo() { return null; }\n");
+  write(workspaceRoot, "src/lib/timing.ts", "export const timing = {};\n");
+  write(workspaceRoot, `src/videos/${slug}/TestVideo.tsx`, "export function TestVideo() { return null; }\n");
   write(workspaceRoot, `src/videos/${slug}/video.config.ts`, "export const config = {};\n");
   write(workspaceRoot, `src/videos/${slug}/generated/audio-manifest.json`, JSON.stringify({
     videoId: slug,
@@ -42,6 +47,14 @@ function createRenderWorkspace(slug) {
     videoId: slug,
     scenes: [{ sceneId: "scene-01" }],
   }));
+  write(workspaceRoot, "harness/src/cli.mjs", "export {};\n");
+  write(workspaceRoot, "harness/src/render-input.mjs", "export {};\n");
+  write(workspaceRoot, "harness/src/remote-executor.mjs", "export {};\n");
+  write(workspaceRoot, "package.json", "{}\n");
+  write(workspaceRoot, "package-lock.json", "{}\n");
+  write(workspaceRoot, ".github/workflows/smoke-test-video.yml", "name: smoke\n");
+  write(workspaceRoot, ".github/workflows/render-video.yml", "name: render\n");
+  write(workspaceRoot, ".gitignore", "videos/\nsrc/videos/\nassets/\nlocal/\n");
 
   const archiveRoot = path.join(workspaceRoot, "asset-stage", slug);
   write(archiveRoot, "audio/scene-01/01-01.mp3", "audio");
@@ -65,7 +78,7 @@ function createRenderWorkspace(slug) {
   return { workspaceRoot, remoteRoot };
 }
 
-test("Smoke Render can confirm once, commit only render files, push, then queue one remote job", async () => {
+test("complete Render can confirm once, commit only render files, push, then queue one remote job", async () => {
   const previousProjectsRoot = process.env.HARNESS_PROJECTS_DIR;
   const previousToken = process.env.GITHUB_TOKEN;
   const previousRepository = process.env.GITHUB_REPOSITORY;
@@ -80,11 +93,19 @@ test("Smoke Render can confirm once, commit only render files, push, then queue 
   initializeProject(slug);
   const project = loadProject(slug, { refresh: false });
   project.config.workspaceRoot = workspaceRoot;
-  project.state.currentStage = "smoke-render";
-  project.state.stages["smoke-render"].status = "ready";
+  project.state.currentStage = "render";
+  project.state.stages.render.status = "ready";
   writeJson(project.files.config, project.config);
   writeJson(project.files.state, project.state);
-  fs.appendFileSync(path.join(workspaceRoot, "src/Root.tsx"), "// render change\n");
+  prepareRenderInput(project);
+  const packagedInput = packageRenderInput(workspaceRoot, slug);
+  const inputBytes = fs.readFileSync(packagedInput.archivePath);
+  await bindRenderInputDelivery(project, {
+    url: "https://inputs.example.test/git-delivery.zip",
+    sha256: packagedInput.archiveSha256,
+    fetchImpl: async () => ({ ok: true, status: 200, arrayBuffer: async () => inputBytes }),
+  });
+  fs.appendFileSync(path.join(workspaceRoot, "src/TemplateVideo.tsx"), "// render change\n");
   write(workspaceRoot, "notes.txt", "must remain uncommitted\n");
   let submitCount = 0;
   const webServer = createWebServer({
@@ -105,13 +126,15 @@ test("Smoke Render can confirm once, commit only render files, push, then queue 
     const initial = await request(webServer, `/api/projects/${slug}/action`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "remote-run", stage: "smoke-render" }),
+        body: JSON.stringify({ action: "remote-run", stage: "render" }),
     });
     const initialPayload = JSON.parse(initial.body);
     assert.equal(initial.status, 200);
     assert.equal(initialPayload.result.status, "needs-confirmation");
     assert.equal(submitCount, 0);
-    assert.deepEqual(initialPayload.commitPlan.commitPaths, ["src/Root.tsx"]);
+    assert.deepEqual(initialPayload.commitPlan.commitPaths, ["src/TemplateVideo.tsx"]);
+    assert.equal(initialPayload.commitPlan.selectedPaths[0], "src/TemplateVideo.tsx");
+    assert.match(initialPayload.commitPlan.planId, /^[a-f0-9]{64}$/);
     assert.deepEqual(initialPayload.commitPlan.outOfScopePaths, []);
 
     const confirmed = await request(webServer, `/api/projects/${slug}/action`, {
@@ -119,16 +142,18 @@ test("Smoke Render can confirm once, commit only render files, push, then queue 
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         action: "remote-run",
-        stage: "smoke-render",
+        stage: "render",
         commitAndPush: true,
         confirmDelivery: true,
+        deliveryPlanId: initialPayload.commitPlan.planId,
+        selectedPaths: initialPayload.commitPlan.selectedPaths,
       }),
     });
     const confirmedPayload = JSON.parse(confirmed.body);
     assert.equal(confirmed.status, 202);
     assert.equal(confirmedPayload.result.delivery.status, "committed");
     assert.equal(submitCount, 1);
-    assert.deepEqual(git(workspaceRoot, ["show", "--format=", "--name-only", "HEAD"]).split(/\r?\n/), ["src/Root.tsx"]);
+    assert.deepEqual(git(workspaceRoot, ["show", "--format=", "--name-only", "HEAD"]).split(/\r?\n/), ["src/TemplateVideo.tsx"]);
     assert.match(git(workspaceRoot, ["status", "--porcelain=v1", "--untracked-files=all"]), /notes\.txt/);
     assert.equal(git(remoteRoot, ["rev-parse", "refs/heads/main"]), git(workspaceRoot, ["rev-parse", "HEAD"]));
   } finally {
@@ -142,6 +167,115 @@ test("Smoke Render can confirm once, commit only render files, push, then queue 
     if (previousRef === undefined) delete process.env.HARNESS_GITHUB_REF;
     else process.env.HARNESS_GITHUB_REF = previousRef;
     fs.rmSync(projectsRoot, { recursive: true, force: true });
+    fs.rmSync(workspaceRoot, { recursive: true, force: true });
+    fs.rmSync(remoteRoot, { recursive: true, force: true });
+  }
+});
+
+test("Git delivery preflight ignores legacy global render input variables", () => {
+  const { workspaceRoot, remoteRoot } = createRenderWorkspace("url-check-video");
+  try {
+    const issues = validateGitRenderDelivery({ config: { slug: "url-check-video", workspaceRoot } }, {
+      environment: {
+        GITHUB_TOKEN: "test-token",
+        GITHUB_REPOSITORY: "example/video",
+        HARNESS_GITHUB_REF: "main",
+        HARNESS_RENDER_INPUT_URL: "https://github.com/example/video-render-inputs/releases/download/v1/video.zip",
+      },
+    });
+    assert.equal(issues.some((issue) => /API 资产地址/.test(issue)), false);
+  } finally {
+    fs.rmSync(workspaceRoot, { recursive: true, force: true });
+    fs.rmSync(remoteRoot, { recursive: true, force: true });
+  }
+});
+
+test("tracked Root stays generic and never imports local video material", () => {
+  const source = fs.readFileSync(new URL("../../src/Root.tsx", import.meta.url), "utf8");
+  assert.match(source, /TemplateVideo/);
+  assert.doesNotMatch(source, /(?:videos|assets|local)\//);
+  assert.doesNotMatch(source, /src\/videos/);
+});
+
+test("delivery planning excludes Root and concrete video changes from the selected commit list", () => {
+  const { workspaceRoot, remoteRoot } = createRenderWorkspace("scope-check-video");
+  try {
+    fs.appendFileSync(path.join(workspaceRoot, "src/Root.tsx"), "// local-only entry change\n");
+    fs.appendFileSync(path.join(workspaceRoot, "src/videos/scope-check-video/TestVideo.tsx"), "// video change\n");
+    write(workspaceRoot, "src/Unrelated.tsx", "export {}\n");
+    const plan = buildGitRenderCommitPlan({ config: { slug: "scope-check-video", workspaceRoot } }, {
+      environment: { HARNESS_GITHUB_REF: "main" },
+    });
+    assert.deepEqual(plan.commitPaths, []);
+    assert.deepEqual(plan.selectedPaths, []);
+    assert.ok(plan.outOfScopePaths.includes("src/Root.tsx"));
+    assert.ok(plan.outOfScopePaths.includes("src/Unrelated.tsx"));
+    assert.match(plan.planId, /^[a-f0-9]{64}$/);
+  } finally {
+    fs.rmSync(workspaceRoot, { recursive: true, force: true });
+    fs.rmSync(remoteRoot, { recursive: true, force: true });
+  }
+});
+
+test("delivery confirmation is invalidated when a listed file changes", () => {
+  const { workspaceRoot, remoteRoot } = createRenderWorkspace("stale-plan-video");
+  try {
+    fs.appendFileSync(path.join(workspaceRoot, "src/TemplateVideo.tsx"), "// planned change\n");
+    const project = { config: { slug: "stale-plan-video", workspaceRoot } };
+    const plan = buildGitRenderCommitPlan(project, { environment: { HARNESS_GITHUB_REF: "main" } });
+    fs.appendFileSync(path.join(workspaceRoot, "src/TemplateVideo.tsx"), "// changed after confirmation\n");
+    assert.throws(
+      () => commitAndPushRenderDelivery(project, {
+        environment: { HARNESS_GITHUB_REF: "main" },
+        deliveryPlanId: plan.planId,
+        selectedPaths: plan.selectedPaths,
+      }),
+      (error) => error.code === "git-render-commit-plan-stale",
+    );
+    assert.equal(git(workspaceRoot, ["rev-parse", "HEAD"]), plan.headCommit);
+  } finally {
+    fs.rmSync(workspaceRoot, { recursive: true, force: true });
+    fs.rmSync(remoteRoot, { recursive: true, force: true });
+  }
+});
+
+test("ignored video and local input paths never enter the delivery plan", () => {
+  const { workspaceRoot, remoteRoot } = createRenderWorkspace("ignored-scope-video");
+  try {
+    write(workspaceRoot, "videos/ignored-scope-video/new.md", "new source\n");
+    write(workspaceRoot, "src/videos/ignored-scope-video/ExtraVideo.tsx", "export {}\n");
+    write(workspaceRoot, "assets/ignored-scope-video-assets.zip", "new archive\n");
+    write(workspaceRoot, "local/render-input/ignored-scope-video/render-input.json", "{}\n");
+    const plan = buildGitRenderCommitPlan({ config: { slug: "ignored-scope-video", workspaceRoot } }, {
+      environment: { HARNESS_GITHUB_REF: "main" },
+    });
+    assert.deepEqual(plan.commitPaths, []);
+    assert.deepEqual(plan.outOfScopePaths, []);
+    assert.equal(git(workspaceRoot, ["status", "--porcelain=v1", "--untracked-files=all"]), "");
+  } finally {
+    fs.rmSync(workspaceRoot, { recursive: true, force: true });
+    fs.rmSync(remoteRoot, { recursive: true, force: true });
+  }
+});
+
+test("delivery confirmation blocks a dispatch branch mismatch before push", () => {
+  const { workspaceRoot, remoteRoot } = createRenderWorkspace("branch-check-video");
+  try {
+    fs.appendFileSync(path.join(workspaceRoot, "src/TemplateVideo.tsx"), "// branch check\n");
+    const project = { config: { slug: "branch-check-video", workspaceRoot } };
+    const plan = buildGitRenderCommitPlan(project, { environment: { HARNESS_GITHUB_REF: "release" } });
+    assert.equal(plan.branch, "main");
+    assert.equal(plan.ref, "release");
+    assert.throws(
+      () => commitAndPushRenderDelivery(project, {
+        environment: { HARNESS_GITHUB_REF: "release" },
+        deliveryPlanId: plan.planId,
+        selectedPaths: plan.selectedPaths,
+      }),
+      (error) => error.code === "git-render-commit-branch-mismatch",
+    );
+    assert.equal(git(workspaceRoot, ["rev-parse", "HEAD"]), plan.headCommit);
+  } finally {
     fs.rmSync(workspaceRoot, { recursive: true, force: true });
     fs.rmSync(remoteRoot, { recursive: true, force: true });
   }

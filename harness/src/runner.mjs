@@ -1,6 +1,6 @@
 import { isGateStage, nextStage, previousStage, stageIndex, ADAPTER_REQUIRED_STAGES, STAGES, STAGE_DEFINITIONS } from "./stages.mjs";
 import { validateProjectStage } from "./validation.mjs";
-import { writeJson } from "./storage.mjs";
+import { assertProjectMutable, writeJson } from "./storage.mjs";
 import { fingerprintStageArtifacts } from "./fingerprints.mjs";
 import { ensureTtsScript } from "./tts-script.mjs";
 import { freezePrototypeBaseline } from "./remotion-alignment.mjs";
@@ -40,6 +40,7 @@ function requirePreviousSucceeded(project, stage) {
 }
 
 function completeStage(project, stage, outputs = []) {
+  assertProjectMutable(project, `完成 ${stage} 阶段`);
   const item = project.state.stages[stage];
   item.status = "succeeded";
   item.error = null;
@@ -62,6 +63,7 @@ function completeStage(project, stage, outputs = []) {
 }
 
 export function markAdapterStageFailed(project, stage, error) {
+  assertProjectMutable(project, `记录 ${stage} 阶段失败`);
   const failure = {
     code: "adapter-failed",
     stage,
@@ -85,6 +87,7 @@ function failAdapterStage(project, stage, error) {
 }
 
 function markExecutorStageFailed(project, stage, error) {
+  assertProjectMutable(project, `记录 ${stage} 阶段失败`);
   const failure = {
     code: error?.code ?? "executor-failed",
     stage,
@@ -128,6 +131,7 @@ export function validateStage(project, requestedStage, options = {}) {
 }
 
 export function runStage(project, requestedStage, { adapters = {}, executors = {}, deferAdapters = false } = {}) {
+  assertProjectMutable(project, "执行阶段");
   const stage = requireCurrentStage(project, requestedStage);
   requireReady(project, stage);
   requirePreviousSucceeded(project, stage);
@@ -139,6 +143,8 @@ export function runStage(project, requestedStage, { adapters = {}, executors = {
   saveState(project);
 
   if (isGateStage(stage)) {
+    item.review = null;
+    item.error = null;
     const issues = validateStage(project, stage);
     if (issues.length > 0) {
       const error = { code: "validation-failed", stage, issues };
@@ -252,6 +258,7 @@ export function runStage(project, requestedStage, { adapters = {}, executors = {
 }
 
 export function approveGate(project, gate) {
+  assertProjectMutable(project, `确认 ${gate}`);
   requireKnownStage(gate);
   if (!isGateStage(gate)) {
     throw new Error(`${gate} is not a Gate stage`);
@@ -270,12 +277,11 @@ export function approveGate(project, gate) {
     freezePrototypeBaseline(project);
   }
 
-  completeStage(project, gate);
   project.state.stages[gate].review = {
     decision: "approved",
     reviewedAt: new Date().toISOString(),
   };
-  saveState(project);
+  completeStage(project, gate);
   return {
     stage: gate,
     status: "succeeded",
@@ -285,6 +291,7 @@ export function approveGate(project, gate) {
 }
 
 export function rejectGate(project, gate, returnTo, reason) {
+  assertProjectMutable(project, `驳回 ${gate}`);
   requireKnownStage(gate);
   requireKnownStage(returnTo);
   if (!isGateStage(gate)) {
@@ -332,6 +339,7 @@ export function rejectGate(project, gate, returnTo, reason) {
 }
 
 export function retryStage(project, requestedStage) {
+  assertProjectMutable(project, "重试阶段");
   const stage = requestedStage ?? project.state.currentStage;
   requireKnownStage(stage);
   if (project.state.stages[stage].status !== "failed") {
@@ -349,6 +357,9 @@ export function retryStage(project, requestedStage) {
 }
 
 export function resumeProject(project) {
+  if (project.state.currentStage === "completed") {
+    return { stage: "completed", status: "completed", readOnly: true, message: "视频已完成并永久只读，没有可恢复的任务。" };
+  }
   const stage = project.state.currentStage;
   const item = project.state.stages[stage];
   if (item.status === "failed") {

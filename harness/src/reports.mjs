@@ -1,4 +1,12 @@
-import { isGateStage, previousStage, returnToStages, STAGE_DEFINITIONS, STAGES } from "./stages.mjs";
+import {
+  isGateStage,
+  previousStage,
+  returnToStages,
+  RETIRED_STAGE_DEFINITIONS,
+  stagesForProjectView,
+  STAGE_DEFINITIONS,
+  STAGES,
+} from "./stages.mjs";
 import { validateStage } from "./runner.mjs";
 import { hasAssetSource } from "./asset-bundler.mjs";
 import { validateRemoteRenderPackage } from "./remote-executor.mjs";
@@ -10,7 +18,7 @@ function commandFor(project, command, stage = null) {
 }
 
 function executeCommandFor(stage) {
-  return stage === "smoke-render" || stage === "render" ? "remote-run" : "run";
+  return stage === "render" ? "remote-run" : "run";
 }
 
 function isBlockingPreExecutionIssue(stage, issue) {
@@ -25,7 +33,7 @@ function isBlockingPreExecutionIssue(stage, issue) {
 }
 
 function remoteDeliveryIssues(project, stage) {
-  if (!(["smoke-render", "render"].includes(stage) && isGitWorkspace(project.config.workspaceRoot))) return [];
+  if (!(stage === "render" && isGitWorkspace(project.config.workspaceRoot))) return [];
   return [
     ...validateRemoteRenderPackage(project).map((message) => ({
       code: "remote-render-inputs-invalid",
@@ -59,6 +67,33 @@ export function buildNextAction(project) {
 
   const stage = project.state.currentStage;
   const item = project.state.stages[stage];
+  if (!STAGE_DEFINITIONS[stage]) {
+    const retiredDefinition = RETIRED_STAGE_DEFINITIONS[stage];
+    if (retiredDefinition) {
+      return {
+        currentStage: stage,
+        status: item?.status ?? "unknown",
+        action: "inspect",
+        message: "该项目保留旧版 Smoke Render 记录，仅供只读查看；当前生产流程不提供 Smoke 阶段操作。",
+        requiresUser: false,
+        readOnly: true,
+        legacy: true,
+        commands: [],
+        issues: [],
+        manualChecks: retiredDefinition.manualChecks,
+      };
+    }
+    return {
+      currentStage: stage,
+      status: item?.status ?? "unknown",
+      action: "inspect",
+      message: "未知阶段只能只读检查：" + stage,
+      requiresUser: false,
+      readOnly: true,
+      commands: [],
+      issues: [],
+    };
+  }
   const issues = item.status === "ready"
     ? [...validateStage(project, stage), ...remoteDeliveryIssues(project, stage)]
     : [];
@@ -89,7 +124,7 @@ export function buildNextAction(project) {
     };
   }
   if (item.status === "ready" && blockingIssues.length > 0) {
-    const remoteStage = stage === "smoke-render" || stage === "render";
+    const remoteStage = stage === "render";
     return {
       currentStage: stage,
       status: item.status,
@@ -100,7 +135,7 @@ export function buildNextAction(project) {
       requiresUser: false,
       commands: [commandFor(project, "validate", stage)],
       issues,
-        preparation: ["smoke-render", "render"].includes(stage) && hasAssetSource(project)
+      preparation: stage === "render" && hasAssetSource(project)
         ? {
           action: "prepare-remote-render",
           message: "本地视频资料和资源已存在，可以先整理独立远程输入包；随后仍需配置输入包地址并完成能力代码交付预检。",
@@ -172,18 +207,19 @@ export function buildProjectReport(project) {
     slug: project.state.slug,
     currentStage: project.state.currentStage,
     next,
-    stages: STAGES.map((stage) => {
+    stages: stagesForProjectView(project).map((stage) => {
       const item = project.state.stages[stage];
+      const definition = STAGE_DEFINITIONS[stage] ?? RETIRED_STAGE_DEFINITIONS[stage];
       return {
         stage,
-        status: item.status,
-        attempts: item.attempts,
-        invalidatedBy: item.invalidatedBy,
-        outputCount: item.outputs.length,
-        review: item.review ?? null,
-        error: item.error,
-        manualChecks: STAGE_DEFINITIONS[stage].manualChecks,
-        updatedAt: item.updatedAt,
+        status: item?.status ?? "unknown",
+        attempts: item?.attempts ?? 0,
+        invalidatedBy: item?.invalidatedBy ?? null,
+        outputCount: item?.outputs?.length ?? 0,
+        review: item?.review ?? null,
+        error: item?.error ?? null,
+        manualChecks: definition?.manualChecks ?? [],
+        updatedAt: item?.updatedAt ?? null,
       };
     }),
   };

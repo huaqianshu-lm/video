@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { assertProjectSlugMutable, isCompletedProject } from "./storage.mjs";
 
 const repositoryRoot = path.resolve(new URL("../..", import.meta.url).pathname);
 const seriesIdPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -59,6 +60,12 @@ function normalizeSeries(config) {
   };
 }
 
+function assertSeriesVideosMutable(videos, operation) {
+  for (const slug of videos ?? []) {
+    if (isCompletedProject(slug)) assertProjectSlugMutable(slug, operation);
+  }
+}
+
 export function listSeries() {
   const root = seriesRoot();
   if (!fs.existsSync(root)) return [];
@@ -89,6 +96,7 @@ export function saveSeries(input) {
   if (removedVideos.length > 0 && input.confirmVideoRemoval !== true) {
     throw new Error(`Removing existing series videos requires explicit confirmation: ${removedVideos.join(", ")}`);
   }
+  assertSeriesVideosMutable([...new Set([...(existing?.videos ?? []), ...series.videos])], "修改系列及其视频关系");
   writeJsonAtomic(configPath(series.id), series);
   return series;
 }
@@ -172,6 +180,7 @@ export function validateCover(buffer, contentType) {
 export function saveSeriesCover(seriesId, buffer, contentType) {
   const series = getSeries(seriesId);
   if (!series) throw new Error("Series not found");
+  assertSeriesVideosMutable(series.videos, "修改系列封面");
   const image = validateCover(buffer, contentType);
   const assetDirectory = path.join(seriesAssetsRoot(), seriesId);
   fs.mkdirSync(assetDirectory, { recursive: true });

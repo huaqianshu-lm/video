@@ -104,7 +104,7 @@ export function buildRemotionTimingPlan({ workspaceRoot, slug, fps = 30 }) {
     });
 
     return {
-      durationFrames: secondsToFrames(sceneDuration, fps),
+      durationFrames: secondsToFrames(sceneEnd, fps) - secondsToFrames(sceneOffset, fps),
       durationSeconds: sceneDuration,
       endFrame: secondsToFrames(sceneEnd, fps),
       endSeconds: sceneEnd,

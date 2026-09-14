@@ -6,18 +6,18 @@
 
 这个项目用于把 AI 视频从原始内容推进到最终 MP4。仓库只提交可复用的 Remotion／Harness 能力、规则、模板和测试；具体视频生产资料、资源和渲染产物保存在本地，不混入 GitHub 仓库。
 
-Harness 不替代内容与画面判断。口播、视觉原型、Remotion 预览、Smoke Render 和最终视频仍在关键节点等待人工确认，批量任务不会绕过这些检查点。
+Harness 不替代内容与画面判断。口播、视觉原型、Remotion 预览和最终视频仍在关键节点等待人工确认，批量任务不会绕过这些检查点；Smoke Render 仅在新系列或渲染环境变化时作为独立手动检查。
 
 ## 核心能力
 
 - 七层生产资料：Source、Content Analysis、Video Narrative、Scene Script、Narration Script、Visual Script／Prototype、Remotion 配置。
-- 15 个生产阶段：从原始内容、TTS、字幕时间线一路推进到远程渲染和最终验收。
+- 14 个生产阶段：从原始内容、TTS、字幕时间线一路推进到远程渲染和最终验收。
 - 本地 Web UI：查看项目、阶段、资料、校验问题、Agent Job、Remotion 任务和远程渲染状态。
 - 批量视频制作：支持批量推进到 Gate 2、完成 TTS、完成 Remotion，以及批量渲染。
-- 人工质量门：保留 Gate 2、TTS 质检、Gate 3、Smoke Render 检查和 Gate 4。
+- 人工质量门：保留 Gate 2、TTS 质检、Gate 3 和 Gate 4；Smoke Render 不属于生产阶段。
 - 断点续做：任务状态持久化，失败后可重试，服务重启后可继续恢复。
 - 音画同步：以经过校验的 Audio、Subtitle 和 Timeline Manifest 作为 Remotion 时间基准。
-- 远程交付：通过 GitHub Actions 执行 Smoke Render 和完整渲染，并检查 Run 与 Artifact。
+- 远程交付：通过 GitHub Actions 执行完整渲染并检查 Run 与 Artifact；Smoke Render 保留为独立手动环境检查。
 - 系列化制作：支持系列风格、共享封面和视频关联。
 
 ## 工作流
@@ -33,12 +33,12 @@ TTS → 字幕／Timeline
   ↓ TTS 人工质检
 Remotion 制作
   ↓ Gate 3：人工预览
-Smoke Render
-  ↓ Smoke 人工检查
 完整 Render
   ↓ Gate 4：最终验收
 MP4／Artifact
 ```
+
+Smoke Render 不再插入日常生产链路。新系列首次渲染或渲染环境发生变化时，选择未完成视频或独立副本，从 GitHub Actions 手动触发 `Smoke test video`；该检查不推进 Harness 阶段、不创建 Harness Job，也不写入视频审核记录。
 
 批量任务复用同一套单视频阶段契约，只负责编排选中的视频，并在每个人工检查点暂停。
 
@@ -92,7 +92,7 @@ Web UI 仅监听本机 `127.0.0.1`。你可以在首页导入 Markdown／纯文�
 npm run preview
 ```
 
-仓库默认只注册通用 `video-production-template` Composition，用于检查 Remotion 工程和共享能力是否可运行。具体视频 Composition 属于本地视频工作区，不由仓库根入口自动注册。
+`npm run preview` 会从每条视频已校验的独立输入包生成被 Git 忽略的 `src/RenderInputRoot.tsx`，再启动 Studio 注册这些视频的 Composition；它不会把具体视频写进受跟踪的 `src/Root.tsx`。没有有效输入包的未完成视频会先尝试准备，`completed` 视频缺包时只跳过并提示。需要检查通用 Remotion 能力时，仍可直接使用受跟踪的 `src/Root.tsx` 中的 `video-production-template` Composition。
 
 ### 运行检查
 
@@ -110,7 +110,7 @@ Harness 提供四类批量目标：
 | 到 Gate 2 | 内容分析、叙事、脚本和视觉原型 | Gate 2 人工确认 |
 | 完成 TTS | 配音、字幕和 Timeline | TTS 人工质检 |
 | 完成 Remotion | Remotion 配置、场景实现和对齐校验 | Gate 3 人工预览 |
-| 批量渲染 | Smoke Render 与完整 Render | Smoke 检查和 Gate 4 |
+| 批量渲染 | 通过 Gate 3 后直接提交完整 Render | Gate 4 人工确认 |
 
 批量任务可以在 Web UI 中创建，也可以通过 CLI 执行：
 
@@ -152,17 +152,19 @@ node harness/src/cli.mjs report <video-slug>
 
 ## 远程渲染
 
-远程 Smoke Render 和完整 Render 通过 GitHub Actions 执行。启动前配置：
+完整 Render 通过 Harness 的 GitHub Actions 入口执行。Smoke Render 是独立的 GitHub Actions 手动检查，不从 Harness `run` 或 `remote-run` 入口提交。
+
+启动远程渲染前配置：
 
 ```bash
 export GITHUB_TOKEN="<token>"
 export GITHUB_REPOSITORY="<owner>/<repo>"
 export HARNESS_GITHUB_REF="<optional-explicit-branch>"
-export HARNESS_RENDER_INPUT_URL="<private-input-package-url>"
-export HARNESS_RENDER_INPUT_SHA256="<sha256-of-zip>"
 ```
 
-未设置 `HARNESS_GITHUB_REF` 时，Harness 优先读取当前 Git 工作区分支。提交远程任务前，它会检查独立输入包、Manifest、能力代码的 Git 跟踪状态，以及目标分支是否包含当前提交。具体视频资料不会重新提交到本仓库。
+使用私有 GitHub Release 时，输入包 URL 必须是 API 资产地址 `https://api.github.com/repos/<owner>/<repo>/releases/assets/<asset-id>`，不能使用 `/releases/download/` 网页下载地址；Harness 会在提交前拦截错误格式。
+
+未设置 `HARNESS_GITHUB_REF` 时，Harness 优先读取当前 Git 工作区分支。每条视频先执行 `render-input prepare`、`validate`、`package`，再用 `render-input bind --url <url> --sha256 <sha256>` 绑定已发布 ZIP；绑定时会读取远端内容并核对 SHA-256。提交远程任务前，它会检查该视频独立输入包、绑定记录、Manifest、能力代码的 Git 跟踪状态，以及目标分支是否包含当前提交。完整 Render 的确认会绑定精确文件清单、当前提交、文件哈希和 `planId`；文件或分支变化后必须重新确认。`src/Root.tsx`、具体视频资料、本地资源和无关源文件不会自动提交到本仓库。
 
 ## 项目结构
 

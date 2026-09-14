@@ -5,13 +5,19 @@ import os from "node:os";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
 import {
+  bindRenderInputDelivery,
   packageRenderInput,
   prepareRenderInput,
   discoverStudioEntries,
+  readRenderInputDelivery,
   renderStudioCatalogSource,
+  renderInputArchivePath,
+  renderInputDeliveryPath,
+  validateRenderInputDelivery,
   validateRenderInputDirectory,
   writeRenderEntryPoint,
 } from "../src/render-input.mjs";
+import { initializeProject, loadProject } from "../src/storage.mjs";
 
 function writeJson(filePath, value) {
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
@@ -87,42 +93,179 @@ test("detects a changed render input file through the manifest hash", () => {
   }
 });
 
-test("discovers all local Studio entries and selects the newest matching video version", () => {
-  const workspaceRoot = fs.mkdtempSync(path.join(os.tmpdir(), "video-studio-catalog-"));
-  const videoRoot = path.join(workspaceRoot, "videos", "claude-code-what-is");
-  const remotionRoot = path.join(workspaceRoot, "src", "videos", "claude-code-what-is");
-  fs.mkdirSync(videoRoot, {recursive: true});
-  fs.mkdirSync(remotionRoot, {recursive: true});
-  fs.writeFileSync(path.join(videoRoot, "source.md"), "# Video\n", "utf8");
-  fs.writeFileSync(path.join(remotionRoot, "ClaudeCodeWhatIsVideo.tsx"), "export const ClaudeCodeWhatIsVideo = () => null;\n", "utf8");
-  fs.writeFileSync(path.join(remotionRoot, "video.config.ts"), "export const videoConfig = {slug: 'claude-code-what-is', fps: 30, width: 1920, height: 1080};\n", "utf8");
-  fs.writeFileSync(path.join(remotionRoot, "ClaudeCodeWhatIsVideo14.tsx"), "export const ClaudeCodeWhatIsVideo14 = () => null;\n", "utf8");
-  fs.writeFileSync(path.join(remotionRoot, "video14.config.ts"), "export const video14Config = {slug: 'claude-code-what-is-v2', fps: 30, width: 1920, height: 1080};\nexport const getVideo14TotalDurationFrames = () => 420;\n", "utf8");
-  const oldTime = new Date("2026-07-30T00:00:00Z");
-  const newTime = new Date("2026-08-02T00:00:00Z");
-  fs.utimesSync(path.join(remotionRoot, "video.config.ts"), oldTime, oldTime);
-  fs.utimesSync(path.join(remotionRoot, "ClaudeCodeWhatIsVideo.tsx"), oldTime, oldTime);
-  fs.utimesSync(path.join(remotionRoot, "video14.config.ts"), newTime, newTime);
-  fs.utimesSync(path.join(remotionRoot, "ClaudeCodeWhatIsVideo14.tsx"), newTime, newTime);
-
+test("rebuilds the current input package when local source or Remotion files change", () => {
+  const fixture = createFixture();
   try {
-    const discovered = discoverStudioEntries(workspaceRoot);
+    const first = prepareRenderInput(fixture.project);
+    const firstManifest = JSON.parse(fs.readFileSync(path.join(first.directory, "render-input.json"), "utf8"));
+    fs.appendFileSync(path.join(fixture.workspaceRoot, "videos", fixture.slug, "source.md"), "changed source\n", "utf8");
+    const second = prepareRenderInput(fixture.project);
+    const secondManifest = JSON.parse(fs.readFileSync(path.join(second.directory, "render-input.json"), "utf8"));
+    assert.equal(second.status, "prepared");
+    assert.notEqual(secondManifest.sourceFingerprint, firstManifest.sourceFingerprint);
+    assert.match(fs.readFileSync(path.join(second.directory, "videos", fixture.slug, "source.md"), "utf8"), /changed source/);
+    assert.deepEqual(validateRenderInputDirectory(second.directory, { expectedSlug: fixture.slug }), []);
+  } finally {
+    fs.rmSync(fixture.workspaceRoot, { recursive: true, force: true });
+  }
+});
+
+test("binds one published package URL and SHA to its current manifest", async () => {
+  const fixture = createFixture();
+  try {
+    const prepared = prepareRenderInput(fixture.project);
+    const packaged = packageRenderInput(fixture.workspaceRoot, fixture.slug);
+    const archiveBytes = fs.readFileSync(packaged.archivePath);
+    const result = await bindRenderInputDelivery(fixture.project, {
+      url: "https://inputs.example.test/render-input.zip",
+      sha256: packaged.archiveSha256,
+      fetchImpl: async () => ({ ok: true, status: 200, arrayBuffer: async () => archiveBytes }),
+    });
+    assert.equal(result.status, "bound");
+    assert.deepEqual(readRenderInputDelivery(fixture.workspaceRoot, fixture.slug), result.delivery);
+    assert.deepEqual(validateRenderInputDelivery(fixture.project), []);
+    assert.equal(fs.existsSync(renderInputDeliveryPath(fixture.workspaceRoot, fixture.slug)), true);
+    assert.equal(prepared.manifest.compositionId, result.delivery.compositionId);
+  } finally {
+    fs.rmSync(fixture.workspaceRoot, { recursive: true, force: true });
+  }
+});
+
+test("does not create a binding when the published content is unreadable or has a different hash", async () => {
+  const fixture = createFixture();
+  try {
+    prepareRenderInput(fixture.project);
+    const packaged = packageRenderInput(fixture.workspaceRoot, fixture.slug);
+    await assert.rejects(
+      () => bindRenderInputDelivery(fixture.project, {
+        url: "https://inputs.example.test/unreadable.zip",
+        sha256: packaged.archiveSha256,
+        fetchImpl: async () => ({ ok: false, status: 404, arrayBuffer: async () => new ArrayBuffer(0) }),
+      }),
+      (error) => error.code === "render-input-delivery-remote-unavailable",
+    );
+    await assert.rejects(
+      () => bindRenderInputDelivery(fixture.project, {
+        url: "https://inputs.example.test/wrong.zip",
+        sha256: packaged.archiveSha256,
+        fetchImpl: async () => ({ ok: true, status: 200, arrayBuffer: async () => Buffer.from("wrong") }),
+      }),
+      (error) => error.code === "render-input-delivery-remote-hash-mismatch",
+    );
+    assert.equal(fs.existsSync(renderInputDeliveryPath(fixture.workspaceRoot, fixture.slug)), false);
+  } finally {
+    fs.rmSync(fixture.workspaceRoot, { recursive: true, force: true });
+  }
+});
+
+test("invalidates a binding when the local ZIP changes", async () => {
+  const fixture = createFixture();
+  try {
+    prepareRenderInput(fixture.project);
+    const packaged = packageRenderInput(fixture.workspaceRoot, fixture.slug);
+    const archiveBytes = fs.readFileSync(packaged.archivePath);
+    await bindRenderInputDelivery(fixture.project, {
+      url: "https://inputs.example.test/render-input.zip",
+      sha256: packaged.archiveSha256,
+      fetchImpl: async () => ({ ok: true, status: 200, arrayBuffer: async () => archiveBytes }),
+    });
+    fs.appendFileSync(renderInputArchivePath(fixture.workspaceRoot, fixture.slug), "changed archive\n", "utf8");
+    assert.ok(validateRenderInputDelivery(fixture.project).some((issue) => /archiveSha256/.test(issue)));
+  } finally {
+    fs.rmSync(fixture.workspaceRoot, { recursive: true, force: true });
+  }
+});
+
+test("invalidates a binding when the source workspace changes", async () => {
+  const fixture = createFixture();
+  try {
+    prepareRenderInput(fixture.project);
+    const packaged = packageRenderInput(fixture.workspaceRoot, fixture.slug);
+    const archiveBytes = fs.readFileSync(packaged.archivePath);
+    await bindRenderInputDelivery(fixture.project, {
+      url: "https://inputs.example.test/render-input.zip",
+      sha256: packaged.archiveSha256,
+      fetchImpl: async () => ({ ok: true, status: 200, arrayBuffer: async () => archiveBytes }),
+    });
+    fs.appendFileSync(path.join(fixture.workspaceRoot, "videos", fixture.slug, "source.md"), "changed after binding\n", "utf8");
+    assert.ok(validateRenderInputDelivery(fixture.project).some((issue) => issue.includes("源资料已变化")));
+    assert.throws(
+      () => packageRenderInput(fixture.workspaceRoot, fixture.slug),
+      (error) => error.code === "render-input-source-stale",
+    );
+  } finally {
+    fs.rmSync(fixture.workspaceRoot, { recursive: true, force: true });
+  }
+});
+
+test("discovers Studio entries from the explicitly packaged video version", () => {
+  const fixture = createFixture();
+  const remotionRoot = path.join(fixture.workspaceRoot, "src", "videos", fixture.slug);
+  try {
+    fs.writeFileSync(path.join(remotionRoot, "FixtureVideo14.tsx"), "export const FixtureVideo14 = () => null;\n", "utf8");
+    fs.writeFileSync(path.join(remotionRoot, "video14.config.ts"), "export const video14Config = {slug: 'render-input-video-v2', fps: 30, width: 1920, height: 1080};\n", "utf8");
+    prepareRenderInput(fixture.project, {
+      compositionId: "render-input-video-v2",
+      componentFile: "FixtureVideo14.tsx",
+      componentExport: "FixtureVideo14",
+      configFile: "video14.config.ts",
+      configExport: "video14Config",
+    });
+    packageRenderInput(fixture.workspaceRoot, fixture.slug);
+    const discovered = discoverStudioEntries(fixture.workspaceRoot);
     assert.deepEqual(discovered.skipped, []);
     assert.equal(discovered.entries.length, 1);
     assert.deepEqual(discovered.entries[0], {
-      slug: "claude-code-what-is",
-      compositionId: "claude-code-what-is-v2",
-      componentPath: "src/videos/claude-code-what-is/ClaudeCodeWhatIsVideo14.tsx",
-      componentExport: "ClaudeCodeWhatIsVideo14",
-      configPath: "src/videos/claude-code-what-is/video14.config.ts",
+      slug: fixture.slug,
+      compositionId: "render-input-video-v2",
+      componentPath: `src/videos/${fixture.slug}/FixtureVideo14.tsx`,
+      componentExport: "FixtureVideo14",
+      configPath: `src/videos/${fixture.slug}/video14.config.ts`,
       configExport: "video14Config",
-      durationExport: "getVideo14TotalDurationFrames",
+      durationExport: null,
+      packageFingerprint: discovered.entries[0].packageFingerprint,
+      sourceFingerprint: discovered.entries[0].sourceFingerprint,
     });
     const source = renderStudioCatalogSource(discovered.entries);
-    assert.match(source, /id="claude-code-what-is-v2"/);
-    assert.match(source, /getVideo14TotalDurationFrames/);
+    assert.match(source, /id="render-input-video-v2"/);
+    assert.match(source, /FixtureVideo14/);
     assert.match(source, /registerRoot\(Root\)/);
   } finally {
-    fs.rmSync(workspaceRoot, {recursive: true, force: true});
+    fs.rmSync(fixture.workspaceRoot, {recursive: true, force: true});
+  }
+});
+
+test("does not rebuild a completed video for Studio and explains a missing package", () => {
+  const fixture = createFixture();
+  const projectsRoot = fs.mkdtempSync(path.join(os.tmpdir(), "video-studio-completed-projects-"));
+  const previousProjectsRoot = process.env.HARNESS_PROJECTS_DIR;
+  const previousWorkspaceRoot = process.env.HARNESS_WORKSPACE_ROOT;
+  try {
+    process.env.HARNESS_PROJECTS_DIR = projectsRoot;
+    process.env.HARNESS_WORKSPACE_ROOT = fixture.workspaceRoot;
+    initializeProject(fixture.slug);
+    const project = loadProject(fixture.slug, { refresh: false });
+    prepareRenderInput(project);
+    packageRenderInput(fixture.workspaceRoot, fixture.slug);
+    project.state.currentStage = "completed";
+    fs.writeFileSync(project.files.state, `${JSON.stringify(project.state, null, 2)}\n`, "utf8");
+    fs.rmSync(path.join(fixture.workspaceRoot, "src", "videos"), { recursive: true, force: true });
+
+    const discovered = discoverStudioEntries(fixture.workspaceRoot);
+    assert.equal(discovered.entries.length, 1);
+    assert.equal(discovered.entries[0].slug, fixture.slug);
+
+    fs.rmSync(path.join(fixture.workspaceRoot, "local", "render-input", fixture.slug), { recursive: true, force: true });
+    fs.mkdirSync(path.join(fixture.workspaceRoot, "src", "videos", fixture.slug), { recursive: true });
+    const skipped = discoverStudioEntries(fixture.workspaceRoot);
+    assert.equal(skipped.entries.length, 0);
+    assert.match(skipped.skipped[0].reason, /completed|已有输入包|缺少/);
+  } finally {
+    if (previousProjectsRoot === undefined) delete process.env.HARNESS_PROJECTS_DIR;
+    else process.env.HARNESS_PROJECTS_DIR = previousProjectsRoot;
+    if (previousWorkspaceRoot === undefined) delete process.env.HARNESS_WORKSPACE_ROOT;
+    else process.env.HARNESS_WORKSPACE_ROOT = previousWorkspaceRoot;
+    fs.rmSync(projectsRoot, { recursive: true, force: true });
+    fs.rmSync(fixture.workspaceRoot, { recursive: true, force: true });
   }
 });

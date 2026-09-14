@@ -24,8 +24,10 @@ function pngHeader(width, height) {
 
 test("stores one shared 16:9 cover and keeps series video membership", () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "video-series-"));
+  const previousProjectsRoot = process.env.HARNESS_PROJECTS_DIR;
   const previousSeriesRoot = process.env.HARNESS_SERIES_DIR;
   const previousAssetsRoot = process.env.HARNESS_SERIES_ASSETS_DIR;
+  process.env.HARNESS_PROJECTS_DIR = path.join(root, "projects");
   process.env.HARNESS_SERIES_DIR = path.join(root, "series");
   process.env.HARNESS_SERIES_ASSETS_DIR = path.join(root, "public", "series-assets");
 
@@ -47,6 +49,8 @@ test("stores one shared 16:9 cover and keeps series video membership", () => {
     assert.ok(seriesAssetPath("codex-guide", "cover.png"));
     assert.equal(getSeries("codex-guide").coverDurationFrames, 45);
   } finally {
+    if (previousProjectsRoot === undefined) delete process.env.HARNESS_PROJECTS_DIR;
+    else process.env.HARNESS_PROJECTS_DIR = previousProjectsRoot;
     if (previousSeriesRoot === undefined) delete process.env.HARNESS_SERIES_DIR;
     else process.env.HARNESS_SERIES_DIR = previousSeriesRoot;
     if (previousAssetsRoot === undefined) delete process.env.HARNESS_SERIES_ASSETS_DIR;
@@ -56,7 +60,9 @@ test("stores one shared 16:9 cover and keeps series video membership", () => {
 
 test("rejects silent removal of existing series videos", () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "video-series-membership-"));
+  const previousProjectsRoot = process.env.HARNESS_PROJECTS_DIR;
   const previousSeriesRoot = process.env.HARNESS_SERIES_DIR;
+  process.env.HARNESS_PROJECTS_DIR = path.join(root, "projects");
   process.env.HARNESS_SERIES_DIR = path.join(root, "series");
 
   try {
@@ -74,6 +80,8 @@ test("rejects silent removal of existing series videos", () => {
     });
     assert.deepEqual(confirmed.videos, ["02-core-concepts"]);
   } finally {
+    if (previousProjectsRoot === undefined) delete process.env.HARNESS_PROJECTS_DIR;
+    else process.env.HARNESS_PROJECTS_DIR = previousProjectsRoot;
     if (previousSeriesRoot === undefined) delete process.env.HARNESS_SERIES_DIR;
     else process.env.HARNESS_SERIES_DIR = previousSeriesRoot;
   }
@@ -86,7 +94,7 @@ test("rejects unsupported, oversized, and non-16:9 cover inputs", () => {
   assert.throws(() => validateCover(Buffer.alloc(10 * 1024 * 1024 + 1), "image/png"), /10 MB/);
 });
 
-test("reopens Gate 3 when a cover changes after review", () => {
+test("refuses to reopen a completed video when a series cover changes", () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "video-series-gate-"));
   const previousProjectsRoot = process.env.HARNESS_PROJECTS_DIR;
   process.env.HARNESS_PROJECTS_DIR = path.join(root, "projects");
@@ -102,13 +110,14 @@ test("reopens Gate 3 when a cover changes after review", () => {
     }
     writeJson(files.state, state);
 
-    assert.equal(reopenGate3ForSeriesCover("series-video"), true);
-    const reopened = readJson(files.state);
-    assert.equal(reopened.currentStage, "gate-3");
-    assert.equal(reopened.stages["gate-3"].status, "waiting");
-    assert.equal(reopened.stages["gate-3"].invalidatedBy, "series-cover");
-    assert.equal(reopened.stages["smoke-render"].status, "invalidated");
-    assert.equal(reopened.stages["gate-4"].review, null);
+    assert.throws(
+      () => reopenGate3ForSeriesCover("series-video"),
+      (error) => error.code === "completed-project-readonly" && /永久只读/.test(error.message),
+    );
+    const unchanged = readJson(files.state);
+    assert.equal(unchanged.currentStage, "completed");
+    assert.equal(unchanged.stages["gate-3"].status, "succeeded");
+    assert.equal(unchanged.stages["gate-4"].review.decision, "approved");
   } finally {
     if (previousProjectsRoot === undefined) delete process.env.HARNESS_PROJECTS_DIR;
     else process.env.HARNESS_PROJECTS_DIR = previousProjectsRoot;

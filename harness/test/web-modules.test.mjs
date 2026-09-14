@@ -345,7 +345,7 @@ test("project view renders Agent Job status classes from real workspace data", a
 
 test("real project view puts current decision, task evidence, full stages and materials in order", async () => {
   const container = projectDetailElement();
-  const stageStatuses = ["succeeded", "ready", "running", "waiting", "failed", "invalidated", "missing", "pending", "available", "succeeded", "ready", "running", "waiting", "failed", "succeeded"];
+  const stageStatuses = ["succeeded", "ready", "running", "waiting", "failed", "invalidated", "missing", "pending", "available", "succeeded", "ready", "running", "waiting", "failed"];
   const stages = stageStatuses.map((status, index) => ({
     order: index,
     stage: `stage-${index + 1}`,
@@ -388,7 +388,7 @@ test("real project view puts current decision, task evidence, full stages and ma
   const order = ["project-identity", "project-decision", "evidence-section", "pipeline-section", "supporting-materials"].map((className) => html.indexOf(className));
   assert.ok(order.every((position) => position >= 0));
   assert.ok(order.every((position, index) => index === 0 || position > order[index - 1]));
-  assert.equal((html.match(/class="stage-item/g) ?? []).length, 15);
+  assert.equal((html.match(/class="stage-item/g) ?? []).length, 14);
   for (const status of stageStatuses) assert.match(html, new RegExp(`status status-${status}`));
   assert.match(html, /stage-item stage-waiting stage-current/);
   assert.match(html, /原文件序号 07/);
@@ -467,6 +467,66 @@ test("real project view keeps action and Gate rejection parameters while prevent
   });
 });
 
+test("real project view keeps remote preparation feedback when render remains blocked", async () => {
+  await withBrowserGlobals(async () => {
+    const container = projectDetailElement();
+    const workspace = {
+      project: {
+        slug: "remote-prep-demo", sequence: 1, sourceDirectory: "videos/remote-prep-demo", remotionDirectory: "src/videos/remote-prep-demo", status: "ready", initialized: true,
+        currentStage: "render", progress: 90, next: {
+          action: "fix-validation-issues", message: "render 暂不能提交远程任务，交付预检发现 2 个阻塞问题。",
+          issues: [{ severity: "error", message: "缺少对齐清单" }, { severity: "error", message: "缺少 Composition" }],
+          preparation: { action: "prepare-remote-render" },
+        },
+        stages: [{ order: 0, stage: "render", label: "完整渲染", objective: "生成成片", status: "ready", artifacts: [] }],
+      }, files: [], jobs: [], agentJobs: [], remotionTasks: [], activeJob: null,
+    };
+    const preparation = deferred();
+    let calls = 0;
+    const view = createProjectView({
+      elements: { container },
+      api: {
+        async getProjectWorkspace() { return workspace; },
+        runProjectAction(slug, body) { calls += 1; assert.equal(slug, "remote-prep-demo"); assert.equal(body.action, "prepare-remote-render"); return preparation.promise; },
+      },
+      polling: { stop() {}, start() {} },
+    });
+    view.mount();
+    await view.open("remote-prep-demo");
+    const button = container.querySelectorAll("[data-action]").find((item) => item.dataset.action === "prepare-remote-render");
+    button.dispatch("click");
+    assert.equal(button.disabled, true);
+    preparation.resolve({ result: { status: "ready" } });
+    await flush();
+    assert.equal(calls, 1);
+    assert.match(container.querySelector("#action-feedback").textContent, /资源已准备完成/);
+    assert.match(container.querySelector("#action-feedback").textContent, /2 个阻塞问题/);
+  });
+});
+
+test("real project view exposes direct complete Render and no Smoke production action", async () => {
+  const container = projectDetailElement();
+  const workspace = {
+    project: {
+      slug: "direct-render-demo", sequence: 1, sourceDirectory: "videos/direct-render-demo", remotionDirectory: "src/videos/direct-render-demo", status: "ready", initialized: true,
+      currentStage: "render", progress: 92, next: { action: "run-stage", message: "可以执行 render。" },
+      stages: [{ order: 12, stage: "render", label: "完整渲染", objective: "生成最终视频", status: "ready", artifacts: [] }],
+    },
+    files: [], jobs: [], agentJobs: [], remotionTasks: [], activeJob: null,
+  };
+  const view = createProjectView({
+    elements: { container },
+    api: { async getProjectWorkspace() { return workspace; } },
+    polling: { stop() {}, start() {} },
+  });
+
+  view.mount();
+  await view.open("direct-render-demo");
+
+  assert.match(container.innerHTML, /提交完整渲染/);
+  assert.doesNotMatch(container.innerHTML, /提交并执行 Smoke Render|Smoke Render 提交/);
+});
+
 test("real project view keeps task, file and refresh events single across rerender", async () => {
   const container = projectDetailElement();
   const workspace = {
@@ -531,12 +591,12 @@ test("real project view keeps task, file and refresh events single across rerend
   assert.equal(reads, 4);
 });
 
-test("project view ignores stale project responses and keeps polling cleanup rules", async () => {
+test("project view ignores stale project responses and polls only active work", async () => {
   const container = projectDetailElement();
   const requests = new Map([["project-a", deferred()], ["project-b", deferred()]]);
   const starts = [];
   const stops = [];
-  const workspace = (slug, activeJob = null) => ({ project: { slug, sequence: 1, sourceDirectory: `videos/${slug}`, remotionDirectory: `src/videos/${slug}`, status: "ready", initialized: true, currentStage: "remotion", progress: 80, next: { action: "run-stage", message: "继续" }, stages: [{ order: 0, stage: "remotion", label: "Remotion", objective: "制作", status: "ready", artifacts: [] }] }, files: [], jobs: [], agentJobs: [], remotionTasks: [], activeJob });
+  const workspace = (slug, activeJob = null, currentStage = "remotion", remotionTasks = []) => ({ project: { slug, sequence: 1, sourceDirectory: `videos/${slug}`, remotionDirectory: `src/videos/${slug}`, status: "ready", initialized: true, currentStage, progress: 80, next: { action: "run-stage", message: "继续" }, stages: [{ order: 0, stage: "remotion", label: "Remotion", objective: "制作", status: "ready", artifacts: [] }] }, files: [], jobs: [], agentJobs: [], remotionTasks, activeJob });
   const view = createProjectView({ elements: { container }, api: { getProjectWorkspace(slug) { return requests.get(slug).promise; } }, polling: { stop(key) { stops.push(key); }, start(key, callback, interval) { starts.push({ key, callback, interval }); } } });
   view.mount();
   const first = view.open("project-a");
@@ -548,6 +608,16 @@ test("project view ignores stale project responses and keeps polling cleanup rul
   assert.match(container.innerHTML, /project-b/);
   assert.doesNotMatch(container.innerHTML, /project-a/);
   assert.equal(starts.length, 0);
+
+  const gate3View = createProjectView({ elements: { container: projectDetailElement() }, api: { async getProjectWorkspace() { return workspace("gate-3-demo", null, "gate-3"); } }, polling: { stop() {}, start(key, callback, interval) { starts.push({ key, callback, interval }); } } });
+  gate3View.mount();
+  await gate3View.open("gate-3-demo");
+  assert.equal(starts.length, 0);
+
+  const remotionView = createProjectView({ elements: { container: projectDetailElement() }, api: { async getProjectWorkspace() { return workspace("remotion-running", null, "remotion", [{ slug: "remotion-running", status: "in-progress" }]); } }, polling: { stop() {}, start(key, callback, interval) { starts.push({ key, callback, interval }); } } });
+  remotionView.mount();
+  await remotionView.open("remotion-running");
+  assert.equal(starts.at(-1).interval, 3000);
 
   const running = deferred();
   const runningStops = [];
@@ -718,7 +788,7 @@ test("real dashboard view keeps project cards focused on opening project details
     const projectListState = new FakeElement();
     const refreshButton = new FakeElement();
     const api = {
-      async getProjects() { return [{ slug: "demo", currentStage: "visual-script", status: "waiting-gate", progress: 40, succeededCount: 6, stageCount: 15, next: { message: "等待 Gate 2 确认" } }]; },
+      async getProjects() { return [{ slug: "demo", currentStage: "visual-script", status: "waiting-gate", progress: 40, succeededCount: 6, stageCount: 14, next: { message: "等待 Gate 2 确认" } }]; },
       async getSeries() { return []; },
       async getJobs() { return []; },
     };
@@ -844,7 +914,7 @@ test("application returns from batch project details with the selected project p
       batchCreateList: batchProjectList, batchCreateListState: new FakeElement(), batchCreateSelectionState: new FakeElement(), batchCreateState: new FakeElement(), batchCreateActions: batchActions,
       ...seriesElements,
     };
-    const projects = [{ slug: "demo", currentStage: "visual-script", status: "waiting-gate", progress: 40, succeededCount: 6, stageCount: 15, next: { message: "等待 Gate 2 确认" } }];
+    const projects = [{ slug: "demo", currentStage: "visual-script", status: "waiting-gate", progress: 40, succeededCount: 6, stageCount: 14, next: { message: "等待 Gate 2 确认" } }];
     const application = startApplication({
       windowObject,
       router: createRouter({ windowObject }),
@@ -881,10 +951,10 @@ test("application returns from batch project details with the selected project p
 test("real dashboard view renders attention summary, pending projects and complete project list", async () => {
   await withBrowserGlobals(async () => {
     const projects = [
-      { sequence: 1, slug: "waiting-project", currentStage: "visual-script", status: "waiting", progress: 40, succeededCount: 6, stageCount: 15, next: { message: "等待人工确认" } },
-      { sequence: 2, slug: "failed-project", currentStage: "content-analysis", status: "failed", progress: 13, succeededCount: 2, stageCount: 15, next: { message: "修复执行失败" } },
-      { sequence: 3, slug: "running-project", currentStage: "video-narrative", status: "running", progress: 20, succeededCount: 3, stageCount: 15, next: { message: "正在执行当前阶段" } },
-      { sequence: 4, slug: "completed-project", currentStage: "completed", status: "completed", progress: 100, succeededCount: 15, stageCount: 15, next: { message: "所有阶段已完成" } },
+      { sequence: 1, slug: "waiting-project", currentStage: "visual-script", status: "waiting", progress: 40, succeededCount: 6, stageCount: 14, next: { message: "等待人工确认" } },
+      { sequence: 2, slug: "failed-project", currentStage: "content-analysis", status: "failed", progress: 13, succeededCount: 2, stageCount: 14, next: { message: "修复执行失败" } },
+      { sequence: 3, slug: "running-project", currentStage: "video-narrative", status: "running", progress: 20, succeededCount: 3, stageCount: 14, next: { message: "正在执行当前阶段" } },
+      { sequence: 4, slug: "completed-project", currentStage: "completed", status: "completed", progress: 100, succeededCount: 14, stageCount: 14, next: { message: "所有阶段已完成" } },
     ];
     const projectGrid = projectCollectionElement();
     const attentionProjectGrid = projectCollectionElement();
@@ -1116,7 +1186,8 @@ test("real batch view covers batch and Remotion actions with exact requests and 
       assert.match(batchList.innerHTML, /status status-waiting/);
       assert.match(batchList.innerHTML, /status status-waiting-tts-qc/);
       assert.match(batchList.innerHTML, /确认 TTS 质检/);
-      assert.match(batchList.innerHTML, /确认 Smoke 检查/);
+      assert.match(batchList.innerHTML, /历史 Smoke 检查（只读）/);
+      assert.doesNotMatch(batchList.innerHTML, /确认 Smoke 检查/);
       assert.match(batchList.innerHTML, /重试失败项目/);
       assert.match(taskList.innerHTML, /status status-ready/);
       assert.match(taskList.innerHTML, /status status-in-progress/);
@@ -1132,22 +1203,11 @@ test("real batch view covers batch and Remotion actions with exact requests and 
       batchActionGates.shift().resolve({});
       await flush();
 
-      const smokeButton = batchList.querySelectorAll("[data-batch-action]").find((button) => button.dataset.batchAction === "approve-smoke-qc");
-      batchList.dispatch("click", { target: smokeButton });
-      batchList.dispatch("click", { target: smokeButton });
-      assert.deepEqual(batchActions, [
-        { id: "batch-tts", body: { action: "approve-tts-qc", slug: "tts-video" } },
-        { id: "batch-smoke", body: { action: "approve-smoke-qc", slug: "smoke-video" } },
-      ]);
-      batchActionGates.shift().resolve({});
-      await flush();
-
       const retryButton = batchList.querySelectorAll("[data-batch-action]").find((button) => button.dataset.batchAction === "retry-failed");
       batchList.dispatch("click", { target: retryButton });
       batchList.dispatch("click", { target: retryButton });
       assert.deepEqual(batchActions, [
         { id: "batch-tts", body: { action: "approve-tts-qc", slug: "tts-video" } },
-        { id: "batch-smoke", body: { action: "approve-smoke-qc", slug: "smoke-video" } },
         { id: "batch-failed", body: { action: "retry-failed", slug: null } },
       ]);
       batchActionGates.shift().resolve({});
@@ -1181,9 +1241,9 @@ test("real batch view covers batch and Remotion actions with exact requests and 
       taskActionGates.shift().resolve({});
       await flush();
       await flush();
-      assert.equal(projectRefreshes, 6);
+      assert.equal(projectRefreshes, 5);
       assert.deepEqual(openedProjects, ["active-video", "active-video", "active-video"]);
-      assert.ok(batchReads >= 4);
+      assert.ok(batchReads >= 3);
       assert.ok(taskReads >= 4);
       batchView.unmount();
       taskView.unmount();
@@ -1721,6 +1781,7 @@ test("project action service normalizes only the action input contract", () => {
   assert.equal(isSupportedProjectAction("delete-everything"), false);
   assert.deepEqual(normalizeProjectAction({ slug: "demo", action: "approve", commitAndPush: 1 }), {
     slug: "demo", action: "approve", stage: null, gate: null, returnTo: null, reason: null, runId: null,
-    commitAndPush: false, confirmDelivery: false,
+    commitAndPush: false, confirmDelivery: false, deliveryPlanId: null, selectedPaths: null,
+    renderInputUrl: null, renderInputSha256: null,
   });
 });

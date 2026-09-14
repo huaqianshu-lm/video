@@ -5,6 +5,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { spawn } from "node:child_process";
 import { packageVideoAssets } from "./asset-bundler.mjs";
+import { assertProjectSlugMutable } from "./storage.mjs";
 
 const DEFAULT_VOICE = "zh-CN-XiaoxiaoNeural";
 const DEFAULT_RATE = "+25%";
@@ -141,6 +142,7 @@ export async function runTtsHarnessAdapter(payload, { spawnProcess = runProcess 
   const workspaceRoot = path.resolve(payload.workspaceRoot);
   const slug = payload.videoId;
   if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) fail(`videoId 不是合法 slug：${slug}`, "tts-input-invalid");
+  assertProjectSlugMutable(slug, "生成 TTS 产物");
 
   const inputPath = safePath(workspaceRoot, payload.input.ttsScript, "TTS Script 路径");
   ensureFile(inputPath, "冻结的 tts-script.json");

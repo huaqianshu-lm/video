@@ -1,7 +1,7 @@
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
-import { projectDirectory, projectsRoot, readJson, writeJson } from "./storage.mjs";
+import { assertProjectSlugMutable, projectDirectory, projectsRoot, readJson, writeJson } from "./storage.mjs";
 import { ACTIVE_REMOTE_JOB_STATUSES, REMOTE_JOB_STATUS } from "./remote-status.mjs";
 
 const activeStatuses = new Set([
@@ -20,11 +20,13 @@ function jobPath(slug, id) {
 }
 
 function saveJob(job) {
+  assertProjectSlugMutable(job.slug, "写入远程 Job");
   writeJson(jobPath(job.slug, job.id), job);
   return job;
 }
 
 export function updateJob(slug, id, patch) {
+  assertProjectSlugMutable(slug, "更新远程 Job");
   const job = readJson(jobPath(slug, id));
   return saveJob({ ...job, ...patch, updatedAt: new Date().toISOString() });
 }
@@ -43,6 +45,7 @@ export function listAllJobs() {
 }
 
 export function createJobRecord({ slug, stage, metadata = {} }) {
+  assertProjectSlugMutable(slug, "创建远程 Job");
   const now = new Date().toISOString();
   return saveJob({
     id: crypto.randomUUID(),
@@ -76,6 +79,7 @@ export function findActiveJob(slug, stage) {
 
 export function createJob({ slug, stage, run }) {
   if (typeof run !== "function") throw new Error("Job requires a run function");
+  assertProjectSlugMutable(slug, "创建远程 Job");
   const now = new Date().toISOString();
   const job = saveJob({
     id: crypto.randomUUID(),

@@ -7,6 +7,8 @@ const environment = {
   GITHUB_REPOSITORY: "example/video",
   HARNESS_GITHUB_REF: "main",
   GITHUB_REF_NAME: "main",
+  HARNESS_RENDER_INPUT_URL: "https://api.github.com/repos/example/video-render-inputs/releases/assets/123",
+  HARNESS_RENDER_INPUT_SHA256: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
 };
 
 test("reports incomplete GitHub configuration without making a request", async () => {
@@ -32,7 +34,9 @@ test("checks repository, ref and workflows without exposing the token", async ()
       return { ok: true, status: 200 };
     },
   });
-  assert.equal(result.ok, true);
+  assert.equal(result.ok, false);
+  assert.equal(result.config.renderInputConfigured, false);
+  assert.match(result.checks[0].message, /按视频绑定/);
   assert.deepEqual(paths, [
     "/repos/example/video",
     "/repos/example/video/git/ref/heads/main",
@@ -48,6 +52,20 @@ test("surfaces API permission failures as failed diagnostics", async () => {
     fetchImpl: async () => ({ ok: false, status: 403 }),
   });
   assert.equal(result.ok, false);
-  assert.equal(result.checks.filter((item) => item.status === "failed").length, 4);
-  assert.match(result.checks[1].message, /403/);
+  assert.equal(result.checks.filter((item) => item.status === "failed").length, 5);
+  assert.match(result.checks[2].message, /403/);
+});
+
+test("does not treat legacy global render input variables as a video delivery binding", async () => {
+  const result = await diagnoseGitHubActions({
+    environment: {
+      ...environment,
+      HARNESS_RENDER_INPUT_URL: "https://github.com/example/video-render-inputs/releases/download/v1/video.zip",
+    },
+    fetchImpl: async () => ({ ok: true, status: 200 }),
+  });
+  assert.equal(result.ok, false);
+  assert.equal(result.config.renderInputConfigured, false);
+  assert.equal(result.checks[0].name, "render-input");
+  assert.match(result.checks[0].message, /按视频绑定/);
 });

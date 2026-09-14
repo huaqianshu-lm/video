@@ -11,6 +11,7 @@ import { requireGitHubActionsConfig } from "../github-config.mjs";
 import { diagnoseGitHubActions } from "../diagnostics.mjs";
 import { createRemoteJobMonitor } from "../remote-jobs.mjs";
 import { assertRemoteRenderDeliveryInputs, prepareRemoteRenderInputs, validateRemoteRenderPackage } from "../remote-executor.mjs";
+import { bindRenderInputDelivery } from "../render-input.mjs";
 import { buildGitRenderCommitPlan, commitAndPushRenderDelivery, validateGitRenderDelivery } from "../git-delivery.mjs";
 import { artifactManifestFor } from "../artifacts.mjs";
 import { approveGate, rejectGate, resumeProject, retryStage, runStage, validateStage } from "../runner.mjs";
@@ -40,7 +41,6 @@ import { normalizeProjectAction } from "./services/project-actions.mjs";
 import {
   approveTtsQc,
   approveTtsQcForProject,
-  approveSmokeQc,
   batchDefinitions,
   createBatch,
   findActiveBatchForProject,
@@ -189,7 +189,9 @@ async function serveApi(response, pathname, search, remoteJobMonitor, diagnose) 
   }
 
   if (pathname === "/api/diagnostics/github") {
-    sendJson(response, 200, await diagnose());
+    const slug = new URLSearchParams(search).get("slug");
+    const project = slug ? loadProject(slug, { refresh: false }) : null;
+    sendJson(response, 200, await diagnose({ project }));
     return true;
   }
 
@@ -341,9 +343,8 @@ async function serveBatchApi(response, request, pathname, runtime) {
       return true;
     }
     if (body.action === "approve-tts-qc") approveTtsQc(id, body.slug);
-    if (body.action === "approve-smoke-qc") approveSmokeQc(id, body.slug);
     if (body.action === "retry-failed") retryFailedBatchItems(id);
-    if (!["run", "resume", "approve-tts-qc", "approve-smoke-qc", "retry-failed"].includes(body.action)) {
+    if (!["run", "resume", "approve-tts-qc", "retry-failed"].includes(body.action)) {
       sendJson(response, 400, { error: `Unknown batch action: ${body.action ?? "missing"}` });
       return true;
     }
@@ -497,8 +498,8 @@ async function serveAction(response, request, pathname, runtime) {
 
   if (action === "find-historical") {
     const stage = body.stage;
-    if (stage !== "smoke-render" && stage !== "render") {
-      sendJson(response, 400, { error: "find-historical only supports smoke-render and render" });
+    if (stage !== "render") {
+      sendJson(response, 400, { error: "find-historical only supports render" });
       return true;
     }
     try {
@@ -517,8 +518,8 @@ async function serveAction(response, request, pathname, runtime) {
 
   if (action === "adopt-historical") {
     const stage = body.stage;
-    if ((stage !== "smoke-render" && stage !== "render") || body.runId === undefined || body.runId === null) {
-      sendJson(response, 400, { error: "adopt-historical requires smoke-render/render and runId" });
+    if (stage !== "render" || body.runId === undefined || body.runId === null) {
+      sendJson(response, 400, { error: "adopt-historical requires render and runId" });
       return true;
     }
     try {
@@ -548,8 +549,12 @@ async function serveAction(response, request, pathname, runtime) {
 
   if (action === "remote-run") {
     const stage = body.stage;
-    if (stage !== "smoke-render" && stage !== "render") {
-      sendJson(response, 400, { error: "remote-run only supports smoke-render and render" });
+    if (stage === "smoke-render") {
+      sendJson(response, 400, { error: "Smoke Render 已退出 Harness 生产流程，请从 GitHub Actions 手动触发独立环境检查。", code: "standalone-smoke-render" });
+      return true;
+    }
+    if (stage !== "render") {
+      sendJson(response, 400, { error: "remote-run only supports render" });
       return true;
     }
     try {
@@ -580,25 +585,22 @@ async function serveAction(response, request, pathname, runtime) {
       let delivery = null;
       const deliveryIssues = validateGitRenderDelivery(renderProject);
       if (deliveryIssues.length > 0) {
-        if (stage !== "smoke-render" || body.commitAndPush !== true || body.confirmDelivery !== true) {
-          if (stage === "smoke-render" && body.commitAndPush !== true) {
-            const commitPlan = buildGitRenderCommitPlan(renderProject);
-            sendJson(response, 200, {
-              result: { action, status: "needs-confirmation" },
-              error: `远程渲染交付预检失败：${deliveryIssues.join("；")}`,
-              code: "git-render-commit-confirmation-required",
-              issues: deliveryIssues,
-              commitPlan,
-              project: getVideoProject(slug),
-            });
-            return true;
-          }
-          const error = new Error(`远程渲染交付预检失败：${deliveryIssues.join("；")}`);
-          error.code = "remote-render-delivery-invalid";
-          error.issues = deliveryIssues;
-          throw error;
+        if (body.commitAndPush !== true || body.confirmDelivery !== true) {
+          const commitPlan = buildGitRenderCommitPlan(renderProject);
+          sendJson(response, 200, {
+            result: { action, status: "needs-confirmation" },
+            error: `远程渲染交付预检失败：${deliveryIssues.join("；")}`,
+            code: "git-render-commit-confirmation-required",
+            issues: deliveryIssues,
+            commitPlan,
+            project: getVideoProject(slug),
+          });
+          return true;
         }
-        delivery = commitAndPushRenderDelivery(renderProject);
+        delivery = commitAndPushRenderDelivery(renderProject, {
+          deliveryPlanId: body.deliveryPlanId,
+          selectedPaths: body.selectedPaths,
+        });
         const refreshedProject = loadProject(slug, { refresh: true });
         assertRemoteRenderDeliveryInputs(refreshedProject);
       } else {
@@ -618,8 +620,8 @@ async function serveAction(response, request, pathname, runtime) {
 
   if (action === "prepare-remote-render") {
     const stage = body.stage ?? projectView.currentStage;
-    if (stage !== "smoke-render" && stage !== "render") {
-      sendJson(response, 400, { error: "prepare-remote-render only supports smoke-render and render" });
+    if (stage !== "render") {
+      sendJson(response, 400, { error: "prepare-remote-render only supports render" });
       return true;
     }
     const renderProject = loadProject(slug, { refresh: true });
@@ -647,6 +649,24 @@ async function serveAction(response, request, pathname, runtime) {
         issues: error.issues ?? [],
         project: getVideoProject(slug),
       });
+    }
+    return true;
+  }
+
+  if (action === "bind-render-input") {
+    if (body.stage && body.stage !== "render") {
+      sendJson(response, 400, { error: "bind-render-input only supports render", code: "invalid-render-stage" });
+      return true;
+    }
+    try {
+      const project = loadProject(slug, { refresh: false });
+      const binding = await bindRenderInputDelivery(project, {
+        url: body.renderInputUrl,
+        sha256: body.renderInputSha256,
+      });
+      sendJson(response, 200, { result: { action, status: "bound", delivery: binding.delivery }, project: getVideoProject(slug) });
+    } catch (error) {
+      sendJson(response, 400, { error: error.message, code: error.code ?? "render-input-binding-failed", issues: error.issues ?? [] });
     }
     return true;
   }

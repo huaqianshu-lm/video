@@ -4,13 +4,21 @@ import { getAgentJob, listAgentJobs, recoverInterruptedAgentJobs, retryAgentJob 
 import { completeRemotionTask, getRemotionTask, listRemotionTasks, recoverInterruptedRemotionTasks, retryRemotionTask, startRemotionTask } from "../../remotion-tasks.mjs";
 import { runBatch } from "../../batches.mjs";
 import { readJsonBody, sendError, sendJson } from "../http.mjs";
+import { loadProject } from "../../storage.mjs";
 
 export function createRemoteRoutes({ runtime, diagnose = diagnoseGitHubActions } = {}) {
-  return async function handleRemote({ request, response, pathname }) {
+  return async function handleRemote({ request, response, pathname, search = "" }) {
     if (pathname === "/api/health" && request.method === "GET") { sendJson(response, 200, { service: "video-production-harness-web", harnessVersion: "0.6.0", status: "ok" }); return true; }
     if (pathname === "/api/jobs" && request.method === "GET") { sendJson(response, 200, { jobs: listAllJobs() }); return true; }
     if (pathname === "/api/agent-jobs" && request.method === "GET") { sendJson(response, 200, { jobs: listAgentJobs() }); return true; }
-    if (pathname === "/api/diagnostics/github" && request.method === "GET") { try { sendJson(response, 200, await diagnose()); } catch (error) { sendError(response, 400, { message: error.message, code: error.code ?? "github-diagnostics-failed", issues: error.issues ?? [] }); } return true; }
+    if (pathname === "/api/diagnostics/github" && request.method === "GET") {
+      try {
+        const slug = new URLSearchParams(search).get("slug");
+        const project = slug ? loadProject(slug, { refresh: false }) : null;
+        sendJson(response, 200, await diagnose({ project }));
+      } catch (error) { sendError(response, 400, { message: error.message, code: error.code ?? "github-diagnostics-failed", issues: error.issues ?? [] }); }
+      return true;
+    }
     const agent = pathname.match(/^\/api\/agent-jobs\/([a-f0-9-]+)(?:\/action)?$/);
     if (agent) {
       const action = pathname.endsWith("/action");

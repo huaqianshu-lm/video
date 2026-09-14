@@ -777,10 +777,10 @@ test("exposes the active remote job and treats repeated submission as idempotent
   const slug = "claude-code-what-is";
   initializeProject(slug);
   const project = loadProject(slug, { refresh: false });
-  project.state.currentStage = "smoke-render";
-  project.state.stages["smoke-render"].status = "ready";
+  project.state.currentStage = "render";
+  project.state.stages.render.status = "ready";
   writeJson(project.files.state, project.state);
-  const activeJob = createJobRecord({ slug, stage: "smoke-render" });
+  const activeJob = createJobRecord({ slug, stage: "render" });
   let submitCount = 0;
   const webServer = createWebServer({
     port: 0,
@@ -803,7 +803,7 @@ test("exposes the active remote job and treats repeated submission as idempotent
     const repeated = await request(webServer, `/api/projects/${slug}/action`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "remote-run", stage: "smoke-render" }),
+      body: JSON.stringify({ action: "remote-run", stage: "render" }),
     });
     assert.equal(repeated.status, 200);
     assert.equal(JSON.parse(repeated.body).result.status, "already-running");
@@ -838,8 +838,8 @@ test("blocks a new remote job when the render asset archive is incomplete", asyn
   initializeProject(slug);
   const project = loadProject(slug, { refresh: false });
   project.config.workspaceRoot = workspaceRoot;
-  project.state.currentStage = "smoke-render";
-  project.state.stages["smoke-render"].status = "ready";
+  project.state.currentStage = "render";
+  project.state.stages.render.status = "ready";
   writeJson(project.files.config, project.config);
   writeJson(project.files.state, project.state);
   let submitCount = 0;
@@ -860,7 +860,7 @@ test("blocks a new remote job when the render asset archive is incomplete", asyn
     const response = await request(webServer, `/api/projects/${slug}/action`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "remote-run", stage: "smoke-render" }),
+      body: JSON.stringify({ action: "remote-run", stage: "render" }),
     });
     assert.equal(response.status, 400);
     assert.match(JSON.parse(response.body).error, /远程渲染(输入|交付)预检失败/);

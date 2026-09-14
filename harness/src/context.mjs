@@ -1,4 +1,5 @@
 import {
+  RETIRED_STAGE_DEFINITIONS,
   STAGE_DEFINITIONS,
   getWorkflowDefinition,
   isGateStage,
@@ -63,6 +64,27 @@ export function buildTaskPacket(project) {
 
   const stage = state.currentStage;
   const definition = STAGE_DEFINITIONS[stage];
+  if (!definition) {
+    if (RETIRED_STAGE_DEFINITIONS[stage]) {
+      return {
+        schemaVersion: 1,
+        kind: "video-stage-task",
+        harnessVersion: config.harnessVersion,
+        project: {
+          slug: state.slug,
+          workflow: config.workflow,
+          workflowVersion: config.workflowVersion,
+          target: config.target,
+          currentStage: stage,
+          status: state.stages[stage]?.status ?? "unknown",
+        },
+        task: null,
+        readOnly: true,
+        message: "该项目保留旧版 Smoke Render 记录，仅供只读查看；当前生产流程不提供 Smoke 阶段任务。",
+      };
+    }
+    throw new Error("Unknown stage: " + stage);
+  }
   const item = state.stages[stage];
   const contract = definition.contract;
   const currentValidationIssues = validateProjectStage(project, stage);
@@ -101,7 +123,6 @@ export function buildTaskPacket(project) {
     for (const outputPath of [
       remotionAlignmentPath(project),
       `src/videos/${config.slug}/*.tsx`,
-      "src/Root.tsx",
     ]) {
       outputs.push({
         stage,
@@ -188,6 +209,8 @@ export function buildTaskPacket(project) {
           "如果 Scene／Segment／Cue 映射缺失或时长不一致，必须停止制作并报告原因。",
           ...(remotionTimingPlanError ? [`当前无法生成 context.timingPlan：${remotionTimingPlanError}`] : []),
           "必须逐 Scene 生成 schemaVersion 2 的 remotion-alignment.json，记录 Timeline 来源、Scene 起止秒／帧、Audio Segment、Subtitle Cue，以及每个视觉事件绑定的 Cue／Segment 和时间点；不能只记录布局文字。",
+          "每个需要延迟出现的画面元素都必须在 remotion-alignment.json 的 visualElements 中声明，并通过 bindingId 一对一绑定命名 visualBindings；箭头、连线和关系标签必须声明依赖项，并从所有依赖项中最晚的显示帧开始。实现文件必须声明 implementationSymbols，禁止使用 Cue 数组下标、任意 fallback 帧、固定间隔推算或默认从 Scene 起始帧显示。",
+          "Remotion Agent 不得写入或修改受跟踪的 src/Root.tsx；产物完成后由 Harness 从当前视频已校验的独立输入包生成被忽略的 src/RenderInputRoot.tsx，校验和 Studio 预览只使用这个临时入口。",
         ] : []),
       ],
       ...(stage === "remotion" ? { prototypeBaseline } : {}),

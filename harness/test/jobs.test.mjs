@@ -8,6 +8,7 @@ import { createJobRecord, getJob, updateJob } from "../src/jobs.mjs";
 import { createRemoteJobMonitor } from "../src/remote-jobs.mjs";
 import { initializeProject, loadProject, writeJson } from "../src/storage.mjs";
 import { validateProjectStage } from "../src/validation.mjs";
+import { bindRenderInputDelivery, packageRenderInput, prepareRenderInput, renderInputDeliveryPath } from "../src/render-input.mjs";
 
 test("persists a background job and its completed result", async () => {
   const projectsRoot = fs.mkdtempSync(path.join(os.tmpdir(), "video-harness-jobs-"));
@@ -18,15 +19,15 @@ test("persists a background job and its completed result", async () => {
   try {
     const { job, done } = createJob({
       slug: "job-video",
-      stage: "smoke-render",
+      stage: "render",
       run: async () => ({ outputs: [{ kind: "test-output" }] }),
     });
     assert.equal(job.status, "queued");
-    assert.equal(findActiveJob("job-video", "smoke-render")?.id, job.id);
+    assert.equal(findActiveJob("job-video", "render")?.id, job.id);
     const finished = await done;
     assert.equal(finished.status, "succeeded");
     assert.deepEqual(finished.result.outputs, [{ kind: "test-output" }]);
-    assert.equal(findActiveJob("job-video", "smoke-render"), null);
+    assert.equal(findActiveJob("job-video", "render"), null);
     assert.equal(listJobs("job-video").length, 1);
   } finally {
     if (previousRoot === undefined) delete process.env.HARNESS_PROJECTS_DIR;
@@ -35,7 +36,7 @@ test("persists a background job and its completed result", async () => {
   }
 });
 
-test("recovers a persisted remote job and advances the Harness stage", async () => {
+test("recovers a persisted complete Render job and advances to Gate 4", async () => {
   const projectsRoot = fs.mkdtempSync(path.join(os.tmpdir(), "video-harness-remote-"));
   const previousRoot = process.env.HARNESS_PROJECTS_DIR;
   process.env.HARNESS_PROJECTS_DIR = projectsRoot;
@@ -44,17 +45,17 @@ test("recovers a persisted remote job and advances the Harness stage", async () 
   try {
     initializeProject("remote-video");
     const project = loadProject("remote-video", { refresh: false });
-    project.state.currentStage = "smoke-render";
+    project.state.currentStage = "render";
     for (const stage of ["source", "content-analysis", "video-narrative", "scene-script", "narration-script", "visual-script", "visual-prototype", "gate-2", "tts", "subtitle-timeline", "remotion", "gate-3"]) {
       project.state.stages[stage].status = "succeeded";
     }
-    project.state.stages["smoke-render"].status = "ready";
+    project.state.stages.render.status = "ready";
     writeJson(project.files.state, project.state);
 
-    const job = createJobRecord({ slug: "remote-video", stage: "smoke-render" });
+    const job = createJobRecord({ slug: "remote-video", stage: "render" });
     const adapter = {
       createDispatch: ({ stage, project: current, dispatchedAt }) => ({
-        workflow: "smoke-test-video.yml",
+        workflow: "render-video.yml",
         ref: "main",
         slug: current.state.slug,
         compositionId: current.config.slug,
@@ -62,7 +63,7 @@ test("recovers a persisted remote job and advances the Harness stage", async () 
       }),
       findDispatchedRunOnce: async () => null,
       dispatchWorkflow: async ({ stage, project: current, dispatchedAt }) => ({
-        workflow: "smoke-test-video.yml",
+        workflow: "render-video.yml",
         ref: "main",
         slug: current.state.slug,
         compositionId: current.config.slug,
@@ -71,7 +72,7 @@ test("recovers a persisted remote job and advances the Harness stage", async () 
       inspectRun: async ({ dispatch }) => ({
         status: "succeeded",
         remote: { ...dispatch, runId: 123, runUrl: "https://github.com/example/video/actions/runs/123" },
-        result: { outputs: [{ kind: "github-actions-run", runId: 123, artifactName: "remote-video-smoke-test" }] },
+        result: { outputs: [{ kind: "github-actions-run", runId: 123, artifactName: "remote-video" }] },
       }),
     };
     const monitor = createRemoteJobMonitor({ adapterFactory: () => adapter, pollIntervalMs: 10 });
@@ -80,7 +81,7 @@ test("recovers a persisted remote job and advances the Harness stage", async () 
     const finished = getJob("remote-video", job.id);
     assert.equal(finished.status, "succeeded");
     assert.equal(finished.remote.runId, 123);
-    assert.equal(loadProject("remote-video").state.currentStage, "render");
+    assert.equal(loadProject("remote-video").state.currentStage, "gate-4");
   } finally {
     if (previousRoot === undefined) delete process.env.HARNESS_PROJECTS_DIR;
     else process.env.HARNESS_PROJECTS_DIR = previousRoot;
@@ -98,7 +99,7 @@ test("opens Gate 4 after a remote render Artifact succeeds without a local MP4",
     initializeProject("remote-render-video");
     const project = loadProject("remote-render-video", { refresh: false });
     project.state.currentStage = "render";
-    for (const stage of ["source", "content-analysis", "video-narrative", "scene-script", "narration-script", "visual-script", "visual-prototype", "gate-2", "tts", "subtitle-timeline", "remotion", "gate-3", "smoke-render"]) {
+    for (const stage of ["source", "content-analysis", "video-narrative", "scene-script", "narration-script", "visual-script", "visual-prototype", "gate-2", "tts", "subtitle-timeline", "remotion", "gate-3"]) {
       project.state.stages[stage].status = "succeeded";
     }
     project.state.stages.render.status = "ready";
@@ -164,7 +165,7 @@ test("reconciles a previously dispatched render after the first remote check fai
     initializeProject("reconcile-render-video");
     const project = loadProject("reconcile-render-video", { refresh: false });
     project.state.currentStage = "render";
-    for (const stage of ["source", "content-analysis", "video-narrative", "scene-script", "narration-script", "visual-script", "visual-prototype", "gate-2", "tts", "subtitle-timeline", "remotion", "gate-3", "smoke-render"]) {
+    for (const stage of ["source", "content-analysis", "video-narrative", "scene-script", "narration-script", "visual-script", "visual-prototype", "gate-2", "tts", "subtitle-timeline", "remotion", "gate-3"]) {
       project.state.stages[stage].status = "succeeded";
     }
     project.state.stages.render.status = "failed";
@@ -234,7 +235,7 @@ test("keeps a remote job waiting when GitHub configuration is unavailable", asyn
 
   try {
     initializeProject("config-video");
-    const job = createJobRecord({ slug: "config-video", stage: "smoke-render" });
+    const job = createJobRecord({ slug: "config-video", stage: "render" });
     const error = new Error("GITHUB_TOKEN or GH_TOKEN is required");
     error.code = "github-config-invalid";
     error.issues = [{ code: "missing-token" }];
@@ -243,7 +244,7 @@ test("keeps a remote job waiting when GitHub configuration is unavailable", asyn
     const waiting = getJob("config-video", job.id);
     assert.equal(waiting.status, "waiting-config");
     assert.equal(waiting.error.code, "github-config-invalid");
-    assert.equal(loadProject("config-video", { refresh: false }).state.stages["smoke-render"].status, "pending");
+    assert.equal(loadProject("config-video", { refresh: false }).state.stages.render.status, "pending");
     updateJob("config-video", job.id, { status: "failed" });
   } finally {
     if (previousRoot === undefined) delete process.env.HARNESS_PROJECTS_DIR;
@@ -261,21 +262,21 @@ test("does not dispatch twice after recovering a persisted dispatch intent", asy
   try {
     initializeProject("recover-video");
     const project = loadProject("recover-video", { refresh: false });
-    project.state.currentStage = "smoke-render";
+    project.state.currentStage = "render";
     for (const stage of ["source", "content-analysis", "video-narrative", "scene-script", "narration-script", "visual-script", "visual-prototype", "gate-2", "tts", "subtitle-timeline", "remotion", "gate-3"]) {
       project.state.stages[stage].status = "succeeded";
     }
-    project.state.stages["smoke-render"].status = "ready";
+    project.state.stages.render.status = "ready";
     writeJson(project.files.state, project.state);
 
     const job = createJobRecord({
       slug: "recover-video",
-      stage: "smoke-render",
+      stage: "render",
       metadata: {
         status: "dispatching",
         dispatchingAt: "2026-08-23T00:00:00.000Z",
         remote: {
-          workflow: "smoke-test-video.yml",
+          workflow: "render-video.yml",
           ref: "main",
           slug: "recover-video",
           compositionId: "recover-video",
@@ -288,7 +289,7 @@ test("does not dispatch twice after recovering a persisted dispatch intent", asy
     let dispatchCount = 0;
     const adapter = {
       createDispatch: ({ project: current, dispatchedAt }) => ({
-        workflow: "smoke-test-video.yml", ref: "main", slug: current.state.slug, compositionId: current.config.slug, dispatchedAt,
+        workflow: "render-video.yml", ref: "main", slug: current.state.slug, compositionId: current.config.slug, dispatchedAt,
       }),
       findDispatchedRunOnce: async () => ({ id: 456, html_url: "https://github.com/example/video/actions/runs/456" }),
       dispatchWorkflow: async () => { dispatchCount += 1; throw new Error("duplicate dispatch"); },
@@ -323,7 +324,7 @@ test("marks a dispatched remote job as timed out and stops scheduling checks", a
     initializeProject("timeout-video");
     const project = loadProject("timeout-video", { refresh: false });
     project.state.currentStage = "render";
-    for (const stage of ["source", "content-analysis", "video-narrative", "scene-script", "narration-script", "visual-script", "visual-prototype", "gate-2", "tts", "subtitle-timeline", "remotion", "gate-3", "smoke-render"]) {
+    for (const stage of ["source", "content-analysis", "video-narrative", "scene-script", "narration-script", "visual-script", "visual-prototype", "gate-2", "tts", "subtitle-timeline", "remotion", "gate-3"]) {
       project.state.stages[stage].status = "succeeded";
     }
     project.state.stages.render.status = "running";
@@ -376,7 +377,7 @@ test("keeps transient GitHub API failures recoverable without failing the stage"
     initializeProject("recoverable-video");
     const project = loadProject("recoverable-video", { refresh: false });
     project.state.currentStage = "render";
-    for (const stage of ["source", "content-analysis", "video-narrative", "scene-script", "narration-script", "visual-script", "visual-prototype", "gate-2", "tts", "subtitle-timeline", "remotion", "gate-3", "smoke-render"]) {
+    for (const stage of ["source", "content-analysis", "video-narrative", "scene-script", "narration-script", "visual-script", "visual-prototype", "gate-2", "tts", "subtitle-timeline", "remotion", "gate-3"]) {
       project.state.stages[stage].status = "succeeded";
     }
     project.state.stages.render.status = "running";
@@ -427,19 +428,19 @@ test("retries an unconfirmed dispatch after the first GitHub check fails", async
   try {
     initializeProject("retry-dispatch-video");
     const project = loadProject("retry-dispatch-video", { refresh: false });
-    project.state.currentStage = "smoke-render";
+    project.state.currentStage = "render";
     for (const stage of ["source", "content-analysis", "video-narrative", "scene-script", "narration-script", "visual-script", "visual-prototype", "gate-2", "tts", "subtitle-timeline", "remotion", "gate-3"]) {
       project.state.stages[stage].status = "succeeded";
     }
-    project.state.stages["smoke-render"].status = "ready";
+    project.state.stages.render.status = "ready";
     writeJson(project.files.state, project.state);
 
-    const job = createJobRecord({ slug: "retry-dispatch-video", stage: "smoke-render" });
+    const job = createJobRecord({ slug: "retry-dispatch-video", stage: "render" });
     let checkCount = 0;
     let dispatchCount = 0;
     const adapter = {
       createDispatch: ({ project: current, dispatchedAt }) => ({
-        workflow: "smoke-test-video.yml",
+        workflow: "render-video.yml",
         ref: "main",
         slug: current.state.slug,
         compositionId: current.config.slug,
@@ -453,7 +454,7 @@ test("retries an unconfirmed dispatch after the first GitHub check fails", async
       dispatchWorkflow: async ({ project: current, dispatchedAt }) => {
         dispatchCount += 1;
         return {
-          workflow: "smoke-test-video.yml",
+          workflow: "render-video.yml",
           ref: "main",
           slug: current.state.slug,
           compositionId: current.config.slug,
@@ -496,7 +497,7 @@ test("supports explicit adoption of a successful historical render", async () =>
     initializeProject("adopt-render-video");
     const project = loadProject("adopt-render-video", { refresh: false });
     project.state.currentStage = "render";
-    for (const stage of ["source", "content-analysis", "video-narrative", "scene-script", "narration-script", "visual-script", "visual-prototype", "gate-2", "tts", "subtitle-timeline", "remotion", "gate-3", "smoke-render"]) {
+    for (const stage of ["source", "content-analysis", "video-narrative", "scene-script", "narration-script", "visual-script", "visual-prototype", "gate-2", "tts", "subtitle-timeline", "remotion", "gate-3"]) {
       project.state.stages[stage].status = "succeeded";
     }
     project.state.stages.render.status = "running";
@@ -562,5 +563,77 @@ test("supports explicit adoption of a successful historical render", async () =>
     if (previousRoot === undefined) delete process.env.HARNESS_PROJECTS_DIR;
     else process.env.HARNESS_PROJECTS_DIR = previousRoot;
     fs.rmSync(projectsRoot, { recursive: true, force: true });
+  }
+});
+
+test("persists the exact input binding on a remote Job and blocks a later rebinding", async () => {
+  const projectsRoot = fs.mkdtempSync(path.join(os.tmpdir(), "video-harness-bound-job-projects-"));
+  const workspaceRoot = fs.mkdtempSync(path.join(os.tmpdir(), "video-harness-bound-job-workspace-"));
+  const previousRoot = process.env.HARNESS_PROJECTS_DIR;
+  process.env.HARNESS_PROJECTS_DIR = projectsRoot;
+  const slug = "bound-job-video";
+  try {
+    initializeProject(slug);
+    const project = loadProject(slug, { refresh: false });
+    project.config.workspaceRoot = workspaceRoot;
+    project.state.currentStage = "render";
+    for (const stage of ["source", "content-analysis", "video-narrative", "scene-script", "narration-script", "visual-script", "visual-prototype", "gate-2", "tts", "subtitle-timeline", "remotion", "gate-3"]) {
+      project.state.stages[stage].status = "succeeded";
+    }
+    project.state.stages.render.status = "ready";
+    writeJson(project.files.config, project.config);
+    writeJson(project.files.state, project.state);
+    const sourceRoot = path.join(workspaceRoot, "videos", slug);
+    const remotionRoot = path.join(workspaceRoot, "src", "videos", slug);
+    const assetRoot = path.join(workspaceRoot, "public", "local-assets", slug);
+    fs.mkdirSync(sourceRoot, { recursive: true });
+    fs.mkdirSync(path.join(remotionRoot, "generated"), { recursive: true });
+    fs.mkdirSync(path.join(assetRoot, "audio", "scene-01"), { recursive: true });
+    fs.mkdirSync(path.join(assetRoot, "subtitles"), { recursive: true });
+    fs.writeFileSync(path.join(sourceRoot, "source.md"), "source\n");
+    fs.writeFileSync(path.join(remotionRoot, "BoundJobVideo.tsx"), "export const BoundJobVideo = () => null;\n");
+    fs.writeFileSync(path.join(remotionRoot, "video.config.ts"), `export const videoConfig = {slug: '${slug}', fps: 30, width: 1920, height: 1080};\n`);
+    for (const name of ["audio-manifest.json", "subtitle-manifest.json", "timeline-manifest.json"]) {
+      fs.writeFileSync(path.join(remotionRoot, "generated", name), JSON.stringify({ videoId: slug, scenes: [{ sceneId: "01", segments: name === "audio-manifest.json" ? [{ file: "audio/scene-01/01-01.mp3" }] : undefined }] }));
+    }
+    fs.writeFileSync(path.join(assetRoot, "audio", "scene-01", "01-01.mp3"), "audio");
+    fs.writeFileSync(path.join(assetRoot, "subtitles", "captions.vtt"), "WEBVTT\n");
+    fs.writeFileSync(path.join(assetRoot, "subtitles", "captions.srt"), "1\n00:00:00,000 --> 00:00:01,000\nBound\n");
+    prepareRenderInput(project);
+    const packaged = packageRenderInput(workspaceRoot, slug);
+    const archiveBytes = fs.readFileSync(packaged.archivePath);
+    await bindRenderInputDelivery(project, {
+      url: "https://inputs.example.test/bound-job.zip",
+      sha256: packaged.archiveSha256,
+      fetchImpl: async () => ({ ok: true, status: 200, arrayBuffer: async () => archiveBytes }),
+    });
+
+    const adapter = {
+      requiresRenderPreflight: false,
+      createDispatch: ({ project: current, dispatchedAt }) => ({ workflow: "render-video.yml", ref: "main", slug: current.state.slug, compositionId: current.config.slug, dispatchedAt }),
+      findDispatchedRunOnce: async () => null,
+      dispatchWorkflow: async ({ project: current, dispatchedAt }) => ({ workflow: "render-video.yml", ref: "main", slug: current.state.slug, compositionId: current.config.slug, dispatchedAt }),
+      inspectRun: async ({ dispatch }) => ({ status: "running", remote: dispatch }),
+    };
+    const monitor = createRemoteJobMonitor({ adapterFactory: () => adapter, pollIntervalMs: 10 });
+    const job = monitor.submit({ slug, stage: "render" });
+    const persisted = getJob(slug, job.id);
+    assert.equal(persisted.remote.renderInputUrl, "https://inputs.example.test/bound-job.zip");
+    assert.equal(persisted.remote.renderInputSha256, packaged.archiveSha256);
+    assert.match(persisted.remote.renderInputPackageFingerprint, /^[a-f0-9]{64}$/);
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    const deliveryPath = renderInputDeliveryPath(workspaceRoot, slug);
+    const delivery = JSON.parse(fs.readFileSync(deliveryPath, "utf8"));
+    delivery.url = "https://inputs.example.test/newer.zip";
+    fs.writeFileSync(deliveryPath, `${JSON.stringify(delivery, null, 2)}\n`);
+    await monitor.processJob(job.id);
+    const changed = getJob(slug, job.id);
+    assert.equal(changed.remote.renderInputUrl, "https://inputs.example.test/bound-job.zip");
+    assert.equal(changed.error.code, "remote-job-input-binding-changed");
+  } finally {
+    if (previousRoot === undefined) delete process.env.HARNESS_PROJECTS_DIR;
+    else process.env.HARNESS_PROJECTS_DIR = previousRoot;
+    fs.rmSync(projectsRoot, { recursive: true, force: true });
+    fs.rmSync(workspaceRoot, { recursive: true, force: true });
   }
 });

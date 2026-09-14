@@ -1,8 +1,10 @@
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
-import { readJson, writeJson } from "./storage.mjs";
+import { assertProjectMutable, assertProjectSlugMutable, readJson, writeJson } from "./storage.mjs";
 import { buildRemotionTimingPlan } from "./remotion-timing.mjs";
+import { validateVisualBindings } from "./visual-timing.mjs";
+import { renderInputDirectory, validateCurrentRenderInput } from "./render-input.mjs";
 
 export const REMOTION_ALIGNMENT_SCHEMA_VERSION = 2;
 
@@ -61,6 +63,8 @@ export function buildPrototypeBaseline(project) {
 }
 
 export function freezePrototypeBaseline(project) {
+  assertProjectMutable(project, "冻结 Visual Prototype 基线");
+  assertProjectSlugMutable(project.config.slug, "冻结 Visual Prototype 基线");
   const baseline = buildPrototypeBaseline(project);
   const remotionDirectory = path.join(project.config.workspaceRoot, "src", "videos", project.config.slug);
   const hasExistingImplementation = fs.existsSync(path.join(remotionDirectory, "video.config.ts"))
@@ -91,6 +95,55 @@ function alignmentIssue(code, message, issuePath = null, severity = "error") {
   return { code, stage: "remotion", path: issuePath, message, severity };
 }
 
+function escapeRegExp(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function validateTemporaryRenderEntry(project) {
+  const entryPath = "src/RenderInputRoot.tsx";
+  const packagePath = path.join(renderInputDirectory(project.config.workspaceRoot, project.config.slug), "render-input.json");
+  const packageIssues = validateCurrentRenderInput(project);
+  const issues = packageIssues.map((message) => alignmentIssue("render-input-package-invalid", message, packagePath));
+  if (issues.length > 0) return issues;
+
+  let manifest;
+  try {
+    manifest = readJson(packagePath);
+  } catch (error) {
+    return [alignmentIssue("render-input-package-invalid", `无法读取当前输入包清单：${error instanceof Error ? error.message : String(error)}`, packagePath)];
+  }
+  const source = readWorkspaceText(project, entryPath);
+  if (source === null) return [alignmentIssue("render-input-entry-missing", "缺少由当前视频输入包生成的 src/RenderInputRoot.tsx。", entryPath)];
+
+  const componentPath = manifest.entry?.componentPath?.replace(/^src\//, "./").replace(/\.tsx$/, "");
+  const configPath = manifest.entry?.configPath?.replace(/^src\//, "./").replace(/\.ts$/, "");
+  const componentExport = manifest.entry?.componentExport;
+  const configExport = manifest.entry?.configExport;
+  const expectedCompositionId = manifest.compositionId;
+  const expectedImports = [
+    [`import\\s*\\{\\s*${escapeRegExp(componentExport)}\\s*\\}\\s*from\\s*['\"]${escapeRegExp(componentPath)}['\"]`, "组件"],
+    [`import\\s*\\{\\s*${escapeRegExp(configExport)}\\s*\\}\\s*from\\s*['\"]${escapeRegExp(configPath)}['\"]`, "配置"],
+  ];
+  for (const [pattern, label] of expectedImports) {
+    if (!new RegExp(pattern).test(source)) {
+      issues.push(alignmentIssue("render-input-entry-mismatch", `临时入口没有导入当前输入包的${label}：${label === "组件" ? componentPath : configPath}`, entryPath));
+    }
+  }
+  if (!new RegExp(`\\bid\\s*=\\s*[\"']${escapeRegExp(expectedCompositionId)}[\"']`).test(source)) {
+    issues.push(alignmentIssue("render-input-entry-mismatch", `临时入口的 Composition ID 不是 ${expectedCompositionId}。`, entryPath));
+  }
+  if (!new RegExp(`\\bcomponent\\s*=\\s*\\{\\s*${escapeRegExp(componentExport)}\\s*\\}`).test(source)) {
+    issues.push(alignmentIssue("render-input-entry-mismatch", "临时入口没有把当前输入包组件注册到 Composition。", entryPath));
+  }
+  if (!source.includes("registerRoot(Root)")) {
+    issues.push(alignmentIssue("render-input-entry-mismatch", "临时入口没有调用 registerRoot(Root)。", entryPath));
+  }
+  if (source.includes("src/videos/") || source.includes("from './Root'") || source.includes('from "./Root"')) {
+    issues.push(alignmentIssue("render-input-entry-mismatch", "临时入口引用了错误的仓库路径，不能依赖通用 Root 或硬编码本地视频路径。", entryPath));
+  }
+  return issues;
+}
+
 function timingNumberIssue(issues, label, actual, expected, relativePath) {
   if (typeof actual !== "number" || !Number.isFinite(actual) || Math.abs(actual - expected) > 0.02) {
     issues.push(alignmentIssue("remotion-alignment-timing-mismatch", `${label} 时间映射不一致：${actual} ≠ ${expected}。`, relativePath));
@@ -100,6 +153,72 @@ function timingNumberIssue(issues, label, actual, expected, relativePath) {
 function timingFrameIssue(issues, label, actual, expected, relativePath) {
   if (actual !== expected) {
     issues.push(alignmentIssue("remotion-alignment-frame-mismatch", `${label} 帧映射不一致：${actual} ≠ ${expected}。`, relativePath));
+  }
+}
+
+function validateVisualElements(scene, bindings, relativePath, issues) {
+  if (scene.visualElements === undefined) return;
+  if (!Array.isArray(scene.visualElements) || scene.visualElements.length === 0) {
+    issues.push(alignmentIssue("visual-elements-missing", "Scene 声明了逐元素对齐，但没有有效的 visualElements。", relativePath));
+    return;
+  }
+
+  const bindingById = new Map(bindings.map((binding) => [binding?.id, binding]));
+  const elementIds = new Set();
+  for (const element of scene.visualElements) {
+    if (!element || typeof element.id !== "string" || !element.id.trim()) {
+      issues.push(alignmentIssue("visual-element-id-invalid", "视觉元素缺少有效 ID。", relativePath));
+      continue;
+    }
+    if (elementIds.has(element.id)) {
+      issues.push(alignmentIssue("visual-element-id-duplicate", `视觉元素 ID 重复：${element.id}。`, relativePath));
+      continue;
+    }
+    elementIds.add(element.id);
+    if (typeof element.bindingId !== "string" || !element.bindingId.trim()) {
+      issues.push(alignmentIssue("visual-element-binding-missing", `视觉元素 ${element.id} 缺少 bindingId。`, relativePath));
+      continue;
+    }
+    const binding = bindingById.get(element.bindingId);
+    if (!binding) {
+      issues.push(alignmentIssue("visual-element-binding-missing", `视觉元素 ${element.id} 未绑定有效视觉事件：${element.bindingId}。`, relativePath));
+      continue;
+    }
+    if (typeof element.screenText !== "string" || !Array.isArray(scene.screenText) || !scene.screenText.includes(element.screenText)) {
+      issues.push(alignmentIssue("visual-element-text-unmapped", `视觉元素 ${element.id} 的屏幕文字没有出现在 Scene screenText 清单中。`, relativePath));
+    }
+    if (element.atFrame !== undefined && element.atFrame !== binding.atFrame) {
+      issues.push(alignmentIssue("visual-element-frame-mismatch", `视觉元素 ${element.id} 的开始帧没有继承绑定事件。`, relativePath));
+    }
+  }
+}
+
+function validateImplementationTimingPatterns(scene, project, relativePath, issues, strictVisualTiming) {
+  if (!strictVisualTiming && (!Array.isArray(scene.visualElements) || scene.visualElements.length === 0)) return;
+  if (!Array.isArray(scene.implementationSymbols) || scene.implementationSymbols.length === 0) {
+    issues.push(alignmentIssue("visual-timing-symbols-missing", `Scene ${scene.sceneId} 缺少 implementationSymbols，无法检查视觉元素实现。`, relativePath));
+    return;
+  }
+
+  for (const implementationFile of scene.implementationFiles ?? []) {
+    const absolutePath = path.join(project.config.workspaceRoot, implementationFile);
+    if (!fs.existsSync(absolutePath) || !fs.statSync(absolutePath).isFile()) continue;
+    const source = fs.readFileSync(absolutePath, "utf8");
+    for (const symbol of scene.implementationSymbols) {
+      const marker = `const ${symbol} =`;
+      const start = source.indexOf(marker);
+      if (start < 0) {
+        issues.push(alignmentIssue("visual-timing-symbol-missing", `Scene ${scene.sceneId} 找不到实现符号：${symbol}。`, relativePath));
+        continue;
+      }
+      const nextDeclaration = source.indexOf("\nconst ", start + marker.length);
+      const nextExport = source.indexOf("\nexport ", start + marker.length);
+      const endCandidates = [nextDeclaration, nextExport].filter((index) => index >= 0);
+      const scopedSource = source.slice(start, endCandidates.length > 0 ? Math.min(...endCandidates) : source.length);
+      if (/\b(?:cueFrames|cueReveal)\b|\breveal\s*\(|\b(?:cue|segment)Frames\s*\[|\+\s*index\s*\*\s*\d+/.test(scopedSource)) {
+        issues.push(alignmentIssue("visual-timing-pattern-forbidden", `Scene ${scene.sceneId} 的 ${symbol} 使用了 Cue 下标或固定间隔生成视觉时间，必须改为命名 visualBindings。`, relativePath));
+      }
+    }
   }
 }
 
@@ -179,6 +298,27 @@ function validateSceneTiming(scene, expected, relativePath, issues) {
     const expectedFrame = Math.round((animation.atSeconds ?? 0) * expected.fps);
     timingFrameIssue(issues, `Scene ${expected.sceneId} 动画事件 ${index + 1}`, animation.atFrame, expectedFrame, relativePath);
   });
+
+  const bindings = Array.isArray(scene.visualBindings) ? scene.visualBindings : [];
+  if (scene.visualBindings !== undefined) {
+    for (const binding of bindings) {
+      const source = binding?.source;
+      const sourceTiming = source?.type === "segment"
+        ? segmentById.get(source.id)
+        : source?.type === "cue" ? cueById.get(source.id) : null;
+      if (source && !sourceTiming) {
+        issues.push(alignmentIssue("visual-binding-source-invalid", `Scene ${expected.sceneId} 的视觉事件来源不存在。`, relativePath));
+        continue;
+      }
+      if (sourceTiming && binding.atFrame !== sourceTiming.startFrame) {
+        issues.push(alignmentIssue("visual-binding-source-frame-mismatch", `Scene ${expected.sceneId} 的视觉事件 ${binding.id} 未从来源起始帧开始。`, relativePath));
+      }
+    }
+    for (const issue of validateVisualBindings(bindings)) {
+      issues.push(alignmentIssue(issue.code, issue.message, relativePath));
+    }
+  }
+  validateVisualElements(scene, bindings, relativePath, issues);
 }
 
 export function validateRemotionAlignment(project) {
@@ -195,6 +335,7 @@ export function validateRemotionAlignment(project) {
     return [alignmentIssue("prototype-baseline-invalid", error instanceof Error ? error.message : String(error))];
   }
   const issues = [];
+  const strictVisualTiming = baseline.alignmentRequired !== false;
   if (current.visualScript.fingerprint !== baseline.visualScript?.fingerprint
     || current.visualPrototype.fingerprint !== baseline.visualPrototype?.fingerprint) {
     issues.push(alignmentIssue("prototype-baseline-stale", "Gate 2 后 Visual Script 或 Visual Prototype 已变化，必须重新确认 Gate 2。"));
@@ -243,11 +384,7 @@ export function validateRemotionAlignment(project) {
     issues.push(alignmentIssue("remotion-alignment-timing-missing", "Remotion 对齐清单缺少全局时间来源和总时长。", relativePath));
   }
 
-  const rootPath = "src/Root.tsx";
-  const rootSource = readWorkspaceText(project, rootPath);
-  if (rootSource === null || !rootSource.includes(project.config.slug)) {
-    issues.push(alignmentIssue("composition-not-registered", `Remotion Composition 未在 ${rootPath} 注册：${project.config.slug}`, rootPath));
-  }
+  issues.push(...validateTemporaryRenderEntry(project));
 
   const scenes = Array.isArray(alignment.scenes) ? alignment.scenes : [];
   const actualIds = scenes.map((scene) => String(scene.sceneId ?? "").padStart(2, "0"));
@@ -269,6 +406,15 @@ export function validateRemotionAlignment(project) {
       issues.push(alignmentIssue("remotion-alignment-files-missing", `Scene ${sceneId} 缺少实现文件。`, relativePath));
       continue;
     }
+    if (strictVisualTiming && !Array.isArray(scene.visualBindings)) {
+      issues.push(alignmentIssue("visual-bindings-required", `新视频 Scene ${sceneId} 必须提供逐元素 visualBindings。`, relativePath));
+    }
+    if (strictVisualTiming && !Array.isArray(scene.visualElements)) {
+      issues.push(alignmentIssue("visual-elements-required", `新视频 Scene ${sceneId} 必须提供逐元素 visualElements。`, relativePath));
+    }
+    if (strictVisualTiming && (!Array.isArray(scene.implementationSymbols) || scene.implementationSymbols.length === 0)) {
+      issues.push(alignmentIssue("visual-timing-symbols-required", `新视频 Scene ${sceneId} 必须声明 implementationSymbols。`, relativePath));
+    }
     if (timingPlan) {
       const expectedScene = timingPlan.scenes.find((item) => item.sceneId === sceneId);
       if (!expectedScene) {
@@ -288,6 +434,7 @@ export function validateRemotionAlignment(project) {
         issues.push(alignmentIssue("remotion-alignment-file-not-found", `Scene ${sceneId} 引用的实现文件不存在：${implementationFile}`, relativePath));
       }
     }
+    validateImplementationTimingPatterns(scene, project, relativePath, issues, strictVisualTiming);
   }
   return issues;
 }

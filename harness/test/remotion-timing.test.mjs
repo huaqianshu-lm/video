@@ -123,6 +123,38 @@ test("builds a single Timeline-based Scene, Segment, and Cue frame map", () => {
   }
 });
 
+test("uses adjacent Scene boundaries instead of rounding each duration independently", () => {
+  const fixture = createTimingFixture();
+  try {
+    const generatedRoot = `src/videos/${fixture.slug}/generated`;
+    const audio = JSON.parse(fs.readFileSync(path.join(fixture.workspaceRoot, generatedRoot, "audio-manifest.json"), "utf8"));
+    for (const scene of audio.scenes) scene.segments[0].duration = 1.01;
+    writeJson(fixture.workspaceRoot, `${generatedRoot}/audio-manifest.json`, audio);
+
+    const timeline = JSON.parse(fs.readFileSync(path.join(fixture.workspaceRoot, generatedRoot, "timeline-manifest.json"), "utf8"));
+    timeline.duration = 2.02;
+    timeline.scenes[0].duration = 1.01;
+    timeline.scenes[0].end = 1.01;
+    timeline.scenes[0].segments[0].duration = 1.01;
+    timeline.scenes[0].segments[0].end = 1.01;
+    timeline.scenes[1].offset = 1.01;
+    timeline.scenes[1].duration = 1.01;
+    timeline.scenes[1].end = 2.02;
+    timeline.scenes[1].segments[0].duration = 1.01;
+    timeline.scenes[1].segments[0].end = 1.01;
+    writeJson(fixture.workspaceRoot, `${generatedRoot}/timeline-manifest.json`, timeline);
+
+    const plan = buildRemotionTimingPlan({ ...fixture, fps: 30 });
+    assert.deepEqual(plan.scenes.map((scene) => [scene.startFrame, scene.endFrame, scene.durationFrames]), [
+      [0, 30, 30],
+      [30, 61, 31],
+    ]);
+    assert.equal(plan.scenes.at(-1).endFrame, plan.durationFrames);
+  } finally {
+    fs.rmSync(fixture.workspaceRoot, { recursive: true, force: true });
+  }
+});
+
 test("embeds the Timeline plan and production instructions in the Remotion Agent packet", () => {
   const fixture = createTimingFixture();
   try {

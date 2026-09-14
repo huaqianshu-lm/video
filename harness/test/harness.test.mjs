@@ -10,11 +10,12 @@ import { buildNextAction, buildProjectReport } from "../src/reports.mjs";
 import { buildTaskPacket } from "../src/context.mjs";
 import { buildProjectPlan } from "../src/plans.mjs";
 import { applySeriesStyle, initializeProject, loadProject, writeJson } from "../src/storage.mjs";
-import { approveGate, rejectGate, resumeProject, runStage, validateStage } from "../src/runner.mjs";
+import { approveGate, completeAdapterStage, rejectGate, resumeProject, runStage, validateStage } from "../src/runner.mjs";
 import {
   ADAPTER_REQUIRED_STAGES,
   DEFAULT_WORKFLOW_ID,
   GATE_STAGES,
+  stagesForProjectView,
   returnToStages,
   STAGE_DEFINITIONS,
   STAGES,
@@ -22,13 +23,14 @@ import {
 } from "../src/stages.mjs";
 import { validateProjectStage } from "../src/validation.mjs";
 import { buildTtsScript } from "../src/tts-script.mjs";
-import { approveSmokeQc, approveTtsQc, approveTtsQcForProject, batchForView, createBatch, retryFailedBatchItems, runBatch } from "../src/batches.mjs";
+import { approveTtsQc, approveTtsQcForProject, batchForView, createBatch, retryFailedBatchItems, runBatch } from "../src/batches.mjs";
 import { completeRemotionTask, ensureRemotionTask, listRemotionTasks, retryRemotionTask, runRemotionTask, startRemotionTask } from "../src/remotion-tasks.mjs";
 import { buildRemotionExecutionInput } from "../src/remotion-executor.mjs";
 import { createRemoteRenderExecutor } from "../src/remote-executor.mjs";
 import { runSingleStage } from "../src/single-runner.mjs";
 import { createJobRecord, updateJob } from "../src/jobs.mjs";
 import { adoptExistingProjectToGate2, markHistoricalProjectCompleted } from "../src/adoption.mjs";
+import { createProjectActionService } from "../src/web/services/project-actions.mjs";
 import { getSeriesDefinitionForSlug, getStyleDefinition, resolveStyleId } from "../src/styles.mjs";
 
 const repositoryRoot = path.resolve(new URL("../..", import.meta.url).pathname);
@@ -63,18 +65,22 @@ function createFixture({ prototypeBaseline = null } = {}) {
     if (relativePath.endsWith("narration-script.md")) content = "# Narration Script\n\n## Scene 01｜测试\n\n这是测试口播。\n";
     if (relativePath.endsWith("visual-script.md")) content = "# Visual Script\n\n## 全局视觉原则\n保持清晰。\n\n## Scene 01｜测试\n\n### 视觉目标\n展示测试状态。\n\n### 画面结构\n一个状态卡片。\n\n### 动画\n淡入。\n\n### 屏幕文字\nHarness。\n\n### Visual Type\n流程。\n";
     if (relativePath.endsWith("visual-prototype.html")) content = "<!doctype html><main><button>上一幕</button><button>下一幕</button><button>自动播放</button><div id=\"progress\"></div><section class=\"scene\">Scene 01</section></main>\n";
+    if (relativePath.endsWith("FixtureVideo.tsx")) content = "export const FixtureVideo = () => null;\n";
     if (relativePath.endsWith("video.config.ts")) content = "const fps = 30; const subtitleManifest = {}; const timelineManifest = {}; export const videoConfig = { slug: 'fixture-video', format: 'horizontal', width: 1920, height: 1080, fps, scenes: [] };\n";
     if (relativePath.endsWith("tts-script.json")) content = JSON.stringify({
       schemaVersion: "1.0",
       scenes: [{ sceneId: "01", segments: [{ id: "01-01", text: "这是测试口播。" }] }],
     });
     if (relativePath.endsWith("audio-manifest.json")) content = JSON.stringify({
-      scenes: [{ sceneId: "01", segments: [{ id: "01-01", duration: 1 }] }],
+      videoId: slug,
+      scenes: [{ sceneId: "01", segments: [{ id: "01-01", file: "audio/scene-01/01-01.mp3", duration: 1 }] }],
     });
     if (relativePath.endsWith("subtitle-manifest.json")) content = JSON.stringify({
+      videoId: slug,
       scenes: [{ sceneId: "01", segments: [{ segmentId: "01-01", cues: [{ start: 0, end: 0.9, text: "这是测试口播" }] }] }],
     });
     if (relativePath.endsWith("timeline-manifest.json")) content = JSON.stringify({
+      videoId: slug,
       duration: 1,
       scenes: [{
         sceneId: "01",
@@ -85,6 +91,17 @@ function createFixture({ prototypeBaseline = null } = {}) {
       }],
     });
     fs.writeFileSync(absolutePath, `${content}\n`, "utf8");
+  }
+
+  const fixtureAssets = {
+    [`public/local-assets/${slug}/audio/scene-01/01-01.mp3`]: "fixture-audio",
+    [`public/local-assets/${slug}/subtitles/captions.vtt`]: "WEBVTT\n",
+    [`public/local-assets/${slug}/subtitles/captions.srt`]: "1\n00:00:00,000 --> 00:00:01,000\nFixture\n",
+  };
+  for (const [relativePath, content] of Object.entries(fixtureAssets)) {
+    const absolutePath = path.join(workspaceRoot, relativePath);
+    fs.mkdirSync(path.dirname(absolutePath), { recursive: true });
+    fs.writeFileSync(absolutePath, content, "utf8");
   }
 
   process.env.HARNESS_PROJECTS_DIR = projectsRoot;
@@ -114,19 +131,19 @@ function snapshotTree(roots) {
   return entries.sort();
 }
 
-test("defines one canonical workflow for all 15 production stages", () => {
-  assert.equal(STAGES.length, 15);
+test("defines one canonical workflow for all 14 production stages", () => {
+  assert.equal(STAGES.length, 14);
   assert.deepEqual(Object.keys(STAGE_DEFINITIONS), STAGES);
   assert.deepEqual(Object.keys(WORKFLOW_DEFINITIONS), [DEFAULT_WORKFLOW_ID]);
   assert.deepEqual(WORKFLOW_DEFINITIONS.default.stages, STAGES);
   assert.deepEqual([...GATE_STAGES], ["gate-2", "gate-3", "gate-4"]);
-  assert.deepEqual([...ADAPTER_REQUIRED_STAGES], ["smoke-render", "render"]);
+  assert.deepEqual([...ADAPTER_REQUIRED_STAGES], ["render"]);
   assert.equal(STAGE_DEFINITIONS["narration-script"].artifacts[0], "videos/{slug}/narration-script.md");
   assert.equal(STAGE_DEFINITIONS["gate-3"].label, "Gate 3：Remotion 预览确认");
   assert.equal(STAGE_DEFINITIONS["gate-3"].kind, "gate");
   assert.equal(STAGE_DEFINITIONS["gate-3"].requiresApproval, true);
   assert.equal(STAGE_DEFINITIONS["gate-3"].previousStage, "remotion");
-  assert.equal(STAGE_DEFINITIONS["gate-3"].nextStage, "smoke-render");
+  assert.equal(STAGE_DEFINITIONS["gate-3"].nextStage, "render");
   assert.equal(STAGE_DEFINITIONS.render.artifacts[0], "out/{slug}.mp4");
   for (const stage of STAGES) {
     const definition = STAGE_DEFINITIONS[stage];
@@ -142,11 +159,37 @@ test("initializes explicit workflow, style, and target project configuration", (
   const { slug } = createFixture({ prototypeBaseline: "codex-v1" });
   const project = loadFixture(slug);
   assert.equal(project.config.workflow, "default");
-  assert.equal(project.config.workflowVersion, 1);
+  assert.equal(project.config.workflowVersion, 2);
   assert.equal(project.config.style, "current");
   assert.equal(project.config.prototypeBaseline, "codex-v1");
   assert.equal(project.config.target, "gate-4");
   assert.equal(project.config.harnessVersion, "0.6.0");
+});
+
+test("keeps legacy Smoke records in a read-only display projection", () => {
+  const stages = Object.fromEntries([...STAGES, "smoke-render"].map((stage, index) => [stage, {
+    stage,
+    status: stage === "smoke-render" ? "ready" : "succeeded",
+    attempts: 0,
+    outputs: [],
+    review: null,
+    error: null,
+    invalidatedBy: null,
+    updatedAt: null,
+  }]));
+  const project = {
+    config: { harnessVersion: "0.6.0", workflowVersion: 1, workspaceRoot: "/tmp/not-a-git-workspace" },
+    state: { slug: "legacy-smoke-video", currentStage: "smoke-render", stages },
+    artifacts: { stages: {} },
+  };
+  const displayStages = stagesForProjectView(project);
+  const report = buildProjectReport(project);
+  assert.equal(displayStages.length, 15);
+  assert.equal(displayStages[12], "smoke-render");
+  assert.equal(report.next.action, "inspect");
+  assert.equal(report.next.readOnly, true);
+  assert.equal(report.next.legacy, true);
+  assert.equal(report.stages.find((item) => item.stage === "smoke-render").manualChecks.length, 1);
 });
 
 test("resolves the Codex series style and exposes dedicated style definitions", () => {
@@ -312,9 +355,46 @@ test("marks a user-confirmed historical render as completed without current vali
   assert.equal(result.status, "completed");
   assert.equal(project.state.currentStage, "completed");
   assert.equal(project.config.historical.method, "user-confirmed-existing-render");
-  assert.equal(Object.values(project.state.stages).filter((item) => item.status === "succeeded").length, 15);
+  assert.equal(Object.values(project.state.stages).filter((item) => item.status === "succeeded").length, 14);
   assert.equal(project.state.stages["gate-4"].review.decision, "approved");
   assert.equal(project.state.stages.render.outputFingerprint, null);
+});
+
+test("reconciles a valid existing Remotion output before Gate 3 approval", async () => {
+  const { slug } = createFixture();
+  runToGate3(loadFixture(slug));
+  const project = loadProject(slug, { refresh: false });
+  fs.appendFileSync(path.join(project.config.workspaceRoot, `src/videos/${slug}/video.config.ts`), "\n// updated generation rule\n", "utf8");
+
+  const refreshed = loadFixture(slug);
+  assert.equal(refreshed.state.currentStage, "gate-3");
+  assert.equal(refreshed.state.stages.remotion.status, "succeeded");
+  assert.equal(refreshed.state.stages["gate-3"].status, "waiting");
+
+  const response = await createProjectActionService({}).execute({ slug, action: "approve", gate: "gate-3" });
+  assert.equal(response.result.status, "succeeded");
+  assert.equal(response.project.currentStage, "render");
+});
+
+test("reconciles a valid existing Remotion output before Gate 3 rejection", async () => {
+  const { slug } = createFixture();
+  runToGate3(loadFixture(slug));
+  const project = loadProject(slug, { refresh: false });
+  fs.appendFileSync(path.join(project.config.workspaceRoot, `src/videos/${slug}/video.config.ts`), "\n// updated generation rule\n", "utf8");
+
+  const response = await createProjectActionService({ queueRemotionTask() {} }).execute({
+    slug,
+    action: "reject",
+    gate: "gate-3",
+    returnTo: "remotion",
+    reason: "需要继续修复视觉问题",
+  });
+  const rejected = loadFixture(slug);
+  assert.equal(response.result.stage, "gate-3");
+  assert.equal(response.result.status, "queued");
+  assert.equal(rejected.state.currentStage, "remotion");
+  assert.equal(rejected.state.stages.remotion.status, "ready");
+  assert.equal(rejected.state.stages.remotion.invalidatedBy, "gate-3-rejected");
 });
 
 test("builds a single-stage context task packet with bounded read and write paths", () => {
@@ -368,7 +448,7 @@ test("reports wildcard artifacts only when a matching file exists", () => {
     config: {
       workspaceRoot,
       workflow: "default",
-      workflowVersion: 1,
+      workflowVersion: 2,
       style: "current",
       target: "gate-4",
       harnessVersion: "0.6.0",
@@ -596,6 +676,8 @@ test("creates a resumable Remotion production task when batch inputs are ready b
   }
   const completed = completeRemotionTask(task.id);
   assert.equal(completed.completed, true);
+  assert.equal(completed.task.renderInput.compositionId, slug);
+  assert.equal(fs.existsSync(path.join(workspaceRoot, "src", "RenderInputRoot.tsx")), true);
   const resumed = await runBatch(remotionBatch.id);
   assert.equal(resumed.items[0].status, "waiting-gate");
   assert.equal(loadFixture(slug).state.currentStage, "gate-3");
@@ -653,6 +735,8 @@ test("runs a single Remotion executor and validates its generated files before c
 
   assert.equal(result.completed, true);
   assert.equal(result.task.status, "completed");
+  assert.equal(result.task.renderInput.compositionId, slug);
+  assert.equal(fs.existsSync(path.join(workspaceRoot, "src", "RenderInputRoot.tsx")), true);
   assert.equal(loadFixture(slug).state.currentStage, "remotion");
   assert.equal(loadFixture(slug).state.stages.remotion.status, "ready");
 });
@@ -734,12 +818,13 @@ test("runs the single-stage path from TTS through Remotion to remote render subm
     },
   });
   assert.equal(remotionResult.completed, true);
+  assert.equal(fs.existsSync(path.join(workspaceRoot, "src", "RenderInputRoot.tsx")), true);
   assert.equal(loadFixture(slug).state.currentStage, "gate-3");
   assert.equal(loadFixture(slug).state.stages["gate-3"].status, "waiting");
 
   approveGate(loadFixture(slug), "gate-3");
   const remoteCalls = [];
-  const remoteResult = await runSingleStage(loadFixture(slug), "smoke-render", {
+  const remoteResult = await runSingleStage(loadFixture(slug), "render", {
     remoteExecutor: createRemoteRenderExecutor({
       validateInputs() {},
       monitor: {
@@ -751,7 +836,7 @@ test("runs the single-stage path from TTS through Remotion to remote render subm
     }),
   });
   assert.equal(remoteResult.deferred, true);
-  assert.deepEqual(remoteCalls, [{ slug, stage: "smoke-render" }]);
+  assert.deepEqual(remoteCalls, [{ slug, stage: "render" }]);
 });
 
 test("supports TTS quality approval from a single project and resumes its TTS batch", async () => {
@@ -822,19 +907,12 @@ test("splits TTS, Remotion, and render batches at their human checkpoints", asyn
 
   approveGate(loadFixture(slug), "gate-3");
   const renderBatch = createBatch({ type: "to-render", slugs: [slug] });
-  const smoke = createMockAdapter();
   const render = createMockAdapter();
-  const smokeResult = await runBatch(renderBatch.id, { adapters: { "smoke-render": smoke, render } });
-  assert.equal(smokeResult.items[0].status, "waiting-smoke-qc");
-  assert.equal(loadFixture(slug).state.currentStage, "render");
-
-  approveSmokeQc(renderBatch.id, slug);
-  const renderResult = await runBatch(renderBatch.id, { adapters: { "smoke-render": smoke, render } });
+  const renderResult = await runBatch(renderBatch.id, { adapters: { render } });
   assert.equal(renderResult.items[0].status, "waiting-gate");
   assert.equal(renderResult.items[0].phase, "gate-4");
   assert.equal(loadFixture(slug).state.currentStage, "gate-4");
   assert.equal(loadFixture(slug).state.stages["gate-4"].status, "waiting");
-  assert.deepEqual(smoke.calls, [{ stage: "smoke-render", slug }]);
   assert.deepEqual(render.calls, [{ stage: "render", slug }]);
 });
 
@@ -919,8 +997,12 @@ test("keeps a batch remote job waiting and does not submit it twice", async () =
   assert.equal(submissions, 1);
 
   updateJob(slug, first.items[0].remoteJobId, { status: "succeeded", completedAt: new Date().toISOString() });
+  // The production monitor completes the project stage before the batch resumes.
+  // Reproduce that checkpoint here so the batch test does not submit Render twice.
+  completeAdapterStage(loadFixture(slug), "render", {});
   const resumed = await runBatch(batch.id, { remoteMonitor: monitor, remoteExecutor });
-  assert.equal(resumed.items[0].status, "waiting-smoke-qc");
+  assert.equal(resumed.items[0].status, "waiting-gate");
+  assert.equal(resumed.items[0].phase, "gate-4");
   assert.equal(submissions, 1);
 });
 
@@ -1047,12 +1129,11 @@ test("passes read-only regression for four real videos without writing their dir
   }
 });
 
-test("invalidates downstream stages when a succeeded artifact changes", () => {
+test("keeps a completed project state read-only when a source artifact changes", () => {
   const { slug } = createFixture();
   const project = loadFixture(slug);
   runToGate3(project);
   approveGate(project, "gate-3");
-  runStage(project, "smoke-render", { adapters: { "smoke-render": createMockAdapter() } });
   runStage(project, "render", { adapters: { render: createMockAdapter() } });
   runStage(project, "gate-4");
   approveGate(project, "gate-4");
@@ -1062,11 +1143,10 @@ test("invalidates downstream stages when a succeeded artifact changes", () => {
   fs.appendFileSync(sourcePath, "\nchanged\n", "utf8");
 
   const refreshed = loadFixture(slug).state;
-  assert.equal(refreshed.currentStage, "source");
-  assert.equal(refreshed.stages.source.status, "ready");
-  assert.equal(refreshed.stages["content-analysis"].status, "invalidated");
-  assert.equal(refreshed.stages["content-analysis"].invalidatedBy, "source");
-  assert.equal(refreshed.stages["gate-4"].status, "invalidated");
+  assert.equal(refreshed.currentStage, "completed");
+  assert.equal(refreshed.stages.source.status, "succeeded");
+  assert.equal(refreshed.stages["content-analysis"].status, "succeeded");
+  assert.equal(refreshed.stages["gate-4"].status, "succeeded");
 });
 
 test("reports the next action for a ready stage and a waiting Gate", () => {
@@ -1085,7 +1165,7 @@ test("reports the next action for a ready stage and a waiting Gate", () => {
   assert.deepEqual(gateAction.returnToStages.at(-1), { stage: "remotion", label: "Remotion 实现" });
 
   const report = buildProjectReport(loadFixture(slug));
-  assert.equal(report.stages.length, 15);
+  assert.equal(report.stages.length, 14);
   assert.equal(report.next.action, "approve-or-reject-gate");
 });
 
@@ -1112,8 +1192,6 @@ test("allows remote render preflight without a local MP4", () => {
   const project = loadFixture(slug);
   runToGate3(project);
   approveGate(project, "gate-3");
-  runStage(project, "smoke-render", { adapters: { "smoke-render": createMockAdapter() } });
-
   const next = buildNextAction(loadFixture(slug));
   assert.equal(next.currentStage, "render");
   assert.equal(next.action, "run-stage");
@@ -1146,14 +1224,12 @@ function runToGate2(project) {
   runStage(project, "gate-2");
 }
 
-test("completes the fixture workflow with mock adapters", () => {
+test("completes the fixture workflow with a direct mock Render", () => {
   const { slug } = createFixture();
   const project = loadFixture(slug);
   runToGate3(project);
   approveGate(project, "gate-3");
 
-  const smoke = createMockAdapter();
-  runStage(project, "smoke-render", { adapters: { "smoke-render": smoke } });
   const render = createMockAdapter();
   runStage(project, "render", { adapters: { render } });
   runStage(project, "gate-4");
@@ -1164,7 +1240,6 @@ test("completes the fixture workflow with mock adapters", () => {
   assert.equal(finalState.stages["gate-4"].status, "succeeded");
   assert.equal(finalState.stages["gate-4"].review.decision, "approved");
   assert.ok(finalState.stages["gate-4"].review.reviewedAt);
-  assert.deepEqual(smoke.calls, [{ stage: "smoke-render", slug }]);
   assert.deepEqual(render.calls, [{ stage: "render", slug }]);
 });
 
@@ -1175,13 +1250,13 @@ test("resumes an adapter failure without repeating the failed attempt", () => {
   approveGate(project, "gate-3");
 
   const adapter = createMockAdapter({ failOnce: true });
-  assert.throws(() => runStage(project, "smoke-render", { adapters: { "smoke-render": adapter } }), /Mock adapter failure/);
-  assert.equal(loadFixture(slug).state.stages["smoke-render"].status, "failed");
-  assert.equal(loadFixture(slug).state.stages["smoke-render"].attempts, 1);
+  assert.throws(() => runStage(project, "render", { adapters: { render: adapter } }), /Mock adapter failure/);
+  assert.equal(loadFixture(slug).state.stages.render.status, "failed");
+  assert.equal(loadFixture(slug).state.stages.render.attempts, 1);
 
-  assert.deepEqual(resumeProject(loadFixture(slug)), { stage: "smoke-render", status: "ready" });
-  runStage(loadFixture(slug), "smoke-render", { adapters: { "smoke-render": adapter } });
-  assert.equal(loadFixture(slug).state.stages["smoke-render"].status, "succeeded");
+  assert.deepEqual(resumeProject(loadFixture(slug)), { stage: "render", status: "ready" });
+  runStage(loadFixture(slug), "render", { adapters: { render: adapter } });
+  assert.equal(loadFixture(slug).state.stages.render.status, "succeeded");
   assert.equal(adapter.calls.length, 2);
 });
 
@@ -1226,6 +1301,21 @@ test("requires new Remotion output after Gate 3 rejection", async () => {
   assert.equal(loadFixture(slug).state.currentStage, "remotion");
 });
 
+test("clears a previous Gate 3 rejection when new Remotion output reaches review", () => {
+  const { slug } = createFixture();
+  runToGate3(loadFixture(slug));
+  rejectGate(loadFixture(slug), "gate-3", "remotion", "修复视觉时间绑定");
+
+  runStage(loadFixture(slug), "remotion");
+  runStage(loadFixture(slug), "gate-3");
+
+  const state = loadFixture(slug).state;
+  assert.equal(state.currentStage, "gate-3");
+  assert.equal(state.stages["gate-3"].status, "waiting");
+  assert.equal(state.stages["gate-3"].review, null);
+  assert.equal(state.stages["gate-3"].error, null);
+});
+
 test("refreshes a retried Remotion task with the Gate 3 rejection request", async () => {
   const { slug } = createFixture();
   const project = loadFixture(slug);
@@ -1250,7 +1340,7 @@ test("refreshes a retried Remotion task with the Gate 3 rejection request", asyn
   assert.equal(loadFixture(slug).state.stages.remotion.rebuildBaselineFingerprint, previousFingerprint);
 });
 
-test("completes a GitHub Actions run and records its artifact metadata", async () => {
+test("runs the standalone Smoke workflow adapter and records its artifact metadata", async () => {
   const { slug } = createFixture();
   const responses = [
     { status: 204, ok: true, text: async () => "" },

@@ -3,7 +3,7 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { writeJson } from "./storage.mjs";
+import { assertProjectMutable, assertProjectSlugMutable, writeJson } from "./storage.mjs";
 
 const repositoryRoot = path.resolve(new URL("../..", import.meta.url).pathname);
 
@@ -78,7 +78,9 @@ export function buildTtsScript(videoId, narrationText) {
 }
 
 export function ensureTtsScript(project) {
+  assertProjectMutable(project, "生成 TTS Script");
   const relativePath = ttsPathFor(project);
+  assertProjectSlugMutable(project.config.slug, "生成 TTS Script");
   const absolutePath = path.join(project.config.workspaceRoot, relativePath);
   const narrationPath = narrationPathFor(project);
   const narrationAbsolutePath = path.join(project.config.workspaceRoot, narrationPath);

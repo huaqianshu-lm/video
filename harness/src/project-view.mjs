@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import { matchesArtifactPath } from "./artifact-paths.mjs";
 import { projectFiles, loadProject } from "./storage.mjs";
 import { buildNextAction, buildProjectReport } from "./reports.mjs";
-import { STAGES, STAGE_DEFINITIONS } from "./stages.mjs";
+import { RETIRED_STAGE_DEFINITIONS, stagesForProjectView, STAGES, STAGE_DEFINITIONS } from "./stages.mjs";
 import { resolveStyleId } from "./styles.mjs";
 
 const repositoryRoot = path.resolve(new URL("../..", import.meta.url).pathname);
@@ -62,7 +62,8 @@ function projectIdentity(slug) {
 }
 
 function artifactPaths(slug, stage) {
-  return STAGE_DEFINITIONS[stage].artifacts.map((artifact) => artifact.replaceAll("{slug}", slug));
+  const definition = STAGE_DEFINITIONS[stage] ?? RETIRED_STAGE_DEFINITIONS[stage];
+  return (definition?.artifacts ?? []).map((artifact) => artifact.replaceAll("{slug}", slug));
 }
 
 function remoteArtifactPresent(stage, stateItem, slug) {
@@ -145,10 +146,11 @@ function buildUninitializedView(slug) {
 }
 
 function buildInitializedView(slug) {
-  const project = loadProject(slug, { refresh: false });
+  const project = loadProject(slug, { refresh: true });
   const report = buildProjectReport(project);
-  const stages = STAGES.map((stage) => {
-    const definition = STAGE_DEFINITIONS[stage];
+  const displayStages = stagesForProjectView(project);
+  const stages = displayStages.map((stage) => {
+    const definition = STAGE_DEFINITIONS[stage] ?? RETIRED_STAGE_DEFINITIONS[stage];
     const reportItem = report.stages.find((item) => item.stage === stage);
     return stageView(definition, project.state.stages[stage], artifactPresence(slug, stage, project.state.stages[stage]), reportItem);
   });
@@ -160,9 +162,9 @@ function buildInitializedView(slug) {
     status: project.state.currentStage === "completed" ? "completed" : project.state.stages[project.state.currentStage].status,
     statusLabel: project.state.currentStage === "completed" ? "已完成" : project.state.currentStage,
     currentStage: project.state.currentStage,
-    progress: Math.round((succeededCount / STAGES.length) * 100),
+    progress: Math.round((succeededCount / stages.length) * 100),
     succeededCount,
-    stageCount: STAGES.length,
+    stageCount: stages.length,
     sourceDirectory: project.config.sourceDirectory,
     remotionDirectory: project.config.remotionDirectory,
     style: resolveStyleId(project.config, slug),
