@@ -2,9 +2,10 @@ import fs from "node:fs";
 import path from "node:path";
 import { archiveEntries, archiveMatchesAssetDirectory, assetSourcePath } from "./asset-bundler.mjs";
 import { validateGitRenderDelivery } from "./git-delivery.mjs";
-import { packageRenderInput, prepareRenderInput, renderInputDirectory, validateRenderInputDirectory } from "./render-input.mjs";
+import { assertRenderInputDelivery, packageRenderInput, prepareRenderInput, renderInputDirectory, validateRenderInputDelivery, validateRenderInputDirectory } from "./render-input.mjs";
+import { assertProjectMutable } from "./storage.mjs";
 
-const REMOTE_STAGES = new Set(["smoke-render", "render"]);
+const REMOTE_STAGES = new Set(["render"]);
 
 function readJson(filePath, label) {
   try {
@@ -122,9 +123,19 @@ export function assertRemoteRenderInputs(project, options) {
   throw error;
 }
 
+function normalizePreparationError(error) {
+  if (error?.code === "remote-render-inputs-invalid") return error;
+  const message = error instanceof Error ? error.message : String(error);
+  const normalized = new Error(`远程渲染输入预检失败：${message}`);
+  normalized.code = "remote-render-inputs-invalid";
+  normalized.issues = error?.issues?.length ? error.issues : [message];
+  return normalized;
+}
+
 export function assertRemoteRenderDeliveryInputs(project, options = {}) {
   const issues = [
     ...validateRemoteRenderPackage(project),
+    ...validateRenderInputDelivery(project),
     ...validateGitRenderDelivery(project, { requireRepository: options.requireRepository ?? true }),
   ];
   if (issues.length === 0) return;
@@ -135,19 +146,24 @@ export function assertRemoteRenderDeliveryInputs(project, options = {}) {
 }
 
 export function prepareRemoteRenderInputs(project, options = {}) {
+  assertProjectMutable(project, "准备远程渲染输入");
   if (typeof project?.config?.workspaceRoot !== "string" || !project.config.workspaceRoot.trim()) {
     return { status: "skipped", sourceIssues: [], archivePath: null, archiveRelativePath: null, sourcePath: null };
   }
-  const result = prepareRenderInput(project, options);
-  const packageResult = packageRenderInput(project.config.workspaceRoot, project.config.slug);
-  return {
-    ...result,
-    ...packageResult,
-    sourceIssues: [],
-    archivePath: packageResult.archivePath,
-    archiveRelativePath: path.relative(project.config.workspaceRoot, packageResult.archivePath),
-    sourcePath: result.directory,
-  };
+  try {
+    const result = prepareRenderInput(project, options);
+    const packageResult = packageRenderInput(project.config.workspaceRoot, project.config.slug);
+    return {
+      ...result,
+      ...packageResult,
+      sourceIssues: [],
+      archivePath: packageResult.archivePath,
+      archiveRelativePath: path.relative(project.config.workspaceRoot, packageResult.archivePath),
+      sourcePath: result.directory,
+    };
+  } catch (error) {
+    throw normalizePreparationError(error);
+  }
 }
 
 export function validateRemoteRenderPackage(project) {
@@ -170,6 +186,12 @@ export function createRemoteRenderExecutor({ monitor, validateInputs = null, pre
 
   return {
     run({ stage, project }) {
+      assertProjectMutable(project, "提交远程渲染任务");
+      if (stage === "smoke-render") {
+        const error = new Error("Smoke Render 已退出 Harness 生产流程，请从 GitHub Actions 手动触发独立环境检查。");
+        error.code = "standalone-smoke-render";
+        throw error;
+      }
       if (!REMOTE_STAGES.has(stage)) {
         throw new Error(`Remote render executor does not support stage: ${stage}`);
       }
@@ -178,6 +200,7 @@ export function createRemoteRenderExecutor({ monitor, validateInputs = null, pre
       }
       effectivePrepareInputs(project);
       effectiveValidateInputs(project);
+      if (effectiveValidateInputs === assertRemoteRenderDeliveryInputs) assertRenderInputDelivery(project);
       const job = monitor.submit({ slug: project.config.slug, stage });
       return {
         deferred: true,

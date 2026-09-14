@@ -24,6 +24,7 @@ const WORKFLOWS_BY_STAGE = Object.freeze({
 
 import { requireGitHubActionsConfig } from "./github-config.mjs";
 import { localGitCommit } from "./git-delivery.mjs";
+import { readRenderInputDelivery } from "./render-input.mjs";
 
 const DEFAULT_API_URL = "https://api.github.com";
 const DEFAULT_DISCOVERY_TIMEOUT_MS = 120_000;
@@ -137,7 +138,21 @@ export function createGitHubActionsAdapter({
     const slug = project.state.slug;
     const compositionId = project.config.compositionId ?? slug;
     const dispatch = { workflow, ref, slug, compositionId, dispatchedAt, dispatchState: "pending" };
-    if (renderInputUrl && renderInputSha256) {
+    let delivery = null;
+    if (project?.config?.workspaceRoot) {
+      delivery = readRenderInputDelivery(project.config.workspaceRoot, slug);
+    }
+    if (delivery?.url && delivery?.archiveSha256) {
+      if (delivery.videoSlug !== slug || (delivery.compositionId && delivery.compositionId !== compositionId)) {
+        const error = new Error(`视频 ${slug} 的输入包交付绑定与当前 Composition 不一致`);
+        error.code = "render-input-delivery-invalid";
+        throw error;
+      }
+      dispatch.renderInputUrl = delivery.url;
+      dispatch.renderInputSha256 = delivery.archiveSha256;
+      dispatch.renderInputPackageFingerprint = delivery.packageFingerprint ?? null;
+    } else if (renderInputUrl && renderInputSha256 && stage !== "render") {
+      // Standalone Smoke can receive its explicit workflow input without affecting Complete Render.
       dispatch.renderInputUrl = renderInputUrl;
       dispatch.renderInputSha256 = renderInputSha256;
     }
@@ -147,8 +162,8 @@ export function createGitHubActionsAdapter({
   async function dispatchWorkflow({ stage, project, dispatchedAt = now().toISOString() }) {
     const dispatch = createDispatch({ stage, project, dispatchedAt });
 
-    if (requireRenderInput && (!dispatch.renderInputUrl || !dispatch.renderInputSha256)) {
-      const error = new Error("远程渲染需要 HARNESS_RENDER_INPUT_URL 和 HARNESS_RENDER_INPUT_SHA256");
+    if (requireRenderInput && stage === "render" && (!dispatch.renderInputUrl || !dispatch.renderInputSha256)) {
+      const error = new Error(`视频 ${dispatch.slug} 缺少已绑定的输入包 URL 和 SHA-256，请先绑定该视频的发布包`);
       error.code = "render-input-remote-config-invalid";
       throw error;
     }
@@ -157,7 +172,7 @@ export function createGitHubActionsAdapter({
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        ref,
+        ref: dispatch.ref,
         inputs: {
           video_slug: dispatch.slug,
           composition_id: dispatch.compositionId,
@@ -377,17 +392,8 @@ export function createGitHubActionsAdapter({
 
 export function createGitHubActionsAdapterFromEnv(options = {}) {
   const config = requireGitHubActionsConfig();
-  const renderInputUrl = process.env.HARNESS_RENDER_INPUT_URL?.trim() ?? "";
-  const renderInputSha256 = process.env.HARNESS_RENDER_INPUT_SHA256?.trim() ?? "";
-  if (!renderInputUrl || !/^[a-f0-9]{64}$/.test(renderInputSha256)) {
-    const error = new Error("远程渲染需要 HARNESS_RENDER_INPUT_URL 和有效的 HARNESS_RENDER_INPUT_SHA256");
-    error.code = "render-input-remote-config-invalid";
-    throw error;
-  }
   return createGitHubActionsAdapter({
     ...config,
-    renderInputUrl,
-    renderInputSha256,
     requireRenderInput: true,
     ...options,
   });

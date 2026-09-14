@@ -1,6 +1,7 @@
 import { execFileSync } from "node:child_process";
 
 const repositoryPattern = /^[^/\s]+\/[^/\s]+$/;
+const githubReleaseDownloadPattern = /^\/[^/\s]+\/[^/\s]+\/releases\/download\//i;
 
 function firstNonEmpty(...values) {
   return values.find((value) => typeof value === "string" && value.trim()) ?? "";
@@ -26,6 +27,31 @@ export function readGitHubActionsConfig(environment = process.env, options = {})
     repository: firstNonEmpty(environment.GITHUB_REPOSITORY),
     ref: firstNonEmpty(environment.HARNESS_GITHUB_REF, currentGitRef, environment.GITHUB_REF_NAME),
   };
+}
+
+export function validateRenderInputUrl(value) {
+  const url = typeof value === "string" ? value.trim() : "";
+  if (!url) return null;
+
+  let parsed;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return { code: "invalid-render-input-url", message: "HARNESS_RENDER_INPUT_URL 必须是有效的 HTTP(S) 地址。" };
+  }
+
+  if (!(parsed.protocol === "http:" || parsed.protocol === "https:")) {
+    return { code: "invalid-render-input-url", message: "HARNESS_RENDER_INPUT_URL 必须使用 HTTP(S) 协议。" };
+  }
+
+  if (parsed.hostname.toLowerCase() === "github.com" && githubReleaseDownloadPattern.test(parsed.pathname)) {
+    return {
+      code: "github-release-download-url",
+      message: "私有 GitHub Release 不能使用 /releases/download/ 网页地址，请改用 API 资产地址：https://api.github.com/repos/<owner>/<repo>/releases/assets/<asset-id>。",
+    };
+  }
+
+  return null;
 }
 
 export function validateGitHubActionsConfig(environment = process.env, options = {}) {

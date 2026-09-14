@@ -4,7 +4,9 @@ import os from "node:os";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
 import { archiveEntries, ensureAssetArchive } from "./asset-bundler.mjs";
+import { validateRenderInputUrl } from "./github-config.mjs";
 import { validateRemoteRenderInputs } from "./remote-executor.mjs";
+import { assertProjectMutable, assertProjectSlugMutable, isCompletedProject, loadProject } from "./storage.mjs";
 
 const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const IDENTIFIER_PATTERN = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
@@ -90,6 +92,20 @@ function directoryFingerprint(root) {
   return hash.digest("hex");
 }
 
+function sourceSnapshot({ sources, entry, compositionId }) {
+  return {
+    compositionId,
+    entry: { ...entry },
+    sourceFingerprint: directoryFingerprint(sources.source),
+    remotionFingerprint: directoryFingerprint(sources.remotion),
+    assetArchiveSha256: sha256File(sources.assetArchive),
+  };
+}
+
+function sourceSnapshotFingerprint(snapshot) {
+  return crypto.createHash("sha256").update(JSON.stringify(snapshot)).digest("hex");
+}
+
 function sourcePaths(workspaceRoot, slug) {
   return {
     source: path.join(workspaceRoot, "videos", slug),
@@ -134,6 +150,7 @@ function selectEntry(remotionDirectory, { componentFile = null, componentExport 
     componentExport: selectedComponentExport,
     configFile,
     configExport,
+    durationExport: inferExportName(configPath, "TotalDurationFrames"),
   };
 }
 
@@ -166,7 +183,15 @@ function validateManifestShape(manifest) {
   for (const field of ["componentPath", "componentExport", "configPath", "configExport"]) {
     if (typeof manifest.entry[field] !== "string" || !manifest.entry[field].trim()) return [`render-input.json 缺少 entry.${field}`];
   }
+  if (manifest.entry.durationExport !== undefined
+    && (typeof manifest.entry.durationExport !== "string" || !IDENTIFIER_PATTERN.test(manifest.entry.durationExport))) {
+    return ["render-input.json 的 entry.durationExport 无效"];
+  }
   if (!Array.isArray(manifest.files)) return ["render-input.json 缺少 files 列表"];
+  if (typeof manifest.sourceFingerprint !== "string" || !/^[a-f0-9]{64}$/.test(manifest.sourceFingerprint)) {
+    return ["render-input.json 缺少当前源资料指纹"];
+  }
+  if (!manifest.sourceSnapshot || typeof manifest.sourceSnapshot !== "object") return ["render-input.json 缺少源资料快照"];
   return [];
 }
 
@@ -182,6 +207,152 @@ export function renderInputDirectory(workspaceRoot, slug) {
 export function renderInputArchivePath(workspaceRoot, slug) {
   requireSlug(slug);
   return path.join(renderInputRoot(workspaceRoot), `${slug}.zip`);
+}
+
+export function renderInputDeliveryPath(workspaceRoot, slug) {
+  requireSlug(slug);
+  return path.join(renderInputRoot(workspaceRoot), `${slug}.delivery.json`);
+}
+
+function readDeliveryRecord(workspaceRoot, slug) {
+  const deliveryPath = renderInputDeliveryPath(workspaceRoot, slug);
+  if (!fs.existsSync(deliveryPath)) return null;
+  try {
+    return JSON.parse(fs.readFileSync(deliveryPath, "utf8"));
+  } catch (error) {
+    fail(`输入包交付记录无法解析：${error instanceof Error ? error.message : String(error)}`, "render-input-delivery-invalid");
+  }
+}
+
+export function readRenderInputDelivery(workspaceRoot, slug) {
+  return readDeliveryRecord(requireWorkspaceRoot(workspaceRoot), slug);
+}
+
+export function validateRenderInputDelivery(project) {
+  const workspaceRoot = project?.config?.workspaceRoot;
+  const slug = project?.config?.slug ?? project?.state?.slug;
+  if (typeof workspaceRoot !== "string" || !workspaceRoot.trim() || typeof slug !== "string") {
+    return ["缺少视频工作区路径或 slug，无法读取输入包交付绑定"];
+  }
+  const issues = [];
+  let delivery;
+  try {
+    delivery = readDeliveryRecord(workspaceRoot, slug);
+  } catch (error) {
+    return [error instanceof Error ? error.message : String(error)];
+  }
+  if (!delivery) return [`缺少 local/render-input/${slug}.delivery.json，请先绑定已发布输入包`];
+  if (delivery.schemaVersion !== SCHEMA_VERSION || delivery.kind !== "video-render-input-delivery") {
+    issues.push("输入包交付记录的 schemaVersion 或 kind 不受支持");
+  }
+  if (delivery.videoSlug !== slug) issues.push(`输入包交付记录 videoSlug 为 ${delivery.videoSlug ?? "缺失"}，不是 ${slug}`);
+  if (typeof delivery.compositionId !== "string" || !delivery.compositionId.trim()) issues.push("输入包交付记录缺少 compositionId");
+  if (typeof delivery.packageFingerprint !== "string" || !/^[a-f0-9]{64}$/.test(delivery.packageFingerprint)) issues.push("输入包交付记录缺少 packageFingerprint");
+  if (typeof delivery.archiveSha256 !== "string" || !/^[a-f0-9]{64}$/.test(delivery.archiveSha256)) issues.push("输入包交付记录缺少有效 archiveSha256");
+  if (typeof delivery.url !== "string" || !delivery.url.trim()) issues.push("输入包交付记录缺少发布 URL");
+  else {
+    const urlIssue = validateRenderInputUrl(delivery.url);
+    if (urlIssue) issues.push(urlIssue.message);
+  }
+
+  const packageRoot = renderInputDirectory(workspaceRoot, slug);
+  const manifestPath = path.join(packageRoot, "render-input.json");
+  const archivePath = renderInputArchivePath(workspaceRoot, slug);
+  if (!fs.existsSync(manifestPath)) issues.push("当前输入包缺少 render-input.json");
+  if (!fs.existsSync(archivePath)) issues.push("当前输入包缺少 ZIP 归档");
+  if (fs.existsSync(manifestPath) && fs.existsSync(archivePath)) {
+    try {
+      const manifest = assertRenderInputDirectory(packageRoot, { expectedSlug: slug });
+      if (delivery.compositionId !== manifest.compositionId) issues.push("交付记录的 Composition ID 与当前输入包不一致");
+      if (delivery.packageFingerprint !== manifest.packageFingerprint) issues.push("交付记录的 packageFingerprint 与当前输入包不一致");
+      const archiveSha256 = sha256File(archivePath);
+      if (delivery.archiveSha256 !== archiveSha256) issues.push("交付记录的 archiveSha256 与当前 ZIP 不一致，请重新绑定");
+      if (!manifestMatchesWorkspaceSources(manifest, workspaceRoot, slug)) {
+        issues.push("当前视频源资料已变化，输入包已过期，请重新准备、打包并绑定");
+      }
+    } catch (error) {
+      issues.push(error instanceof Error ? error.message : String(error));
+    }
+  }
+  return [...new Set(issues)];
+}
+
+export function assertRenderInputDelivery(project) {
+  const issues = validateRenderInputDelivery(project);
+  if (issues.length === 0) return readRenderInputDelivery(project.config.workspaceRoot, project.config.slug);
+  const error = new Error(`输入包交付绑定预检失败：${issues.join("；")}`);
+  error.code = "render-input-delivery-invalid";
+  error.issues = issues;
+  throw error;
+}
+
+async function responseBytes(response) {
+  if (response && typeof response.arrayBuffer === "function") return Buffer.from(await response.arrayBuffer());
+  if (response && typeof response.bytes === "function") return Buffer.from(await response.bytes());
+  if (response && typeof response.text === "function") return Buffer.from(await response.text());
+  return null;
+}
+
+export async function bindRenderInputDelivery(project, {
+  url,
+  sha256,
+  compositionId = null,
+  fetchImpl = globalThis.fetch,
+  environment = process.env,
+} = {}) {
+  assertProjectMutable(project, "绑定视频输入包");
+  const workspaceRoot = requireWorkspaceRoot(project);
+  const slug = requireSlug(project?.config?.slug ?? project?.state?.slug);
+  const normalizedUrl = typeof url === "string" ? url.trim() : "";
+  const urlIssue = validateRenderInputUrl(normalizedUrl);
+  if (urlIssue) fail(urlIssue.message, urlIssue.code);
+  if (!normalizedUrl) fail("发布 URL 是必需的", "render-input-delivery-url-missing");
+  const normalizedSha = typeof sha256 === "string" ? sha256.trim().toLowerCase() : "";
+  if (!/^[a-f0-9]{64}$/.test(normalizedSha)) fail("发布包 SHA-256 必须是 64 位十六进制", "render-input-delivery-sha-invalid");
+
+  const packageRoot = renderInputDirectory(workspaceRoot, slug);
+  const manifest = assertRenderInputDirectory(packageRoot, { expectedSlug: slug });
+  if (compositionId !== null && compositionId !== manifest.compositionId) {
+    fail("绑定的 Composition ID 与当前输入包不一致", "render-input-delivery-composition-mismatch");
+  }
+  const archivePath = renderInputArchivePath(workspaceRoot, slug);
+  requireFile(archivePath, `assets/${slug}-render-input.zip`);
+  const localSha = sha256File(archivePath);
+  if (localSha !== normalizedSha) fail("发布包 SHA-256 与当前本地 ZIP 不一致，请重新准备或填写正确哈希", "render-input-delivery-hash-mismatch");
+  if (typeof fetchImpl !== "function") fail("无法读取发布包 URL，请提供可用的 fetch", "render-input-delivery-fetch-unavailable");
+
+  let response;
+  try {
+    const token = environment.HARNESS_RENDER_INPUT_TOKEN ?? environment.GITHUB_TOKEN ?? environment.GH_TOKEN;
+    response = await fetchImpl(normalizedUrl, {
+      headers: {
+        Accept: "application/octet-stream",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    });
+  } catch (error) {
+    fail(`发布包 URL 无法访问：${error instanceof Error ? error.message : String(error)}`, "render-input-delivery-remote-unavailable");
+  }
+  if (!response?.ok) fail(`发布包 URL 返回 HTTP ${response?.status ?? "unknown"}`, "render-input-delivery-remote-unavailable");
+  const remoteBytes = await responseBytes(response);
+  if (!remoteBytes) fail("发布包 URL 没有返回可读取内容", "render-input-delivery-remote-unavailable");
+  const remoteSha = crypto.createHash("sha256").update(remoteBytes).digest("hex");
+  if (remoteSha !== normalizedSha) fail("发布包远端内容的 SHA-256 与当前本地 ZIP 不一致", "render-input-delivery-remote-hash-mismatch");
+
+  const delivery = {
+    schemaVersion: SCHEMA_VERSION,
+    kind: "video-render-input-delivery",
+    videoSlug: slug,
+    compositionId: manifest.compositionId,
+    packageFingerprint: manifest.packageFingerprint,
+    archiveSha256: localSha,
+    url: normalizedUrl,
+    boundAt: new Date().toISOString(),
+  };
+  const deliveryPath = renderInputDeliveryPath(workspaceRoot, slug);
+  fs.mkdirSync(path.dirname(deliveryPath), { recursive: true });
+  fs.writeFileSync(deliveryPath, `${JSON.stringify(delivery, null, 2)}\n`, "utf8");
+  return { status: "bound", path: deliveryPath, delivery };
 }
 
 export function validateRenderInputDirectory(directory, { expectedSlug = null, listArchiveEntries = archiveEntries } = {}) {
@@ -243,6 +414,12 @@ export function assertRenderInputDirectory(directory, options = {}) {
 }
 
 function buildManifest({ slug, compositionId, entry, packageRoot }) {
+  const sources = {
+    source: path.join(packageRoot, "videos", slug),
+    remotion: path.join(packageRoot, "src", "videos", slug),
+    assetArchive: path.join(packageRoot, "assets", `${slug}-assets.zip`),
+  };
+  const snapshot = sourceSnapshot({ sources, entry, compositionId });
   return {
     schemaVersion: SCHEMA_VERSION,
     kind: "video-render-input",
@@ -254,19 +431,103 @@ function buildManifest({ slug, compositionId, entry, packageRoot }) {
       componentExport: entry.componentExport,
       configPath: `src/videos/${slug}/${entry.configFile}`,
       configExport: entry.configExport,
+      ...(entry.durationExport ? { durationExport: entry.durationExport } : {}),
     },
     payload: {
       sourceDirectory: `videos/${slug}`,
       remotionDirectory: `src/videos/${slug}`,
       assetArchive: `assets/${slug}-assets.zip`,
     },
+    sourceFingerprint: sourceSnapshotFingerprint(snapshot),
+    sourceSnapshot: snapshot,
     packageFingerprint: payloadFingerprint(packageRoot),
     files: manifestFiles(packageRoot),
   };
 }
 
+function manifestMatchesSources(manifest, { sources, entry, compositionId }) {
+  if (manifest?.compositionId !== compositionId) return false;
+  if (!manifest?.sourceSnapshot || typeof manifest.sourceFingerprint !== "string") return false;
+  const current = sourceSnapshot({ sources, entry, compositionId });
+  return manifest.sourceFingerprint === sourceSnapshotFingerprint(current)
+    && JSON.stringify(manifest.sourceSnapshot) === JSON.stringify(current);
+}
+
+function manifestEntry(manifest) {
+  return {
+    componentFile: path.posix.basename(manifest.entry.componentPath),
+    componentExport: manifest.entry.componentExport,
+    configFile: path.posix.basename(manifest.entry.configPath),
+    configExport: manifest.entry.configExport,
+    durationExport: manifest.entry.durationExport ?? null,
+  };
+}
+
+function manifestMatchesWorkspaceSources(manifest, workspaceRoot, slug) {
+  const sources = sourcePaths(workspaceRoot, slug);
+  if (![sources.source, sources.remotion, sources.assetArchive].every((sourcePath) => fs.existsSync(sourcePath))) return false;
+  return manifestMatchesSources(manifest, {
+    sources,
+    entry: manifestEntry(manifest),
+    compositionId: manifest.compositionId,
+  });
+}
+
+export function validateCurrentRenderInput(project) {
+  const workspaceRoot = requireWorkspaceRoot(project);
+  const slug = requireSlug(project?.config?.slug ?? project?.state?.slug);
+  const directory = renderInputDirectory(workspaceRoot, slug);
+  const issues = validateRenderInputDirectory(directory, { expectedSlug: slug });
+  if (issues.length > 0) return [...new Set(issues)];
+  const manifest = readManifest(path.join(directory, "render-input.json"));
+  if (!manifestMatchesWorkspaceSources(manifest, workspaceRoot, slug)) {
+    issues.push("当前输入包与视频源资料不一致，请重新准备输入包");
+  }
+  return [...new Set(issues)];
+}
+
+function replaceRenderInputDirectory(temporaryDirectory, destination) {
+  const backup = `${destination}.previous-${process.pid}-${Date.now()}`;
+  const hadDestination = fs.existsSync(destination);
+  if (hadDestination) fs.renameSync(destination, backup);
+  try {
+    fs.renameSync(temporaryDirectory, destination);
+  } catch (error) {
+    if (hadDestination && fs.existsSync(backup)) fs.renameSync(backup, destination);
+    throw error;
+  }
+  if (hadDestination && fs.existsSync(backup)) removeTemporaryDirectory(backup);
+}
+
 function removeTemporaryDirectory(directory) {
   fs.rmSync(directory, { recursive: true, force: true });
+}
+
+function assertRenderEntryOutputPath(outputPath, slugs, manifestPath = null) {
+  const target = path.resolve(outputPath);
+  const roots = new Set([
+    process.cwd(),
+    process.env.HARNESS_WORKSPACE_ROOT,
+    process.env.HARNESS_RENDER_INPUT_DIR ? path.resolve(process.env.HARNESS_RENDER_INPUT_DIR, "../..") : null,
+  ].filter(Boolean).map((root) => path.resolve(root)));
+  const absoluteManifest = manifestPath ? path.resolve(manifestPath) : null;
+  const marker = `${path.sep}local${path.sep}render-input${path.sep}`;
+  const markerIndex = absoluteManifest?.indexOf(marker) ?? -1;
+  if (markerIndex >= 0) roots.add(absoluteManifest.slice(0, markerIndex));
+  for (const root of roots) {
+    for (const slug of slugs) {
+      const protectedPaths = [
+        path.join(root, "videos", slug),
+        path.join(root, "src", "videos", slug),
+        path.join(root, "public", "local-assets", slug),
+        path.join(root, "local", "render-input", slug),
+        path.join(root, "assets", `${slug}-assets.zip`),
+      ];
+      if (protectedPaths.some((protectedPath) => target === protectedPath || target.startsWith(`${protectedPath}${path.sep}`))) {
+        fail("临时入口不能写入具体视频资料、资源或输入包目录", "render-input-entry-output-protected");
+      }
+    }
+  }
 }
 
 export function prepareRenderInput(project, {
@@ -276,6 +537,7 @@ export function prepareRenderInput(project, {
   configFile = "video.config.ts",
   configExport = "videoConfig",
 } = {}) {
+  assertProjectMutable(project, "准备视频输入包");
   const workspaceRoot = requireWorkspaceRoot(project);
   const slug = requireSlug(project?.config?.slug ?? project?.state?.slug);
   if (typeof compositionId !== "string" || !compositionId.trim()) fail("compositionId is required", "render-input-composition-invalid");
@@ -296,13 +558,18 @@ export function prepareRenderInput(project, {
 
   if (fs.existsSync(destination)) {
     const existingIssues = validateRenderInputDirectory(destination, { expectedSlug: slug });
-    if (existingIssues.length === 0) return {
+    const existingManifest = existingIssues.length === 0
+      ? readManifest(path.join(destination, "render-input.json"))
+      : null;
+    if (existingIssues.length === 0 && manifestMatchesSources(existingManifest, { sources, entry, compositionId })) return {
       status: "current",
       directory: destination,
       archivePath: fs.existsSync(renderInputArchivePath(workspaceRoot, slug)) ? renderInputArchivePath(workspaceRoot, slug) : null,
-      manifest: readManifest(path.join(destination, "render-input.json")),
+      manifest: existingManifest,
     };
-    fail(`已有输入包 ${destination} 无法复用，请先由操作者清理后重新准备：${existingIssues.join("；")}`, "render-input-existing-invalid");
+    if (existingIssues.length > 0 && !existingManifest) {
+      // An invalid package is rebuilt below. The old directory stays untouched until the replacement succeeds.
+    }
   }
 
   const temporaryDirectory = fs.mkdtempSync(path.join(root, `.${slug}-`));
@@ -314,7 +581,7 @@ export function prepareRenderInput(project, {
     const manifest = buildManifest({ slug, compositionId, entry, packageRoot: temporaryDirectory });
     fs.writeFileSync(path.join(temporaryDirectory, "render-input.json"), `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
     assertRenderInputDirectory(temporaryDirectory, { expectedSlug: slug });
-    fs.renameSync(temporaryDirectory, destination);
+    replaceRenderInputDirectory(temporaryDirectory, destination);
   } catch (error) {
     if (fs.existsSync(temporaryDirectory)) removeTemporaryDirectory(temporaryDirectory);
     throw error;
@@ -329,9 +596,13 @@ export function prepareRenderInput(project, {
 }
 
 export function packageRenderInput(workspaceRoot, slug) {
+  assertProjectSlugMutable(slug, "打包视频输入包");
   const packageRoot = renderInputDirectory(workspaceRoot, slug);
   const archivePath = renderInputArchivePath(workspaceRoot, slug);
   const manifest = assertRenderInputDirectory(packageRoot, { expectedSlug: slug });
+  if (!manifestMatchesWorkspaceSources(manifest, requireWorkspaceRoot(workspaceRoot), slug)) {
+    fail("当前视频源资料已变化，不能打包旧输入包，请先重新准备", "render-input-source-stale");
+  }
   const temporaryArchive = path.join(os.tmpdir(), `${slug}-render-input-${process.pid}-${Date.now()}.zip`);
   try {
     execFileSync("zip", ["-q", "-r", "-X", temporaryArchive, "."], { cwd: packageRoot, stdio: "pipe" });
@@ -349,132 +620,97 @@ export function packageRenderInput(workspaceRoot, slug) {
   };
 }
 
+export function prepareRenderInputEntry(project, options = {}) {
+  assertProjectMutable(project, "生成视频临时入口");
+  const workspaceRoot = requireWorkspaceRoot(project);
+  const prepared = prepareRenderInput(project, options);
+  const packaged = packageRenderInput(workspaceRoot, project.config.slug);
+  const manifestPath = path.join(prepared.directory, "render-input.json");
+  const entry = writeRenderEntryPoint(
+    manifestPath,
+    path.join(workspaceRoot, "src", "RenderInputRoot.tsx"),
+  );
+  return { ...prepared, ...packaged, entry, manifestPath };
+}
+
 export function renderEntryPointSource(manifest) {
   const issues = validateManifestShape(manifest);
   if (issues.length > 0) fail(issues.join("；"));
   const componentImport = manifest.entry.componentPath.replace(/^src\//, "./").replace(/\.tsx$/, "");
   const configImport = manifest.entry.configPath.replace(/^src\//, "./").replace(/\.ts$/, "");
-  return `import {Composition, registerRoot} from 'remotion';\nimport {getTotalDurationFrames} from './lib/timing';\nimport {${manifest.entry.componentExport}} from '${componentImport}';\nimport {${manifest.entry.configExport}} from '${configImport}';\n\nexport const Root = () => (\n  <Composition\n    id=${JSON.stringify(manifest.compositionId)}\n    component={${manifest.entry.componentExport}}\n    durationInFrames={getTotalDurationFrames(${manifest.entry.configExport})}\n    fps={${manifest.entry.configExport}.fps}\n    width={${manifest.entry.configExport}.width}\n    height={${manifest.entry.configExport}.height}\n  />\n);\n\nregisterRoot(Root);\n`;
-}
-
-function topLevelFiles(directory, predicate) {
-  return fs.readdirSync(directory, {withFileTypes: true})
-    .filter((entry) => entry.isFile() && predicate(entry.name))
-    .map((entry) => entry.name);
-}
-
-function versionSuffix(fileName) {
-  const match = fileName.match(/(\d+)(?:\.[^.]+)?$/);
-  return match?.[1] ?? null;
-}
-
-function inferConfigExport(configPath) {
-  const source = fs.readFileSync(configPath, "utf8");
-  const matches = [...source.matchAll(/export\s+const\s+([A-Za-z_$][A-Za-z0-9_$]*)\s*(?::[^=]+)?=\s*\{/g)]
-    .map((match) => match[1])
-    .filter((name) => /config$/i.test(name));
-  return matches.at(-1) ?? null;
-}
-
-function inferCompositionId(configPath, fallback) {
-  const source = fs.readFileSync(configPath, "utf8");
-  return source.match(/\bslug\s*:\s*["']([^"']+)["']/)?.[1] ?? fallback;
-}
-
-function inferDurationExport(configPath) {
-  const source = fs.readFileSync(configPath, "utf8");
-  return source.match(/export\s+const\s+([A-Za-z_$][A-Za-z0-9_$]*TotalDurationFrames)\s*=/)?.[1] ?? null;
-}
-
-function inferComponentExport(componentPath) {
-  const source = fs.readFileSync(componentPath, "utf8");
-  return source.match(/export\s+const\s+([A-Za-z_$][A-Za-z0-9_$]*Video(?:\d+)?)\s*(?::[^=]+)?=/)?.[1] ?? null;
-}
-
-function chooseStudioPair(remotionDirectory) {
-  const configFiles = topLevelFiles(remotionDirectory, (name) => CONFIG_PATTERN.test(name));
-  const componentFiles = topLevelFiles(remotionDirectory, (name) => COMPONENT_PATTERN.test(name) && /Video(?:\d+)?\.tsx$/.test(name));
-  const pairs = [];
-
-  for (const configFile of configFiles) {
-    const configVersion = versionSuffix(configFile.replace(/\.ts$/, ""));
-    const matchingComponents = componentFiles.filter((componentFile) => {
-      const componentVersion = versionSuffix(componentFile.replace(/\.tsx$/, ""));
-      return configVersion ? componentVersion === configVersion : !componentVersion;
-    });
-    for (const componentFile of matchingComponents) {
-      const configPath = path.join(remotionDirectory, configFile);
-      const componentPath = path.join(remotionDirectory, componentFile);
-      const configExport = inferConfigExport(configPath);
-      const componentExport = inferComponentExport(componentPath);
-      if (!configExport || !componentExport) continue;
-      pairs.push({
-        configFile,
-        configExport,
-        componentFile,
-        componentExport,
-        durationExport: inferDurationExport(configPath),
-        compositionId: inferCompositionId(configPath, path.basename(remotionDirectory)),
-        configMtime: fs.statSync(configPath).mtimeMs,
-        componentMtime: fs.statSync(componentPath).mtimeMs,
-      });
-    }
-  }
-
-  if (pairs.length === 0 && configFiles.length === 1 && componentFiles.length === 1) {
-    const configFile = configFiles[0];
-    const componentFile = componentFiles[0];
-    const configPath = path.join(remotionDirectory, configFile);
-    const componentPath = path.join(remotionDirectory, componentFile);
-    const configExport = inferConfigExport(configPath);
-    const componentExport = inferComponentExport(componentPath);
-    if (configExport && componentExport) {
-      pairs.push({
-        configFile,
-        configExport,
-        componentFile,
-        componentExport,
-        durationExport: inferDurationExport(configPath),
-        compositionId: inferCompositionId(configPath, path.basename(remotionDirectory)),
-        configMtime: fs.statSync(configPath).mtimeMs,
-        componentMtime: fs.statSync(componentPath).mtimeMs,
-      });
-    }
-  }
-
-  pairs.sort((left, right) => right.configMtime - left.configMtime || right.componentMtime - left.componentMtime);
-  return pairs[0] ?? null;
+  const durationImport = manifest.entry.durationExport
+    ? `import {${manifest.entry.durationExport}} from '${configImport}';\n`
+    : "import {getTotalDurationFrames} from './lib/timing';\n";
+  const durationExpression = manifest.entry.durationExport
+    ? `${manifest.entry.durationExport}()`
+    : `getTotalDurationFrames(${manifest.entry.configExport})`;
+  return `import {Composition, registerRoot} from 'remotion';\n${durationImport}import {${manifest.entry.componentExport}} from '${componentImport}';\nimport {${manifest.entry.configExport}} from '${configImport}';\n\nexport const Root = () => (\n  <Composition\n    id=${JSON.stringify(manifest.compositionId)}\n    component={${manifest.entry.componentExport}}\n    durationInFrames={${durationExpression}}\n    fps={${manifest.entry.configExport}.fps}\n    width={${manifest.entry.configExport}.width}\n    height={${manifest.entry.configExport}.height}\n  />\n);\n\nregisterRoot(Root);\n`;
 }
 
 export function discoverStudioEntries(workspaceRoot) {
   const root = requireWorkspaceRoot(workspaceRoot);
   const remotionRoot = path.join(root, "src", "videos");
-  requireDirectory(remotionRoot, "src/videos");
+  const inputRoot = renderInputRoot(root);
   const entries = [];
   const skipped = [];
 
-  for (const directoryEntry of fs.readdirSync(remotionRoot, {withFileTypes: true}).sort((left, right) => left.name.localeCompare(right.name))) {
-    if (!directoryEntry.isDirectory()) continue;
-    const slug = directoryEntry.name;
-    const remotionDirectory = path.join(remotionRoot, slug);
-    const pair = chooseStudioPair(remotionDirectory);
-    if (!pair) {
-      skipped.push({slug, reason: "没有找到可匹配的视频组件和配置"});
+  const candidateSlugs = new Set();
+  for (const directory of [remotionRoot, inputRoot]) {
+    if (!fs.existsSync(directory) || !fs.statSync(directory).isDirectory()) continue;
+    for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+      if (entry.isDirectory() && SLUG_PATTERN.test(entry.name)) candidateSlugs.add(entry.name);
+    }
+  }
+
+  for (const slug of [...candidateSlugs].sort()) {
+    const packageDirectory = renderInputDirectory(root, slug);
+    const completed = isCompletedProject(slug);
+    let manifest = null;
+    let packageIssues = [];
+    if (fs.existsSync(packageDirectory)) {
+      packageIssues = validateRenderInputDirectory(packageDirectory, { expectedSlug: slug });
+      if (packageIssues.length === 0) {
+        try {
+          manifest = readManifest(path.join(packageDirectory, "render-input.json"));
+          if (!completed && !manifestMatchesWorkspaceSources(manifest, root, slug)) {
+            packageIssues = ["输入包与当前源资料不一致"];
+            manifest = null;
+          }
+        } catch (error) {
+          packageIssues = [error instanceof Error ? error.message : String(error)];
+        }
+      }
+    } else {
+      packageIssues = [`缺少 local/render-input/${slug}`];
+    }
+
+    if (packageIssues.length > 0 && !completed) {
+      try {
+        const project = loadProject(slug, { refresh: false });
+        const prepared = prepareRenderInputEntry(project);
+        manifest = prepared.manifest;
+        packageIssues = [];
+      } catch (error) {
+        packageIssues = [error instanceof Error ? error.message : String(error)];
+      }
+    }
+    if (packageIssues.length > 0 || !manifest) {
+      skipped.push({ slug, reason: completed
+        ? `已完成视频只能读取已有输入包，当前输入包不可用：${packageIssues.join("；")}`
+        : `无法生成已校验输入包：${packageIssues.join("；")}` });
       continue;
     }
-    const sourceDirectory = path.join(root, "videos", slug);
-    if (!fs.existsSync(sourceDirectory) || !fs.statSync(sourceDirectory).isDirectory()) {
-      skipped.push({slug, reason: `缺少 videos/${slug}`});
-      continue;
-    }
+
     entries.push({
       slug,
-      compositionId: pair.compositionId,
-      componentPath: `src/videos/${slug}/${pair.componentFile}`,
-      componentExport: pair.componentExport,
-      configPath: `src/videos/${slug}/${pair.configFile}`,
-      configExport: pair.configExport,
-      durationExport: pair.durationExport,
+      compositionId: manifest.compositionId,
+      componentPath: manifest.entry.componentPath,
+      componentExport: manifest.entry.componentExport,
+      configPath: manifest.entry.configPath,
+      configExport: manifest.entry.configExport,
+      durationExport: manifest.entry.durationExport ?? null,
+      packageFingerprint: manifest.packageFingerprint,
+      sourceFingerprint: manifest.sourceFingerprint,
     });
   }
 
@@ -509,6 +745,7 @@ export function renderStudioCatalogSource(entries) {
 
 export function writeStudioCatalogEntryPoint(workspaceRoot, outputPath) {
   const discovered = discoverStudioEntries(workspaceRoot);
+  assertRenderEntryOutputPath(outputPath, discovered.entries.map((entry) => entry.slug));
   const target = path.resolve(outputPath);
   fs.mkdirSync(path.dirname(target), {recursive: true});
   fs.writeFileSync(target, renderStudioCatalogSource(discovered.entries), "utf8");
@@ -517,6 +754,8 @@ export function writeStudioCatalogEntryPoint(workspaceRoot, outputPath) {
 
 export function writeRenderEntryPoint(manifestPath, outputPath) {
   const manifest = readManifest(path.resolve(manifestPath));
+  assertProjectSlugMutable(manifest.videoSlug, "生成视频临时入口");
+  assertRenderEntryOutputPath(outputPath, [manifest.videoSlug], manifestPath);
   const source = renderEntryPointSource(manifest);
   const target = path.resolve(outputPath);
   fs.mkdirSync(path.dirname(target), { recursive: true });

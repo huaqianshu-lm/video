@@ -10,9 +10,11 @@ import { createRemotionExecutorFromEnv } from "./remotion-executor.mjs";
 import { createRemoteRenderExecutor } from "./remote-executor.mjs";
 import { packageVideoAssets } from "./asset-bundler.mjs";
 import {
+  bindRenderInputDelivery,
   packageRenderInput,
   prepareRenderInput,
   renderInputDirectory,
+  validateCurrentRenderInput,
   validateRenderInputDirectory,
   writeStudioCatalogEntryPoint,
   writeRenderEntryPoint,
@@ -26,9 +28,8 @@ import { createRemoteJobMonitor } from "./remote-jobs.mjs";
 import { diagnoseGitHubActions } from "./diagnostics.mjs";
 import { adoptExistingProjectToGate2, markHistoricalProjectCompleted } from "./adoption.mjs";
 import {
-  approveTtsQc,
-  approveSmokeQc,
-  batchDefinitions,
+ approveTtsQc,
+ batchDefinitions,
   createBatch,
   getBatchForView,
   listBatchesForView,
@@ -54,11 +55,12 @@ function usage() {
   node harness/src/cli.mjs jobs --all [--json]
   node harness/src/cli.mjs validate <slug> [stage]
   node harness/src/cli.mjs run <slug> [stage]
-  node harness/src/cli.mjs remote-run <slug> <smoke-render|render> [--json]
+  node harness/src/cli.mjs remote-run <slug> render [--json]
   node harness/src/cli.mjs assets package <slug> [--json]
   node harness/src/cli.mjs render-input prepare <slug> [--composition-id <id>] [--component-file <file>] [--component-export <name>] [--json]
   node harness/src/cli.mjs render-input validate <slug> [--json]
   node harness/src/cli.mjs render-input package <slug> [--json]
+  node harness/src/cli.mjs render-input bind <slug> --url <url> --sha256 <sha256> [--json]
   node harness/src/cli.mjs render-input validate-path <directory> [--json]
   node harness/src/cli.mjs render-input entry --manifest <file> --output <file> [--json]
   node harness/src/cli.mjs render-input entry-all --output <file> [--json]
@@ -77,7 +79,6 @@ function usage() {
   node harness/src/cli.mjs batch run <batch-id> [--json]
   node harness/src/cli.mjs batch resume <batch-id> [--retry-failed] [--json]
   node harness/src/cli.mjs batch approve-tts-qc <batch-id> <slug> [--json]
-  node harness/src/cli.mjs batch approve-smoke-qc <batch-id> <slug> [--json]
   node harness/src/cli.mjs remotion-task list [--json]
   node harness/src/cli.mjs remotion-task show <task-id> [--json]
   node harness/src/cli.mjs remotion-task start <task-id> [--json]
@@ -229,7 +230,7 @@ function printRemotionTask(result, asJson = false) {
 function configuredAdapters() {
   requireGitHubActionsConfig();
   const adapter = createGitHubActionsAdapterFromEnv();
-  return { "smoke-render": adapter, render: adapter };
+  return { render: adapter };
 }
 
 function configuredExecutors() {
@@ -285,12 +286,14 @@ async function main(args) {
       printBatch(getBatchForView(batchId), asJson);
       return 0;
     }
-    if (batchCommand === "approve-tts-qc" || batchCommand === "approve-smoke-qc") {
+    if (batchCommand === "approve-smoke-qc") {
+      throw new Error("Smoke Render 已退出批次流程，不再提供 Harness Smoke 确认动作；请从 GitHub Actions 手动触发独立检查。");
+    }
+    if (batchCommand === "approve-tts-qc") {
       const batchId = options.find((value) => value !== "--json");
       const videoSlug = options.filter((value) => value !== "--json").at(1);
       if (!batchId || !videoSlug) throw new Error("batch approve-tts-qc requires <batch-id> <slug>");
-      if (batchCommand === "approve-tts-qc") approveTtsQc(batchId, videoSlug);
-      else approveSmokeQc(batchId, videoSlug);
+      approveTtsQc(batchId, videoSlug);
       await runBatch(batchId);
       printBatch(getBatchForView(batchId), asJson);
       return 0;
@@ -385,8 +388,11 @@ async function main(args) {
   if (command === "remote-run") {
     validateSlug(slug);
     const stage = options.find((value) => value !== "--json");
-    if (stage !== "smoke-render" && stage !== "render") {
-      throw new Error("remote-run requires <smoke-render|render>");
+    if (stage === "smoke-render") {
+      throw new Error("Smoke Render 已退出 Harness 生产流程，请从 GitHub Actions 手动触发独立环境检查。");
+    }
+    if (stage !== "render") {
+      throw new Error("remote-run requires render");
     }
     requireGitHubActionsConfig();
     const project = loadProject(slug, { refresh: true });
@@ -467,7 +473,7 @@ async function main(args) {
     }
     if (subcommand === "validate") {
       const directory = renderInputDirectory(project.config.workspaceRoot, inputSlug);
-      const issues = validateRenderInputDirectory(directory, { expectedSlug: inputSlug });
+      const issues = validateCurrentRenderInput(project);
       if (asJson) console.log(JSON.stringify({ directory, issues }, null, 2));
       else console.log(issues.length === 0 ? `Valid render input: ${directory}` : issues.map((issue) => `- ${issue}`).join("\n"));
       return issues.length === 0 ? 0 : 1;
@@ -476,6 +482,20 @@ async function main(args) {
       const result = packageRenderInput(project.config.workspaceRoot, inputSlug);
       if (asJson) console.log(JSON.stringify(result, null, 2));
       else console.log(`Packaged ${result.archivePath} (sha256=${result.archiveSha256})`);
+      return 0;
+    }
+    if (subcommand === "bind") {
+      const urlIndex = options.indexOf("--url");
+      const shaIndex = options.indexOf("--sha256");
+      if (urlIndex < 0 || !options[urlIndex + 1] || shaIndex < 0 || !options[shaIndex + 1]) {
+        throw new Error("render-input bind requires --url <url> --sha256 <sha256>");
+      }
+      const result = await bindRenderInputDelivery(project, {
+        url: options[urlIndex + 1],
+        sha256: options[shaIndex + 1],
+      });
+      if (asJson) console.log(JSON.stringify(result, null, 2));
+      else console.log(`Bound render input delivery: ${result.path}`);
       return 0;
     }
     usage();
@@ -523,10 +543,10 @@ async function main(args) {
 
     if (command === "run") {
       const stage = options[0] ?? project.state.currentStage;
-      const adapters = stage === "smoke-render" || stage === "render" ? configuredAdapters() : {};
+      const adapters = stage === "render" ? configuredAdapters() : {};
       const ttsExecutor = stage === "subtitle-timeline" ? configuredExecutors()["subtitle-timeline"] : null;
       const remotionExecutor = stage === "remotion" ? createRemotionExecutorFromEnv() : null;
-      const remoteExecutor = stage === "smoke-render" || stage === "render"
+      const remoteExecutor = stage === "render"
         ? createRemoteRenderExecutor({ monitor: createRemoteJobMonitor() })
         : null;
       console.log(JSON.stringify(await runSingleStage(project, stage, {

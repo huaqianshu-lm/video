@@ -7,12 +7,13 @@ import {
   classifyRemoteError,
 } from "./remote-status.mjs";
 import { isGateStage } from "./stages.mjs";
-import { loadProject } from "./storage.mjs";
+import { assertProjectSlugMutable, isCompletedProject, loadProject } from "./storage.mjs";
 import { assertRemoteRenderDeliveryInputs, prepareRemoteRenderInputs } from "./remote-executor.mjs";
+import { assertRenderInputDelivery, readRenderInputDelivery } from "./render-input.mjs";
 
 const DEFAULT_POLL_INTERVAL_MS = 20 * 60 * 1_000;
 const DEFAULT_JOB_TIMEOUT_MS = 45 * 60 * 1_000;
-const REMOTE_STAGES = new Set(["smoke-render", "render"]);
+const REMOTE_STAGES = new Set(["render"]);
 
 function canReconcileDispatchedJob(job) {
   return ["failed", "waiting-config"].includes(job.status)
@@ -118,6 +119,7 @@ export function createRemoteJobMonitor({
       if (!job || !isPollableJob(job)) {
         return job;
       }
+      if (isCompletedProject(job.slug)) return job;
 
       if (timeoutReached(job)) {
         return timeoutJob(job);
@@ -126,6 +128,17 @@ export function createRemoteJobMonitor({
       let project;
       try {
         project = loadProject(job.slug, { refresh: true });
+        const currentDelivery = readRenderInputDelivery(project.config.workspaceRoot, job.slug);
+        if (job.remote?.renderInputUrl || job.remote?.renderInputSha256) {
+          if (!currentDelivery
+            || currentDelivery.url !== job.remote.renderInputUrl
+            || currentDelivery.archiveSha256 !== job.remote.renderInputSha256
+            || currentDelivery.packageFingerprint !== job.remote.renderInputPackageFingerprint) {
+            const error = new Error(`远程 Job ${job.id} 绑定的输入包已变化，请停止旧任务并重新预检提交`);
+            error.code = "remote-job-input-binding-changed";
+            throw error;
+          }
+        }
         const adapter = adapterFactory();
         let remote = job.remote ?? null;
 
@@ -151,9 +164,24 @@ export function createRemoteJobMonitor({
           if (typeof adapter.verifyDispatchRef === "function") {
             await adapter.verifyDispatchRef({ project, dispatch: candidate });
           }
-          const pendingDispatch = { ...candidate, dispatchState: "pending" };
+          const pendingDispatch = {
+            ...candidate,
+            ...(job.remote?.renderInputUrl ? {
+              renderInputUrl: job.remote.renderInputUrl,
+              renderInputSha256: job.remote.renderInputSha256,
+              renderInputPackageFingerprint: job.remote.renderInputPackageFingerprint,
+              renderInputBoundAt: job.remote.renderInputBoundAt,
+            } : {}),
+            dispatchState: "pending",
+          };
           updateJob(job.slug, job.id, { remote: pendingDispatch });
           const existingRun = await adapter.findDispatchedRunOnce(pendingDispatch);
+          const persistedInputBinding = job.remote?.renderInputUrl ? {
+            renderInputUrl: job.remote.renderInputUrl,
+            renderInputSha256: job.remote.renderInputSha256,
+            renderInputPackageFingerprint: job.remote.renderInputPackageFingerprint,
+            renderInputBoundAt: job.remote.renderInputBoundAt,
+          } : {};
           remote = existingRun
             ? {
               ...pendingDispatch,
@@ -164,6 +192,7 @@ export function createRemoteJobMonitor({
             }
             : {
               ...await adapter.dispatchWorkflow({ stage: job.stage, project, dispatchedAt: dispatchingAt }),
+              ...persistedInputBinding,
               dispatchState: "confirmed",
               dispatchConfirmedAt: isoNow(now),
             };
@@ -253,6 +282,7 @@ export function createRemoteJobMonitor({
     if (!REMOTE_STAGES.has(stage)) {
       throw new Error(`Historical recovery does not support ${stage}`);
     }
+    assertProjectSlugMutable(slug, "接管历史远程结果");
     const project = loadProject(slug, { refresh: true });
     if (project.state.currentStage !== stage) {
       throw new Error(`Cannot adopt a historical result for ${stage}; current stage is ${project.state.currentStage}`);
@@ -307,10 +337,31 @@ export function createRemoteJobMonitor({
   }
 
   function submit({ slug, stage }) {
+    if (!REMOTE_STAGES.has(stage)) {
+      const error = new Error(stage === "smoke-render"
+        ? "Smoke Render 已退出 Harness 生产流程，请从 GitHub Actions 手动触发独立环境检查。"
+        : `Remote job monitor does not support stage: ${stage}`);
+      if (stage === "smoke-render") error.code = "standalone-smoke-render";
+      throw error;
+    }
+    assertProjectSlugMutable(slug, "创建远程渲染任务");
     if (findActiveJob(slug, stage)) {
       throw new Error("A remote job for this stage is already running");
     }
-    const job = createJobRecord({ slug, stage });
+    const project = loadProject(slug, { refresh: true });
+    const delivery = assertRenderInputDelivery(project);
+    const job = createJobRecord({
+      slug,
+      stage,
+      metadata: {
+        remote: {
+          renderInputUrl: delivery.url,
+          renderInputSha256: delivery.archiveSha256,
+          renderInputPackageFingerprint: delivery.packageFingerprint,
+          renderInputBoundAt: delivery.boundAt,
+        },
+      },
+    });
     void processJob(job.id);
     return job;
   }

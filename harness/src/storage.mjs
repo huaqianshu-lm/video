@@ -10,6 +10,7 @@ import {
 import { artifactManifestFor } from "./artifacts.mjs";
 import { fingerprintStageArtifacts } from "./fingerprints.mjs";
 import { resolveStyleId } from "./styles.mjs";
+import { validateProjectStage } from "./validation.mjs";
 
 const repositoryRoot = path.resolve(new URL("../..", import.meta.url).pathname);
 
@@ -31,7 +32,54 @@ export function projectFiles(slug) {
   };
 }
 
+function completedProjectError(slug, operation = "修改") {
+  const error = new Error(`视频 ${slug} 已完成并永久只读，禁止${operation}。`);
+  error.code = "completed-project-readonly";
+  error.slug = slug;
+  error.operation = operation;
+  return error;
+}
+
+function projectSlugForPath(filePath) {
+  const root = path.resolve(projectsRoot());
+  const relative = path.relative(root, path.resolve(filePath));
+  if (!relative || relative.startsWith("..") || path.isAbsolute(relative)) return null;
+  const [slug] = relative.split(path.sep);
+  return slug || null;
+}
+
+function existingProjectState(slug) {
+  if (!slug) return null;
+  const statePath = projectFiles(slug).state;
+  if (!fs.existsSync(statePath) || !fs.statSync(statePath).isFile()) return null;
+  try {
+    return readJson(statePath);
+  } catch {
+    return null;
+  }
+}
+
+export function isCompletedProject(projectOrSlug) {
+  if (typeof projectOrSlug === "string") return existingProjectState(projectOrSlug)?.currentStage === "completed";
+  return projectOrSlug?.state?.currentStage === "completed";
+}
+
+export function assertProjectMutable(projectOrSlug, operation = "修改") {
+  const slug = typeof projectOrSlug === "string"
+    ? projectOrSlug
+    : projectOrSlug?.config?.slug ?? projectOrSlug?.state?.slug;
+  if (isCompletedProject(projectOrSlug)) throw completedProjectError(slug, operation);
+  return projectOrSlug;
+}
+
+export function assertProjectSlugMutable(slug, operation = "修改") {
+  if (isCompletedProject(slug)) throw completedProjectError(slug, operation);
+  return slug;
+}
+
 export function writeJson(filePath, value) {
+  const slug = projectSlugForPath(filePath);
+  if (slug && isCompletedProject(slug)) throw completedProjectError(slug, "写入项目及其相关产物");
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
   fs.writeFileSync(filePath, `${JSON.stringify(value, null, 2)}\n`, "utf8");
 }
@@ -90,6 +138,7 @@ export function applySeriesStyle(slug, style) {
   const project = loadProject(slug, { refresh: false });
   const needsBaseline = project.config.prototypeBaseline !== "codex-v1";
   if (project.config.style === style && !needsBaseline) return { changed: false, restartedAt: null };
+  assertProjectMutable(project, "应用系列风格");
 
   const now = new Date().toISOString();
   project.config.style = style;
@@ -139,7 +188,69 @@ function saveState(project) {
   writeJson(project.files.state, project.state);
 }
 
+export function reconcileCurrentRemotionOutput(project) {
+  assertProjectMutable(project, "恢复 Remotion 产物状态");
+  const remotion = project.state.stages.remotion;
+  const gate = project.state.stages["gate-3"];
+  const isStaleRemotionState = project.state.currentStage === "remotion"
+    && remotion?.status === "ready"
+    && remotion.invalidatedBy === null
+    && gate?.status === "invalidated"
+    && gate.invalidatedBy === "remotion";
+  if (!isStaleRemotionState) return { changed: false };
+
+  const issues = validateProjectStage(project, "remotion");
+  if (issues.length > 0) return { changed: false, issues };
+
+  const outputFingerprint = fingerprintStageArtifacts(project, "remotion");
+  if (!outputFingerprint) return { changed: false, issues: [{ code: "missing-remotion-output-fingerprint", stage: "remotion" }] };
+
+  const now = new Date().toISOString();
+  remotion.status = "succeeded";
+  remotion.error = null;
+  remotion.invalidatedBy = null;
+  remotion.rebuildBaselineFingerprint = null;
+  remotion.outputs = [];
+  remotion.review = null;
+  remotion.remote = null;
+  remotion.outputFingerprint = outputFingerprint;
+  remotion.updatedAt = now;
+
+  gate.status = "waiting";
+  gate.outputs = [];
+  gate.review = null;
+  gate.error = null;
+  gate.invalidatedBy = null;
+  gate.rebuildBaselineFingerprint = null;
+  gate.outputFingerprint = null;
+  gate.updatedAt = now;
+
+  for (const stage of STAGES.slice(STAGES.indexOf("gate-3") + 1)) {
+    const item = project.state.stages[stage];
+    item.status = "invalidated";
+    item.outputs = [];
+    item.review = null;
+    item.error = null;
+    item.invalidatedBy = "gate-3";
+    item.rebuildBaselineFingerprint = null;
+    item.outputFingerprint = null;
+    item.updatedAt = now;
+  }
+  project.state.currentStage = "gate-3";
+  saveState(project);
+
+  return {
+    changed: true,
+    stage: "remotion",
+    status: "succeeded",
+    nextStage: "gate-3",
+    outputFingerprint,
+  };
+}
+
 export function refreshProject(project) {
+  if (isCompletedProject(project)) return { changed: false, stage: null, readOnly: true };
+
   const changedStages = STAGES.filter((stage) => {
     const item = project.state.stages[stage];
     if (item.status !== "succeeded" || !item.outputFingerprint) return false;
@@ -147,7 +258,12 @@ export function refreshProject(project) {
     return currentFingerprint !== null && currentFingerprint !== item.outputFingerprint;
   });
 
-  if (changedStages.length === 0) return { changed: false, stage: null };
+  if (changedStages.length === 0) {
+    const reconciled = reconcileCurrentRemotionOutput(project);
+    return reconciled.changed
+      ? { changed: true, stage: "remotion", reconciled: true }
+      : { changed: false, stage: null };
+  }
 
   const changedStage = changedStages[0];
   const changedIndex = STAGES.indexOf(changedStage);
@@ -165,13 +281,15 @@ export function refreshProject(project) {
   }
   project.state.currentStage = changedStage;
   saveState(project);
-  return { changed: true, stage: changedStage };
+  const reconciled = changedStage === "remotion" ? reconcileCurrentRemotionOutput(project) : { changed: false };
+  return { changed: true, stage: changedStage, reconciled: reconciled.changed };
 }
 
 export function reopenGate3ForSeriesCover(slug) {
   const files = projectFiles(slug);
   if (!fs.existsSync(files.config) || !fs.existsSync(files.state) || !fs.existsSync(files.artifacts)) return false;
   const project = loadProject(slug, { refresh: false });
+  assertProjectMutable(project, "因系列封面重开 Gate 3");
   const gateIndex = STAGES.indexOf("gate-3");
   const currentIndex = project.state.currentStage === "completed"
     ? STAGES.length
