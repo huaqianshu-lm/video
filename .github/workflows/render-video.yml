@@ -1,5 +1,7 @@
 name: Render full video
 
+run-name: ${{ inputs.video_slug }} / ${{ inputs.dispatch_id }}
+
 on:
   workflow_dispatch:
     inputs:
@@ -9,6 +11,10 @@ on:
         type: string
       composition_id:
         description: Remotion Composition ID
+        required: true
+        type: string
+      dispatch_id:
+        description: Unique Harness dispatch ID used to identify this Run
         required: true
         type: string
       render_input_url:

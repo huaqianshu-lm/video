@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto";
+
 export function createMockAdapter({ failOnce = false } = {}) {
   let shouldFail = failOnce;
   const calls = [];
@@ -71,6 +73,64 @@ function responseMessage(payload) {
   return "GitHub API request failed";
 }
 
+function requireDispatchId(dispatchId) {
+  if (typeof dispatchId !== "string" || dispatchId.trim() === "") {
+    const error = new Error("GitHub Actions dispatch requires a non-empty dispatchId");
+    error.code = "remote-dispatch-id-missing";
+    throw error;
+  }
+  return dispatchId;
+}
+
+function runNameForDispatch(slug, dispatchId) {
+  return `${slug} / ${dispatchId}`;
+}
+
+function expectedRunName(dispatch, dispatchId) {
+  const expectedName = runNameForDispatch(dispatch.slug, dispatchId);
+  if (dispatch.runName && dispatch.runName !== expectedName) {
+    const error = new Error(`GitHub Actions dispatch 的 Run 名称与 dispatchId 不一致：期望 ${expectedName}，实际 ${dispatch.runName}`);
+    error.code = "remote-dispatch-id-mismatch";
+    error.dispatchId = dispatchId;
+    throw error;
+  }
+  return expectedName;
+}
+
+function dispatchBindingMismatchError(field, expected, actual) {
+  const error = new Error(`GitHub Actions dispatch 的 ${field} 不一致：期望 ${expected}，实际 ${actual}`);
+  error.code = "remote-dispatch-binding-mismatch";
+  return error;
+}
+
+function dispatchRunDetails(payload) {
+  if (payload?.workflow_run_id === undefined || payload?.workflow_run_id === null) {
+    return null;
+  }
+  return {
+    runId: payload.workflow_run_id,
+    ...(payload.workflow_run_url ? { runApiUrl: payload.workflow_run_url } : {}),
+    ...(payload.html_url ? { runUrl: payload.html_url } : {}),
+  };
+}
+
+function exactRunName(run, expectedName) {
+  return run?.display_title === expectedName || run?.run_name === expectedName;
+}
+
+function ambiguousDispatchError(dispatch, candidates) {
+  const error = new Error(`GitHub Actions returned multiple Runs for dispatchId ${dispatch.dispatchId}`);
+  error.code = "remote-dispatch-ambiguous";
+  error.candidates = candidates.map((run) => ({
+    id: run.id,
+    url: run.html_url ?? run.url ?? null,
+    displayTitle: run.display_title ?? run.run_name ?? null,
+    createdAt: run.created_at ?? null,
+  }));
+  error.issues = error.candidates;
+  return error;
+}
+
 export function createGitHubActionsAdapter({
   token,
   repository,
@@ -136,11 +196,21 @@ export function createGitHubActionsAdapter({
     return workflow;
   }
 
-  function createDispatch({ stage, project, dispatchedAt = now().toISOString() }) {
+  function createDispatch({ stage, project, dispatchedAt = now().toISOString(), dispatchId = randomUUID() }) {
     const workflow = workflowPath(stage);
     const slug = project.state.slug;
     const compositionId = project.config.compositionId ?? slug;
-    const dispatch = { workflow, ref, slug, compositionId, dispatchedAt, dispatchState: "pending" };
+    const resolvedDispatchId = requireDispatchId(dispatchId);
+    const dispatch = {
+      workflow,
+      ref,
+      slug,
+      compositionId,
+      dispatchId: resolvedDispatchId,
+      runName: runNameForDispatch(slug, resolvedDispatchId),
+      dispatchedAt,
+      dispatchState: "prepared",
+    };
     let delivery = null;
     if (project?.config?.workspaceRoot) {
       delivery = readRenderInputDelivery(project.config.workspaceRoot, slug);
@@ -162,8 +232,42 @@ export function createGitHubActionsAdapter({
     return dispatch;
   }
 
-  async function dispatchWorkflow({ stage, project, dispatchedAt = now().toISOString() }) {
-    const dispatch = createDispatch({ stage, project, dispatchedAt });
+  async function dispatchWorkflow({
+    stage,
+    project,
+    dispatchedAt = now().toISOString(),
+    dispatchId = randomUUID(),
+    dispatch: persistedDispatch = null,
+  }) {
+    let dispatch;
+    if (persistedDispatch) {
+      const resolvedDispatchId = requireDispatchId(persistedDispatch.dispatchId ?? dispatchId);
+      const resolvedSlug = persistedDispatch.slug ?? project.state.slug;
+      const resolvedRunName = expectedRunName({ ...persistedDispatch, slug: resolvedSlug }, resolvedDispatchId);
+      dispatch = {
+        ...persistedDispatch,
+        slug: resolvedSlug,
+        dispatchId: resolvedDispatchId,
+        runName: resolvedRunName,
+      };
+    } else {
+      dispatch = createDispatch({ stage, project, dispatchedAt, dispatchId });
+    }
+
+    const expectedWorkflow = workflowPath(stage);
+    if (dispatch.workflow !== expectedWorkflow) {
+      throw dispatchBindingMismatchError("Workflow", expectedWorkflow, dispatch.workflow);
+    }
+    if (dispatch.ref !== ref) {
+      throw dispatchBindingMismatchError("Git 分支", ref, dispatch.ref);
+    }
+    if (dispatch.slug !== project.state.slug) {
+      throw dispatchBindingMismatchError("video slug", project.state.slug, dispatch.slug);
+    }
+    const expectedCompositionId = project.config.compositionId ?? project.state.slug;
+    if (dispatch.compositionId !== expectedCompositionId) {
+      throw dispatchBindingMismatchError("Composition ID", expectedCompositionId, dispatch.compositionId);
+    }
 
     if (requireRenderInput && stage === "render" && (!dispatch.renderInputUrl || !dispatch.renderInputSha256)) {
       const error = new Error(`视频 ${dispatch.slug} 缺少已绑定的输入包 URL 和 SHA-256，请先绑定该视频的发布包`);
@@ -171,14 +275,16 @@ export function createGitHubActionsAdapter({
       throw error;
     }
 
-    await request(`/repos/${repository}/actions/workflows/${encodeURIComponent(dispatch.workflow)}/dispatches`, {
+    const payload = await request(`/repos/${repository}/actions/workflows/${encodeURIComponent(dispatch.workflow)}/dispatches`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         ref: dispatch.ref,
+        return_run_details: true,
         inputs: {
           video_slug: dispatch.slug,
           composition_id: dispatch.compositionId,
+          dispatch_id: dispatch.dispatchId,
           ...(dispatch.renderInputUrl && dispatch.renderInputSha256
             ? { render_input_url: dispatch.renderInputUrl, render_input_sha256: dispatch.renderInputSha256 }
             : {}),
@@ -186,10 +292,18 @@ export function createGitHubActionsAdapter({
       }),
     });
 
+    const runDetails = dispatchRunDetails(payload);
     return {
       ...dispatch,
-      dispatchState: "confirmed",
-      dispatchConfirmedAt: now().toISOString(),
+      ...(runDetails ?? {
+        dispatchState: "sending",
+        dispatchSentAt: now().toISOString(),
+      }),
+      ...(runDetails ? {
+        ...runDetails,
+        dispatchState: "confirmed",
+        dispatchConfirmedAt: now().toISOString(),
+      } : {}),
     };
   }
 
@@ -222,7 +336,7 @@ export function createGitHubActionsAdapter({
   async function listRuns({ workflow, ref: runRef = null }) {
     const query = new URLSearchParams({
       event: "workflow_dispatch",
-      per_page: "20",
+      per_page: "100",
     });
     if (runRef) query.set("branch", runRef);
     const payload = await request(
@@ -240,19 +354,27 @@ export function createGitHubActionsAdapter({
         return matchingRun;
       }
       if (Date.now() >= deadline) {
-        throw new Error(`GitHub Actions run was not discovered for ${dispatch.workflow}`);
+        const error = new Error(`GitHub Actions Run was not discovered for dispatchId ${dispatch.dispatchId}`);
+        error.code = "remote-dispatch-uncertain";
+        error.dispatchId = dispatch.dispatchId;
+        throw error;
       }
       await sleepImpl(discoveryPollIntervalMs);
     }
   }
 
   async function findDispatchedRunOnce(dispatch) {
-    const startTime = Date.parse(dispatch.dispatchedAt) - 15_000;
+    const dispatchId = requireDispatchId(dispatch.dispatchId);
+    const expectedName = expectedRunName(dispatch, dispatchId);
     const runs = await listRuns(dispatch);
-    return runs
+    const candidates = runs
       .filter((run) => run.head_branch === dispatch.ref)
-      .filter((run) => Date.parse(run.created_at) >= startTime)
-      .sort((left, right) => Date.parse(right.created_at) - Date.parse(left.created_at))[0] ?? null;
+      .filter((run) => run?.id !== undefined && run?.id !== null)
+      .filter((run) => exactRunName(run, expectedName));
+    if (candidates.length > 1) {
+      throw ambiguousDispatchError(dispatch, candidates);
+    }
+    return candidates[0] ?? null;
   }
 
   async function findSuccessfulRunsWithArtifactOnce(dispatch, { anyBranch = false } = {}) {
@@ -295,6 +417,7 @@ export function createGitHubActionsAdapter({
       workflow: dispatch.workflow,
       ref: dispatch.ref,
       runId: run.id,
+      runApiUrl: run.url,
       runUrl: run.html_url,
       status: run.status,
       conclusion: run.conclusion,
@@ -312,19 +435,19 @@ export function createGitHubActionsAdapter({
   }
 
   async function inspectRun({ stage, dispatch, runId = null, recoverExisting = false }) {
-    let run = runId ? await getRun(runId) : await findDispatchedRunOnce(dispatch);
+    let run = runId !== null && runId !== undefined ? await getRun(runId) : await findDispatchedRunOnce(dispatch);
     let artifacts = null;
-    if (!run && recoverExisting) {
-      const recovered = await findSuccessfulRunWithArtifactOnce(dispatch);
-      if (recovered) {
-        run = recovered.run;
-        artifacts = recovered.artifacts;
-      }
-    }
     if (!run) {
       return { status: "waiting-run", run: null, remote: dispatch };
     }
-    const remote = { ...dispatch, runId: run.id, runUrl: run.html_url };
+    const remote = {
+      ...dispatch,
+      runId: run.id,
+      ...(run.url ? { runApiUrl: run.url } : {}),
+      ...(run.html_url ? { runUrl: run.html_url } : {}),
+      dispatchState: "confirmed",
+      dispatchConfirmedAt: dispatch.dispatchConfirmedAt ?? run.created_at ?? now().toISOString(),
+    };
     if (run.status !== "completed") {
       return { status: "running", run, remote };
     }
@@ -347,16 +470,19 @@ export function createGitHubActionsAdapter({
   }
 
   async function waitForRun(dispatch) {
-    const discoveredRun = await findDispatchedRun(dispatch);
+    const discoveredRun = dispatch.runId !== null && dispatch.runId !== undefined
+      ? null
+      : await findDispatchedRun(dispatch);
+    const trackedRunId = dispatch.runId ?? discoveredRun?.id;
     const deadline = Date.now() + runTimeoutMs;
-    let run = discoveredRun;
+    let run = discoveredRun ?? await getRun(trackedRunId);
 
     while (run.status !== "completed") {
       if (Date.now() >= deadline) {
         throw new Error(`GitHub Actions run ${run.id} timed out`);
       }
       await sleepImpl(runPollIntervalMs);
-      run = await getRun(discoveredRun.id);
+      run = await getRun(trackedRunId);
     }
 
     if (run.conclusion !== "success") {
@@ -368,8 +494,8 @@ export function createGitHubActionsAdapter({
 
   return {
     requiresRenderPreflight: true,
-    async run({ stage, project, defer = false }) {
-      const dispatch = await dispatchWorkflow({ stage, project });
+    async run({ stage, project, defer = false, dispatchId = randomUUID() }) {
+      const dispatch = await dispatchWorkflow({ stage, project, dispatchId });
       if (defer) {
         return { deferred: true, remote: dispatch };
       }
