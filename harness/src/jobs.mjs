@@ -9,6 +9,8 @@ const activeStatuses = new Set([
   "dispatching",
   REMOTE_JOB_STATUS.WAITING_CONFIG,
   ...ACTIVE_REMOTE_JOB_STATUSES,
+  REMOTE_JOB_STATUS.DISPATCH_UNCERTAIN,
+  REMOTE_JOB_STATUS.DISPATCH_AMBIGUOUS,
 ]);
 
 function jobsDirectory(slug) {
@@ -74,7 +76,12 @@ export function listJobs(slug) {
 }
 
 export function findActiveJob(slug, stage) {
-  return listJobs(slug).find((job) => job.stage === stage && activeStatuses.has(job.status)) ?? null;
+  return listJobs(slug).find((job) => {
+    if (job.stage !== stage) return false;
+    if (activeStatuses.has(job.status)) return true;
+    return (job.remote?.runId === null || job.remote?.runId === undefined)
+      && ["prepared", "pending", "sending", "confirmed"].includes(job.remote?.dispatchState);
+  }) ?? null;
 }
 
 export function createJob({ slug, stage, run }) {

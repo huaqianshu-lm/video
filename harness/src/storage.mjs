@@ -60,8 +60,13 @@ function existingProjectState(slug) {
 }
 
 export function isCompletedProject(projectOrSlug) {
-  if (typeof projectOrSlug === "string") return existingProjectState(projectOrSlug)?.currentStage === "completed";
-  return projectOrSlug?.state?.currentStage === "completed";
+  const slug = typeof projectOrSlug === "string"
+    ? projectOrSlug
+    : projectOrSlug?.config?.slug ?? projectOrSlug?.state?.slug;
+  const inMemoryCompleted = typeof projectOrSlug === "string"
+    ? false
+    : projectOrSlug?.state?.currentStage === "completed";
+  return inMemoryCompleted || existingProjectState(slug)?.currentStage === "completed";
 }
 
 export function assertProjectMutable(projectOrSlug, operation = "修改") {

@@ -2,7 +2,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
-import { readGitHubActionsConfig } from "./github-config.mjs";
+import { readGitHubActionsConfig, validateRenderInputUrl } from "./github-config.mjs";
+import { validateRenderInputDelivery } from "./render-input.mjs";
 
 const RENDER_RELEVANT_PREFIXES = [
   "src/",
@@ -15,14 +16,6 @@ const RENDER_RELEVANT_FILES = new Set([
   "package-lock.json",
   "remotion.config.ts",
 ]);
-const RENDER_ALLOWED_PREFIXES = [
-  "src/components/",
-  "src/scenes/",
-  "src/lib/",
-  "src/styles/",
-  "styles/",
-  ".github/workflows/",
-];
 const RENDER_ALLOWED_FILES = new Set([
   "src/TemplateVideo.tsx",
   "src/HelloIntro.tsx",
@@ -35,6 +28,8 @@ const RENDER_ALLOWED_FILES = new Set([
   "harness/src/github-config.mjs",
   "harness/src/remote-jobs.mjs",
   "harness/src/adapters.mjs",
+  ".github/workflows/smoke-test-video.yml",
+  ".github/workflows/render-video.yml",
   "package.json",
   "package-lock.json",
   "remotion.config.ts",
@@ -65,10 +60,26 @@ export function localGitCommit(workspaceRoot, ref = "HEAD") {
   }
 }
 
-function parseStatusPath(line) {
+function parseStatusEntry(line) {
+  const status = line.slice(0, 2);
   const value = line.slice(3);
-  if (value.includes(" -> ")) return value.split(" -> ").at(-1);
-  return value;
+  const renameSeparator = value.indexOf(" -> ");
+  if (renameSeparator >= 0) {
+    return {
+      status,
+      indexStatus: status[0] ?? " ",
+      worktreeStatus: status[1] ?? " ",
+      originalPath: value.slice(0, renameSeparator),
+      path: value.slice(renameSeparator + 4),
+    };
+  }
+  return {
+    status,
+    indexStatus: status[0] ?? " ",
+    worktreeStatus: status[1] ?? " ",
+    originalPath: null,
+    path: value,
+  };
 }
 
 function isRenderRelevantPath(relativePath) {
@@ -95,14 +106,22 @@ export function renderRequiredPaths(project) {
 
 function isAutoCommitPath(relativePath, requiredPaths) {
   return requiredPaths.includes(relativePath)
-    || RENDER_ALLOWED_FILES.has(relativePath)
-    || RENDER_ALLOWED_PREFIXES.some((prefix) => relativePath.startsWith(prefix));
+    || RENDER_ALLOWED_FILES.has(relativePath);
 }
 
 function sha256File(workspaceRoot, relativePath) {
   const filePath = path.join(workspaceRoot, relativePath);
   try {
-    if (!fs.statSync(filePath).isFile()) return null;
+    if (!fs.lstatSync(filePath).isFile()) return null;
+    return createHash("sha256").update(fs.readFileSync(filePath)).digest("hex");
+  } catch {
+    return null;
+  }
+}
+
+function sha256AbsoluteFile(filePath) {
+  try {
+    if (!fs.lstatSync(filePath).isFile()) return null;
     return createHash("sha256").update(fs.readFileSync(filePath)).digest("hex");
   } catch {
     return null;
@@ -119,6 +138,8 @@ function planIdFor(plan) {
     commitPaths: plan.commitPaths,
     outOfScopePaths: plan.outOfScopePaths,
     fileHashes: plan.fileHashes,
+    fileStatuses: plan.fileStatuses,
+    inputBinding: plan.inputBinding,
   })).digest("hex");
 }
 
@@ -130,11 +151,119 @@ function currentBranchFor(workspaceRoot) {
   }
 }
 
-function statusPathsFor(workspaceRoot) {
+function statusEntriesFor(workspaceRoot) {
   return gitCommand(workspaceRoot, ["status", "--porcelain=v1", "--untracked-files=all"], { trim: false })
     .split(/\r?\n/)
     .filter(Boolean)
-    .map(parseStatusPath);
+    .map(parseStatusEntry);
+}
+
+function pathsForStatusEntry(entry) {
+  return [entry.path, entry.originalPath].filter(Boolean);
+}
+
+function statusDetailsForPath(statusEntries, relativePath) {
+  return statusEntries
+    .filter((entry) => pathsForStatusEntry(entry).includes(relativePath))
+    .map((entry) => ({
+      status: entry.status,
+      path: entry.path,
+      originalPath: entry.originalPath,
+    }))
+    .sort((left, right) => JSON.stringify(left).localeCompare(JSON.stringify(right)));
+}
+
+function requiredPathProblems(workspaceRoot, requiredPaths, statusEntries) {
+  const problems = [];
+  for (const relativePath of requiredPaths) {
+    let tracked = true;
+    try {
+      gitCommand(workspaceRoot, ["ls-files", "--error-unmatch", "--", relativePath]);
+    } catch {
+      tracked = false;
+      problems.push({
+        code: "git-render-commit-required-path-missing",
+        message: `渲染所需文件未被 Git 跟踪：${relativePath}`,
+      });
+    }
+
+    const status = statusDetailsForPath(statusEntries, relativePath);
+    if (status.some((entry) => [...entry.status].some((value) => ["D", "R", "C", "T", "U"].includes(value)))) {
+      problems.push({
+        code: "git-render-commit-deletion-forbidden",
+        message: `渲染所需文件存在删除、重命名或类型变化：${relativePath}`,
+      });
+    }
+
+    const absolutePath = path.join(workspaceRoot, relativePath);
+    let isRegularFile = false;
+    try {
+      isRegularFile = fs.lstatSync(absolutePath).isFile();
+    } catch {
+      isRegularFile = false;
+    }
+    if (!isRegularFile) {
+      problems.push({
+        code: "git-render-commit-required-path-missing",
+        message: `渲染所需文件缺失或不是普通文件：${relativePath}`,
+      });
+    }
+    if (tracked && sha256File(workspaceRoot, relativePath) === null) {
+      problems.push({
+        code: "git-render-commit-path-status-invalid",
+        message: `渲染所需文件无法读取有效哈希：${relativePath}`,
+      });
+    }
+  }
+  return problems;
+}
+
+function throwRequiredPathProblems(problems) {
+  if (problems.length === 0) return;
+  const errorCode = problems.some((problem) => problem.code === "git-render-commit-deletion-forbidden")
+    ? "git-render-commit-deletion-forbidden"
+    : problems.some((problem) => problem.code === "git-render-commit-path-status-invalid")
+      ? "git-render-commit-path-status-invalid"
+      : "git-render-commit-required-path-missing";
+  const error = commitError([...new Set(problems.map((problem) => problem.message))].join("；"), errorCode);
+  error.issues = [...new Set(problems.map((problem) => problem.message))];
+  throw error;
+}
+
+function readInputBinding(workspaceRoot, slug, environment) {
+  const inputRoot = path.resolve(environment.HARNESS_RENDER_INPUT_DIR ?? path.join(workspaceRoot, "local", "render-input"));
+  const bindingPath = path.join(inputRoot, `${slug}.delivery.json`);
+  let binding = null;
+  try {
+    if (fs.lstatSync(bindingPath).isFile()) binding = JSON.parse(fs.readFileSync(bindingPath, "utf8"));
+  } catch {
+    binding = null;
+  }
+  return {
+    videoSlug: slug,
+    compositionId: typeof binding?.compositionId === "string" ? binding.compositionId : null,
+    renderInputUrl: typeof binding?.url === "string" ? binding.url : null,
+    renderInputSha256: typeof binding?.archiveSha256 === "string" ? binding.archiveSha256 : null,
+    packageFingerprint: typeof binding?.packageFingerprint === "string" ? binding.packageFingerprint : null,
+    deliveryBindingSha256: sha256AbsoluteFile(bindingPath),
+    binding,
+    inputRoot,
+  };
+}
+
+function inputBindingIssues(project, environment) {
+  const workspaceRoot = path.resolve(project.config.workspaceRoot);
+  const slug = project.config.slug;
+  const inputBinding = readInputBinding(workspaceRoot, slug, environment);
+  const issues = [];
+  if (!inputBinding.binding) {
+    return { inputBinding, issues: [`缺少 local/render-input/${slug}.delivery.json，请先绑定当前输入包`] };
+  }
+  const urlIssue = validateRenderInputUrl(inputBinding.renderInputUrl);
+  if (urlIssue) issues.push(urlIssue.message);
+  const deliveryIssues = validateRenderInputDelivery(project, { inputRoot: inputBinding.inputRoot });
+  issues.push(...deliveryIssues);
+  return { inputBinding, issues: [...new Set(issues)] };
 }
 
 export function buildGitRenderCommitPlan(project, { environment = process.env } = {}) {
@@ -157,13 +286,19 @@ export function buildGitRenderCommitPlan(project, { environment = process.env } 
   }
   const config = readGitHubActionsConfig(environment, { currentGitRef: branch, cwd: workspaceRoot });
   const requiredPaths = renderRequiredPaths(project);
-  const statusPaths = statusPathsFor(workspaceRoot);
-  const relevantPaths = statusPaths.filter((relativePath) => isRenderRelevantPath(relativePath));
-  const commitPaths = relevantPaths.filter((relativePath) => isAutoCommitPath(relativePath, requiredPaths));
-  const outOfScopePaths = relevantPaths.filter((relativePath) => !isAutoCommitPath(relativePath, requiredPaths));
+  const statusEntries = statusEntriesFor(workspaceRoot);
+  throwRequiredPathProblems(requiredPathProblems(workspaceRoot, requiredPaths, statusEntries));
+  const relevantEntries = statusEntries.filter((entry) => pathsForStatusEntry(entry).some(isRenderRelevantPath));
+  const relevantPaths = [...new Set(relevantEntries.flatMap(pathsForStatusEntry))].sort();
+  const commitPaths = [...new Set(relevantEntries
+    .map((entry) => entry.path)
+    .filter((relativePath) => isAutoCommitPath(relativePath, requiredPaths)))].sort();
+  const outOfScopePaths = [...new Set(relevantPaths.filter((relativePath) => !isAutoCommitPath(relativePath, requiredPaths)))].sort();
   const snapshotPaths = [...new Set([...requiredPaths, ...relevantPaths])].sort();
+  const inputBinding = readInputBinding(workspaceRoot, project.config.slug, environment);
   const plan = {
     version: 1,
+    videoSlug: project.config.slug,
     branch,
     ref: config.ref,
     headCommit: localGitCommit(workspaceRoot),
@@ -171,8 +306,22 @@ export function buildGitRenderCommitPlan(project, { environment = process.env } 
     commitPaths: [...new Set(commitPaths)],
     outOfScopePaths: [...new Set(outOfScopePaths)],
     fileHashes: Object.fromEntries(snapshotPaths.map((relativePath) => [relativePath, sha256File(workspaceRoot, relativePath)])),
+    fileStatuses: Object.fromEntries(snapshotPaths.map((relativePath) => [relativePath, statusDetailsForPath(statusEntries, relativePath)])),
+    inputBinding: {
+      videoSlug: inputBinding.videoSlug,
+      compositionId: inputBinding.compositionId,
+      renderInputUrl: inputBinding.renderInputUrl,
+      renderInputSha256: inputBinding.renderInputSha256,
+      packageFingerprint: inputBinding.packageFingerprint,
+      deliveryBindingSha256: inputBinding.deliveryBindingSha256,
+    },
   };
   plan.selectedPaths = [...plan.commitPaths];
+  plan.compositionId = inputBinding.compositionId;
+  plan.renderInputUrl = inputBinding.renderInputUrl;
+  plan.renderInputSha256 = inputBinding.renderInputSha256;
+  plan.packageFingerprint = inputBinding.packageFingerprint;
+  plan.deliveryBindingSha256 = inputBinding.deliveryBindingSha256;
   plan.planId = planIdFor(plan);
   return plan;
 }
@@ -209,6 +358,16 @@ export function commitAndPushRenderDelivery(
   }
   if (plan.outOfScopePaths.length > 0) {
     throw commitError(`发现未纳入当前视频提交范围的渲染改动：${plan.outOfScopePaths.join("、")}`, "git-render-commit-out-of-scope");
+  }
+  const currentPlan = buildGitRenderCommitPlan(project, { environment });
+  if (currentPlan.planId !== plan.planId) {
+    throw commitError("渲染交付计划已变化，请重新执行预检并确认新的文件清单", "git-render-commit-plan-stale");
+  }
+  const inputBindingResult = inputBindingIssues(project, environment);
+  if (inputBindingResult.issues.length > 0) {
+    const error = commitError(`当前视频输入包交付绑定已失效：${inputBindingResult.issues.join("；")}`, "git-render-commit-input-binding-invalid");
+    error.issues = inputBindingResult.issues;
+    throw error;
   }
   if (plan.commitPaths.length === 0) {
     const commit = localGitCommit(workspaceRoot);
@@ -265,11 +424,17 @@ export function validateGitRenderDelivery(project, { environment = process.env, 
   } catch {
     addIssue(issues, "无法读取 Git 工作区状态");
   }
-  for (const line of statusLines) {
-    const relativePath = parseStatusPath(line);
-    if (isRenderRelevantPath(relativePath)) {
-      addIssue(issues, `渲染相关文件存在未提交修改：${relativePath}`);
+  const statusEntries = statusLines.map(parseStatusEntry);
+  for (const entry of statusEntries) {
+    for (const relativePath of pathsForStatusEntry(entry)) {
+      if (isRenderRelevantPath(relativePath)) {
+        addIssue(issues, `渲染相关文件存在未提交修改：${relativePath}`);
+      }
     }
+  }
+
+  for (const problem of requiredPathProblems(workspaceRoot, requiredPaths, statusEntries)) {
+    addIssue(issues, problem.message);
   }
 
   const config = readGitHubActionsConfig(environment, { currentGitRef: currentBranch, cwd: workspaceRoot });

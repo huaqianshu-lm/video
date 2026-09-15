@@ -7,6 +7,8 @@ export const REMOTE_JOB_STATUS = Object.freeze({
   FAILED: "failed",
   TIMEOUT: "timeout",
   RECOVERABLE: "recoverable",
+  DISPATCH_UNCERTAIN: "remote-dispatch-uncertain",
+  DISPATCH_AMBIGUOUS: "remote-dispatch-ambiguous",
 });
 
 export const ACTIVE_REMOTE_JOB_STATUSES = Object.freeze(new Set([
@@ -37,6 +39,8 @@ function errorText(error) {
 export function classifyRemoteError(error) {
   if (["github-config-invalid", "github-auth-invalid"].includes(error?.code)) return REMOTE_JOB_STATUS.WAITING_CONFIG;
   if (error?.code === "remote-job-timeout") return REMOTE_JOB_STATUS.TIMEOUT;
+  if (error?.code === "remote-dispatch-uncertain") return REMOTE_JOB_STATUS.DISPATCH_UNCERTAIN;
+  if (error?.code === "remote-dispatch-ambiguous") return REMOTE_JOB_STATUS.DISPATCH_AMBIGUOUS;
 
   const text = errorText(error);
   if (/\b(401|403)\b/.test(text)) return REMOTE_JOB_STATUS.FAILED;
@@ -57,5 +61,7 @@ export function remoteJobStatusLabel(status) {
     [REMOTE_JOB_STATUS.FAILED]: "失败",
     [REMOTE_JOB_STATUS.TIMEOUT]: "超时",
     [REMOTE_JOB_STATUS.RECOVERABLE]: "可恢复",
+    [REMOTE_JOB_STATUS.DISPATCH_UNCERTAIN]: "派发结果待人工确认",
+    [REMOTE_JOB_STATUS.DISPATCH_AMBIGUOUS]: "派发结果有歧义",
   }[status] ?? status;
 }

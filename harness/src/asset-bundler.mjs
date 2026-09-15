@@ -174,6 +174,7 @@ export function packageVideoAssets(
       cwd: path.dirname(sourceRoot),
       stdio: "pipe",
     });
+    assertProjectSlugMutable(slug, "替换视频资源 ZIP");
     fs.renameSync(temporaryArchive, archivePath);
   } catch (cause) {
     const error = new Error(`无法生成 ${assetArchiveRelativePath(slug)}：${cause instanceof Error ? cause.message : String(cause)}`);

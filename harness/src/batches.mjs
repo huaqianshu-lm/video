@@ -433,7 +433,12 @@ async function resolveWaitingRemoteItem(batch, batchItem) {
     return;
   }
 
-  if (["failed", REMOTE_JOB_STATUS.TIMEOUT].includes(job.status)) {
+  if ([
+    "failed",
+    REMOTE_JOB_STATUS.TIMEOUT,
+    REMOTE_JOB_STATUS.DISPATCH_UNCERTAIN,
+    REMOTE_JOB_STATUS.DISPATCH_AMBIGUOUS,
+  ].includes(job.status)) {
     updateItem(batch, batchItem, {
       status: "failed",
       error: job.error ?? { code: "remote-job-failed", message: `远程 ${batchItem.phase} 执行失败。` },
