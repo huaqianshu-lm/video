@@ -25,6 +25,7 @@ test("defines the 0.6 remote job lifecycle without treating completed jobs as ac
 
 test("classifies configuration, transient, permission and timeout errors", () => {
   assert.equal(classifyRemoteError({ code: "github-config-invalid" }), "waiting-config");
+  assert.equal(classifyRemoteError({ code: "github-auth-invalid" }), "waiting-config");
   assert.equal(classifyRemoteError(new Error("GitHub API 503: Service Unavailable")), "recoverable");
   assert.equal(classifyRemoteError(new Error("fetch failed: ECONNRESET")), "recoverable");
   assert.equal(classifyRemoteError(new Error("GitHub API 401: Bad credentials")), "failed");

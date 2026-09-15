@@ -1,4 +1,5 @@
 import { execFileSync } from "node:child_process";
+import { resolveGitHubToken } from "./github-auth.mjs";
 
 const repositoryPattern = /^[^/\s]+\/[^/\s]+$/;
 const githubReleaseDownloadPattern = /^\/[^/\s]+\/[^/\s]+\/releases\/download\//i;
@@ -21,9 +22,16 @@ export function readCurrentGitRef(cwd = process.cwd()) {
 
 export function readGitHubActionsConfig(environment = process.env, options = {}) {
   const currentGitRef = options.currentGitRef ?? readCurrentGitRef(options.cwd);
+  const auth = resolveGitHubToken({
+    environment,
+    authSource: options.authSource,
+    execFileSyncImpl: options.execFileSyncImpl,
+    ghBinary: options.ghBinary,
+    hostname: options.hostname,
+  });
 
   return {
-    token: firstNonEmpty(environment.GITHUB_TOKEN, environment.GH_TOKEN),
+    token: auth.token,
     repository: firstNonEmpty(environment.GITHUB_REPOSITORY),
     ref: firstNonEmpty(environment.HARNESS_GITHUB_REF, currentGitRef, environment.GITHUB_REF_NAME),
   };
@@ -55,12 +63,22 @@ export function validateRenderInputUrl(value) {
 }
 
 export function validateGitHubActionsConfig(environment = process.env, options = {}) {
-  const config = readGitHubActionsConfig(environment, options);
+  const auth = resolveGitHubToken({
+    environment,
+    authSource: options.authSource,
+    execFileSyncImpl: options.execFileSyncImpl,
+    ghBinary: options.ghBinary,
+    hostname: options.hostname,
+  });
+  const currentGitRef = options.currentGitRef ?? readCurrentGitRef(options.cwd);
+  const config = {
+    token: auth.token,
+    repository: firstNonEmpty(environment.GITHUB_REPOSITORY),
+    ref: firstNonEmpty(environment.HARNESS_GITHUB_REF, currentGitRef, environment.GITHUB_REF_NAME),
+  };
   const issues = [];
 
-  if (!config.token.trim()) {
-    issues.push({ code: "missing-token", field: "GITHUB_TOKEN", message: "GITHUB_TOKEN or GH_TOKEN is required" });
-  }
+  if (auth.issue) issues.push(auth.issue);
   if (!config.repository.trim()) {
     issues.push({ code: "missing-repository", field: "GITHUB_REPOSITORY", message: "GITHUB_REPOSITORY is required" });
   } else if (!repositoryPattern.test(config.repository)) {
@@ -70,7 +88,7 @@ export function validateGitHubActionsConfig(environment = process.env, options =
     issues.push({ code: "missing-ref", field: "GITHUB_REF_NAME", message: "GITHUB_REF_NAME or HARNESS_GITHUB_REF is required" });
   }
 
-  return { config, issues, valid: issues.length === 0 };
+  return { config, issues, valid: issues.length === 0, authSource: auth.source };
 }
 
 export function requireGitHubActionsConfig(environment = process.env, options = {}) {

@@ -120,7 +120,10 @@ export function createGitHubActionsAdapter({
     }
 
     if (!response.ok) {
-      throw new Error(`GitHub API ${response.status}: ${responseMessage(payload)}`);
+      const error = new Error(`GitHub API ${response.status}: ${responseMessage(payload)}`);
+      if (response.status === 401) error.code = "github-auth-invalid";
+      else if (response.status === 403) error.code = "github-permission-denied";
+      throw error;
     }
     return payload;
   }
@@ -391,10 +394,23 @@ export function createGitHubActionsAdapter({
 }
 
 export function createGitHubActionsAdapterFromEnv(options = {}) {
-  const config = requireGitHubActionsConfig();
+  const {
+    environment = process.env,
+    authSource,
+    execFileSyncImpl,
+    ghBinary,
+    hostname,
+    ...adapterOptions
+  } = options;
+  const config = requireGitHubActionsConfig(environment, {
+    authSource,
+    execFileSyncImpl,
+    ghBinary,
+    hostname,
+  });
   return createGitHubActionsAdapter({
     ...config,
     requireRenderInput: true,
-    ...options,
+    ...adapterOptions,
   });
 }

@@ -50,6 +50,9 @@ function createRenderWorkspace(slug) {
   write(workspaceRoot, "harness/src/cli.mjs", "export {};\n");
   write(workspaceRoot, "harness/src/render-input.mjs", "export {};\n");
   write(workspaceRoot, "harness/src/remote-executor.mjs", "export {};\n");
+  write(workspaceRoot, "harness/src/diagnostics.mjs", "export {};\n");
+  write(workspaceRoot, "harness/src/github-auth.mjs", "export {};\n");
+  write(workspaceRoot, "harness/src/github-config.mjs", "export {};\n");
   write(workspaceRoot, "package.json", "{}\n");
   write(workspaceRoot, "package-lock.json", "{}\n");
   write(workspaceRoot, ".github/workflows/smoke-test-video.yml", "name: smoke\n");
@@ -81,6 +84,7 @@ function createRenderWorkspace(slug) {
 test("complete Render can confirm once, commit only render files, push, then queue one remote job", async () => {
   const previousProjectsRoot = process.env.HARNESS_PROJECTS_DIR;
   const previousToken = process.env.GITHUB_TOKEN;
+  const previousAuthSource = process.env.HARNESS_GITHUB_AUTH_SOURCE;
   const previousRepository = process.env.GITHUB_REPOSITORY;
   const previousRef = process.env.HARNESS_GITHUB_REF;
   const projectsRoot = fs.mkdtempSync(path.join(os.tmpdir(), "video-harness-git-delivery-projects-"));
@@ -88,6 +92,7 @@ test("complete Render can confirm once, commit only render files, push, then que
   const { workspaceRoot, remoteRoot } = createRenderWorkspace(slug);
   process.env.HARNESS_PROJECTS_DIR = projectsRoot;
   process.env.GITHUB_TOKEN = "test-token";
+  process.env.HARNESS_GITHUB_AUTH_SOURCE = "env";
   process.env.GITHUB_REPOSITORY = "example/video";
   process.env.HARNESS_GITHUB_REF = "main";
   initializeProject(slug);
@@ -110,6 +115,7 @@ test("complete Render can confirm once, commit only render files, push, then que
   let submitCount = 0;
   const webServer = createWebServer({
     port: 0,
+    githubPreflight: async () => ({ ok: true }),
     remoteJobMonitor: {
       start() {},
       stop() {},
@@ -162,6 +168,8 @@ test("complete Render can confirm once, commit only render files, push, then que
     else process.env.HARNESS_PROJECTS_DIR = previousProjectsRoot;
     if (previousToken === undefined) delete process.env.GITHUB_TOKEN;
     else process.env.GITHUB_TOKEN = previousToken;
+    if (previousAuthSource === undefined) delete process.env.HARNESS_GITHUB_AUTH_SOURCE;
+    else process.env.HARNESS_GITHUB_AUTH_SOURCE = previousAuthSource;
     if (previousRepository === undefined) delete process.env.GITHUB_REPOSITORY;
     else process.env.GITHUB_REPOSITORY = previousRepository;
     if (previousRef === undefined) delete process.env.HARNESS_GITHUB_REF;

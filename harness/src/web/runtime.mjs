@@ -6,13 +6,15 @@ import { runStage } from "../runner.mjs";
 import { createAgentExecutorFromEnv } from "../agent-executor.mjs";
 import { createTtsExecutorFromEnv } from "../tts-executor.mjs";
 import { createRemotionExecutorFromEnv } from "../remotion-executor.mjs";
+import { assertGitHubActionsReady } from "../diagnostics.mjs";
 
 export function createRuntime({
   remoteJobMonitor,
   agentExecutorFactory = (stage) => stage === "subtitle-timeline" ? createTtsExecutorFromEnv() : createAgentExecutorFromEnv(),
   remotionExecutorFactory = () => createRemotionExecutorFromEnv(),
+  githubPreflight = (options) => assertGitHubActionsReady(options),
 } = {}) {
-  const runtime = { remoteJobMonitor };
+  const runtime = { remoteJobMonitor, githubPreflight };
   runtime.queueAgentJob = (id) => {
     void (async () => {
       let executor;

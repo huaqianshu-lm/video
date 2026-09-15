@@ -10,6 +10,7 @@
 - `product-promo-v1` 多工作流架构提案与工程计划已归档到本地忽略的 `drafts/`，尚未实施；后续仅在当前 main 工作目录按 Phase 0 核对规范与实现基线，不使用旧 `product-promo-workflow` 工作树开发。
 - 仓库规则已按“核心 `CLAUDE.md`、专项 Skill、稳定 `docs/`、本地 `drafts/` 与 `notes/`”完成分层；四个项目内 Skill、通用视频模板和受跟踪 MVP 能力清单已创建并通过适用验证。仓库资料与代码分离的四阶段计划已保存到 `drafts/REPOSITORY-CLEANUP-FOUR-PHASE-PLAN.md`，第二阶段 Git 索引清理、第三阶段历史重写和现有远端分支强制更新已完成，第四阶段本地验证已完成，独立私有输入源已配置，`vscode` Smoke Render、完整 Render 和 Gate 4 人工验收均已完成。
 - 2026-09-14：按 `drafts/VIDEO-PRODUCTION-FLOW-CLOSURE-PLAN.md` 顺序完成四步流程收口，并分别通过单步回归；随后按用户确认的 7 个渲染必要文件定向提交并推送，GitHub Actions 完整 Render Run `34836232221` 成功，Artifact `08-cli` 未过期，用户已完成 Gate 4 人工验收，Harness 状态进入 `completed`。
+- 2026-09-14：完成 GitHub 认证长期方案实现；本地默认从 `gh auth` 系统凭据读取，CI／测试只有显式选择 `HARNESS_GITHUB_AUTH_SOURCE=env` 才读取环境 Token，并阻止两个环境 Token 冲突。单条、Web UI、批量和后台远程任务均在新 Job／dispatch 前执行 GitHub `/user`、仓库、分支和 Workflow 真实 API 预检；认证失败进入可恢复的 `waiting-config`，不会创建新的远程任务。私有 GitHub Release 输入包下载也复用同一认证来源；Token 不写入状态、交付记录或错误信息。专项认证回归 5/5、核心远程回归 31/31、输入包／配置回归 22/22、批量／Job 回归 16/16、Harness／Web 模块回归 89/89、Git 交付与 Web Server 回归 23/23，`npm run check` 和 `git diff --check` 通过；在允许本地回环监听并使用 Node `--test-force-exit` 后，Harness 全量 209/209 通过，未执行真实渲染或推送。用户随后完成 `gh` 登录并通过 `doctor --json` 的身份、仓库、推送权限、分支和两个 Workflow 预检；真实远程渲染仍未执行。
 - 仓库正在收敛为只提交 Harness 和通用视频制作能力；具体视频项目、生产资源及讨论过程文档已转入本地忽略目录，当前索引和可见 Git 历史均已不再跟踪这些资料。
 - 已实现 `render-input prepare／validate／package`：具体视频资料、Remotion 配置和资源包先整理到被忽略的 `local/render-input/<slug>/`，以 Manifest 和 SHA-256 校验后交给远程输入源，不再要求它们进入能力仓库。
 - 已实现 `render-input entry-all`：本地扫描可用视频并只读取逐视频已校验输入包 Manifest 中明确的组件、配置和 Composition ID，生成被忽略的多 Composition Studio 入口；不再按文件修改时间猜版本，`completed` 视频缺包时只读跳过并说明原因。
@@ -66,6 +67,7 @@
 
 ## 已完成（最近 10 条）
 
+- 2026-09-14：完成 GitHub 认证长期方案；本地使用 `gh` 系统凭据，CI／测试显式使用环境 Token，真实 API 预检覆盖身份、仓库、分支和 Workflow，单条／Web UI／批量／后台路径在认证不可用时均停止在可恢复配置状态，私有输入包下载沿用同一认证；专项回归、类型检查和差异检查通过，未执行真实渲染或推送。
 - 2026-09-14：用户完成 `08-cli` Gate 4 人工验收；GitHub Actions Run `34836232221` 的 Artifact `08-cli` 存在、非空且未过期，Harness 已将项目状态登记为 `completed`，后续按永久只读规则保护该视频。
 - 2026-09-14：完成流程收口第四步；Remotion Agent、单条／批量任务、校验、Studio 和远程入口均改为从逐视频已校验输入包生成被忽略的 `src/RenderInputRoot.tsx`，不再把具体视频写入或回退到受跟踪的 `src/Root.tsx`；临时入口严格检查组件、配置和 Composition ID。第四步定向回归 27/27，未执行真实远程渲染。
 - 2026-09-14：完成流程收口第三步；输入包会对当前源目录和资源归档做快照校验，逐视频交付记录固定 URL、包指纹、Composition ID 和 SHA-256，远程 Job 重试沿用同一绑定，旧全局 URL／SHA 不能绕过校验；第三步定向回归 32/32，未执行真实远程渲染。
@@ -202,6 +204,7 @@
 
 - 当前无 `01-what-is-codex` 或 `vscode` 的 Harness 阻塞；其余阻塞以各批次和人工 Gate 的实时状态为准。
 - `project-init` 已进入 `completed`，当前无该视频的 Harness 阻塞；其余阻塞以各批次和人工 Gate 的实时状态为准。
+- GitHub 认证阻塞已解除：用户已完成 `gh` 登录，`doctor --json` 已验证身份、目标仓库、推送权限、`main` 分支和两个 Workflow；真实远程渲染尚未执行。
 
 ## 关键避坑
 

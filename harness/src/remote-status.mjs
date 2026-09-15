@@ -35,7 +35,7 @@ function errorText(error) {
 }
 
 export function classifyRemoteError(error) {
-  if (error?.code === "github-config-invalid") return REMOTE_JOB_STATUS.WAITING_CONFIG;
+  if (["github-config-invalid", "github-auth-invalid"].includes(error?.code)) return REMOTE_JOB_STATUS.WAITING_CONFIG;
   if (error?.code === "remote-job-timeout") return REMOTE_JOB_STATUS.TIMEOUT;
 
   const text = errorText(error);

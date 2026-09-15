@@ -88,7 +88,8 @@ function usage() {
   node harness/src/cli.mjs doctor [--json]
 
   GitHub Actions adapter environment:
-  GITHUB_TOKEN or GH_TOKEN, GITHUB_REPOSITORY, and GITHUB_REF_NAME (or HARNESS_GITHUB_REF)`);
+  Local default: gh auth login + gh auth setup-git; also set GITHUB_REPOSITORY and optional HARNESS_GITHUB_REF.
+  CI/test override: HARNESS_GITHUB_AUTH_SOURCE=env with GITHUB_TOKEN or GH_TOKEN.`);
 }
 
 function validateSlug(slug) {
@@ -191,8 +192,11 @@ function printDiagnostics(result) {
   console.log(`GitHub Actions: ${result.ok ? "ready" : "not ready"}`);
   console.log(`Repository: ${result.config.repository || "未配置"}`);
   console.log(`Ref: ${result.config.ref || "未配置"}`);
+  console.log(`Auth source: ${result.config.authSource || "未配置"}`);
   console.log(`Token: ${result.config.tokenConfigured ? "已配置" : "未配置"}`);
-  console.log(`Render input: ${result.config.renderInputConfigured ? "已配置" : "未配置"}`);
+  if (result.config.renderInputConfigured !== null) {
+    console.log(`Render input: ${result.config.renderInputConfigured ? "已配置" : "未配置"}`);
+  }
   for (const item of result.checks) {
     console.log(`  [${item.status}] ${item.name}: ${item.message}`);
   }
@@ -245,8 +249,8 @@ async function main(args) {
   }
 
   if (command === "doctor") {
-    const result = await diagnoseGitHubActions();
-    if (options.includes("--json")) console.log(JSON.stringify(result, null, 2));
+    const result = await diagnoseGitHubActions({ checkRenderInput: false });
+    if (slug === "--json" || options.includes("--json")) console.log(JSON.stringify(result, null, 2));
     else printDiagnostics(result);
     return result.ok ? 0 : 1;
   }

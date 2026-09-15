@@ -247,7 +247,7 @@ export function createRemoteJobMonitor({
           stageResult: result,
         }));
       } catch (error) {
-        if (["github-config-invalid", "render-input-remote-config-invalid"].includes(error?.code)) {
+        if (["github-config-invalid", "github-auth-invalid", "render-input-remote-config-invalid"].includes(error?.code)) {
           return updateJob(job.slug, job.id, schedulePatch(job, {
             status: REMOTE_JOB_STATUS.WAITING_CONFIG,
             error: errorRecord(error),

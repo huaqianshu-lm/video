@@ -253,6 +253,32 @@ test("keeps a remote job waiting when GitHub configuration is unavailable", asyn
   }
 });
 
+test("keeps a remote job waiting when the GitHub token is rejected after queueing", async () => {
+  const projectsRoot = fs.mkdtempSync(path.join(os.tmpdir(), "video-harness-auth-failure-"));
+  const previousRoot = process.env.HARNESS_PROJECTS_DIR;
+  process.env.HARNESS_PROJECTS_DIR = projectsRoot;
+  fs.mkdirSync(path.join(projectsRoot, "auth-failure-video"), { recursive: true });
+
+  try {
+    initializeProject("auth-failure-video");
+    const job = createJobRecord({ slug: "auth-failure-video", stage: "render" });
+    const error = new Error("GitHub API 401: Bad credentials");
+    error.code = "github-auth-invalid";
+    error.issues = [{ code: "github-preflight-authentication", message: "认证失败" }];
+    const monitor = createRemoteJobMonitor({ adapterFactory: () => { throw error; } });
+    await monitor.processJob(job.id);
+    const waiting = getJob("auth-failure-video", job.id);
+    assert.equal(waiting.status, "waiting-config");
+    assert.equal(waiting.error.code, "github-auth-invalid");
+    assert.equal(loadProject("auth-failure-video", { refresh: false }).state.stages.render.status, "pending");
+    updateJob("auth-failure-video", job.id, { status: "failed" });
+  } finally {
+    if (previousRoot === undefined) delete process.env.HARNESS_PROJECTS_DIR;
+    else process.env.HARNESS_PROJECTS_DIR = previousRoot;
+    fs.rmSync(projectsRoot, { recursive: true, force: true });
+  }
+});
+
 test("does not dispatch twice after recovering a persisted dispatch intent", async () => {
   const projectsRoot = fs.mkdtempSync(path.join(os.tmpdir(), "video-harness-recover-"));
   const previousRoot = process.env.HARNESS_PROJECTS_DIR;

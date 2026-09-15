@@ -15,7 +15,7 @@ export function createRemoteRoutes({ runtime, diagnose = diagnoseGitHubActions }
       try {
         const slug = new URLSearchParams(search).get("slug");
         const project = slug ? loadProject(slug, { refresh: false }) : null;
-        sendJson(response, 200, await diagnose({ project }));
+        sendJson(response, 200, await diagnose({ project, checkRenderInput: Boolean(project) }));
       } catch (error) { sendError(response, 400, { message: error.message, code: error.code ?? "github-diagnostics-failed", issues: error.issues ?? [] }); }
       return true;
     }

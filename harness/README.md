@@ -9,13 +9,13 @@
 - 远程任务统一记录 `submitted`、`waiting-run`、`running`、`recoverable`、`failed`、`timeout` 和 `succeeded` 状态。
 - GitHub API 临时网络错误进入 `recoverable` 并保留下一次检查时间；权限、Artifact 和真实 Run 失败仍明确标记为失败。
 - 已确认派发的任务超过超时阈值后进入 `timeout`，不再被后台轮询，并同步阻断对应阶段。
-- `node harness/src/cli.mjs doctor` 和 Web UI 的 GitHub 配置检查可以验证 Token 是否存在、仓库、分支和两个 Workflow 是否可访问；不显示或持久化 Token。
+- `node harness/src/cli.mjs doctor` 和 Web UI 的 GitHub 检查会验证本机认证、身份、仓库、分支和两个 Workflow 是否可访问；不显示或持久化 Token。
 - Web UI 首页提供全局远程任务列表，显示项目、阶段、Run、Artifact、最近检查和下次检查时间。
 - Gate 2、Gate 3、Gate 4 的人工通过／驳回结果写入阶段状态，项目详情可追溯人工审查结果。
 
 ## 0.5 新增能力
 
-- 远程任务提交前统一检查 Token、仓库和分支配置，配置错误不会生成失败任务。
+- 远程任务提交前统一检查 GitHub CLI／环境认证、身份、仓库、分支和 Workflow；真实 API 预检失败不会生成新的远程任务。
 - GitHub Actions 适配器支持独立的 dispatch、Run 发现、Run 状态查询和 Artifact 校验。
 - 远程任务保存为可恢复记录，包含阶段、Workflow、分支、Run、Artifact、检查时间和错误信息。
 - Web 服务启动时恢复未完成任务；页面关闭或服务重启后，任务仍可继续监控。
@@ -307,14 +307,25 @@ node harness/src/cli.mjs resume <video-slug>
 执行 Harness 管理的完整 Render 时，需要提供：
 
 ```bash
-export GITHUB_TOKEN="<token>"
+unset GITHUB_TOKEN GH_TOKEN
+gh auth login --hostname github.com --git-protocol https --web
+gh auth setup-git
 export GITHUB_REPOSITORY="<owner>/<repo>"
 export HARNESS_GITHUB_REF="<optional-explicit-branch>"
+node harness/src/cli.mjs doctor --json
 node harness/src/cli.mjs render-input bind <video-slug> \
   --url "<private-input-package-url>" \
   --sha256 "<sha256-of-zip>"
 node harness/src/cli.mjs run <video-slug> render
 ```
+
+登录的 GitHub 账号必须能写目标仓库并触发其中的 Actions；`doctor` 会在真正创建远程 Job 前先检查身份、仓库、分支和 Workflow。
+
+本地默认使用 `gh auth` 保存的系统凭据；不要把 Token 写进 `.zshrc`、项目文件或命令历史。CI／测试如需显式传 Token，先设置 `HARNESS_GITHUB_AUTH_SOURCE=env`，再设置 `GITHUB_TOKEN` 或 `GH_TOKEN`。两个变量内容不一致时会阻止远程任务。`RENDER_INPUT_TOKEN` 只供 GitHub Actions 下载独立视频输入包，和本地 GitHub API Token 不是一回事。
+
+如果旧 Token 已写进 shell 启动文件，请删除对应的导出行；当前终端先执行上面的 `unset`，避免 `gh` 命令继续使用旧值。
+
+绑定私有 GitHub Release API 资产时，本地会使用 `gh auth` 凭据；其他托管地址若需要认证，只在当前命令中提供 `HARNESS_RENDER_INPUT_TOKEN`，不要写入长期配置。
 
 完整 Render 的 URL 和 SHA-256 不再从全局环境变量读取，而是来自该视频的绑定记录；绑定时会核对当前本地 ZIP 和远端内容。输入包或 Remotion 产物变化后，必须重新准备、打包和绑定。
 

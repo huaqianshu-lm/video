@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
 import { archiveEntries, ensureAssetArchive } from "./asset-bundler.mjs";
+import { resolveGitHubToken } from "./github-auth.mjs";
 import { validateRenderInputUrl } from "./github-config.mjs";
 import { validateRemoteRenderInputs } from "./remote-executor.mjs";
 import { assertProjectMutable, assertProjectSlugMutable, isCompletedProject, loadProject } from "./storage.mjs";
@@ -299,6 +300,10 @@ export async function bindRenderInputDelivery(project, {
   compositionId = null,
   fetchImpl = globalThis.fetch,
   environment = process.env,
+  authSource = null,
+  execFileSyncImpl,
+  ghBinary,
+  hostname,
 } = {}) {
   assertProjectMutable(project, "绑定视频输入包");
   const workspaceRoot = requireWorkspaceRoot(project);
@@ -323,7 +328,15 @@ export async function bindRenderInputDelivery(project, {
 
   let response;
   try {
-    const token = environment.HARNESS_RENDER_INPUT_TOKEN ?? environment.GITHUB_TOKEN ?? environment.GH_TOKEN;
+    const explicitToken = typeof environment.HARNESS_RENDER_INPUT_TOKEN === "string"
+      ? environment.HARNESS_RENDER_INPUT_TOKEN.trim()
+      : "";
+    let token = explicitToken;
+    const parsedUrl = new URL(normalizedUrl);
+    if (!token && parsedUrl.hostname.toLowerCase() === "api.github.com") {
+      const auth = resolveGitHubToken({ environment, authSource, execFileSyncImpl, ghBinary, hostname });
+      token = auth.token;
+    }
     response = await fetchImpl(normalizedUrl, {
       headers: {
         Accept: "application/octet-stream",

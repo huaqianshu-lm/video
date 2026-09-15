@@ -60,12 +60,12 @@ Smoke Render 只能针对未完成视频或独立副本，并通过 GitHub Actio
 
 ## 0.6 远程任务边界
 
-- 远程任务提交前必须通过 GitHub Actions 配置预检。
+- 远程任务提交前必须通过 GitHub Actions 配置和真实 API 预检；本地默认读取 `gh auth` 系统凭据，只有显式设置 `HARNESS_GITHUB_AUTH_SOURCE=env` 时才读取 `GITHUB_TOKEN`／`GH_TOKEN`。
 - 完整 Render 的 Git 交付预检必须展示精确候选文件、分支、当前提交、文件哈希和 `planId`；确认请求必须携带同一 `planId` 与 `selectedPaths`，任何变化都要求重新确认。`src/Root.tsx`、具体视频目录、本地资源和无关源文件不在自动提交范围内。
 - Run 发现、状态查询和 Artifact 验证可以分次执行，任务记录保存在 `harness/projects/<slug>/jobs/`。
 - Web 服务重启后恢复 `queued`、`submitted`、`waiting-run`、`running`、`recoverable` 和 `waiting-config` 任务；已有 dispatch 意图会先查询 Run，避免重复触发。
 - 临时网络／GitHub API 错误进入 `recoverable` 并等待下一次检查；权限错误、Run 失败、Artifact 缺失和超时进入明确终态，不会无限轮询。
-- `doctor` 只检查配置和 GitHub 访问能力，不输出 Token；Web UI 首页提供全局远程任务列表和显式诊断入口。
+- `doctor` 检查认证身份、仓库、分支和 Workflow 访问能力，不输出 Token；Web UI 首页提供全局远程任务列表和显式诊断入口。认证失效时，单条和批量入口都会在创建远程 Job 前阻断，批量项目进入 `waiting-config`，修复后可继续。
 - Gate 通过／驳回会记录审查决定、时间、回退阶段和驳回原因；Harness 不自动判断最终 MP4 的内容质量。
 - Agent 只检查 Run 结论和 Artifact 元数据；Artifact 下载、视频播放和最终 Gate 4 内容检查仍由用户完成。
 

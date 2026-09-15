@@ -8,7 +8,7 @@ import { getProjectFile, getProjectPrototype, listProjectFiles } from "../projec
 import { getVideoProject, listVideoProjects } from "../project-view.mjs";
 import { findActiveJob, listAllJobs, listJobs } from "../jobs.mjs";
 import { requireGitHubActionsConfig } from "../github-config.mjs";
-import { diagnoseGitHubActions } from "../diagnostics.mjs";
+import { assertGitHubActionsReady, diagnoseGitHubActions } from "../diagnostics.mjs";
 import { createRemoteJobMonitor } from "../remote-jobs.mjs";
 import { assertRemoteRenderDeliveryInputs, prepareRemoteRenderInputs, validateRemoteRenderPackage } from "../remote-executor.mjs";
 import { bindRenderInputDelivery } from "../render-input.mjs";
@@ -191,7 +191,7 @@ async function serveApi(response, pathname, search, remoteJobMonitor, diagnose) 
   if (pathname === "/api/diagnostics/github") {
     const slug = new URLSearchParams(search).get("slug");
     const project = slug ? loadProject(slug, { refresh: false }) : null;
-    sendJson(response, 200, await diagnose({ project }));
+    sendJson(response, 200, await diagnose({ project, checkRenderInput: Boolean(project) }));
     return true;
   }
 
@@ -557,16 +557,6 @@ async function serveAction(response, request, pathname, runtime) {
       sendJson(response, 400, { error: "remote-run only supports render" });
       return true;
     }
-    try {
-      requireGitHubActionsConfig();
-    } catch (error) {
-      sendJson(response, 400, {
-        error: error instanceof Error ? error.message : String(error),
-        code: error.code ?? "github-config-invalid",
-        issues: error.issues ?? [],
-      });
-      return true;
-    }
     const activeJob = findActiveJob(slug, stage);
     if (activeJob) {
       sendJson(response, 200, { result: { action, status: "already-running" }, job: activeJob });
@@ -582,6 +572,8 @@ async function serveAction(response, request, pathname, runtime) {
         error.issues = inputIssues;
         throw error;
       }
+      const preflight = typeof runtime.githubPreflight === "function" ? runtime.githubPreflight : assertGitHubActionsReady;
+      await preflight({ project: renderProject, checkRenderInput: false });
       let delivery = null;
       const deliveryIssues = validateGitRenderDelivery(renderProject);
       if (deliveryIssues.length > 0) {
@@ -840,6 +832,7 @@ export function createWebServer({
   port = defaultPort,
   remoteJobMonitor = createRemoteJobMonitor(),
   diagnose = diagnoseGitHubActions,
+  githubPreflight,
   agentExecutorFactory = (stage) => stage === "subtitle-timeline"
     ? createTtsExecutorFromEnv()
     : createAgentExecutorFromEnv(),
@@ -847,7 +840,7 @@ export function createWebServer({
 } = {}) {
   recoverInterruptedAgentJobs();
   recoverInterruptedRemotionTasks();
-  const runtime = createRuntime({ remoteJobMonitor, agentExecutorFactory, remotionExecutorFactory });
+  const runtime = createRuntime({ remoteJobMonitor, agentExecutorFactory, remotionExecutorFactory, githubPreflight });
   const { queueAgentJob, queueRemotionTask } = runtime;
   const server = http.createServer((request, response) => {
     handleRequest(request, response, host, runtime, diagnose).catch((error) => {

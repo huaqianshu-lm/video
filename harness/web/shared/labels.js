@@ -22,6 +22,7 @@ export const batchItemStatusLabels = Object.freeze({
   failed: "失败", invalidated: "已失效", pending: "未开始", queued: "排队中", ready: "可执行",
   running: "执行中", skipped: "已跳过", succeeded: "已完成", "waiting-gate": "等待 Gate",
   "waiting-agent-job": "等待 Agent 任务", "waiting-tts-qc": "等待 TTS 质检", "waiting-remotion-task": "等待 Remotion 制作",
+  "waiting-config": "等待 GitHub 配置",
   "waiting-smoke-qc": "历史 Smoke 检查（只读）",
 });
 

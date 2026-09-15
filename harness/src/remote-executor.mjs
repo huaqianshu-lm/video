@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { archiveEntries, archiveMatchesAssetDirectory, assetSourcePath } from "./asset-bundler.mjs";
+import { assertGitHubActionsReady } from "./diagnostics.mjs";
 import { validateGitRenderDelivery } from "./git-delivery.mjs";
 import { assertRenderInputDelivery, packageRenderInput, prepareRenderInput, renderInputDirectory, validateRenderInputDelivery, validateRenderInputDirectory } from "./render-input.mjs";
 import { assertProjectMutable } from "./storage.mjs";
@@ -177,15 +178,16 @@ export function validateRemoteRenderPackage(project) {
   return validateRenderInputDirectory(directory, { expectedSlug: slug });
 }
 
-export function createRemoteRenderExecutor({ monitor, validateInputs = null, prepareInputs = null } = {}) {
+export function createRemoteRenderExecutor({ monitor, validateInputs = null, prepareInputs = null, preflight = null } = {}) {
   if (!monitor || typeof monitor.submit !== "function") {
     throw new Error("Remote render executor requires a remote job monitor");
   }
   const effectiveValidateInputs = validateInputs ?? assertRemoteRenderDeliveryInputs;
   const effectivePrepareInputs = prepareInputs ?? (validateInputs === null ? prepareRemoteRenderInputs : () => {});
+  const effectivePreflight = preflight ?? (({ project }) => assertGitHubActionsReady({ project, checkRenderInput: false }));
 
   return {
-    run({ stage, project }) {
+    async run({ stage, project }) {
       assertProjectMutable(project, "提交远程渲染任务");
       if (stage === "smoke-render") {
         const error = new Error("Smoke Render 已退出 Harness 生产流程，请从 GitHub Actions 手动触发独立环境检查。");
@@ -198,9 +200,10 @@ export function createRemoteRenderExecutor({ monitor, validateInputs = null, pre
       if (project.state.currentStage !== stage || project.state.stages[stage]?.status !== "ready") {
         throw new Error(`${project.config.slug} 当前不在可执行的 ${stage} 阶段`);
       }
-      effectivePrepareInputs(project);
-      effectiveValidateInputs(project);
+      await effectivePrepareInputs(project);
+      await effectiveValidateInputs(project);
       if (effectiveValidateInputs === assertRemoteRenderDeliveryInputs) assertRenderInputDelivery(project);
+      if (effectivePreflight) await effectivePreflight({ stage, project });
       const job = monitor.submit({ slug: project.config.slug, stage });
       return {
         deferred: true,

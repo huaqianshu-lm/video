@@ -131,6 +131,34 @@ test("binds one published package URL and SHA to its current manifest", async ()
   }
 });
 
+test("uses the GitHub CLI credential for a private GitHub input asset instead of stale token variables", async () => {
+  const fixture = createFixture();
+  try {
+    prepareRenderInput(fixture.project);
+    const packaged = packageRenderInput(fixture.workspaceRoot, fixture.slug);
+    const archiveBytes = fs.readFileSync(packaged.archivePath);
+    let authorization = null;
+    const result = await bindRenderInputDelivery(fixture.project, {
+      url: "https://api.github.com/repos/example/video-render-inputs/releases/assets/123",
+      sha256: packaged.archiveSha256,
+      environment: {
+        GITHUB_TOKEN: "stale-token",
+        GH_TOKEN: "another-stale-token",
+        HARNESS_GITHUB_AUTH_SOURCE: "gh-cli",
+      },
+      execFileSyncImpl: () => "keychain-token\n",
+      fetchImpl: async (_url, options) => {
+        authorization = options.headers.Authorization;
+        return { ok: true, status: 200, arrayBuffer: async () => archiveBytes };
+      },
+    });
+    assert.equal(result.status, "bound");
+    assert.equal(authorization, "Bearer keychain-token");
+  } finally {
+    fs.rmSync(fixture.workspaceRoot, { recursive: true, force: true });
+  }
+});
+
 test("does not create a binding when the published content is unreadable or has a different hash", async () => {
   const fixture = createFixture();
   try {

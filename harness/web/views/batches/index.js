@@ -35,7 +35,14 @@ export function createBatchView({ elements, api, refreshButton, onRefreshProject
       return;
     }
     elements.batchList.className = "batch-list batch-record-grid";
-    elements.batchList.innerHTML = batches.map((batch) => `<article class="batch-card"><div class="batch-card-heading"><div><p class="eyebrow">${escapeHtml(labelFor(batch.type, batchTypeLabels))}</p><h3>${escapeHtml(batch.label)}</h3></div><span class="batch-card-status"><span class="status status-${escapeHtml(batch.status)}">${escapeHtml(labelFor(batch.status, batchStatusLabels))}</span>${batch.status === "completed-with-errors" ? `<button class="button button-secondary" type="button" data-batch-action="retry-failed" data-batch-id="${escapeHtml(batch.id)}">重试失败项目</button>` : ""}</span></div><p class="batch-description">${escapeHtml(batch.description ?? "暂无批次说明")}</p><div class="batch-meta"><span>${escapeHtml(batch.id)}</span><span>目标：${escapeHtml(batch.targetStage ?? "—")}</span><span>${batch.summary?.total ?? batch.items?.length ?? 0} 个视频</span></div><div class="batch-item-grid">${(batch.items ?? []).map((item) => itemCard(batch, item)).join("") || "<div class=\"loading-state\">此批次暂无项目项。</div>"}</div></article>`).join("");
+    elements.batchList.innerHTML = batches.map((batch) => {
+      const resumeConfig = batch.items?.some((item) => item.status === "waiting-config");
+      const actions = [];
+      if (batch.status === "completed-with-errors") actions.push(`<button class="button button-secondary" type="button" data-batch-action="retry-failed" data-batch-id="${escapeHtml(batch.id)}">重试失败项目</button>`);
+      if (resumeConfig) actions.push(`<button class="button button-secondary" type="button" data-batch-action="resume" data-batch-id="${escapeHtml(batch.id)}">重新检查 GitHub 配置</button>`);
+      const action = actions.join("");
+      return `<article class="batch-card"><div class="batch-card-heading"><div><p class="eyebrow">${escapeHtml(labelFor(batch.type, batchTypeLabels))}</p><h3>${escapeHtml(batch.label)}</h3></div><span class="batch-card-status"><span class="status status-${escapeHtml(batch.status)}">${escapeHtml(labelFor(batch.status, batchStatusLabels))}</span>${action}</span></div><p class="batch-description">${escapeHtml(batch.description ?? "暂无批次说明")}</p><div class="batch-meta"><span>${escapeHtml(batch.id)}</span><span>目标：${escapeHtml(batch.targetStage ?? "—")}</span><span>${batch.summary?.total ?? batch.items?.length ?? 0} 个视频</span></div><div class="batch-item-grid">${(batch.items ?? []).map((item) => itemCard(batch, item)).join("") || "<div class=\"loading-state\">此批次暂无项目项。</div>"}</div></article>`;
+    }).join("");
   }
 
   async function refresh() {

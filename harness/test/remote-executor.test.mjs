@@ -9,10 +9,11 @@ import {
   validateRemoteRenderInputs,
 } from "../src/remote-executor.mjs";
 
-test("submits a single remote render job without waiting for the remote Run", () => {
+test("submits a single remote render job without waiting for the remote Run", async () => {
   const calls = [];
   const executor = createRemoteRenderExecutor({
     validateInputs() {},
+    preflight: async () => {},
     monitor: {
       submit(input) {
         calls.push(input);
@@ -28,15 +29,16 @@ test("submits a single remote render job without waiting for the remote Run", ()
     },
   };
 
-  const result = executor.run({ stage: "render", project });
+  const result = await executor.run({ stage: "render", project });
   assert.equal(result.deferred, true);
   assert.equal(result.job.id, "job-1");
   assert.deepEqual(calls, [{ slug: "single-render-video", stage: "render" }]);
 });
 
-test("does not submit a remote job when the single project is not ready", () => {
+test("does not submit a remote job when the single project is not ready", async () => {
   const executor = createRemoteRenderExecutor({
     validateInputs() {},
+    preflight: async () => {},
     monitor: { submit() { throw new Error("must not submit"); } },
   });
   const project = {
@@ -47,24 +49,66 @@ test("does not submit a remote job when the single project is not ready", () => 
     },
   };
 
-  assert.throws(
+  await assert.rejects(
     () => executor.run({ stage: "render", project }),
     /当前不在可执行的 render 阶段/,
   );
 });
 
-test("rejects Smoke Render without creating a Harness remote job", () => {
+test("rejects Smoke Render without creating a Harness remote job", async () => {
   let submissions = 0;
   const executor = createRemoteRenderExecutor({
     validateInputs() {},
+    preflight: async () => {},
     monitor: { submit() { submissions += 1; } },
   });
-  assert.throws(
+  await assert.rejects(
     () => executor.run({
       stage: "smoke-render",
       project: { config: { slug: "standalone-smoke-video" }, state: { currentStage: "smoke-render", stages: { "smoke-render": { status: "ready" } } } },
     }),
     (error) => error.code === "standalone-smoke-render" && /GitHub Actions/.test(error.message),
+  );
+  assert.equal(submissions, 0);
+});
+
+test("runs the authentication preflight before creating a remote job", async () => {
+  const calls = [];
+  const executor = createRemoteRenderExecutor({
+    validateInputs() { calls.push("validate"); },
+    preflight: async () => { calls.push("preflight"); },
+    monitor: {
+      submit(input) {
+        calls.push("submit");
+        return { id: "job-preflight", status: "queued", ...input };
+      },
+    },
+  });
+  const result = await executor.run({
+    stage: "render",
+    project: { config: { slug: "preflight-order-video" }, state: { currentStage: "render", stages: { render: { status: "ready" } } } },
+  });
+  assert.equal(result.job.id, "job-preflight");
+  assert.deepEqual(calls, ["validate", "preflight", "submit"]);
+});
+
+test("does not create a remote job when authentication preflight fails", async () => {
+  let submissions = 0;
+  const executor = createRemoteRenderExecutor({
+    validateInputs() {},
+    preflight: async () => {
+      const error = new Error("GitHub API 返回 HTTP 401");
+      error.code = "github-auth-invalid";
+      throw error;
+    },
+    monitor: { submit() { submissions += 1; } },
+  });
+  await assert.rejects(
+    () => executor.run({
+      stage: "render",
+      project: { config: { slug: "blocked-auth-video" }, state: { currentStage: "render", stages: { render: { status: "ready" } } } },
+    }),
+    (error) => error.code === "github-auth-invalid",
   );
   assert.equal(submissions, 0);
 });

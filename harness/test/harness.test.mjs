@@ -827,6 +827,7 @@ test("runs the single-stage path from TTS through Remotion to remote render subm
   const remoteResult = await runSingleStage(loadFixture(slug), "render", {
     remoteExecutor: createRemoteRenderExecutor({
       validateInputs() {},
+      preflight: async () => {},
       monitor: {
         submit(input) {
           remoteCalls.push(input);
@@ -986,7 +987,7 @@ test("keeps a batch remote job waiting and does not submit it twice", async () =
     submissions += 1;
     return createJobRecord(input);
   } };
-  const remoteExecutor = createRemoteRenderExecutor({ monitor, validateInputs() {} });
+  const remoteExecutor = createRemoteRenderExecutor({ monitor, validateInputs() {}, preflight: async () => {} });
   const batch = createBatch({ type: "to-render", slugs: [slug] });
   const first = await runBatch(batch.id, { remoteMonitor: monitor, remoteExecutor });
   assert.equal(first.items[0].status, "waiting-remote");

@@ -7,6 +7,7 @@ import { artifactManifestFor } from "../../artifacts.mjs";
 import { approveTtsQcForProject, createBatch, findActiveBatchForProject, getBatchForView, stopBatchesAfterGateRejection, runBatch } from "../../batches.mjs";
 import { buildTaskPacket } from "../../context.mjs";
 import { buildGitRenderCommitPlan, commitAndPushRenderDelivery, validateGitRenderDelivery } from "../../git-delivery.mjs";
+import { assertGitHubActionsReady } from "../../diagnostics.mjs";
 import { requireGitHubActionsConfig } from "../../github-config.mjs";
 import { buildProjectPlan } from "../../plans.mjs";
 import { getVideoProject } from "../../project-view.mjs";
@@ -145,11 +146,12 @@ export function createProjectActionService(runtime) {
     async remoteRun(action) {
       if (action.stage === "smoke-render") { const error = new Error("Smoke Render 已退出 Harness 生产流程，请从 GitHub Actions 手动触发独立环境检查。"); error.code = "standalone-smoke-render"; throw error; }
       if (action.stage !== "render") { const error = new Error("remote-run only supports render"); error.code = "invalid-remote-stage"; throw error; }
-      requireGitHubActionsConfig();
       const active = findActiveJob(action.slug, action.stage);
       if (active) return { status: 200, result: { action: action.action, status: "already-running" }, job: active };
       const project = loadProject(action.slug, { refresh: true }); prepareRemoteRenderInputs(project); const inputIssues = validateRemoteRenderPackage(project);
       if (inputIssues.length) { const error = new Error(`远程渲染输入预检失败：${inputIssues.join("；")}`); error.code = "remote-render-inputs-invalid"; error.issues = inputIssues; throw error; }
+      const preflight = typeof runtime?.githubPreflight === "function" ? runtime.githubPreflight : assertGitHubActionsReady;
+      await preflight({ project, checkRenderInput: false });
       const deliveryIssues = validateGitRenderDelivery(project);
       if (deliveryIssues.length && !(action.commitAndPush && action.confirmDelivery)) {
         return { status: 200, result: { action: action.action, status: "needs-confirmation" }, error: `远程渲染交付预检失败：${deliveryIssues.join("；")}`, code: "git-render-commit-confirmation-required", issues: deliveryIssues, commitPlan: buildGitRenderCommitPlan(project), project: getVideoProject(action.slug) };

@@ -11,6 +11,7 @@ test("runs a single complete Render through the shared single-stage entry point"
   };
   const remoteExecutor = createRemoteRenderExecutor({
     validateInputs() {},
+    preflight: async () => {},
     monitor: {
       submit(input) {
         calls.push(input);

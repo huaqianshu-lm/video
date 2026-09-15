@@ -767,11 +767,13 @@ test("refreshes an initialized project before returning its detail", async () =>
 test("exposes the active remote job and treats repeated submission as idempotent", async () => {
   const previousProjectsRoot = process.env.HARNESS_PROJECTS_DIR;
   const previousToken = process.env.GITHUB_TOKEN;
+  const previousAuthSource = process.env.HARNESS_GITHUB_AUTH_SOURCE;
   const previousRepository = process.env.GITHUB_REPOSITORY;
   const previousRef = process.env.GITHUB_REF_NAME;
   const projectsRoot = fs.mkdtempSync(path.join(os.tmpdir(), "video-harness-web-active-remote-"));
   process.env.HARNESS_PROJECTS_DIR = projectsRoot;
   process.env.GITHUB_TOKEN = "test-token";
+  process.env.HARNESS_GITHUB_AUTH_SOURCE = "env";
   process.env.GITHUB_REPOSITORY = "example/video";
   process.env.GITHUB_REF_NAME = "main";
   const slug = "claude-code-what-is";
@@ -815,6 +817,8 @@ test("exposes the active remote job and treats repeated submission as idempotent
     else process.env.HARNESS_PROJECTS_DIR = previousProjectsRoot;
     if (previousToken === undefined) delete process.env.GITHUB_TOKEN;
     else process.env.GITHUB_TOKEN = previousToken;
+    if (previousAuthSource === undefined) delete process.env.HARNESS_GITHUB_AUTH_SOURCE;
+    else process.env.HARNESS_GITHUB_AUTH_SOURCE = previousAuthSource;
     if (previousRepository === undefined) delete process.env.GITHUB_REPOSITORY;
     else process.env.GITHUB_REPOSITORY = previousRepository;
     if (previousRef === undefined) delete process.env.GITHUB_REF_NAME;
@@ -826,12 +830,14 @@ test("exposes the active remote job and treats repeated submission as idempotent
 test("blocks a new remote job when the render asset archive is incomplete", async () => {
   const previousProjectsRoot = process.env.HARNESS_PROJECTS_DIR;
   const previousToken = process.env.GITHUB_TOKEN;
+  const previousAuthSource = process.env.HARNESS_GITHUB_AUTH_SOURCE;
   const previousRepository = process.env.GITHUB_REPOSITORY;
   const previousRef = process.env.HARNESS_GITHUB_REF;
   const projectsRoot = fs.mkdtempSync(path.join(os.tmpdir(), "video-harness-web-render-preflight-"));
   const workspaceRoot = fs.mkdtempSync(path.join(os.tmpdir(), "video-harness-render-preflight-workspace-"));
   process.env.HARNESS_PROJECTS_DIR = projectsRoot;
   process.env.GITHUB_TOKEN = "test-token";
+  process.env.HARNESS_GITHUB_AUTH_SOURCE = "env";
   process.env.GITHUB_REPOSITORY = "example/video";
   process.env.HARNESS_GITHUB_REF = "main";
   const slug = "02-core-concepts";
@@ -871,6 +877,8 @@ test("blocks a new remote job when the render asset archive is incomplete", asyn
     else process.env.HARNESS_PROJECTS_DIR = previousProjectsRoot;
     if (previousToken === undefined) delete process.env.GITHUB_TOKEN;
     else process.env.GITHUB_TOKEN = previousToken;
+    if (previousAuthSource === undefined) delete process.env.HARNESS_GITHUB_AUTH_SOURCE;
+    else process.env.HARNESS_GITHUB_AUTH_SOURCE = previousAuthSource;
     if (previousRepository === undefined) delete process.env.GITHUB_REPOSITORY;
     else process.env.GITHUB_REPOSITORY = previousRepository;
     if (previousRef === undefined) delete process.env.HARNESS_GITHUB_REF;
@@ -882,9 +890,11 @@ test("blocks a new remote job when the render asset archive is incomplete", asyn
 
 test("serves explicit historical Artifact discovery and adoption actions", async () => {
   const previousToken = process.env.GITHUB_TOKEN;
+  const previousAuthSource = process.env.HARNESS_GITHUB_AUTH_SOURCE;
   const previousRepository = process.env.GITHUB_REPOSITORY;
   const previousRef = process.env.GITHUB_REF_NAME;
   process.env.GITHUB_TOKEN = "test-token";
+  process.env.HARNESS_GITHUB_AUTH_SOURCE = "env";
   process.env.GITHUB_REPOSITORY = "example/video";
   process.env.GITHUB_REF_NAME = "feat/video-harness-v0.5";
   const monitor = {
@@ -928,6 +938,8 @@ test("serves explicit historical Artifact discovery and adoption actions", async
   } finally {
     if (previousToken === undefined) delete process.env.GITHUB_TOKEN;
     else process.env.GITHUB_TOKEN = previousToken;
+    if (previousAuthSource === undefined) delete process.env.HARNESS_GITHUB_AUTH_SOURCE;
+    else process.env.HARNESS_GITHUB_AUTH_SOURCE = previousAuthSource;
     if (previousRepository === undefined) delete process.env.GITHUB_REPOSITORY;
     else process.env.GITHUB_REPOSITORY = previousRepository;
     if (previousRef === undefined) delete process.env.GITHUB_REF_NAME;

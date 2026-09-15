@@ -81,8 +81,10 @@ const WAITING_ITEM_STATUSES = new Set([
   "waiting-tts-qc",
   "waiting-remotion-task",
   "waiting-remote",
+  "waiting-config",
   "waiting-smoke-qc",
 ]);
+const REMOTE_CONFIG_ERRORS = new Set(["github-config-invalid", "github-auth-invalid"]);
 const activeBatchIds = new Set();
 const pendingBatchRuns = new Map();
 
@@ -194,6 +196,7 @@ function summarize(batch) {
     "waiting-agent-job",
     "waiting-tts-qc",
     "waiting-remote",
+    "waiting-config",
     "waiting-smoke-qc",
     "succeeded",
     "failed",
@@ -567,9 +570,22 @@ async function executeItem(batch, batchItem, definition, options) {
       }
     }
   } catch (error) {
+    if (REMOTE_CONFIG_ERRORS.has(error?.code)) {
+      updateItem(batch, batchItem, {
+        status: "waiting-config",
+        error: {
+          code: error.code,
+          message: error instanceof Error ? error.message : String(error),
+          issues: error.issues ?? [],
+        },
+        message: "GitHub 认证或配置不可用，修复后继续批次。",
+        completedAt: null,
+      });
+      return;
+    }
     updateItem(batch, batchItem, {
       status: "failed",
-      error: { message: error instanceof Error ? error.message : String(error), phase: batchItem.phase },
+      error: { code: error?.code ?? "batch-item-failed", message: error instanceof Error ? error.message : String(error), phase: batchItem.phase },
       message: "该视频执行失败，其他视频继续。",
       completedAt: new Date().toISOString(),
     });
@@ -601,6 +617,11 @@ export async function runBatch(id, options = {}) {
         batchItem.message = "Remotion 制作任务已完成，继续执行阶段校验。";
       }
     }
+    if (batchItem.status === "waiting-config") {
+      batchItem.status = "queued";
+      batchItem.error = null;
+      batchItem.message = "已重新加入队列，将再次检查 GitHub 认证和配置。";
+    }
   }
   saveBatch(batch);
   try {
@@ -631,7 +652,7 @@ export async function runBatch(id, options = {}) {
 export function findActiveBatchForProject(type, slug) {
   return listBatches().find((batch) => batch.type === type
     && batch.items.some((batchItem) => batchItem.slug === slug
-      && ["queued", "running", "waiting-agent-job", "waiting-gate"].includes(batchItem.status)
+      && ["queued", "running", "waiting-agent-job", "waiting-gate", "waiting-config"].includes(batchItem.status)
       && isCurrentBatchItem(batchItem, type))) ?? null;
 }
 

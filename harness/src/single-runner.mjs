@@ -56,7 +56,7 @@ export async function runSingleStage(project, stage, {
     if (!remoteExecutor || typeof remoteExecutor.run !== "function") {
       throw new Error(`Remote executor is not configured for ${stage}`);
     }
-    return remoteExecutor.run({ stage, project });
+    return await remoteExecutor.run({ stage, project });
   }
 
   const executors = stage === "subtitle-timeline" && ttsExecutor

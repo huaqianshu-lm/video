@@ -60,7 +60,7 @@ Smoke Render 不再插入日常生产链路。新系列首次渲染或渲染环�
 - npm
 - 本机可用的 `codex` CLI，用于默认 Agent 执行器
 - 如需生成配音：项目既定 TTS 工程，默认位于当前仓库同级的 `../tts`
-- 如需远程渲染：可访问目标仓库的 GitHub Token
+- 如需远程渲染：可用的 GitHub CLI（`gh`），并登录到有目标仓库写入和 Actions 权限的账号
 
 ### 安装依赖
 
@@ -157,10 +157,21 @@ node harness/src/cli.mjs report <video-slug>
 启动远程渲染前配置：
 
 ```bash
-export GITHUB_TOKEN="<token>"
+unset GITHUB_TOKEN GH_TOKEN
+gh auth login --hostname github.com --git-protocol https --web
+gh auth setup-git
 export GITHUB_REPOSITORY="<owner>/<repo>"
 export HARNESS_GITHUB_REF="<optional-explicit-branch>"
+node harness/src/cli.mjs doctor --json
 ```
+
+登录的 GitHub 账号必须能写目标仓库并触发其中的 Actions；`doctor` 会在真正创建远程 Job 前先检查身份、仓库、分支和 Workflow。
+
+本地 Harness 默认从 GitHub CLI 的系统凭据读取认证，不再把 Token 放进 shell 配置或项目文件。`HARNESS_GITHUB_AUTH_SOURCE=env` 只用于 CI／测试，此时才读取 `GITHUB_TOKEN` 或 `GH_TOKEN`；两个变量同时存在且不一致会直接阻止提交。`RENDER_INPUT_TOKEN` 是 GitHub Actions 下载视频输入包的仓库 Secret，与本地 GitHub API 认证分开。
+
+如果旧 Token 以前写进了 shell 启动文件，请删除对应的 `export GITHUB_TOKEN=...`／`export GH_TOKEN=...`；当前终端先执行上面的 `unset`，避免 `gh` 命令继续使用旧值。
+
+绑定私有 GitHub Release API 资产时，本地也会使用同一份 `gh auth` 凭据；其他托管地址如需认证，使用本地临时环境变量 `HARNESS_RENDER_INPUT_TOKEN`，不要复用或保存长期 Token。
 
 使用私有 GitHub Release 时，输入包 URL 必须是 API 资产地址 `https://api.github.com/repos/<owner>/<repo>/releases/assets/<asset-id>`，不能使用 `/releases/download/` 网页下载地址；Harness 会在提交前拦截错误格式。
 
