@@ -155,6 +155,15 @@ test("defines one canonical workflow for all 14 production stages", () => {
   }
 });
 
+test("declares an exact dispatch marker in both remote workflows", () => {
+  for (const workflow of ["render-video.yml", "smoke-test-video.yml"]) {
+    const content = fs.readFileSync(path.join(repositoryRoot, ".github", "workflows", workflow), "utf8");
+    assert.match(content, /run-name: \$\{\{ inputs\.video_slug \}\} \/ \$\{\{ inputs\.dispatch_id \}\}/);
+    assert.match(content, /dispatch_id:\n\s+description: Unique Harness dispatch ID/);
+    assert.match(content, /dispatch_id:\n\s+description:[\s\S]*?required: true[\s\S]*?type: string/);
+  }
+});
+
 test("initializes explicit workflow, style, and target project configuration", () => {
   const { slug } = createFixture({ prototypeBaseline: "codex-v1" });
   const project = loadFixture(slug);
@@ -1344,19 +1353,13 @@ test("refreshes a retried Remotion task with the Gate 3 rejection request", asyn
 test("runs the standalone Smoke workflow adapter and records its artifact metadata", async () => {
   const { slug } = createFixture();
   const responses = [
-    { status: 204, ok: true, text: async () => "" },
     {
       status: 200,
       ok: true,
       text: async () => JSON.stringify({
-        workflow_runs: [{
-          id: 123,
-          head_branch: "feat/video-harness-v0.1",
-          created_at: "2026-08-20T00:00:01.000Z",
-          status: "queued",
-          conclusion: null,
-          html_url: "https://github.com/example/video/actions/runs/123",
-        }],
+        workflow_run_id: 123,
+        workflow_run_url: "https://api.github.com/repos/example/video/actions/runs/123",
+        html_url: "https://github.com/example/video/actions/runs/123",
       }),
     },
     {
@@ -1393,7 +1396,11 @@ test("runs the standalone Smoke workflow adapter and records its artifact metada
   });
 
   const project = loadFixture(slug);
-  const result = await adapter.run({ stage: "smoke-render", project });
+  const result = await adapter.run({
+    stage: "smoke-render",
+    project,
+    dispatchId: "smoke-dispatch-123",
+  });
 
   assert.equal(result.outputs[0].runId, 123);
   assert.deepEqual(result.outputs[0].artifacts, [{
@@ -1407,21 +1414,95 @@ test("runs the standalone Smoke workflow adapter and records its artifact metada
   }]);
   assert.equal(result.outputs[0].artifactName, `${slug}-smoke-test`);
   assert.match(calls[0].url, /actions\/workflows\/smoke-test-video\.yml\/dispatches$/);
-  assert.deepEqual(JSON.parse(calls[0].options.body), {
-    ref: "feat/video-harness-v0.1",
-    inputs: { video_slug: slug, composition_id: slug },
+  const dispatchBody = JSON.parse(calls[0].options.body);
+  assert.equal(dispatchBody.ref, "feat/video-harness-v0.1");
+  assert.equal(dispatchBody.return_run_details, true);
+  assert.deepEqual(dispatchBody.inputs, {
+    video_slug: slug,
+    composition_id: slug,
+    dispatch_id: "smoke-dispatch-123",
   });
   assert.equal(calls[0].options.headers.Authorization, "Bearer test-token");
+});
+
+test("waits on the exact Run ID returned by dispatch until it completes", async () => {
+  const { slug } = createFixture();
+  const responses = [
+    {
+      status: 200,
+      ok: true,
+      text: async () => JSON.stringify({
+        workflow_run_id: 123,
+        workflow_run_url: "https://api.github.com/repos/example/video/actions/runs/123",
+        html_url: "https://github.com/example/video/actions/runs/123",
+      }),
+    },
+    {
+      status: 200,
+      ok: true,
+      text: async () => JSON.stringify({
+        id: 123,
+        status: "in_progress",
+        conclusion: null,
+        html_url: "https://github.com/example/video/actions/runs/123",
+      }),
+    },
+    {
+      status: 200,
+      ok: true,
+      text: async () => JSON.stringify({
+        id: 123,
+        status: "completed",
+        conclusion: "success",
+        html_url: "https://github.com/example/video/actions/runs/123",
+      }),
+    },
+    {
+      status: 200,
+      ok: true,
+      text: async () => JSON.stringify({
+        artifacts: [{ name: `${slug}-smoke-test`, id: 456, size_in_bytes: 789, expired: false }],
+      }),
+    },
+  ];
+  const runRequests = [];
+  const adapter = createGitHubActionsAdapter({
+    token: "test-token",
+    repository: "example/video",
+    ref: "main",
+    runPollIntervalMs: 0,
+    sleepImpl: async () => {},
+    fetchImpl: async (url) => {
+      if (/\/actions\/runs\/\d+$/.test(url)) runRequests.push(url);
+      return responses.shift();
+    },
+  });
+
+  const result = await adapter.run({
+    stage: "smoke-render",
+    project: loadFixture(slug),
+    dispatchId: "smoke-dispatch-123-in-progress",
+  });
+
+  assert.deepEqual(runRequests, [
+    "https://api.github.com/repos/example/video/actions/runs/123",
+    "https://api.github.com/repos/example/video/actions/runs/123",
+  ]);
+  assert.equal(result.outputs[0].runId, 123);
+  assert.equal(result.outputs[0].artifacts[0].id, 456);
 });
 
 test("rejects a successful GitHub Actions run without a usable artifact", async () => {
   const { slug } = createFixture();
   const responses = [
-    { status: 204, ok: true, text: async () => "" },
     {
       status: 200,
       ok: true,
-      text: async () => JSON.stringify({ workflow_runs: [{ id: 789, head_branch: "main", created_at: "2026-08-20T00:00:01.000Z" }] }),
+      text: async () => JSON.stringify({
+        workflow_run_id: 789,
+        workflow_run_url: "https://api.github.com/repos/example/video/actions/runs/789",
+        html_url: "https://github.com/example/video/actions/runs/789",
+      }),
     },
     {
       status: 200,
@@ -1441,7 +1522,11 @@ test("rejects a successful GitHub Actions run without a usable artifact", async 
     fetchImpl: async () => responses.shift(),
   });
 
-  await assert.rejects(() => adapter.run({ stage: "smoke-render", project: loadFixture(slug) }), /did not produce expected artifact/);
+  await assert.rejects(() => adapter.run({
+    stage: "smoke-render",
+    project: loadFixture(slug),
+    dispatchId: "smoke-dispatch-789",
+  }), /did not produce expected artifact/);
 });
 
 test("supports non-blocking remote inspection for recovery monitors", async () => {
@@ -1475,10 +1560,9 @@ test("supports non-blocking remote inspection for recovery monitors", async () =
   assert.equal(succeeded.result.outputs[0].artifacts[0].id, 654);
 });
 
-test("recovers the latest successful render by its matching Artifact", async () => {
+test("does not silently adopt the latest successful render without an exact dispatchId", async () => {
   const { slug } = createFixture();
   const responses = [
-    { status: 200, ok: true, text: async () => JSON.stringify({ workflow_runs: [] }) },
     {
       status: 200,
       ok: true,
@@ -1489,15 +1573,9 @@ test("recovers the latest successful render by its matching Artifact", async () 
           created_at: "2026-08-22T00:00:01.000Z",
           status: "completed",
           conclusion: "success",
+          display_title: `${slug} / historical-run`,
           html_url: "https://github.com/example/video/actions/runs/999",
         }],
-      }),
-    },
-    {
-      status: 200,
-      ok: true,
-      text: async () => JSON.stringify({
-        artifacts: [{ name: slug, id: 777, size_in_bytes: 100, expired: false }],
       }),
     },
   ];
@@ -1516,13 +1594,13 @@ test("recovers the latest successful render by its matching Artifact", async () 
       slug,
       compositionId: slug,
       dispatchedAt: "2026-08-23T00:00:00.000Z",
+      dispatchId: "current-dispatch",
     },
     recoverExisting: true,
   });
 
-  assert.equal(inspection.status, "succeeded");
-  assert.equal(inspection.remote.runId, 999);
-  assert.equal(inspection.result.outputs[0].artifactName, slug);
+  assert.equal(inspection.status, "waiting-run");
+  assert.equal(inspection.remote.runId, undefined);
 });
 
 test("lists successful render Artifacts from other branches for explicit adoption", async () => {

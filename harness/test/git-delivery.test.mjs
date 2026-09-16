@@ -5,7 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
 import { createWebServer } from "../src/server.mjs";
-import { bindRenderInputDelivery, packageRenderInput, prepareRenderInput } from "../src/render-input.mjs";
+import { bindRenderInputDelivery, packageRenderInput, prepareRenderInput, renderInputDeliveryPath } from "../src/render-input.mjs";
 import { initializeProject, loadProject, writeJson } from "../src/storage.mjs";
 import { buildGitRenderCommitPlan, commitAndPushRenderDelivery, validateGitRenderDelivery } from "../src/git-delivery.mjs";
 
@@ -219,6 +219,101 @@ test("delivery planning excludes Root and concrete video changes from the select
     assert.ok(plan.outOfScopePaths.includes("src/Root.tsx"));
     assert.ok(plan.outOfScopePaths.includes("src/Unrelated.tsx"));
     assert.match(plan.planId, /^[a-f0-9]{64}$/);
+  } finally {
+    fs.rmSync(workspaceRoot, { recursive: true, force: true });
+    fs.rmSync(remoteRoot, { recursive: true, force: true });
+  }
+});
+
+test("only exact render files are auto-committable and generic source changes stay out of scope", () => {
+  const { workspaceRoot, remoteRoot } = createRenderWorkspace("exact-scope-video");
+  try {
+    write(workspaceRoot, ".github/workflows/unrelated.yml", "name: unrelated\n");
+    write(workspaceRoot, "src/components/Unrelated.tsx", "export {}\n");
+    write(workspaceRoot, "src/scenes/Unrelated.tsx", "export {}\n");
+    const plan = buildGitRenderCommitPlan({ config: { slug: "exact-scope-video", workspaceRoot } }, {
+      environment: { HARNESS_GITHUB_REF: "main" },
+    });
+    assert.equal(plan.commitPaths.includes(".github/workflows/unrelated.yml"), false);
+    assert.equal(plan.commitPaths.includes("src/components/Unrelated.tsx"), false);
+    assert.equal(plan.commitPaths.includes("src/scenes/Unrelated.tsx"), false);
+    assert.ok(plan.outOfScopePaths.includes(".github/workflows/unrelated.yml"));
+    assert.ok(plan.outOfScopePaths.includes("src/components/Unrelated.tsx"));
+    assert.ok(plan.outOfScopePaths.includes("src/scenes/Unrelated.tsx"));
+  } finally {
+    fs.rmSync(workspaceRoot, { recursive: true, force: true });
+    fs.rmSync(remoteRoot, { recursive: true, force: true });
+  }
+});
+
+test("delivery plan binds the current input delivery record and invalidates when it changes", async () => {
+  const { workspaceRoot, remoteRoot } = createRenderWorkspace("binding-plan-video");
+  try {
+    const project = { config: { slug: "binding-plan-video", workspaceRoot } };
+    prepareRenderInput(project);
+    const packaged = packageRenderInput(workspaceRoot, project.config.slug);
+    const archiveBytes = fs.readFileSync(packaged.archivePath);
+    await bindRenderInputDelivery(project, {
+      url: "https://inputs.example.test/binding-plan.zip",
+      sha256: packaged.archiveSha256,
+      fetchImpl: async () => ({ ok: true, status: 200, arrayBuffer: async () => archiveBytes }),
+    });
+
+    const plan = buildGitRenderCommitPlan(project, { environment: { HARNESS_GITHUB_REF: "main" } });
+    assert.equal(plan.videoSlug, project.config.slug);
+    assert.equal(plan.compositionId, "binding-plan-video");
+    assert.equal(plan.renderInputUrl, "https://inputs.example.test/binding-plan.zip");
+    assert.equal(plan.renderInputSha256, packaged.archiveSha256);
+    assert.equal(plan.packageFingerprint, plan.packageFingerprint.toLowerCase());
+    assert.match(plan.deliveryBindingSha256, /^[a-f0-9]{64}$/);
+
+    const deliveryPath = renderInputDeliveryPath(workspaceRoot, project.config.slug);
+    const originalDelivery = JSON.parse(fs.readFileSync(deliveryPath, "utf8"));
+    for (const [field, value] of [
+      ["url", "https://inputs.example.test/changed.zip"],
+      ["archiveSha256", "1".repeat(64)],
+      ["compositionId", "changed-composition"],
+      ["packageFingerprint", "2".repeat(64)],
+    ]) {
+      const changed = { ...originalDelivery, [field]: value };
+      fs.writeFileSync(deliveryPath, `${JSON.stringify(changed, null, 2)}\n`, "utf8");
+      assert.throws(
+        () => commitAndPushRenderDelivery(project, {
+          environment: { HARNESS_GITHUB_REF: "main" },
+          deliveryPlanId: plan.planId,
+          selectedPaths: plan.selectedPaths,
+        }),
+        (error) => error.code === "git-render-commit-plan-stale",
+        `changed ${field} must invalidate the confirmed plan`,
+      );
+      fs.writeFileSync(deliveryPath, `${JSON.stringify(originalDelivery, null, 2)}\n`, "utf8");
+    }
+  } finally {
+    fs.rmSync(workspaceRoot, { recursive: true, force: true });
+    fs.rmSync(remoteRoot, { recursive: true, force: true });
+  }
+});
+
+test("required render file deletion blocks before staging or commit", () => {
+  const { workspaceRoot, remoteRoot } = createRenderWorkspace("deletion-check-video");
+  try {
+    const project = { config: { slug: "deletion-check-video", workspaceRoot } };
+    fs.appendFileSync(path.join(workspaceRoot, "src/TemplateVideo.tsx"), "// planned render change\n");
+    const plan = buildGitRenderCommitPlan(project, { environment: { HARNESS_GITHUB_REF: "main" } });
+    const headBefore = git(workspaceRoot, ["rev-parse", "HEAD"]);
+    fs.rmSync(path.join(workspaceRoot, ".github/workflows/render-video.yml"));
+
+    assert.throws(
+      () => commitAndPushRenderDelivery(project, {
+        environment: { HARNESS_GITHUB_REF: "main" },
+        deliveryPlanId: plan.planId,
+        selectedPaths: plan.selectedPaths,
+      }),
+      (error) => error.code === "git-render-commit-deletion-forbidden"
+        || error.code === "git-render-commit-required-path-missing",
+    );
+    assert.equal(git(workspaceRoot, ["rev-parse", "HEAD"]), headBefore);
+    assert.equal(git(workspaceRoot, ["diff", "--cached"]), "");
   } finally {
     fs.rmSync(workspaceRoot, { recursive: true, force: true });
     fs.rmSync(remoteRoot, { recursive: true, force: true });

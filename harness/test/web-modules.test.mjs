@@ -1143,6 +1143,7 @@ test("real batch view covers batch and Remotion actions with exact requests and 
       { id: "task-ready", kind: "remotion", slug: "ready-video", status: "ready", batchId: "batch-tts", outputArtifacts: [] },
       { id: "task-running", kind: "remotion", slug: "running-video", status: "in-progress", batchId: "batch-smoke", outputArtifacts: [{ name: "config" }] },
       { id: "task-failed", kind: "remotion", slug: "failed-video", status: "failed", batchId: "batch-failed", outputArtifacts: [], error: { message: "校验失败", stderr: "missing output" } },
+      { id: "task-stale", kind: "remotion", slug: "stale-video", status: "failed", batchId: null, outputArtifacts: [], error: { message: "旧任务" }, stageActionAllowed: false, stageActionReason: "项目当前为 gate-3 / waiting，旧 Remotion 任务只保留查看。" },
     ];
     const previousCSS = globalThis.CSS;
     setGlobal("CSS", { escape: (value) => value });
@@ -1193,6 +1194,8 @@ test("real batch view covers batch and Remotion actions with exact requests and 
       assert.match(taskList.innerHTML, /status status-in-progress/);
       assert.match(taskList.innerHTML, /status status-failed/);
       assert.match(taskList.innerHTML, /校验失败/);
+      assert.match(taskList.innerHTML, /旧 Remotion 任务只保留查看/);
+      assert.equal(taskList.querySelectorAll("[data-remotion-task-action]").some((button) => button.dataset.taskId === "task-stale"), false);
       assert.match(summary.innerHTML, /<strong>9<\/strong>/);
       assert.doesNotMatch(summary.innerHTML, /Remotion 制作任务/);
 

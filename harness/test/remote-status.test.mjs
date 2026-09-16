@@ -30,6 +30,8 @@ test("classifies configuration, transient, permission and timeout errors", () =>
   assert.equal(classifyRemoteError(new Error("fetch failed: ECONNRESET")), "recoverable");
   assert.equal(classifyRemoteError(new Error("GitHub API 401: Bad credentials")), "failed");
   assert.equal(classifyRemoteError({ code: "remote-job-timeout" }), "timeout");
+  assert.equal(classifyRemoteError({ code: "remote-dispatch-uncertain" }), "remote-dispatch-uncertain");
+  assert.equal(classifyRemoteError({ code: "remote-dispatch-ambiguous" }), "remote-dispatch-ambiguous");
   assert.equal(classifyRemoteError(new Error("invalid artifact metadata")), "failed");
 });
 

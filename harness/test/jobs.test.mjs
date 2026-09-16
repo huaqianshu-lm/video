@@ -190,7 +190,9 @@ test("reconciles a previously dispatched render after the first remote check fai
           ref: "main",
           slug: "reconcile-render-video",
           compositionId: "reconcile-render-video",
+          dispatchId: "dispatch-reconcile-render",
           dispatchedAt: "2026-08-23T11:37:50.000Z",
+          dispatchState: "sending",
         },
       },
     });
@@ -213,7 +215,11 @@ test("reconciles a previously dispatched render after the first remote check fai
         };
       },
     };
-    const monitor = createRemoteJobMonitor({ adapterFactory: () => adapter, pollIntervalMs: 10 });
+    const monitor = createRemoteJobMonitor({
+      adapterFactory: () => adapter,
+      pollIntervalMs: 10,
+      now: () => new Date("2026-08-23T11:38:00.000Z"),
+    });
     await monitor.poll();
 
     const finished = getJob("reconcile-render-video", job.id);
@@ -306,6 +312,7 @@ test("does not dispatch twice after recovering a persisted dispatch intent", asy
           ref: "main",
           slug: "recover-video",
           compositionId: "recover-video",
+          dispatchId: "dispatch-recover-video",
           dispatchedAt: "2026-08-23T00:00:00.000Z",
           dispatchState: "confirmed",
           dispatchConfirmedAt: "2026-08-23T00:00:01.000Z",
@@ -445,7 +452,7 @@ test("keeps transient GitHub API failures recoverable without failing the stage"
   }
 });
 
-test("retries an unconfirmed dispatch after the first GitHub check fails", async () => {
+test("dispatches a prepared intent without scanning an unrelated latest Run", async () => {
   const projectsRoot = fs.mkdtempSync(path.join(os.tmpdir(), "video-harness-retry-dispatch-"));
   const previousRoot = process.env.HARNESS_PROJECTS_DIR;
   process.env.HARNESS_PROJECTS_DIR = projectsRoot;
@@ -495,17 +502,12 @@ test("retries an unconfirmed dispatch after the first GitHub check fails", async
     const monitor = createRemoteJobMonitor({ adapterFactory: () => adapter, pollIntervalMs: 10 });
 
     await monitor.processJob(job.id);
-    const failed = getJob("retry-dispatch-video", job.id);
-    assert.equal(failed.status, "failed");
-    assert.equal(failed.remote.dispatchState, "pending");
-
-    await monitor.poll();
-    const recovered = getJob("retry-dispatch-video", job.id);
-    assert.equal(checkCount, 2);
+    const dispatched = getJob("retry-dispatch-video", job.id);
+    assert.equal(dispatched.status, "running");
+    assert.equal(checkCount, 0);
     assert.equal(dispatchCount, 1);
-    assert.equal(recovered.status, "running");
-    assert.equal(recovered.remote.dispatchState, "confirmed");
-    assert.equal(recovered.remote.runId, 321);
+    assert.equal(dispatched.remote.dispatchState, "confirmed");
+    assert.equal(dispatched.remote.runId, 321);
   } finally {
     if (previousRoot === undefined) delete process.env.HARNESS_PROJECTS_DIR;
     else process.env.HARNESS_PROJECTS_DIR = previousRoot;
@@ -592,6 +594,329 @@ test("supports explicit adoption of a successful historical render", async () =>
   }
 });
 
+test("persists the exact Run returned by a dispatch and never remaps it by timestamp", async () => {
+  const projectsRoot = fs.mkdtempSync(path.join(os.tmpdir(), "video-harness-direct-run-details-"));
+  const previousRoot = process.env.HARNESS_PROJECTS_DIR;
+  process.env.HARNESS_PROJECTS_DIR = projectsRoot;
+  fs.mkdirSync(path.join(projectsRoot, "direct-run-details-video"), { recursive: true });
+
+  try {
+    initializeProject("direct-run-details-video");
+    const project = loadProject("direct-run-details-video", { refresh: false });
+    project.state.currentStage = "render";
+    for (const stage of ["source", "content-analysis", "video-narrative", "scene-script", "narration-script", "visual-script", "visual-prototype", "gate-2", "tts", "subtitle-timeline", "remotion", "gate-3"]) {
+      project.state.stages[stage].status = "succeeded";
+    }
+    project.state.stages.render.status = "ready";
+    writeJson(project.files.state, project.state);
+
+    const dispatchId = "dispatch-direct-run-details";
+    const job = createJobRecord({
+      slug: "direct-run-details-video",
+      stage: "render",
+      metadata: { remote: { dispatchId, dispatchState: "prepared" } },
+    });
+    let inspectedRunId = null;
+    const adapter = {
+      requiresRenderPreflight: false,
+      createDispatch: ({ project: current, dispatchedAt, dispatchId: currentDispatchId }) => ({
+        workflow: "render-video.yml",
+        ref: "main",
+        slug: current.state.slug,
+        compositionId: current.config.slug,
+        dispatchId: currentDispatchId,
+        dispatchedAt,
+      }),
+      verifyDispatchRef: async () => {},
+      dispatchWorkflow: async ({ dispatchId: currentDispatchId }) => ({
+        dispatchId: currentDispatchId,
+        dispatchState: "confirmed",
+        runId: 4242,
+        runApiUrl: "https://api.github.com/repos/example/video/actions/runs/4242",
+        runUrl: "https://github.com/example/video/actions/runs/4242",
+      }),
+      inspectRun: async ({ runId, dispatch }) => {
+        inspectedRunId = runId;
+        return {
+          status: "running",
+          remote: { ...dispatch, runId, runUrl: "https://github.com/example/video/actions/runs/4242" },
+        };
+      },
+    };
+    const monitor = createRemoteJobMonitor({ adapterFactory: () => adapter, pollIntervalMs: 10 });
+    await monitor.processJob(job.id);
+
+    const persisted = getJob("direct-run-details-video", job.id);
+    assert.equal(persisted.status, "running");
+    assert.equal(persisted.remote.dispatchId, dispatchId);
+    assert.equal(persisted.remote.runId, 4242);
+    assert.equal(persisted.remote.runApiUrl, "https://api.github.com/repos/example/video/actions/runs/4242");
+    assert.equal(inspectedRunId, 4242);
+  } finally {
+    if (previousRoot === undefined) delete process.env.HARNESS_PROJECTS_DIR;
+    else process.env.HARNESS_PROJECTS_DIR = previousRoot;
+    fs.rmSync(projectsRoot, { recursive: true, force: true });
+  }
+});
+
+test("recovers a sending dispatch by its persisted dispatchId without dispatching twice", async () => {
+  const projectsRoot = fs.mkdtempSync(path.join(os.tmpdir(), "video-harness-sending-recovery-"));
+  const previousRoot = process.env.HARNESS_PROJECTS_DIR;
+  process.env.HARNESS_PROJECTS_DIR = projectsRoot;
+  fs.mkdirSync(path.join(projectsRoot, "sending-recovery-video"), { recursive: true });
+
+  try {
+    initializeProject("sending-recovery-video");
+    const project = loadProject("sending-recovery-video", { refresh: false });
+    project.state.currentStage = "render";
+    for (const stage of ["source", "content-analysis", "video-narrative", "scene-script", "narration-script", "visual-script", "visual-prototype", "gate-2", "tts", "subtitle-timeline", "remotion", "gate-3"]) {
+      project.state.stages[stage].status = "succeeded";
+    }
+    project.state.stages.render.status = "ready";
+    writeJson(project.files.state, project.state);
+
+    const dispatchId = "dispatch-sending-recovery";
+    const job = createJobRecord({
+      slug: "sending-recovery-video",
+      stage: "render",
+      metadata: {
+        status: "failed",
+        remote: {
+          workflow: "render-video.yml",
+          ref: "main",
+          slug: "sending-recovery-video",
+          compositionId: "sending-recovery-video",
+          dispatchId,
+          dispatchedAt: "2026-09-15T00:00:00.000Z",
+          dispatchState: "sending",
+        },
+      },
+    });
+    let dispatchCount = 0;
+    let lookupCount = 0;
+    const adapter = {
+      requiresRenderPreflight: false,
+      findDispatchedRunOnce: async (dispatch) => {
+        lookupCount += 1;
+        assert.equal(dispatch.dispatchId, dispatchId);
+        return { id: 5353, html_url: "https://github.com/example/video/actions/runs/5353" };
+      },
+      dispatchWorkflow: async () => {
+        dispatchCount += 1;
+        throw new Error("must not create another Run during recovery");
+      },
+      inspectRun: async ({ runId, dispatch }) => ({
+        status: "running",
+        remote: { ...dispatch, runId, runUrl: "https://github.com/example/video/actions/runs/5353" },
+      }),
+    };
+    const monitor = createRemoteJobMonitor({
+      adapterFactory: () => adapter,
+      pollIntervalMs: 10,
+      now: () => new Date("2026-09-15T00:00:02.000Z"),
+    });
+    await monitor.processJob(job.id);
+
+    const recovered = getJob("sending-recovery-video", job.id);
+    assert.equal(dispatchCount, 0);
+    assert.equal(lookupCount, 1);
+    assert.equal(recovered.status, "running");
+    assert.equal(recovered.remote.dispatchId, dispatchId);
+    assert.equal(recovered.remote.runId, 5353);
+  } finally {
+    if (previousRoot === undefined) delete process.env.HARNESS_PROJECTS_DIR;
+    else process.env.HARNESS_PROJECTS_DIR = previousRoot;
+    fs.rmSync(projectsRoot, { recursive: true, force: true });
+  }
+});
+
+test("keeps the same dispatchId after a request failure that may have reached GitHub", async () => {
+  const projectsRoot = fs.mkdtempSync(path.join(os.tmpdir(), "video-harness-request-recovery-"));
+  const previousRoot = process.env.HARNESS_PROJECTS_DIR;
+  process.env.HARNESS_PROJECTS_DIR = projectsRoot;
+  fs.mkdirSync(path.join(projectsRoot, "request-recovery-video"), { recursive: true });
+
+  try {
+    initializeProject("request-recovery-video");
+    const project = loadProject("request-recovery-video", { refresh: false });
+    project.state.currentStage = "render";
+    for (const stage of ["source", "content-analysis", "video-narrative", "scene-script", "narration-script", "visual-script", "visual-prototype", "gate-2", "tts", "subtitle-timeline", "remotion", "gate-3"]) {
+      project.state.stages[stage].status = "succeeded";
+    }
+    project.state.stages.render.status = "ready";
+    writeJson(project.files.state, project.state);
+
+    const job = createJobRecord({
+      slug: "request-recovery-video",
+      stage: "render",
+      metadata: { remote: { dispatchId: "dispatch-request-recovery", dispatchState: "prepared" } },
+    });
+    let dispatchCount = 0;
+    let firstRequest = true;
+    const adapter = {
+      requiresRenderPreflight: false,
+      createDispatch: ({ project: current, dispatchedAt, dispatchId }) => ({
+        workflow: "render-video.yml",
+        ref: "main",
+        slug: current.state.slug,
+        compositionId: current.config.slug,
+        dispatchId,
+        dispatchedAt,
+      }),
+      verifyDispatchRef: async () => {},
+      dispatchWorkflow: async ({ dispatchId }) => {
+        dispatchCount += 1;
+        assert.equal(dispatchId, "dispatch-request-recovery");
+        const persistedBeforeRequest = getJob("request-recovery-video", job.id);
+        assert.equal(persistedBeforeRequest.remote.dispatchId, "dispatch-request-recovery");
+        assert.equal(persistedBeforeRequest.remote.dispatchState, "sending");
+        if (firstRequest) {
+          firstRequest = false;
+          throw new Error("request result was lost after GitHub accepted it");
+        }
+        throw new Error("must recover the accepted Run instead of dispatching again");
+      },
+      findDispatchedRunOnce: async (dispatch) => {
+        assert.equal(dispatch.dispatchId, "dispatch-request-recovery");
+        return firstRequest ? null : { id: 6464, html_url: "https://github.com/example/video/actions/runs/6464" };
+      },
+      inspectRun: async ({ runId, dispatch }) => ({
+        status: "running",
+        remote: { ...dispatch, runId, runUrl: "https://github.com/example/video/actions/runs/6464" },
+      }),
+    };
+    const monitor = createRemoteJobMonitor({ adapterFactory: () => adapter, pollIntervalMs: 10 });
+
+    await monitor.processJob(job.id);
+    const afterFailure = getJob("request-recovery-video", job.id);
+    assert.equal(afterFailure.status, "failed");
+    assert.equal(afterFailure.remote.dispatchId, "dispatch-request-recovery");
+    assert.equal(afterFailure.remote.dispatchState, "sending");
+
+    const restartedMonitor = createRemoteJobMonitor({
+      adapterFactory: () => adapter,
+      pollIntervalMs: 10,
+    });
+    await restartedMonitor.processJob(job.id);
+    const recovered = getJob("request-recovery-video", job.id);
+    assert.equal(dispatchCount, 1);
+    assert.equal(recovered.status, "running");
+    assert.equal(recovered.remote.dispatchId, "dispatch-request-recovery");
+    assert.equal(recovered.remote.runId, 6464);
+  } finally {
+    if (previousRoot === undefined) delete process.env.HARNESS_PROJECTS_DIR;
+    else process.env.HARNESS_PROJECTS_DIR = previousRoot;
+    fs.rmSync(projectsRoot, { recursive: true, force: true });
+  }
+});
+
+test("blocks an ambiguous dispatch instead of selecting one of its matching Runs", async () => {
+  const projectsRoot = fs.mkdtempSync(path.join(os.tmpdir(), "video-harness-ambiguous-dispatch-"));
+  const previousRoot = process.env.HARNESS_PROJECTS_DIR;
+  process.env.HARNESS_PROJECTS_DIR = projectsRoot;
+  fs.mkdirSync(path.join(projectsRoot, "ambiguous-dispatch-video"), { recursive: true });
+
+  try {
+    initializeProject("ambiguous-dispatch-video");
+    const project = loadProject("ambiguous-dispatch-video", { refresh: false });
+    project.state.currentStage = "render";
+    project.state.stages.render.status = "ready";
+    for (const stage of ["source", "content-analysis", "video-narrative", "scene-script", "narration-script", "visual-script", "visual-prototype", "gate-2", "tts", "subtitle-timeline", "remotion", "gate-3"]) {
+      project.state.stages[stage].status = "succeeded";
+    }
+    writeJson(project.files.state, project.state);
+
+    const job = createJobRecord({
+      slug: "ambiguous-dispatch-video",
+      stage: "render",
+      metadata: {
+        status: "failed",
+        remote: {
+          workflow: "render-video.yml",
+          ref: "main",
+          slug: "ambiguous-dispatch-video",
+          compositionId: "ambiguous-dispatch-video",
+          dispatchId: "dispatch-ambiguous-job",
+          dispatchedAt: new Date().toISOString(),
+          dispatchState: "sending",
+        },
+      },
+    });
+    let dispatchCount = 0;
+    const error = new Error("two Runs have the same dispatch marker");
+    error.code = "remote-dispatch-ambiguous";
+    const adapter = {
+      requiresRenderPreflight: false,
+      findDispatchedRunOnce: async () => { throw error; },
+      dispatchWorkflow: async () => { dispatchCount += 1; },
+    };
+    const monitor = createRemoteJobMonitor({ adapterFactory: () => adapter });
+    await monitor.processJob(job.id);
+
+    const blocked = getJob("ambiguous-dispatch-video", job.id);
+    assert.equal(dispatchCount, 0);
+    assert.equal(blocked.status, "remote-dispatch-ambiguous");
+    assert.equal(blocked.error.code, "remote-dispatch-ambiguous");
+    assert.equal(blocked.nextCheckAt, null);
+  } finally {
+    if (previousRoot === undefined) delete process.env.HARNESS_PROJECTS_DIR;
+    else process.env.HARNESS_PROJECTS_DIR = previousRoot;
+    fs.rmSync(projectsRoot, { recursive: true, force: true });
+  }
+});
+
+test("marks a sending dispatch uncertain after its bounded recovery window", async () => {
+  const projectsRoot = fs.mkdtempSync(path.join(os.tmpdir(), "video-harness-uncertain-dispatch-"));
+  const previousRoot = process.env.HARNESS_PROJECTS_DIR;
+  process.env.HARNESS_PROJECTS_DIR = projectsRoot;
+  fs.mkdirSync(path.join(projectsRoot, "uncertain-dispatch-video"), { recursive: true });
+
+  try {
+    initializeProject("uncertain-dispatch-video");
+    const project = loadProject("uncertain-dispatch-video", { refresh: false });
+    project.state.currentStage = "render";
+    project.state.stages.render.status = "running";
+    for (const stage of ["source", "content-analysis", "video-narrative", "scene-script", "narration-script", "visual-script", "visual-prototype", "gate-2", "tts", "subtitle-timeline", "remotion", "gate-3"]) {
+      project.state.stages[stage].status = "succeeded";
+    }
+    writeJson(project.files.state, project.state);
+
+    const job = createJobRecord({
+      slug: "uncertain-dispatch-video",
+      stage: "render",
+      metadata: {
+        status: "waiting-run",
+        remote: {
+          workflow: "render-video.yml",
+          ref: "main",
+          slug: "uncertain-dispatch-video",
+          compositionId: "uncertain-dispatch-video",
+          dispatchId: "dispatch-long-unknown",
+          dispatchedAt: "2026-09-15T00:00:00.000Z",
+          dispatchSentAt: "2026-09-15T00:00:00.000Z",
+          dispatchState: "sending",
+        },
+      },
+    });
+    const monitor = createRemoteJobMonitor({
+      adapterFactory: () => ({ inspectRun: async () => ({ status: "waiting-run" }) }),
+      now: () => new Date("2026-09-15T01:00:01.000Z"),
+      jobTimeoutMs: 60 * 60 * 1_000,
+    });
+    await monitor.processJob(job.id);
+
+    const uncertain = getJob("uncertain-dispatch-video", job.id);
+    assert.equal(uncertain.status, "remote-dispatch-uncertain");
+    assert.equal(uncertain.error.code, "remote-dispatch-uncertain");
+    assert.equal(uncertain.nextCheckAt, null);
+    assert.equal(loadProject("uncertain-dispatch-video").state.stages.render.status, "failed");
+  } finally {
+    if (previousRoot === undefined) delete process.env.HARNESS_PROJECTS_DIR;
+    else process.env.HARNESS_PROJECTS_DIR = previousRoot;
+    fs.rmSync(projectsRoot, { recursive: true, force: true });
+  }
+});
+
 test("persists the exact input binding on a remote Job and blocks a later rebinding", async () => {
   const projectsRoot = fs.mkdtempSync(path.join(os.tmpdir(), "video-harness-bound-job-projects-"));
   const workspaceRoot = fs.mkdtempSync(path.join(os.tmpdir(), "video-harness-bound-job-workspace-"));
@@ -644,6 +969,8 @@ test("persists the exact input binding on a remote Job and blocks a later rebind
     const monitor = createRemoteJobMonitor({ adapterFactory: () => adapter, pollIntervalMs: 10 });
     const job = monitor.submit({ slug, stage: "render" });
     const persisted = getJob(slug, job.id);
+    assert.match(persisted.remote.dispatchId, /^[0-9a-f-]{36}$/);
+    assert.ok(["prepared", "sending", "confirmed"].includes(persisted.remote.dispatchState));
     assert.equal(persisted.remote.renderInputUrl, "https://inputs.example.test/bound-job.zip");
     assert.equal(persisted.remote.renderInputSha256, packaged.archiveSha256);
     assert.match(persisted.remote.renderInputPackageFingerprint, /^[a-f0-9]{64}$/);

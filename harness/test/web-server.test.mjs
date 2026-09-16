@@ -270,8 +270,15 @@ test("exposes the Remotion production task queue", async () => {
 });
 
 test("treats a repeated run request for an in-progress Remotion task as idempotent", async () => {
+  const previousProjectsRoot = process.env.HARNESS_PROJECTS_DIR;
   const previousTasksRoot = process.env.HARNESS_REMOTION_TASKS_DIR;
+  process.env.HARNESS_PROJECTS_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "video-harness-remotion-idempotent-projects-"));
   process.env.HARNESS_REMOTION_TASKS_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "video-harness-remotion-idempotent-"));
+  initializeProject("idempotent-video");
+  const project = loadProject("idempotent-video", { refresh: false });
+  project.state.currentStage = "remotion";
+  project.state.stages.remotion.status = "ready";
+  writeJson(project.files.state, project.state);
   const webServer = createWebServer({
     port: 0,
     remoteJobMonitor: { start() {}, stop() {}, async poll() {} },
@@ -304,9 +311,71 @@ test("treats a repeated run request for an in-progress Remotion task as idempote
     assert.equal(repeated.status, 202);
     assert.equal(JSON.parse(repeated.body).task.status, "in-progress");
   } finally {
+    if (previousProjectsRoot === undefined) delete process.env.HARNESS_PROJECTS_DIR;
+    else process.env.HARNESS_PROJECTS_DIR = previousProjectsRoot;
     if (previousTasksRoot === undefined) delete process.env.HARNESS_REMOTION_TASKS_DIR;
     else process.env.HARNESS_REMOTION_TASKS_DIR = previousTasksRoot;
     await webServer.close();
+  }
+});
+
+test("rejects a stale Remotion run request after the project reaches Gate 3", async () => {
+  const previousProjectsRoot = process.env.HARNESS_PROJECTS_DIR;
+  const previousTasksRoot = process.env.HARNESS_REMOTION_TASKS_DIR;
+  process.env.HARNESS_PROJECTS_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "video-harness-stale-remotion-projects-"));
+  process.env.HARNESS_REMOTION_TASKS_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "video-harness-stale-remotion-tasks-"));
+  const slug = "stale-remotion-video";
+  const id = "44444444-4444-4444-8444-444444444444";
+  initializeProject(slug);
+  const project = loadProject(slug, { refresh: false });
+  project.state.currentStage = "gate-3";
+  project.state.stages.remotion.status = "succeeded";
+  project.state.stages["gate-3"].status = "waiting";
+  writeJson(project.files.state, project.state);
+  fs.writeFileSync(path.join(process.env.HARNESS_REMOTION_TASKS_DIR, `${id}.json`), `${JSON.stringify({
+    schemaVersion: 1,
+    id,
+    kind: "remotion-production-task",
+    stage: "remotion",
+    slug,
+    batchId: null,
+    status: "ready",
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    startedAt: null,
+    completedAt: null,
+    error: null,
+    outputArtifacts: [],
+  })}\n`, "utf8");
+  let executorCalls = 0;
+  const webServer = createWebServer({
+    port: 0,
+    remoteJobMonitor: { start() {}, stop() {}, async poll() {} },
+    remotionExecutorFactory: () => ({ async run() { executorCalls += 1; } }),
+  });
+  await webServer.listen();
+
+  try {
+    const listed = await request(webServer, "/api/remotion-tasks");
+    const listedTask = JSON.parse(listed.body).tasks.find((task) => task.id === id);
+    assert.equal(listedTask.stageActionAllowed, false);
+    assert.match(listedTask.stageActionReason, /旧 Remotion 任务只保留查看/);
+
+    const rejected = await request(webServer, `/api/remotion-tasks/${id}/action`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "run" }),
+    });
+    const error = assertApiError(rejected, 400);
+    assert.equal(error.code, "remotion-stage-not-ready");
+    assert.equal(executorCalls, 0);
+    assert.equal(JSON.parse(fs.readFileSync(path.join(process.env.HARNESS_REMOTION_TASKS_DIR, `${id}.json`), "utf8")).status, "ready");
+  } finally {
+    await webServer.close();
+    if (previousProjectsRoot === undefined) delete process.env.HARNESS_PROJECTS_DIR;
+    else process.env.HARNESS_PROJECTS_DIR = previousProjectsRoot;
+    if (previousTasksRoot === undefined) delete process.env.HARNESS_REMOTION_TASKS_DIR;
+    else process.env.HARNESS_REMOTION_TASKS_DIR = previousTasksRoot;
   }
 });
 

@@ -11,7 +11,8 @@ export const stageStatusLabels = Object.freeze({
 export const jobStatusLabels = Object.freeze({
   dispatching: "提交中", failed: "失败", queued: "排队中", running: "执行中", succeeded: "成功",
   submitted: "已提交", timeout: "超时", recoverable: "可恢复", "waiting-config": "等待配置",
-  "waiting-run": "等待 Run",
+  "waiting-run": "等待 Run", "remote-dispatch-uncertain": "派发结果待人工确认",
+  "remote-dispatch-ambiguous": "派发结果有歧义",
 });
 
 export const batchStatusLabels = Object.freeze({

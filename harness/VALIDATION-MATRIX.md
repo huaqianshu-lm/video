@@ -49,22 +49,24 @@
 
 `smoke-test-video.yml` 保留为 GitHub Actions 手动环境检查，不属于当前 14 个生产阶段。它用于新系列首次渲染，或字体、Runner、依赖、资源链路等渲染环境发生变化时的验证，检查代表帧、短片、字体、音频和独立输入包。
 
-Smoke Render 只能针对未完成视频或独立副本，并通过 GitHub Actions 手动填写 `video_slug`、`composition_id`、`render_input_url` 和 `render_input_sha256`。它不写入 Harness 阶段、审核、尝试次数或 Job；历史 Harness Smoke 记录仍可只读查看。
+Smoke Render 只能针对未完成视频或独立副本，并通过 GitHub Actions 手动填写 `video_slug`、`composition_id`、`dispatch_id`、`render_input_url` 和 `render_input_sha256`。它不写入 Harness 阶段、审核、尝试次数或 Job；历史 Harness Smoke 记录仍可只读查看。
 
 ## Remotion 临时入口与输入包
 
 - Remotion Agent 只写当前视频声明的 `src/videos/<slug>/` 代码和 `videos/<slug>/remotion-alignment.json`；受跟踪的 `src/Root.tsx` 永远不是具体视频产物或校验回退。
 - Remotion 任务产物通过校验后，Harness 必须从当前视频已校验的 `local/render-input/<slug>/render-input.json` 生成被忽略的 `src/RenderInputRoot.tsx`；任务记录会保存组件、配置、Composition ID、包指纹和 ZIP SHA-256。
+- Remotion 任务的创建、启动、执行、完成和重试必须重新读取项目阶段，并且只允许 `remotion / ready`；Gate 3 及后续阶段的遗留任务只读展示，Web API 必须拒绝直接调用，任务列表不得提供执行按钮。Gate 3 人工驳回并回退到 Remotion 后仍允许正常重试。
+- 输入包实际文件集合必须与 `render-input.json` 的 `files` 集合完全相等；路径只能是安全的 POSIX 相对路径，不能重复、越界、指向目录、符号链接或其他特殊文件。每个文件的大小和 SHA-256 必须匹配，按排序文件内容重算的 `packageFingerprint` 也必须匹配 Manifest。
 - Gate 3 校验、单视频 Studio 和远程 Workflow 使用同一份输入包清单。临时入口缺失、导入旧版本、Composition ID 不一致或输入包与源资料不一致时，必须阻断。
-- `entry-all` 只按逐视频输入包清单注册 Composition；未完成视频可先更新包，`completed` 视频只能读取已有包，缺包或损坏时跳过并说明。
+- 单视频入口只能写当前工作区的 `src/RenderInputRoot.tsx`；`entry-all` 也只按逐视频输入包清单注册 Composition。未完成视频可先更新包，`completed` 视频只能读取已有包，缺包或损坏时跳过并说明。
 
 ## 0.6 远程任务边界
 
 - 远程任务提交前必须通过 GitHub Actions 配置和真实 API 预检；本地默认读取 `gh auth` 系统凭据，只有显式设置 `HARNESS_GITHUB_AUTH_SOURCE=env` 时才读取 `GITHUB_TOKEN`／`GH_TOKEN`。
-- 完整 Render 的 Git 交付预检必须展示精确候选文件、分支、当前提交、文件哈希和 `planId`；确认请求必须携带同一 `planId` 与 `selectedPaths`，任何变化都要求重新确认。`src/Root.tsx`、具体视频目录、本地资源和无关源文件不在自动提交范围内。
-- Run 发现、状态查询和 Artifact 验证可以分次执行，任务记录保存在 `harness/projects/<slug>/jobs/`。
-- Web 服务重启后恢复 `queued`、`submitted`、`waiting-run`、`running`、`recoverable` 和 `waiting-config` 任务；已有 dispatch 意图会先查询 Run，避免重复触发。
-- 临时网络／GitHub API 错误进入 `recoverable` 并等待下一次检查；权限错误、Run 失败、Artifact 缺失和超时进入明确终态，不会无限轮询。
+- 完整 Render 的 Git 交付预检必须展示精确候选文件、分支、当前提交、文件哈希和 `planId`；`planId` 同时绑定 Git 分支／提交／文件快照，以及视频 slug、Composition ID、输入包 URL、归档 SHA-256、`packageFingerprint` 和交付记录哈希。确认请求必须携带同一 `planId` 与 `selectedPaths`，任何变化都要求重新确认。自动提交只允许精确文件，必要文件缺失、删除、重命名、类型变化或哈希不可读时必须在 `git add` 前阻断。
+- Run 发现、状态查询和 Artifact 验证可以分次执行，任务记录保存在 `harness/projects/<slug>/jobs/`；正常派发优先使用 API 返回的准确 Run ID，不按“同分支最新 Run”猜测。
+- Web 服务重启后恢复 `queued`、`submitted`、`waiting-run`、`running`、`recoverable` 和 `waiting-config` 任务；已有 `dispatchId`、输入包绑定和 `sending` 状态会保留，恢复时只按同一 `dispatchId` 查询。匹配不到保持等待，匹配多条进入 `remote-dispatch-ambiguous`，超过有界恢复窗口进入 `remote-dispatch-uncertain`，均不自动重派。
+- 临时网络／GitHub API 错误进入 `recoverable` 并等待下一次检查；权限错误、Run 失败、Artifact 缺失和超时进入明确终态，不会无限轮询。`remote-dispatch-uncertain` 或 `remote-dispatch-ambiguous` 必须由人工核对 Run 名称和 Artifact 后，通过显式 Run ID 接管。
 - `doctor` 检查认证身份、仓库、分支和 Workflow 访问能力，不输出 Token；Web UI 首页提供全局远程任务列表和显式诊断入口。认证失效时，单条和批量入口都会在创建远程 Job 前阻断，批量项目进入 `waiting-config`，修复后可继续。
 - Gate 通过／驳回会记录审查决定、时间、回退阶段和驳回原因；Harness 不自动判断最终 MP4 的内容质量。
 - Agent 只检查 Run 结论和 Artifact 元数据；Artifact 下载、视频播放和最终 Gate 4 内容检查仍由用户完成。

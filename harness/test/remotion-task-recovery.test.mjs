@@ -8,12 +8,18 @@ import {
   recoverInterruptedRemotionTasks,
   runRemotionTask,
 } from "../src/remotion-tasks.mjs";
+import { initializeProject, loadProject, writeJson } from "../src/storage.mjs";
 
 function setup() {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "video-remotion-task-recovery-"));
   process.env.HARNESS_PROJECTS_DIR = path.join(root, "projects");
   process.env.HARNESS_REMOTION_TASKS_DIR = path.join(root, "remotion-tasks");
   fs.mkdirSync(process.env.HARNESS_REMOTION_TASKS_DIR, { recursive: true });
+  initializeProject("recovery-video");
+  const project = loadProject("recovery-video", { refresh: false });
+  project.state.currentStage = "remotion";
+  project.state.stages.remotion.status = "ready";
+  writeJson(project.files.state, project.state);
   return root;
 }
 

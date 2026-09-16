@@ -9,12 +9,16 @@ function remotionError(task) {
 
 function taskCard(task) {
   const failed = ["blocked", "failed"].includes(task.status);
-  const action = ["ready", "blocked", "failed"].includes(task.status)
+  const stageActionAllowed = task.stageActionAllowed !== false;
+  const action = stageActionAllowed && ["ready", "blocked", "failed"].includes(task.status)
     ? `<button class="button button-secondary" type="button" aria-describedby="remotion-task-action-reason-${escapeHtml(task.id)}" data-remotion-task-action="run" data-task-id="${escapeHtml(task.id)}">${task.status === "ready" ? "执行 Agent" : "重试 Agent"}</button>`
-    : task.status === "in-progress"
+    : stageActionAllowed && task.status === "in-progress"
       ? `<button class="button button-secondary" type="button" aria-describedby="remotion-task-action-reason-${escapeHtml(task.id)}" data-remotion-task-action="complete" data-task-id="${escapeHtml(task.id)}">提交完成校验</button>`
       : "";
-  return `<article class="batch-card remotion-task-card"><div class="batch-card-heading"><div><p class="eyebrow">${escapeHtml(task.kind ?? "REMOTION")}</p><h3>${escapeHtml(task.slug)}</h3></div><span class="batch-card-status"><span class="status status-${escapeHtml(task.status)}">${escapeHtml(labelFor(task.status, remotionTaskStatusLabels))}</span>${action}</span></div><p class="batch-description${failed ? " remotion-task-error" : ""}">${escapeHtml(failed ? `Remotion ${task.status === "blocked" ? "已阻塞" : "执行失败"}：${remotionError(task)}` : "根据 Visual Script、原型、音频、字幕和 Timeline 生成 Remotion 配置与主组件。")}</p><span id="remotion-task-action-reason-${escapeHtml(task.id)}" class="visually-hidden">操作提交中时按钮暂不可用，请等待服务端返回结果。</span><div class="batch-meta"><span>${escapeHtml(task.id)}</span><span>批次：${escapeHtml(task.batchId ?? "—")}</span><span>${task.outputArtifacts?.length ?? 0} 项输出</span></div></article>`;
+  const description = stageActionAllowed
+    ? failed ? `Remotion ${task.status === "blocked" ? "已阻塞" : "执行失败"}：${remotionError(task)}` : "根据 Visual Script、原型、音频、字幕和 Timeline 生成 Remotion 配置与主组件。"
+    : task.stageActionReason ?? "项目已经离开 Remotion 制作阶段，旧任务只保留查看。";
+  return `<article class="batch-card remotion-task-card"><div class="batch-card-heading"><div><p class="eyebrow">${escapeHtml(task.kind ?? "REMOTION")}</p><h3>${escapeHtml(task.slug)}</h3></div><span class="batch-card-status"><span class="status status-${escapeHtml(task.status)}">${escapeHtml(labelFor(task.status, remotionTaskStatusLabels))}</span>${action}</span></div><p class="batch-description${failed ? " remotion-task-error" : ""}">${escapeHtml(description)}</p><span id="remotion-task-action-reason-${escapeHtml(task.id)}" class="visually-hidden">操作提交中时按钮暂不可用，请等待服务端返回结果。</span><div class="batch-meta"><span>${escapeHtml(task.id)}</span><span>批次：${escapeHtml(task.batchId ?? "—")}</span><span>${task.outputArtifacts?.length ?? 0} 项输出</span></div></article>`;
 }
 
 export function createRemotionTasksView({ elements, api, refreshButton, onRefreshProjects, getActiveProject, onOpenProject } = {}) {

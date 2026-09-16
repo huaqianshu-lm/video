@@ -206,15 +206,20 @@ src/videos/<video-slug>/generated/
 3. 经用户明确确认后，只定向提交并推送需要完整渲染的版本。
 
 Remotion 制作、Gate 3 和 Studio 预览必须使用同一个视频输入版本：Agent 只写当前视频目录的配置、组件和对齐清单，Harness 在产物校验通过后从独立输入包生成被忽略的 `src/RenderInputRoot.tsx`。受跟踪的 `src/Root.tsx` 只注册通用模板，不作为具体视频入口或校验回退；输入包清单中的组件、配置和 Composition ID 发生变化时，必须重新准备并校验。
+
+输入包的 `render-input.json` 必须声明包内除 Manifest 外的全部实际文件；路径必须是安全的 POSIX 相对路径，不能重复、越界、指向目录、符号链接或其他特殊文件。每个文件的大小和 SHA-256 必须与实际内容一致，按排序后的路径和文件字节重算的 `packageFingerprint` 必须与 Manifest 一致。单视频临时入口只能写当前工作区的 `src/RenderInputRoot.tsx`。
+
+Git 交付确认的 `planId` 同时绑定当前分支、提交、精确文件快照，以及视频 slug、Composition ID、输入包 URL、归档 SHA-256、`packageFingerprint` 和交付记录哈希；必要文件缺失、删除、重命名、类型变化或清单变化时，必须在 `git add` 前重新确认。
+
 4. 触发 `Render full video`。
-5. 记录 Workflow、Run ID、Commit SHA 和启动时间。
+5. 记录 Workflow、`dispatchId`、Run ID、Run API URL、Run 页面 URL、Commit SHA 和启动时间；正常派发优先使用 `return_run_details: true` 返回的准确 Run ID。
 6. 立即检查一次运行状态，之后约每 20 分钟检查一次，直至成功、失败或取消。
 7. 成功后下载最终 Artifact，并使用 `ffprobe` 验证分辨率、帧率、视频编码、音频编码、采样率、声道和总时长。
 8. 将最终 MP4 交给用户进行 Gate 4 验收。
 
-如果是新系列首次渲染，或字体、Runner、依赖和资源链路发生变化，应在独立视频或副本上额外手动触发 `Smoke test video`。手动输入为 `video_slug`、`composition_id`、`render_input_url` 和 `render_input_sha256`；该 Run 只用于环境判断，不推进 Harness，也不写审核记录。
+如果是新系列首次渲染，或字体、Runner、依赖和资源链路发生变化，应在独立视频或副本上额外手动触发 `Smoke test video`。手动输入为 `video_slug`、`composition_id`、`dispatch_id`、`render_input_url` 和 `render_input_sha256`；该 Run 只用于环境判断，不推进 Harness，也不写审核记录。
 
-当前 `.github/workflows/` 中的两条工作流已接收受控的 `video_slug` 和 `composition_id` 输入，资源包按 `assets/<video-slug>-assets.zip` 解析，音频数量从对应 Audio Manifest 自动读取，冒烟代表帧从 Timeline Manifest 的首个、中间和最后一个 Scene 自动选择，并取各 Scene 约 65% 的位置，确保主要视觉元素已有充分时间展开。流程收口后，Workflow 还必须使用该视频已绑定的输入包 URL／SHA-256；本地自动化契约已验证，真实远程 Run 和 Artifact／Gate 4 仍需在用户确认精确交付清单后单独验收。
+当前 `.github/workflows/` 中的两条工作流已接收受控的 `video_slug`、`composition_id` 和 `dispatch_id` 输入，使用 `${{ inputs.video_slug }} / ${{ inputs.dispatch_id }}` 作为 Run 名称；资源包按 `assets/<video-slug>-assets.zip` 解析，音频数量从对应 Audio Manifest 自动读取，冒烟代表帧从 Timeline Manifest 的首个、中间和最后一个 Scene 自动选择，并取各 Scene 约 65% 的位置，确保主要视觉元素已有充分时间展开。流程收口后，Workflow 还必须使用该视频已绑定的输入包 URL／SHA-256；本地自动化契约已验证，真实远程 Run 和 Artifact／Gate 4 仍需在用户确认精确交付清单后单独验收。
 
 ## 10. 远程渲染失败回路
 
@@ -228,7 +233,7 @@ Remotion 制作、Gate 3 和 Studio 预览必须使用同一个视频输入版�
 
 修复后应重新通过本地检查再进入完整渲染。只有改动涉及渲染环境、依赖、字体、Runner 或资源链路时，才需要额外运行独立 Smoke Render；内容或 Remotion 修复不自动增加 Smoke 阶段。
 
-连续两轮没有获得新证据或有效进展时，停止盲目重试，说明已知结论、当前阻塞和需要用户补充的信息。
+连续两轮没有获得新证据或有效进展时，停止盲目重试，说明已知结论、当前阻塞和需要用户补充的信息。请求已经发出但无法确认 Run 时，恢复只能按同一个 `dispatchId` 查找；零匹配保持 `waiting-run`，多匹配进入 `remote-dispatch-ambiguous`，超出有界窗口进入 `remote-dispatch-uncertain`，不得按最新 Run 猜测或重新派发。
 
 每 20 分钟轮询必须围绕已经记录的 Run ID，并依赖一个仍在执行的任务或后续监控机制。单次对话结束后不能假设 Agent 会永久在后台自行轮询。
 

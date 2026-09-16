@@ -17,7 +17,7 @@ import {
   validateRenderInputDirectory,
   writeRenderEntryPoint,
 } from "../src/render-input.mjs";
-import { initializeProject, loadProject } from "../src/storage.mjs";
+import { initializeProject, isCompletedProject, loadProject, projectFiles } from "../src/storage.mjs";
 
 function writeJson(filePath, value) {
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
@@ -88,6 +88,165 @@ test("detects a changed render input file through the manifest hash", () => {
     fs.appendFileSync(path.join(prepared.directory, "videos", fixture.slug, "source.md"), "changed\n", "utf8");
     const issues = validateRenderInputDirectory(prepared.directory, { expectedSlug: fixture.slug });
     assert.ok(issues.some((issue) => issue.includes("哈希不一致")));
+  } finally {
+    fs.rmSync(fixture.workspaceRoot, { recursive: true, force: true });
+  }
+});
+
+test("rechecks the on-disk completed state before rebuilding an input package", () => {
+  const fixture = createFixture();
+  const projectsRoot = fs.mkdtempSync(path.join(os.tmpdir(), "video-render-input-completed-projects-"));
+  const previousProjectsRoot = process.env.HARNESS_PROJECTS_DIR;
+  const previousWorkspaceRoot = process.env.HARNESS_WORKSPACE_ROOT;
+  try {
+    process.env.HARNESS_PROJECTS_DIR = projectsRoot;
+    process.env.HARNESS_WORKSPACE_ROOT = fixture.workspaceRoot;
+    initializeProject(fixture.slug);
+    const staleProject = loadProject(fixture.slug, { refresh: false });
+    prepareRenderInput(staleProject);
+
+    fs.appendFileSync(path.join(fixture.workspaceRoot, "videos", fixture.slug, "source.md"), "changed before completion\n", "utf8");
+    const statePath = projectFiles(fixture.slug).state;
+    const state = JSON.parse(fs.readFileSync(statePath, "utf8"));
+    state.currentStage = "completed";
+    fs.writeFileSync(statePath, `${JSON.stringify(state, null, 2)}\n`, "utf8");
+
+    const inputDirectory = path.join(fixture.workspaceRoot, "local", "render-input", fixture.slug);
+    const before = {
+      state: fs.readFileSync(statePath, "utf8"),
+      input: fs.readFileSync(path.join(inputDirectory, "render-input.json"), "utf8"),
+      source: fs.readFileSync(path.join(fixture.workspaceRoot, "videos", fixture.slug, "source.md"), "utf8"),
+    };
+    assert.equal(isCompletedProject(staleProject), true);
+    assert.throws(
+      () => prepareRenderInput(staleProject),
+      (error) => error.code === "completed-project-readonly",
+    );
+    assert.deepEqual({
+      state: fs.readFileSync(statePath, "utf8"),
+      input: fs.readFileSync(path.join(inputDirectory, "render-input.json"), "utf8"),
+      source: fs.readFileSync(path.join(fixture.workspaceRoot, "videos", fixture.slug, "source.md"), "utf8"),
+    }, before);
+  } finally {
+    if (previousProjectsRoot === undefined) delete process.env.HARNESS_PROJECTS_DIR;
+    else process.env.HARNESS_PROJECTS_DIR = previousProjectsRoot;
+    if (previousWorkspaceRoot === undefined) delete process.env.HARNESS_WORKSPACE_ROOT;
+    else process.env.HARNESS_WORKSPACE_ROOT = previousWorkspaceRoot;
+    fs.rmSync(projectsRoot, { recursive: true, force: true });
+    fs.rmSync(fixture.workspaceRoot, { recursive: true, force: true });
+  }
+});
+
+test("validates the complete render input file set, metadata, and package fingerprint", () => {
+  const fixture = createFixture();
+  try {
+    const prepared = prepareRenderInput(fixture.project);
+    const manifestPath = path.join(prepared.directory, "render-input.json");
+    const originalManifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+    const firstFile = originalManifest.files[0];
+
+    const cases = [
+      {
+        name: "empty file list",
+        mutate: (manifest) => { manifest.files = []; },
+        match: /文件清单/,
+      },
+      {
+        name: "missing declared file",
+        mutate: (manifest) => { manifest.files = manifest.files.slice(1); },
+        match: /文件清单/,
+      },
+      {
+        name: "extra package file",
+        mutate: (manifest) => { fs.writeFileSync(path.join(prepared.directory, "unexpected.txt"), "unexpected\n", "utf8"); },
+        match: /文件清单/,
+      },
+      {
+        name: "duplicate path",
+        mutate: (manifest) => { manifest.files.push({ ...manifest.files[0] }); },
+        match: /重复/,
+      },
+      {
+        name: "invalid size",
+        mutate: (manifest) => { manifest.files[0].size += 1; },
+        match: /大小/,
+      },
+      {
+        name: "invalid hash",
+        mutate: (manifest) => { manifest.files[0].sha256 = "0".repeat(64); },
+        match: /哈希/,
+      },
+      {
+        name: "forged package fingerprint",
+        mutate: (manifest) => { manifest.packageFingerprint = "0".repeat(64); },
+        match: /packageFingerprint/,
+      },
+      {
+        name: "absolute path",
+        mutate: (manifest) => { manifest.files[0].path = "/absolute.txt"; },
+        match: /路径/,
+      },
+      {
+        name: "parent traversal",
+        mutate: (manifest) => { manifest.files[0].path = "../outside.txt"; },
+        match: /路径/,
+      },
+      {
+        name: "directory entry",
+        mutate: (manifest) => {
+          manifest.files[0] = { path: `videos/${fixture.slug}`, size: 0, sha256: "0".repeat(64) };
+        },
+        match: /普通文件|文件清单/,
+      },
+    ];
+
+    for (const item of cases) {
+      fs.rmSync(path.join(prepared.directory, "unexpected.txt"), { force: true });
+      const manifest = JSON.parse(JSON.stringify(originalManifest));
+      item.mutate(manifest);
+      fs.writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
+      const issues = validateRenderInputDirectory(prepared.directory, { expectedSlug: fixture.slug });
+      assert.ok(issues.some((issue) => item.match.test(issue)), `${item.name}: ${issues.join("；")}`);
+    }
+
+    fs.writeFileSync(path.join(prepared.directory, "package-link.txt"), "unexpected\n", "utf8");
+    fs.symlinkSync(path.join(prepared.directory, "videos", fixture.slug, "source.md"), path.join(prepared.directory, "package-link"));
+    fs.writeFileSync(manifestPath, `${JSON.stringify(originalManifest, null, 2)}\n`, "utf8");
+    const symlinkIssues = validateRenderInputDirectory(prepared.directory, { expectedSlug: fixture.slug });
+    assert.ok(symlinkIssues.some((issue) => /符号链接|symbolic links/.test(issue)), symlinkIssues.join("；"));
+    assert.equal(firstFile.path, originalManifest.files[0].path);
+  } finally {
+    fs.rmSync(fixture.workspaceRoot, { recursive: true, force: true });
+  }
+});
+
+test("only writes a validated current package to the exact temporary entry path", () => {
+  const fixture = createFixture();
+  try {
+    const prepared = prepareRenderInput(fixture.project);
+    const manifestPath = path.join(prepared.directory, "render-input.json");
+    const entryPath = path.join(fixture.workspaceRoot, "src", "RenderInputRoot.tsx");
+    fs.mkdirSync(path.dirname(entryPath), { recursive: true });
+    fs.writeFileSync(entryPath, "sentinel\n", "utf8");
+
+    assert.throws(
+      () => writeRenderEntryPoint(manifestPath, path.join(fixture.workspaceRoot, "src", "Root.tsx")),
+      (error) => error.code === "render-input-entry-output-invalid",
+    );
+    assert.equal(fs.readFileSync(entryPath, "utf8"), "sentinel\n");
+
+    assert.throws(
+      () => writeRenderEntryPoint(manifestPath, path.join(fixture.workspaceRoot, "other-entry.tsx")),
+      (error) => error.code === "render-input-entry-output-invalid",
+    );
+    assert.equal(fs.readFileSync(entryPath, "utf8"), "sentinel\n");
+
+    fs.appendFileSync(path.join(fixture.workspaceRoot, "videos", fixture.slug, "source.md"), "stale source\n", "utf8");
+    assert.throws(
+      () => writeRenderEntryPoint(manifestPath, entryPath),
+      (error) => error.code === "render-input-source-stale" || error.code === "render-input-validation-failed",
+    );
+    assert.equal(fs.readFileSync(entryPath, "utf8"), "sentinel\n");
   } finally {
     fs.rmSync(fixture.workspaceRoot, { recursive: true, force: true });
   }
