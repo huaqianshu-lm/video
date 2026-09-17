@@ -11,7 +11,7 @@
 - `desktop`、`jetbrains` 和 `07-desktop-app` 均已完成 Gate 4 人工验收并进入 `completed`，后续按永久只读处理；当前没有仍等待 Gate 4 的视频。
 - `web-and-cloud` 的 Gate 3 已批准，旧 Smoke Render 状态已安全迁移为 `render / ready`；当前没有完整 Render 记录，不能把它写成已渲染或已完成。
 - 批次目录共有 16 条持久化记录：10 条 `waiting`、5 条 `completed`、1 条 `completed-with-errors`；批次是历史执行记录，项目当前状态以 `state.json` 为准，`b16cceae-8ebc-4619-ba21-b472653e8fb4` 已 4/4 完成。
-- 当前工作区共有 24 条未提交改动，包含前序修复、本次 WebUI 批量流程修复、对应测试和根 README 同步；`drafts/WEBUI-BATCH-HIGH-PRIORITY-REPAIR-PLAN.md` 位于被忽略的本地 drafts 目录。本次没有 commit、push 或真实 Render；后续如需提交必须重新确认精确清单，且不得带入具体视频资料、媒体或 `local/`；`product-promo-v1` 仍未实施。
+- 已按功能完成 5 个定向 commit（`84764c3`、`78d5e99`、`9e76361`、`74dc2e2`、`51dd0be`），未执行 push 或真实 Render；提交未包含具体视频资料、媒体或 `local/`。`drafts/WEBUI-BATCH-HIGH-PRIORITY-REPAIR-PLAN.md` 仍位于被忽略的本地 drafts 目录，`product-promo-v1` 仍未实施。
 
 ## 历史状态记录（旧状态，仅供追溯）
 
@@ -229,6 +229,7 @@
 
 ## 最近验证（最近 10 条）
 
+- 2026-09-17：按功能完成 5 个定向 commit：Remotion 阶段保护、输入包 ZIP 校验、远程 Job 批次恢复、批量完整 Render 交付和项目文档同步；第 3 批回归 79/79、第 4 批交付与 WebUI 回归 42/42，暂存差异检查通过，未提交视频资料、媒体或 `local/`。`npm run check` 在当前环境启动后长期无输出并已中止，不能记为通过；未执行 push 或真实 Render。
 - 2026-09-17：按当前 0.6.0 阶段契约、Web UI、批量交付、输入包和 GitHub Actions 实现重写根 README；补充 14 个生产阶段、Smoke Render 独立边界、逐视频输入绑定和 `to-render` 的 WebUI 分步确认方式。`npm run check`、`git diff --check` 和 README 引用路径检查通过，未执行 commit、push 或真实 Render。
 - 2026-09-17：阶段元数据清理回归通过；Render 推进 Gate 4、Gate 4 进入等待和失败阶段重试均会清理旧 `error`、`review`、`invalidatedBy`，Gate 3 驳回 Remotion 的返工保护仍通过。
 - 2026-09-17：核心 Harness 阶段测试 `harness/test/harness.test.mjs` 59/59 通过；`npm run check` 和 `git diff --check` 通过；全量测试的端口相关失败属于当前沙箱限制。
@@ -238,7 +239,6 @@
 - 2026-09-15：desktop Run `34950746560` 与 jetbrains Run `34950758276` 均以 `success` 完成；Artifact 名称、Run 归属、输入包 URL／SHA／Composition ID 均匹配且未过期，当时进入 `gate-4 / waiting`，后续已于 2026-09-17 完成人工 Gate 4 并进入 `completed`。
 - 2026-09-15：按用户确认的精确渲染清单完成定向 commit `c48daa1`、`b6a2879` 并推送到 `main`；未提交视频资料、媒体或输入包。
 - 2026-09-15：`desktop`／`jetbrains` 输入包逐文件大小与 SHA-256、源资料快照、packageFingerprint、输入 ZIP、资源 ZIP、音频／字幕／Timeline Scene 与 Segment ID 全部匹配；两条 Gate 3 均为 `succeeded`。
-- 2026-09-15：准确 Run ID 直接等待回归按 `dispatch` 返回 Run ID、首次 `in_progress`、后续 `completed` 和 Artifact 顺序复现并修复；用例通过，未改变后台恢复路径。
 
 ## 历史验证（旧记录）
 
