@@ -43,10 +43,12 @@ import {
   approveTtsQcForProject,
   batchDefinitions,
   createBatch,
+  commitBatchRenderDelivery,
   findActiveBatchForProject,
   getBatch,
   getBatchForView,
   listBatchesForView,
+  prepareBatchRenderDelivery,
   retryFailedBatchItems,
   runBatch,
   stopBatchesAfterGateRejection,
@@ -318,8 +320,13 @@ async function serveBatchApi(response, request, pathname, runtime) {
   if (request.method === "POST" && pathname === "/api/batches") {
     const body = await readJsonBody(request);
     const batch = createBatch({ type: body.type, slugs: body.slugs });
-    void runBatch(batch.id, { queueAgentJob: runtime.queueAgentJob }).catch(() => {});
-    sendJson(response, 202, { batch: getBatchForView(batch.id) });
+    if (batch.type === "to-render") {
+      await prepareBatchRenderDelivery(batch.id, { githubPreflight: runtime.githubPreflight });
+      sendJson(response, 200, { batch: getBatchForView(batch.id) });
+    } else {
+      void runBatch(batch.id, { queueAgentJob: runtime.queueAgentJob, remoteMonitor: runtime.remoteJobMonitor }).catch(() => {});
+      sendJson(response, 202, { batch: getBatchForView(batch.id) });
+    }
     return true;
   }
 
@@ -342,13 +349,56 @@ async function serveBatchApi(response, request, pathname, runtime) {
       sendJson(response, 404, { error: "Batch not found" });
       return true;
     }
+    if (body.action === "prepare-render-delivery") {
+      await prepareBatchRenderDelivery(id, { githubPreflight: runtime.githubPreflight });
+      sendJson(response, 200, { batch: getBatchForView(id) });
+      return true;
+    }
+    if (body.action === "commit-render-delivery") {
+      commitBatchRenderDelivery(id, {
+        confirmDelivery: body.confirmDelivery === true,
+        confirmCommit: body.confirmCommit === true,
+        confirmPush: body.confirmPush === true,
+        deliveryPlanId: body.deliveryPlanId,
+        selectedPaths: body.selectedPaths,
+      });
+      sendJson(response, 200, { batch: getBatchForView(id) });
+      return true;
+    }
+    const batch = getBatch(id);
+    if (body.action === "dispatch-render") {
+      if (body.confirmRender !== true) {
+        const error = new Error("真实 GitHub Actions Render 需要单独确认");
+        error.code = "batch-render-dispatch-confirmation-required";
+        throw error;
+      }
+      if (batch.type !== "to-render" || batch.renderDelivery?.status !== "committed") {
+        const error = new Error("批量渲染交付尚未完成 commit/push，不能派发");
+        error.code = "batch-render-delivery-not-committed";
+        throw error;
+      }
+      await runBatch(id, {
+        queueAgentJob: runtime.queueAgentJob,
+        remoteMonitor: runtime.remoteJobMonitor,
+        requireRenderDeliveryConfirmation: true,
+        confirmRender: true,
+        githubPreflight: runtime.githubPreflight,
+      });
+      sendJson(response, 202, { batch: getBatchForView(id) });
+      return true;
+    }
+    if (batch.type === "to-render" && ["run", "resume"].includes(body.action)) {
+      const error = new Error("正式批量渲染必须使用 dispatch-render，并单独确认真实 Render");
+      error.code = "batch-render-dispatch-action-required";
+      throw error;
+    }
     if (body.action === "approve-tts-qc") approveTtsQc(id, body.slug);
     if (body.action === "retry-failed") retryFailedBatchItems(id);
     if (!["run", "resume", "approve-tts-qc", "retry-failed"].includes(body.action)) {
       sendJson(response, 400, { error: `Unknown batch action: ${body.action ?? "missing"}` });
       return true;
     }
-    void runBatch(id, { queueAgentJob: runtime.queueAgentJob }).catch(() => {});
+    void runBatch(id, { queueAgentJob: runtime.queueAgentJob, remoteMonitor: runtime.remoteJobMonitor }).catch(() => {});
     sendJson(response, 202, { batch: getBatchForView(id) });
     return true;
   }
@@ -396,7 +446,7 @@ async function serveRemotionTaskApi(response, request, pathname, runtime) {
       else if (body.action === "complete") {
         result = completeRemotionTask(id);
         if (result.completed && result.task.batchId) {
-          result.batch = await runBatch(result.task.batchId);
+          result.batch = await runBatch(result.task.batchId, { remoteMonitor: runtime.remoteJobMonitor });
         }
       } else {
         sendJson(response, 400, { error: `Unknown Remotion task action: ${body.action ?? "missing"}` });
@@ -539,7 +589,7 @@ async function serveAction(response, request, pathname, runtime) {
   if (action === "run-to-gate-2") {
     const activeBatch = findActiveBatchForProject("to-gate-2", slug);
     const batch = activeBatch ?? createBatch({ type: "to-gate-2", slugs: [slug] });
-    void runBatch(batch.id, { queueAgentJob: runtime.queueAgentJob }).catch(() => {});
+    void runBatch(batch.id, { queueAgentJob: runtime.queueAgentJob, remoteMonitor: runtime.remoteJobMonitor }).catch(() => {});
     sendJson(response, 202, {
       result: { action, status: activeBatch ? "already-running" : "queued" },
       batch: getBatchForView(batch.id),

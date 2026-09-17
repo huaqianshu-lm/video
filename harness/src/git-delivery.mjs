@@ -326,6 +326,82 @@ export function buildGitRenderCommitPlan(project, { environment = process.env } 
   return plan;
 }
 
+function uniqueSorted(values) {
+  return [...new Set(values)].sort();
+}
+
+function batchPlanIdFor(plan) {
+  return createHash("sha256").update(JSON.stringify({
+    version: 1,
+    kind: plan.kind,
+    workspaceRoot: plan.workspaceRoot,
+    branch: plan.branch,
+    ref: plan.ref,
+    headCommit: plan.headCommit,
+    requiredPaths: plan.requiredPaths,
+    commitPaths: plan.commitPaths,
+    outOfScopePaths: plan.outOfScopePaths,
+    fileHashes: plan.fileHashes,
+    fileStatuses: plan.fileStatuses,
+    videoPlans: plan.videoPlans,
+  })).digest("hex");
+}
+
+export function buildBatchGitRenderCommitPlan(projects, { environment = process.env } = {}) {
+  if (!Array.isArray(projects) || projects.length === 0) {
+    throw commitError("批量渲染至少需要一个视频项目", "git-render-batch-projects-required");
+  }
+  const plans = projects.map((project) => buildGitRenderCommitPlan(project, { environment }));
+  const workspaceRoots = uniqueSorted(plans.map((plan) => path.resolve(projects[plans.indexOf(plan)].config.workspaceRoot)));
+  if (workspaceRoots.length !== 1) {
+    throw commitError("批量渲染交付必须使用同一个 Git 工作区", "git-render-batch-workspace-mismatch");
+  }
+  const branches = uniqueSorted(plans.map((plan) => plan.branch));
+  const refs = uniqueSorted(plans.map((plan) => plan.ref));
+  const headCommits = uniqueSorted(plans.map((plan) => plan.headCommit ?? ""));
+  if (branches.length !== 1 || refs.length !== 1 || headCommits.length !== 1) {
+    throw commitError("批量渲染交付的分支、dispatch ref 或当前提交不一致", "git-render-batch-ref-mismatch");
+  }
+
+  const fileHashes = {};
+  const fileStatuses = {};
+  for (const plan of plans) {
+    for (const [relativePath, hash] of Object.entries(plan.fileHashes)) {
+      if (Object.hasOwn(fileHashes, relativePath) && fileHashes[relativePath] !== hash) {
+        throw commitError(`批量渲染文件快照不一致：${relativePath}`, "git-render-batch-file-snapshot-mismatch");
+      }
+      fileHashes[relativePath] = hash;
+      fileStatuses[relativePath] = plan.fileStatuses[relativePath] ?? [];
+    }
+  }
+
+  const plan = {
+    version: 1,
+    kind: "batch-git-render-commit",
+    workspaceRoot: workspaceRoots[0],
+    branch: branches[0],
+    ref: refs[0],
+    headCommit: headCommits[0] || null,
+    requiredPaths: uniqueSorted(plans.flatMap((item) => item.requiredPaths)),
+    commitPaths: uniqueSorted(plans.flatMap((item) => item.commitPaths)),
+    selectedPaths: uniqueSorted(plans.flatMap((item) => item.selectedPaths)),
+    outOfScopePaths: uniqueSorted(plans.flatMap((item) => item.outOfScopePaths)),
+    fileHashes,
+    fileStatuses,
+    videoPlans: plans.map((item) => ({
+      videoSlug: item.videoSlug,
+      planId: item.planId,
+      compositionId: item.compositionId,
+      renderInputUrl: item.renderInputUrl,
+      renderInputSha256: item.renderInputSha256,
+      packageFingerprint: item.packageFingerprint,
+      deliveryBindingSha256: item.deliveryBindingSha256,
+    })),
+  };
+  plan.planId = batchPlanIdFor(plan);
+  return plan;
+}
+
 function commitError(message, code) {
   const error = new Error(message);
   error.code = code;
@@ -390,6 +466,59 @@ export function commitAndPushRenderDelivery(
   } catch (cause) {
     if (cause?.code?.startsWith("git-render-commit-")) throw cause;
     throw commitError(`渲染交付 commit/push 失败：${cause instanceof Error ? cause.message : String(cause)}`, "git-render-commit-push-failed");
+  }
+}
+
+export function commitAndPushBatchRenderDelivery(
+  projects,
+  {
+    environment = process.env,
+    commitMessage = "chore: prepare batch complete render delivery",
+    deliveryPlanId = null,
+    selectedPaths = null,
+  } = {},
+) {
+  const plan = buildBatchGitRenderCommitPlan(projects, { environment });
+  if (!deliveryPlanId) {
+    throw commitError("缺少批量交付计划标识，请先展示并确认当前精确文件清单", "git-render-batch-plan-required");
+  }
+  if (deliveryPlanId !== plan.planId) {
+    throw commitError("批量渲染交付计划已变化，请重新执行预检并确认新的文件清单", "git-render-batch-plan-stale");
+  }
+  const requestedPaths = Array.isArray(selectedPaths) ? uniqueSorted(selectedPaths) : null;
+  if (!requestedPaths || JSON.stringify(requestedPaths) !== JSON.stringify(plan.selectedPaths)) {
+    throw commitError("确认的批量渲染文件清单与当前交付计划不一致，请重新确认", "git-render-batch-plan-selection-mismatch");
+  }
+  if (plan.ref !== plan.branch) {
+    throw commitError(`dispatch 分支 ${plan.ref} 与当前工作区分支 ${plan.branch} 不一致，无法自动推送`, "git-render-batch-branch-mismatch");
+  }
+  if (plan.outOfScopePaths.length > 0) {
+    throw commitError(`发现未纳入批量渲染提交范围的改动：${plan.outOfScopePaths.join("、")}`, "git-render-batch-out-of-scope");
+  }
+  const currentPlan = buildBatchGitRenderCommitPlan(projects, { environment });
+  if (currentPlan.planId !== plan.planId) {
+    throw commitError("批量渲染交付计划已变化，请重新执行预检并确认新的文件清单", "git-render-batch-plan-stale");
+  }
+  if (plan.commitPaths.length === 0) {
+    return { status: "unchanged", commit: localGitCommit(plan.workspaceRoot), ...plan };
+  }
+
+  try {
+    execFileSync("git", ["-C", plan.workspaceRoot, "add", "--", ...plan.commitPaths], { stdio: ["ignore", "pipe", "pipe"] });
+    execFileSync("git", ["-C", plan.workspaceRoot, "commit", "--only", "-m", commitMessage, "--", ...plan.commitPaths], {
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    const commit = localGitCommit(plan.workspaceRoot);
+    if (!commit) throw commitError("批量定向提交完成后无法解析本地提交", "git-render-batch-commit-missing");
+    execFileSync("git", ["-C", plan.workspaceRoot, "push", "origin", `HEAD:${plan.branch}`], { stdio: ["ignore", "pipe", "pipe"] });
+    const remote = gitCommand(plan.workspaceRoot, ["ls-remote", "--heads", "origin", plan.branch]).split(/\s+/)[0] ?? "";
+    if (remote !== commit) {
+      throw commitError(`推送完成后远程分支 ${plan.branch} 未指向本次批量提交`, "git-render-batch-remote-mismatch");
+    }
+    return { status: "committed", commit, ...plan };
+  } catch (cause) {
+    if (cause?.code?.startsWith("git-render-batch-")) throw cause;
+    throw commitError(`批量渲染交付 commit/push 失败：${cause instanceof Error ? cause.message : String(cause)}`, "git-render-batch-commit-push-failed");
   }
 }
 

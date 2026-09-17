@@ -14,6 +14,7 @@ import { runSingleStage } from "./single-runner.mjs";
 import { getJob } from "./jobs.mjs";
 import { REMOTE_JOB_STATUS } from "./remote-status.mjs";
 import { createAgentJob, getAgentJob } from "./agent-jobs.mjs";
+import { assertCommittedBatchRenderDelivery, commitPreparedBatchRenderDelivery, prepareBatchRenderDelivery as prepareBatchRenderDeliveryPlan } from "./batch-delivery.mjs";
 
 const BATCH_DEFINITIONS = Object.freeze({
   "to-gate-2": Object.freeze({
@@ -311,6 +312,50 @@ export function batchForView(batch) {
 export function getBatchForView(id) {
   const batch = getBatch(id);
   return batch ? batchForView(batch) : null;
+}
+
+export async function prepareBatchRenderDelivery(id, options = {}) {
+  const batch = getBatch(id);
+  if (!batch) throw new Error(`Batch not found: ${id}`);
+  const renderDelivery = await prepareBatchRenderDeliveryPlan(batch, options);
+  batch.renderDelivery = renderDelivery;
+  batch.status = renderDelivery.status === "blocked" ? "waiting" : "waiting";
+  return saveBatch(batch);
+}
+
+export function commitBatchRenderDelivery(id, options = {}) {
+  const batch = getBatch(id);
+  if (!batch) throw new Error(`Batch not found: ${id}`);
+  if (batch.renderDelivery?.status !== "needs-confirmation") {
+    const error = new Error("批量渲染交付预检未处于待确认状态，请先重新预检");
+    error.code = "batch-render-delivery-preflight-blocked";
+    throw error;
+  }
+  if (options.confirmDelivery !== true || options.confirmCommit !== true || options.confirmPush !== true) {
+    const error = new Error("批量渲染必须分别确认精确文件清单、commit 和 push");
+    error.code = "batch-render-delivery-confirmation-required";
+    throw error;
+  }
+  const result = commitPreparedBatchRenderDelivery(batch, options);
+  batch.renderDelivery = {
+    ...batch.renderDelivery,
+    status: "committed",
+    committedAt: new Date().toISOString(),
+    commit: {
+      status: result.status,
+      sha: result.commit,
+    },
+    git: result,
+    videos: (batch.renderDelivery.videos ?? []).map((video) => ({
+      ...video,
+      commit: result.commit,
+      commitSha: result.commit,
+      branch: result.branch,
+      dispatchRef: result.ref,
+      deliveryPlanId: result.planId,
+    })),
+  };
+  return saveBatch(batch);
 }
 
 export function listBatchesForView() {
@@ -643,6 +688,17 @@ export async function runBatch(id, options = {}) {
     return batch;
   }
   const definition = validateType(batch.type);
+  if (definition.type === "to-render" && options.requireRenderDeliveryConfirmation === true) {
+    if (options.confirmRender !== true) {
+      const error = new Error("真实批量渲染需要单独确认");
+      error.code = "batch-render-dispatch-confirmation-required";
+      throw error;
+    }
+    await assertCommittedBatchRenderDelivery(batch, {
+      environment: options.environment,
+      githubPreflight: options.githubPreflight,
+    });
+  }
   for (const batchItem of batch.items ?? []) assertProjectSlugMutable(batchItem.slug, "执行视频批次");
   const executionOptions = mergeExecutionOptions(options);
   activeBatchIds.add(id);

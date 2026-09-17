@@ -1272,6 +1272,65 @@ test("real batch view preserves batch failure and empty states without reading R
   });
 });
 
+test("real batch view shows exact render delivery bindings and requires separate confirmations", async () => {
+  await withBrowserGlobals(async () => {
+    const batchList = new FakeElement({
+      onInnerHTML: (html, element) => {
+        const buttons = [...html.matchAll(/<button[^>]*data-batch-action="([^"]+)"[^>]*data-batch-id="([^"]+)"[^>]*>/g)]
+          .map((match) => new FakeElement({ dataset: { batchAction: match[1], batchId: match[2] }, matchesSelectors: ["[data-batch-action]"] }));
+        element.setQuery("[data-batch-action]", buttons);
+      },
+    });
+    const actions = [];
+    const batch = {
+      id: "batch-render-delivery",
+      type: "to-render",
+      label: "批量渲染",
+      status: "waiting",
+      description: "等待交付确认",
+      targetStage: "gate-4",
+      items: [{ slug: "desktop", status: "queued", message: "等待交付确认" }],
+      renderDelivery: {
+        kind: "batch-render-delivery",
+        status: "needs-confirmation",
+        issues: [],
+        confirmationIssues: ["渲染相关文件存在未提交修改：src/TemplateVideo.tsx"],
+        git: { planId: "plan-1", selectedPaths: ["src/TemplateVideo.tsx"] },
+        videos: [{ slug: "desktop", compositionId: "desktop", renderInputUrl: "https://inputs.example.test/desktop.zip", renderInputSha256: "a".repeat(64), packageFingerprint: "b".repeat(64) }],
+      },
+    };
+    const view = createBatchView({
+      elements: { batchList },
+      api: {
+        async getBatches() { return { batches: [batch] }; },
+        async runBatchAction(id, body) { actions.push({ id, body }); },
+      },
+    });
+    view.mount();
+    await flush();
+    assert.match(batchList.innerHTML, /desktop/);
+    assert.match(batchList.innerHTML, /https:\/\/inputs\.example\.test\/desktop\.zip/);
+    assert.match(batchList.innerHTML, /src\/TemplateVideo\.tsx/);
+
+    const commitButton = batchList.querySelectorAll("[data-batch-action]").find((button) => button.dataset.batchAction === "commit-render-delivery");
+    batchList.dispatch("click", { target: commitButton });
+    await flush();
+    assert.deepEqual(actions, [{
+      id: "batch-render-delivery",
+      body: {
+        action: "commit-render-delivery",
+        slug: null,
+        confirmDelivery: true,
+        confirmCommit: true,
+        confirmPush: true,
+        deliveryPlanId: "plan-1",
+        selectedPaths: ["src/TemplateVideo.tsx"],
+      },
+    }]);
+    view.unmount();
+  });
+});
+
 test("batch and Remotion task views keep empty and error states independent", async () => {
   await withBrowserGlobals(async () => {
     const batchElements = { batchList: new FakeElement(), summary: new FakeElement() };

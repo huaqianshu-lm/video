@@ -29,8 +29,9 @@ import { diagnoseGitHubActions } from "./diagnostics.mjs";
 import { adoptExistingProjectToGate2, markHistoricalProjectCompleted } from "./adoption.mjs";
 import {
  approveTtsQc,
- batchDefinitions,
+  batchDefinitions,
   createBatch,
+  getBatch,
   getBatchForView,
   listBatchesForView,
   retryFailedBatchItems,
@@ -76,8 +77,8 @@ function usage() {
   node harness/src/cli.mjs batch create <to-gate-2|to-tts|to-remotion|to-render> <slug>... [--json]
   node harness/src/cli.mjs batch list [--json]
   node harness/src/cli.mjs batch status <batch-id> [--json]
-  node harness/src/cli.mjs batch run <batch-id> [--json]
-  node harness/src/cli.mjs batch resume <batch-id> [--retry-failed] [--json]
+  node harness/src/cli.mjs batch run <batch-id> [--json]（to-render 必须走 WebUI 交付确认）
+  node harness/src/cli.mjs batch resume <batch-id> [--retry-failed] [--json]（to-render 必须走 WebUI 交付确认）
   node harness/src/cli.mjs batch approve-tts-qc <batch-id> <slug> [--json]
   node harness/src/cli.mjs remotion-task list [--json]
   node harness/src/cli.mjs remotion-task show <task-id> [--json]
@@ -284,6 +285,11 @@ async function main(args) {
         if (!batch) throw new Error(`Batch not found: ${batchId}`);
         printBatch(batch, asJson);
         return 0;
+      }
+      const batch = getBatch(batchId);
+      if (!batch) throw new Error(`Batch not found: ${batchId}`);
+      if (batch.type === "to-render") {
+        throw new Error("正式批量渲染不能通过 CLI 绕过交付预检；请使用 WebUI 的预检、文件清单确认、commit、push 和真实 Render 分步操作");
       }
       if (batchCommand === "resume" && options.includes("--retry-failed")) retryFailedBatchItems(batchId);
       await runBatch(batchId);
