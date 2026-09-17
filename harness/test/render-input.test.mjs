@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
 import {
   bindRenderInputDelivery,
@@ -359,6 +360,37 @@ test("invalidates a binding when the local ZIP changes", async () => {
     fs.appendFileSync(renderInputArchivePath(fixture.workspaceRoot, fixture.slug), "changed archive\n", "utf8");
     assert.ok(validateRenderInputDelivery(fixture.project).some((issue) => /archiveSha256/.test(issue)));
   } finally {
+    fs.rmSync(fixture.workspaceRoot, { recursive: true, force: true });
+  }
+});
+
+test("invalidates a binding when the outer ZIP contents diverge from the package directory", async () => {
+  const fixture = createFixture();
+  const tamperedRoot = fs.mkdtempSync(path.join(os.tmpdir(), "video-render-input-tampered-"));
+  try {
+    prepareRenderInput(fixture.project);
+    const packaged = packageRenderInput(fixture.workspaceRoot, fixture.slug);
+    const archiveBytes = fs.readFileSync(packaged.archivePath);
+    await bindRenderInputDelivery(fixture.project, {
+      url: "https://inputs.example.test/render-input.zip",
+      sha256: packaged.archiveSha256,
+      fetchImpl: async () => ({ ok: true, status: 200, arrayBuffer: async () => archiveBytes }),
+    });
+    const packageRoot = path.join(fixture.workspaceRoot, "local", "render-input", fixture.slug);
+    fs.cpSync(packageRoot, tamperedRoot, { recursive: true });
+    fs.writeFileSync(path.join(tamperedRoot, "tampered.txt"), "not in the package directory\n", "utf8");
+    const tamperedArchive = path.join(fixture.workspaceRoot, "tampered-render-input.zip");
+    execFileSync("zip", ["-q", "-r", "-X", tamperedArchive, "."], { cwd: tamperedRoot, stdio: "pipe" });
+    fs.copyFileSync(tamperedArchive, packaged.archivePath);
+    const delivery = readRenderInputDelivery(fixture.workspaceRoot, fixture.slug);
+    delivery.archiveSha256 = createHash("sha256").update(fs.readFileSync(packaged.archivePath)).digest("hex");
+    writeJson(renderInputDeliveryPath(fixture.workspaceRoot, fixture.slug), delivery);
+
+    const issues = validateRenderInputDelivery(fixture.project);
+    assert.ok(issues.some((issue) => issue.includes("输入包 ZIP 文件集合与目录不一致")));
+  } finally {
+    fs.rmSync(tamperedRoot, { recursive: true, force: true });
+    fs.rmSync(path.join(fixture.workspaceRoot, "tampered-render-input.zip"), { force: true });
     fs.rmSync(fixture.workspaceRoot, { recursive: true, force: true });
   }
 });

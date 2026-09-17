@@ -283,6 +283,36 @@ function readDeliveryRecord(workspaceRoot, slug, inputRootOverride = null) {
   }
 }
 
+function validateRenderInputArchive(packageRoot, archivePath) {
+  const issues = [];
+  let archiveFileEntries;
+  try {
+    archiveFileEntries = archiveEntries(archivePath)
+      .filter((entry) => !entry.endsWith("/"))
+      .sort();
+  } catch (error) {
+    return [`输入包 ZIP 无法完整解压检查：${error instanceof Error ? error.message : String(error)}`];
+  }
+  const packageFiles = listFiles(packageRoot).sort();
+  if (JSON.stringify(archiveFileEntries) !== JSON.stringify(packageFiles)) {
+    issues.push(`输入包 ZIP 文件集合与目录不一致（ZIP：${archiveFileEntries.join(", ")}；目录：${packageFiles.join(", ")}）`);
+  }
+  for (const relativePath of packageFiles) {
+    let archived;
+    try {
+      archived = execFileSync("unzip", ["-p", archivePath, relativePath], { encoding: "buffer", stdio: ["ignore", "pipe", "pipe"] });
+    } catch (error) {
+      issues.push(`输入包 ZIP 缺少或无法读取 ${relativePath}：${error instanceof Error ? error.message : String(error)}`);
+      continue;
+    }
+    const local = fs.readFileSync(path.join(packageRoot, relativePath));
+    if (archived.length !== local.length || !archived.equals(local)) {
+      issues.push(`输入包 ZIP 内容与目录不一致：${relativePath}`);
+    }
+  }
+  return issues;
+}
+
 export function readRenderInputDelivery(workspaceRoot, slug, inputRootOverride = null) {
   return readDeliveryRecord(requireWorkspaceRoot(workspaceRoot), slug, inputRootOverride);
 }
@@ -322,6 +352,7 @@ export function validateRenderInputDelivery(project, { inputRoot: inputRootOverr
   if (fs.existsSync(manifestPath) && fs.existsSync(archivePath)) {
     try {
       const manifest = assertRenderInputDirectory(packageRoot, { expectedSlug: slug });
+      issues.push(...validateRenderInputArchive(packageRoot, archivePath));
       if (delivery.compositionId !== manifest.compositionId) issues.push("交付记录的 Composition ID 与当前输入包不一致");
       if (delivery.packageFingerprint !== manifest.packageFingerprint) issues.push("交付记录的 packageFingerprint 与当前输入包不一致");
       const archiveSha256 = sha256File(archivePath);
