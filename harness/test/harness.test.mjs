@@ -23,14 +23,15 @@ import {
 } from "../src/stages.mjs";
 import { validateProjectStage } from "../src/validation.mjs";
 import { buildTtsScript } from "../src/tts-script.mjs";
-import { approveTtsQc, approveTtsQcForProject, batchForView, createBatch, retryFailedBatchItems, runBatch } from "../src/batches.mjs";
+import { approveTtsQc, approveTtsQcForProject, batchForView, createBatch, getBatch, retryFailedBatchItems, runBatch } from "../src/batches.mjs";
 import { completeRemotionTask, ensureRemotionTask, listRemotionTasks, retryRemotionTask, runRemotionTask, startRemotionTask } from "../src/remotion-tasks.mjs";
 import { buildRemotionExecutionInput } from "../src/remotion-executor.mjs";
 import { createRemoteRenderExecutor } from "../src/remote-executor.mjs";
 import { runSingleStage } from "../src/single-runner.mjs";
-import { createJobRecord, updateJob } from "../src/jobs.mjs";
+import { createJobRecord, getJob, updateJob } from "../src/jobs.mjs";
 import { adoptExistingProjectToGate2, markHistoricalProjectCompleted } from "../src/adoption.mjs";
 import { createProjectActionService } from "../src/web/services/project-actions.mjs";
+import { createRuntime } from "../src/web/runtime.mjs";
 import { getSeriesDefinitionForSlug, getStyleDefinition, resolveStyleId } from "../src/styles.mjs";
 
 const repositoryRoot = path.resolve(new URL("../..", import.meta.url).pathname);
@@ -1014,6 +1015,102 @@ test("keeps a batch remote job waiting and does not submit it twice", async () =
   assert.equal(resumed.items[0].status, "waiting-gate");
   assert.equal(resumed.items[0].phase, "gate-4");
   assert.equal(submissions, 1);
+});
+
+test("automatically resumes a batch when its remote job reaches a terminal state", async () => {
+  const { slug } = createFixture();
+  const batchRoot = fs.mkdtempSync(path.join(os.tmpdir(), "video-harness-batches-"));
+  process.env.HARNESS_BATCHES_DIR = batchRoot;
+  runToGate3(loadFixture(slug));
+  approveGate(loadFixture(slug), "gate-3");
+
+  let submissions = 0;
+  let onJobSettled = null;
+  const monitor = {
+    async poll() {},
+    setJobSettledHandler(handler) { onJobSettled = handler; },
+    submit(input) {
+      submissions += 1;
+      return createJobRecord({ slug: input.slug, stage: input.stage, metadata: { batchId: input.batchId } });
+    },
+  };
+  createRuntime({ remoteJobMonitor: monitor });
+  const remoteExecutor = createRemoteRenderExecutor({ monitor, validateInputs() {}, preflight: async () => {} });
+  const batch = createBatch({ type: "to-render", slugs: [slug] });
+  const first = await runBatch(batch.id, { remoteMonitor: monitor, remoteExecutor });
+  assert.equal(first.items[0].status, "waiting-remote");
+  assert.equal(submissions, 1);
+  assert.equal(typeof onJobSettled, "function");
+  assert.equal(getBatch(batch.id).items[0].remoteJobId, first.items[0].remoteJobId);
+
+  updateJob(slug, first.items[0].remoteJobId, { status: "succeeded", completedAt: new Date().toISOString() });
+  completeAdapterStage(loadFixture(slug), "render", {});
+  await onJobSettled(getJob(slug, first.items[0].remoteJobId));
+
+  const resumed = getBatch(batch.id);
+  assert.equal(resumed.items[0].status, "waiting-gate");
+  assert.equal(resumed.items[0].phase, "gate-4");
+  assert.equal(submissions, 1);
+});
+
+test("automatically records a failed remote job in its batch", async () => {
+  const { slug } = createFixture();
+  const batchRoot = fs.mkdtempSync(path.join(os.tmpdir(), "video-harness-batches-"));
+  process.env.HARNESS_BATCHES_DIR = batchRoot;
+  runToGate3(loadFixture(slug));
+  approveGate(loadFixture(slug), "gate-3");
+
+  let onJobSettled = null;
+  const monitor = {
+    async poll() {},
+    setJobSettledHandler(handler) { onJobSettled = handler; },
+    submit(input) {
+      return createJobRecord({ slug: input.slug, stage: input.stage, metadata: { batchId: input.batchId } });
+    },
+  };
+  createRuntime({ remoteJobMonitor: monitor });
+  const remoteExecutor = createRemoteRenderExecutor({ monitor, validateInputs() {}, preflight: async () => {} });
+  const batch = createBatch({ type: "to-render", slugs: [slug] });
+  const waiting = await runBatch(batch.id, { remoteMonitor: monitor, remoteExecutor });
+  updateJob(slug, waiting.items[0].remoteJobId, {
+    status: "failed",
+    error: { code: "remote-render-failed", message: "远程构建失败" },
+    completedAt: new Date().toISOString(),
+  });
+  await onJobSettled(getJob(slug, waiting.items[0].remoteJobId));
+
+  const failed = getBatch(batch.id);
+  assert.equal(failed.items[0].status, "failed");
+  assert.equal(failed.status, "completed-with-errors");
+  assert.equal(failed.items[0].error.code, "remote-render-failed");
+});
+
+test("recovers a legacy waiting batch job without a persisted batchId", async () => {
+  const { slug } = createFixture();
+  const batchRoot = fs.mkdtempSync(path.join(os.tmpdir(), "video-harness-batches-"));
+  process.env.HARNESS_BATCHES_DIR = batchRoot;
+  runToGate3(loadFixture(slug));
+  approveGate(loadFixture(slug), "gate-3");
+
+  let onJobSettled = null;
+  const monitor = {
+    async poll() {},
+    setJobSettledHandler(handler) { onJobSettled = handler; },
+    submit(input) {
+      return createJobRecord({ slug: input.slug, stage: input.stage });
+    },
+  };
+  createRuntime({ remoteJobMonitor: monitor });
+  const remoteExecutor = createRemoteRenderExecutor({ monitor, validateInputs() {}, preflight: async () => {} });
+  const batch = createBatch({ type: "to-render", slugs: [slug] });
+  const waiting = await runBatch(batch.id, { remoteMonitor: monitor, remoteExecutor });
+  updateJob(slug, waiting.items[0].remoteJobId, { status: "succeeded", completedAt: new Date().toISOString() });
+  completeAdapterStage(loadFixture(slug), "render", {});
+  await onJobSettled(getJob(slug, waiting.items[0].remoteJobId));
+
+  const resumed = getBatch(batch.id);
+  assert.equal(resumed.items[0].status, "waiting-gate");
+  assert.equal(resumed.items[0].phase, "gate-4");
 });
 
 test("retries a failed batch Remotion executor together with its production task", async () => {

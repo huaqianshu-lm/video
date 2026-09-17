@@ -970,6 +970,8 @@ test("persists the exact input binding on a remote Job and blocks a later rebind
     const job = monitor.submit({ slug, stage: "render" });
     const persisted = getJob(slug, job.id);
     assert.match(persisted.remote.dispatchId, /^[0-9a-f-]{36}$/);
+    assert.equal(persisted.remote.slug, slug);
+    assert.equal(persisted.remote.compositionId, slug);
     assert.ok(["prepared", "sending", "confirmed"].includes(persisted.remote.dispatchState));
     assert.equal(persisted.remote.renderInputUrl, "https://inputs.example.test/bound-job.zip");
     assert.equal(persisted.remote.renderInputSha256, packaged.archiveSha256);

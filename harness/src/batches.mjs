@@ -210,6 +210,20 @@ function updateItem(batch, target, patch) {
   saveBatch(batch);
 }
 
+function updateBatchDeliveryVideo(batch, slug, patch) {
+  const video = batch.renderDelivery?.videos?.find((entry) => entry.slug === slug);
+  if (video) Object.assign(video, patch);
+}
+
+function remoteJobDeliveryPatch(job) {
+  const remote = job?.remote ?? {};
+  return {
+    remoteJobId: job?.id ?? null,
+    runId: remote.runId ?? null,
+    runUrl: remote.runUrl ?? remote.runApiUrl ?? null,
+  };
+}
+
 function refreshBatchStatus(batch) {
   const hasActive = batch.items.some((entry) => entry.status === "queued" || entry.status === "running");
   const hasWaiting = batch.items.some((entry) => WAITING_ITEM_STATUSES.has(entry.status));
@@ -309,7 +323,14 @@ function configuredExecutor(factory, environmentKey) {
 }
 
 function defaultBatchExecutionOptions() {
-  const remoteMonitor = createRemoteJobMonitor();
+  const remoteMonitor = createRemoteJobMonitor({
+    onJobSettled: async (job) => {
+      const batchIds = job?.batchId ? [job.batchId] : findBatchesForRemoteJob(job);
+      for (const batchId of [...new Set(batchIds)]) {
+        await runBatch(batchId, { remoteMonitor });
+      }
+    },
+  });
   return {
     executors: {
       "subtitle-timeline": configuredExecutor(createTtsExecutorFromEnv, "HARNESS_TTS_EXECUTOR"),
@@ -323,12 +344,16 @@ function defaultBatchExecutionOptions() {
 function mergeExecutionOptions(options) {
   const defaults = defaultBatchExecutionOptions();
   const remoteMonitor = options.remoteMonitor ?? defaults.remoteMonitor;
+  const remoteExecutor = options.remoteExecutor
+    ?? (typeof remoteMonitor?.submit === "function"
+      ? createRemoteRenderExecutor({ monitor: remoteMonitor })
+      : defaults.remoteExecutor);
   return {
     ...defaults,
     ...options,
     executors: { ...defaults.executors, ...(options.executors ?? {}) },
     remoteMonitor,
-    remoteExecutor: options.remoteExecutor ?? createRemoteRenderExecutor({ monitor: remoteMonitor }),
+    remoteExecutor,
   };
 }
 
@@ -339,6 +364,15 @@ function usesInjectedLegacyAdapter(stage, options) {
 function remoteJobState(batchItem) {
   if (!batchItem.remoteJobId) return null;
   return getJob(batchItem.slug, batchItem.remoteJobId);
+}
+
+export function findBatchesForRemoteJob(job) {
+  if (!job?.id) return [];
+  return listBatches()
+    .filter((batch) => batch.items?.some((batchItem) => batchItem.remoteJobId === job.id
+      && batchItem.slug === job.slug
+      && batchItem.status === "waiting-remote"))
+    .map((batch) => batch.id);
 }
 
 function agentJobState(batchItem) {
@@ -424,6 +458,8 @@ async function resolveWaitingRemoteItem(batch, batchItem) {
     });
     return;
   }
+
+  updateBatchDeliveryVideo(batch, batchItem.slug, remoteJobDeliveryPatch(job));
 
   if (job.status === "succeeded") {
     updateItem(batch, batchItem, {
@@ -536,6 +572,7 @@ async function executeItem(batch, batchItem, definition, options) {
           remotionExecutor: options.executors?.remotion,
           remotionTaskId: batchItem.remotionTaskId,
           remotionTaskBatchId: batch.id,
+          batchId: batch.id,
           remoteExecutor: options.remoteExecutor,
         });
 
@@ -553,6 +590,7 @@ async function executeItem(batch, batchItem, definition, options) {
       }
 
       if (result?.deferred && result.job?.id) {
+        updateBatchDeliveryVideo(batch, batchItem.slug, remoteJobDeliveryPatch(result.job));
         updateItem(batch, batchItem, {
           status: "waiting-remote",
           phase: currentStage,

@@ -108,9 +108,20 @@ export function createRemoteJobMonitor({
   now = () => new Date(),
   setIntervalImpl = setInterval,
   clearIntervalImpl = clearInterval,
+  onJobSettled = null,
 } = {}) {
   const inFlight = new Set();
   let timer = null;
+  let jobSettledHandler = onJobSettled;
+
+  async function notifyJobSettled(job) {
+    if (typeof jobSettledHandler !== "function") return;
+    try {
+      await jobSettledHandler(job);
+    } catch {
+      // The terminal remote state is already persisted. A failed batch resume remains manually recoverable.
+    }
+  }
 
   function schedulePatch(job, patch = {}) {
     return {
@@ -163,11 +174,13 @@ export function createRemoteJobMonitor({
         // The job record still carries the remote failure if the project state cannot be updated.
       }
     }
-    return updateJob(job.slug, job.id, schedulePatch(job, {
+    const updated = updateJob(job.slug, job.id, schedulePatch(job, {
       status,
       error: failure,
       completedAt: isoNow(now),
     }));
+    await notifyJobSettled(updated);
+    return updated;
   }
 
   async function processJob(jobId) {
@@ -378,7 +391,7 @@ export function createRemoteJobMonitor({
         if (isGateStage(nextStage)) {
           runStage(completedProject, nextStage);
         }
-        return updateJob(job.slug, job.id, schedulePatch(job, {
+        const updated = updateJob(job.slug, job.id, schedulePatch(job, {
           status: "succeeded",
           remote: inspection.remote ?? remote,
           result: inspection.result,
@@ -386,6 +399,8 @@ export function createRemoteJobMonitor({
           error: null,
           stageResult: result,
         }));
+        await notifyJobSettled(updated);
+        return updated;
       } catch (error) {
         if (["github-config-invalid", "github-auth-invalid", "render-input-remote-config-invalid"].includes(error?.code)) {
           return updateJob(job.slug, job.id, schedulePatch(job, {
@@ -486,7 +501,7 @@ export function createRemoteJobMonitor({
     await Promise.all(jobs.map((job) => processJob(job.id)));
   }
 
-  function submit({ slug, stage }) {
+  function submit({ slug, stage, batchId = null }) {
     if (!REMOTE_STAGES.has(stage)) {
       const error = new Error(stage === "smoke-render"
         ? "Smoke Render 已退出 Harness 生产流程，请从 GitHub Actions 手动触发独立环境检查。"
@@ -500,13 +515,17 @@ export function createRemoteJobMonitor({
     }
     const project = loadProject(slug, { refresh: true });
     const delivery = assertRenderInputDelivery(project);
+    const compositionId = project.config.compositionId ?? project.config.slug;
     const dispatchId = randomUUID();
     const job = createJobRecord({
       slug,
       stage,
       metadata: {
+        batchId,
         remote: {
           dispatchId,
+          slug,
+          compositionId,
           dispatchState: "prepared",
           renderInputUrl: delivery.url,
           renderInputSha256: delivery.archiveSha256,
@@ -523,6 +542,10 @@ export function createRemoteJobMonitor({
     submit,
     processJob,
     poll,
+    setJobSettledHandler(handler) {
+      if (handler !== null && typeof handler !== "function") throw new TypeError("Job settled handler must be a function or null");
+      jobSettledHandler = handler;
+    },
     findHistorical,
     adoptHistorical,
     start() {

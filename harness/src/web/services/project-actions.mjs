@@ -96,7 +96,7 @@ export function createProjectActionService(runtime) {
       }
       if (action.action === "run-to-gate-2") {
         const active = findActiveBatchForProject("to-gate-2", action.slug); const batch = active ?? createBatch({ type: "to-gate-2", slugs: [action.slug] });
-        void runBatch(batch.id, { queueAgentJob: runtime.queueAgentJob }).catch(() => {});
+        void runBatch(batch.id, { queueAgentJob: runtime.queueAgentJob, remoteMonitor: runtime.remoteJobMonitor }).catch(() => {});
         return { status: 202, result: { action: action.action, status: active ? "already-running" : "queued" }, batch: getBatchForView(batch.id) };
       }
       if (action.action === "remote-run") return this.remoteRun(action);

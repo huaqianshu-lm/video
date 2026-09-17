@@ -187,7 +187,7 @@ export function createRemoteRenderExecutor({ monitor, validateInputs = null, pre
   const effectivePreflight = preflight ?? (({ project }) => assertGitHubActionsReady({ project, checkRenderInput: false }));
 
   return {
-    async run({ stage, project }) {
+    async run({ stage, project, batchId = null }) {
       assertProjectMutable(project, "提交远程渲染任务");
       if (stage === "smoke-render") {
         const error = new Error("Smoke Render 已退出 Harness 生产流程，请从 GitHub Actions 手动触发独立环境检查。");
@@ -204,7 +204,7 @@ export function createRemoteRenderExecutor({ monitor, validateInputs = null, pre
       await effectiveValidateInputs(project);
       if (effectiveValidateInputs === assertRemoteRenderDeliveryInputs) assertRenderInputDelivery(project);
       if (effectivePreflight) await effectivePreflight({ stage, project });
-      const job = monitor.submit({ slug: project.config.slug, stage });
+      const job = monitor.submit({ slug: project.config.slug, stage, ...(batchId ? { batchId } : {}) });
       return {
         deferred: true,
         job,
