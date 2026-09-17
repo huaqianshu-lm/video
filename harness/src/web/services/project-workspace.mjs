@@ -1,6 +1,6 @@
 import { findActiveJob, listJobs } from "../../jobs.mjs";
 import { buildAlignmentView } from "../../remotion-alignment.mjs";
-import { listRemotionTasks } from "../../remotion-tasks.mjs";
+import { listRemotionTasks, remotionTaskForView } from "../../remotion-tasks.mjs";
 import { getVideoProject } from "../../project-view.mjs";
 import { listProjectFiles } from "../../project-files.mjs";
 import { loadProject } from "../../storage.mjs";
@@ -23,7 +23,7 @@ export async function getProjectWorkspace(slug, { remoteJobMonitor = null } = {}
     activeJob: project.currentStage ? findActiveJob(slug, project.currentStage) : null,
     agentJobs: listAgentJobs({ slug }),
     alignment: null,
-    remotionTasks: listRemotionTasks({ slug }),
+    remotionTasks: listRemotionTasks({ slug }).map(remotionTaskForView),
     continuousBatch: null,
   };
 

@@ -39,6 +39,13 @@ function requirePreviousSucceeded(project, stage) {
   }
 }
 
+function setStageAvailable(item, status) {
+  item.status = status;
+  item.error = null;
+  item.review = null;
+  item.invalidatedBy = null;
+}
+
 function completeStage(project, stage, outputs = []) {
   assertProjectMutable(project, `完成 ${stage} 阶段`);
   const item = project.state.stages[stage];
@@ -55,7 +62,7 @@ function completeStage(project, stage, outputs = []) {
   const following = nextStage(stage);
   if (following) {
     project.state.currentStage = following;
-    project.state.stages[following].status = "ready";
+    setStageAvailable(project.state.stages[following], "ready");
   } else {
     project.state.currentStage = "completed";
   }
@@ -154,7 +161,7 @@ export function runStage(project, requestedStage, { adapters = {}, executors = {
       saveState(project);
       throw new Error(`${issues.length} artifact validation issue(s) in ${stage}`);
     }
-    item.status = "waiting";
+    setStageAvailable(item, "waiting");
     item.updatedAt = new Date().toISOString();
     saveState(project);
     return { stage, status: "waiting", message: `Waiting for manual approval: ${stage}` };
@@ -342,16 +349,15 @@ export function retryStage(project, requestedStage) {
   assertProjectMutable(project, "重试阶段");
   const stage = requestedStage ?? project.state.currentStage;
   requireKnownStage(stage);
-  if (project.state.stages[stage].status !== "failed") {
+  const item = project.state.stages[stage];
+  if (item.status !== "failed") {
     throw new Error(`Stage ${stage} is not failed`);
   }
-  project.state.stages[stage].status = "ready";
-  project.state.stages[stage].error = null;
-  if (!(stage === "remotion" && project.state.stages[stage].invalidatedBy === "gate-3-rejected")) {
-    project.state.stages[stage].invalidatedBy = null;
-  }
+  const preserveInvalidation = stage === "remotion" && item.invalidatedBy === "gate-3-rejected";
+  setStageAvailable(item, "ready");
+  if (preserveInvalidation) item.invalidatedBy = "gate-3-rejected";
   project.state.currentStage = stage;
-  project.state.stages[stage].updatedAt = new Date().toISOString();
+  item.updatedAt = new Date().toISOString();
   saveState(project);
   return { stage, status: "ready" };
 }

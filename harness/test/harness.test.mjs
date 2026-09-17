@@ -1253,6 +1253,58 @@ test("completes the fixture workflow with a direct mock Render", () => {
   assert.deepEqual(render.calls, [{ stage: "render", slug }]);
 });
 
+test("clears stale stage metadata when Render advances to Gate 4", () => {
+  const { slug } = createFixture();
+  const project = loadFixture(slug);
+  runToGate3(project);
+  approveGate(project, "gate-3");
+
+  const readyGate = loadFixture(slug);
+  readyGate.state.stages["gate-4"].error = { code: "old-error" };
+  readyGate.state.stages["gate-4"].review = { decision: "rejected" };
+  readyGate.state.stages["gate-4"].invalidatedBy = "gate-3";
+  writeJson(readyGate.files.state, readyGate.state);
+
+  runStage(loadFixture(slug), "render", { adapters: { render: createMockAdapter() } });
+  const gateReady = loadFixture(slug).state.stages["gate-4"];
+  assert.equal(gateReady.status, "ready");
+  assert.equal(gateReady.error, null);
+  assert.equal(gateReady.review, null);
+  assert.equal(gateReady.invalidatedBy, null);
+
+  const waitingGate = loadFixture(slug);
+  waitingGate.state.stages["gate-4"].error = { code: "stale-error-before-waiting" };
+  waitingGate.state.stages["gate-4"].review = { decision: "rejected" };
+  waitingGate.state.stages["gate-4"].invalidatedBy = "render";
+  writeJson(waitingGate.files.state, waitingGate.state);
+
+  runStage(loadFixture(slug), "gate-4");
+  const gateWaiting = loadFixture(slug).state.stages["gate-4"];
+  assert.equal(gateWaiting.status, "waiting");
+  assert.equal(gateWaiting.error, null);
+  assert.equal(gateWaiting.review, null);
+  assert.equal(gateWaiting.invalidatedBy, null);
+});
+
+test("clears stale review metadata when retrying a failed stage", () => {
+  const { slug } = createFixture();
+  const project = loadFixture(slug);
+  const render = project.state.stages.render;
+  project.state.currentStage = "render";
+  render.status = "failed";
+  render.error = { code: "old-error" };
+  render.review = { decision: "rejected" };
+  render.invalidatedBy = "gate-3";
+  writeJson(project.files.state, project.state);
+
+  assert.deepEqual(resumeProject(loadFixture(slug)), { stage: "render", status: "ready" });
+  const retried = loadFixture(slug).state.stages.render;
+  assert.equal(retried.status, "ready");
+  assert.equal(retried.error, null);
+  assert.equal(retried.review, null);
+  assert.equal(retried.invalidatedBy, null);
+});
+
 test("resumes an adapter failure without repeating the failed attempt", () => {
   const { slug } = createFixture();
   const project = loadFixture(slug);

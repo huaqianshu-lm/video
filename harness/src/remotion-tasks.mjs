@@ -28,6 +28,45 @@ function taskMatches(task, { slug, batchId } = {}) {
   return (!slug || task.slug === slug) && (!batchId || task.batchId === batchId);
 }
 
+function stageAvailability(task, { refresh = false } = {}) {
+  try {
+    const project = loadProject(task.slug, { refresh });
+    const currentStage = project.state.currentStage;
+    const remotionStatus = project.state.stages.remotion?.status ?? "missing";
+    return {
+      allowed: currentStage === "remotion" && remotionStatus === "ready",
+      currentStage,
+      remotionStatus,
+    };
+  } catch {
+    return { allowed: false, currentStage: "unavailable", remotionStatus: "unavailable" };
+  }
+}
+
+export function assertRemotionTaskStageReady(task, operation = "执行 Remotion 任务") {
+  const availability = stageAvailability(task, { refresh: true });
+  if (availability.allowed) return availability;
+  const error = new Error(
+    `${task.slug} 当前为 ${availability.currentStage} / ${availability.remotionStatus}，只有 remotion / ready 才能${operation}。`,
+  );
+  error.code = "remotion-stage-not-ready";
+  error.slug = task.slug;
+  error.currentStage = availability.currentStage;
+  error.remotionStatus = availability.remotionStatus;
+  throw error;
+}
+
+export function remotionTaskForView(task) {
+  const availability = stageAvailability(task);
+  return {
+    ...task,
+    stageActionAllowed: availability.allowed,
+    stageActionReason: availability.allowed
+      ? null
+      : `项目当前为 ${availability.currentStage} / ${availability.remotionStatus}，旧 Remotion 任务只保留查看。`,
+  };
+}
+
 function refreshTaskPacket(task) {
   const project = loadProject(task.slug, { refresh: true });
   const packet = buildTaskPacket(project);
@@ -60,14 +99,11 @@ export function getRemotionTask(id) {
 
 export function ensureRemotionTask({ slug, batchId }) {
   assertProjectSlugMutable(slug, "创建 Remotion 任务");
+  const project = loadProject(slug, { refresh: true });
+  assertRemotionTaskStageReady({ slug }, "创建 Remotion 任务");
   const existing = listRemotionTasks({ slug, batchId })
     .find((task) => TASK_STATUSES.has(task.status) && task.status !== "failed" && task.status !== "completed");
   if (existing) return existing;
-
-  const project = loadProject(slug, { refresh: true });
-  if (project.state.currentStage !== "remotion" || project.state.stages.remotion.status !== "ready") {
-    throw new Error(`${slug} 当前不在可制作的 Remotion 阶段`);
-  }
 
   const packet = buildTaskPacket(project);
   const now = new Date().toISOString();
@@ -98,6 +134,7 @@ export function startRemotionTask(id) {
   const task = getRemotionTask(id);
   if (!task) throw new Error(`Remotion task not found: ${id}`);
   assertProjectSlugMutable(task.slug, "启动 Remotion 任务");
+  assertRemotionTaskStageReady(task, "启动 Remotion 任务");
   if (!["ready", "blocked"].includes(task.status)) {
     if (task.status === "in-progress") return task;
     throw new Error(`Remotion task is not startable: ${task.status}`);
@@ -148,6 +185,7 @@ export async function runRemotionTask(id, { executor } = {}) {
   if (task.status === "in-progress") {
     throw new Error(`Remotion task is already in progress: ${id}`);
   }
+  assertRemotionTaskStageReady(task);
   if (!executor || typeof executor.run !== "function") {
     const error = new Error("Remotion executor is not configured");
     error.code = "executor-not-configured";
@@ -186,6 +224,7 @@ export function completeRemotionTask(id) {
   if (!task) throw new Error(`Remotion task not found: ${id}`);
   assertProjectSlugMutable(task.slug, "完成 Remotion 任务");
   if (task.status === "completed") return { task, issues: [], completed: true };
+  assertRemotionTaskStageReady(task, "完成 Remotion 任务");
   if (!["ready", "in-progress"].includes(task.status)) {
     throw new Error(`Remotion task cannot be completed from status: ${task.status}`);
   }
@@ -250,6 +289,7 @@ export function retryRemotionTask(id) {
   const task = getRemotionTask(id);
   if (!task) throw new Error(`Remotion task not found: ${id}`);
   assertProjectSlugMutable(task.slug, "重试 Remotion 任务");
+  assertRemotionTaskStageReady(task, "重试 Remotion 任务");
   if (!["blocked", "failed"].includes(task.status)) {
     throw new Error(`Remotion task is not retryable: ${task.status}`);
   }
