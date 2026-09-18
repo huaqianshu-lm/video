@@ -1,12 +1,11 @@
 import {
-  isGateStage,
-  previousStage,
-  returnToStages,
-  RETIRED_STAGE_DEFINITIONS,
-  stagesForProjectView,
-  STAGE_DEFINITIONS,
-  STAGES,
-} from "./stages.mjs";
+  retiredStageDefinition,
+  stagesForWorkflowProjectView,
+  workflowIsGateStage,
+  workflowPreviousStage,
+  workflowReturnToStages,
+  workflowStageDefinition,
+} from "./workflows/registry.mjs";
 import { validateStage } from "./runner.mjs";
 import { hasAssetSource } from "./asset-bundler.mjs";
 import { validateRemoteRenderPackage } from "./remote-executor.mjs";
@@ -21,12 +20,12 @@ function executeCommandFor(stage) {
   return stage === "render" ? "remote-run" : "run";
 }
 
-function isBlockingPreExecutionIssue(stage, issue) {
+function isBlockingPreExecutionIssue(project, stage, issue) {
   if (issue.severity === "warning") return false;
-  if (STAGE_DEFINITIONS[stage]?.executor === "agent" && issue.code === "missing-artifact") {
+  if (workflowStageDefinition(project, stage)?.executor === "agent" && issue.code === "missing-artifact") {
     return false;
   }
-  if (stage === "remotion" && STAGE_DEFINITIONS[stage]?.executor === "agent" && issue.code === "missing-remotion-alignment") {
+  if (stage === "remotion" && workflowStageDefinition(project, stage)?.executor === "agent" && issue.code === "missing-remotion-alignment") {
     return false;
   }
   return true;
@@ -67,8 +66,9 @@ export function buildNextAction(project) {
 
   const stage = project.state.currentStage;
   const item = project.state.stages[stage];
-  if (!STAGE_DEFINITIONS[stage]) {
-    const retiredDefinition = RETIRED_STAGE_DEFINITIONS[stage];
+  const definition = workflowStageDefinition(project, stage);
+  if (!definition) {
+    const retiredDefinition = retiredStageDefinition(stage);
     if (retiredDefinition) {
       return {
         currentStage: stage,
@@ -97,8 +97,8 @@ export function buildNextAction(project) {
   const issues = item.status === "ready"
     ? [...validateStage(project, stage), ...remoteDeliveryIssues(project, stage)]
     : [];
-  const blockingIssues = issues.filter((issue) => isBlockingPreExecutionIssue(stage, issue));
-  if (item.status === "waiting" && isGateStage(stage)) {
+  const blockingIssues = issues.filter((issue) => isBlockingPreExecutionIssue(project, stage, issue));
+  if (item.status === "waiting" && workflowIsGateStage(project, stage)) {
     return {
       currentStage: stage,
       status: item.status,
@@ -107,9 +107,9 @@ export function buildNextAction(project) {
       requiresUser: true,
       commands: [commandFor(project, "approve", stage)],
       issues,
-      manualChecks: STAGE_DEFINITIONS[stage].manualChecks,
-      returnToStages: returnToStages(stage),
-      recommendedReturnTo: STAGE_DEFINITIONS[stage].fallbackStage,
+      manualChecks: definition.manualChecks,
+      returnToStages: workflowReturnToStages(project, stage),
+      recommendedReturnTo: definition.fallbackStage,
     };
   }
   if (item.status === "failed") {
@@ -192,7 +192,7 @@ export function buildNextAction(project) {
     currentStage: stage,
     status: item.status,
     action: "inspect-previous-stage",
-    message: `${stage} 当前状态为 ${item.status}，需要先检查前置阶段 ${previousStage(stage) ?? "无"}。`,
+    message: `${stage} 当前状态为 ${item.status}，需要先检查前置阶段 ${workflowPreviousStage(project, stage) ?? "无"}。`,
     requiresUser: false,
     commands: [commandFor(project, "status")],
     issues: [],
@@ -207,9 +207,9 @@ export function buildProjectReport(project) {
     slug: project.state.slug,
     currentStage: project.state.currentStage,
     next,
-    stages: stagesForProjectView(project).map((stage) => {
+    stages: stagesForWorkflowProjectView(project).map((stage) => {
       const item = project.state.stages[stage];
-      const definition = STAGE_DEFINITIONS[stage] ?? RETIRED_STAGE_DEFINITIONS[stage];
+      const definition = workflowStageDefinition(project, stage) ?? retiredStageDefinition(stage);
       return {
         stage,
         status: item?.status ?? "unknown",

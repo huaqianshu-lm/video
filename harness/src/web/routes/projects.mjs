@@ -10,15 +10,24 @@ import { getProjectWorkspace } from "../services/project-workspace.mjs";
 import { createProjectActionService } from "../services/project-actions.mjs";
 import { readJsonBody, readBody, sendError, sendJson } from "../http.mjs";
 import { importSourceProject, MAX_SOURCE_BYTES } from "../../source-import.mjs";
+import { workflowCatalog } from "../../workflows/registry.mjs";
 
 export function createProjectRoutes({ runtime, remoteJobMonitor } = {}) {
   const actionService = createProjectActionService(runtime);
   return async function handleProjects({ request, response, pathname, search }) {
+    if (pathname === "/api/workflows" && request.method === "GET") { sendJson(response, 200, { workflows: workflowCatalog() }); return true; }
     if (pathname === "/api/projects" && request.method === "GET") { sendJson(response, 200, { projects: listVideoProjects() }); return true; }
     if (pathname === "/api/projects/import" && request.method === "PUT") {
       try {
         const body = await readBody(request, MAX_SOURCE_BYTES); const query = new URLSearchParams(search);
-        const result = importSourceProject({ slug: query.get("slug"), filename: query.get("filename"), content: body, seriesId: query.get("seriesId") });
+        const result = importSourceProject({
+          slug: query.get("slug"),
+          filename: query.get("filename"),
+          content: body,
+          seriesId: query.get("seriesId"),
+          workflow: query.get("workflow") ?? undefined,
+          workflowVersion: query.get("workflowVersion") ? Number(query.get("workflowVersion")) : null,
+        });
         sendJson(response, 201, { result, project: getVideoProject(result.slug) });
       } catch (error) { sendError(response, error?.code === "source-project-exists" ? 409 : 400, { message: error.message, code: error.code ?? "source-import-failed", issues: error.issues ?? [] }); }
       return true;

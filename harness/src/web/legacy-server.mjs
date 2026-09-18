@@ -10,7 +10,7 @@ import { findActiveJob, listAllJobs, listJobs } from "../jobs.mjs";
 import { requireGitHubActionsConfig } from "../github-config.mjs";
 import { assertGitHubActionsReady, diagnoseGitHubActions } from "../diagnostics.mjs";
 import { createRemoteJobMonitor } from "../remote-jobs.mjs";
-import { assertRemoteRenderDeliveryInputs, prepareRemoteRenderInputs, validateRemoteRenderPackage } from "../remote-executor.mjs";
+import { assertRemoteRenderDeliveryInputs, assertRenderStageReady, prepareRemoteRenderInputs, validateRemoteRenderPackage } from "../remote-executor.mjs";
 import { bindRenderInputDelivery } from "../render-input.mjs";
 import { buildGitRenderCommitPlan, commitAndPushRenderDelivery, validateGitRenderDelivery } from "../git-delivery.mjs";
 import { artifactManifestFor } from "../artifacts.mjs";
@@ -19,9 +19,9 @@ import { validateProjectStage } from "../validation.mjs";
 import { buildNextAction, buildProjectReport } from "../reports.mjs";
 import { buildTaskPacket } from "../context.mjs";
 import { buildProjectPlan } from "../plans.mjs";
-import { applySeriesStyle, initializeProject, loadProject, reopenGate3ForSeriesCover } from "../storage.mjs";
+import { applySeriesStyle, assertProjectMutable, initializeProject, loadProject, reopenGate3ForSeriesCover } from "../storage.mjs";
 import { HARNESS_VERSION } from "../stages.mjs";
-import { STAGE_DEFINITIONS } from "../stages.mjs";
+import { workflowCatalog, workflowStageDefinition } from "../workflows/registry.mjs";
 import { createAgentExecutorFromEnv } from "../agent-executor.mjs";
 import { createTtsExecutorFromEnv } from "../tts-executor.mjs";
 import { createRemotionExecutorFromEnv } from "../remotion-executor.mjs";
@@ -180,6 +180,11 @@ async function serveSeriesApi(response, request, pathname) {
 }
 
 async function serveApi(response, pathname, search, remoteJobMonitor, diagnose) {
+  if (pathname === "/api/workflows") {
+    sendJson(response, 200, { workflows: workflowCatalog() });
+    return true;
+  }
+
   if (pathname === "/api/agent-jobs") {
     sendJson(response, 200, { jobs: listAgentJobs() });
     return true;
@@ -300,6 +305,8 @@ async function serveSourceImportApi(response, request, pathname, search) {
       filename: query.get("filename"),
       content: body,
       seriesId: query.get("seriesId"),
+      workflow: query.get("workflow") ?? undefined,
+      workflowVersion: query.get("workflowVersion") ? Number(query.get("workflowVersion")) : null,
     });
     sendJson(response, 201, { result, project: getVideoProject(result.slug) });
   } catch (error) {
@@ -513,7 +520,10 @@ async function serveAction(response, request, pathname, runtime) {
       sendJson(response, 409, { error: "Harness project is already initialized" });
       return true;
     }
-    const files = initializeProject(slug);
+    const files = initializeProject(slug, {
+      workflow: typeof body.workflow === "string" ? body.workflow : projectView.workflow ?? "default",
+      ...(body.workflowVersion === undefined ? {} : { workflowVersion: Number(body.workflowVersion) }),
+    });
     sendJson(response, 200, { result: { action, status: "initialized", files }, project: getVideoProject(slug) });
     return true;
   }
@@ -607,13 +617,24 @@ async function serveAction(response, request, pathname, runtime) {
       sendJson(response, 400, { error: "remote-run only supports render" });
       return true;
     }
+    const renderProject = loadProject(slug, { refresh: true });
+    try {
+      assertProjectMutable(renderProject, "提交远程渲染任务");
+    } catch (error) {
+      sendJson(response, 400, {
+        error: error instanceof Error ? error.message : String(error),
+        code: error.code ?? "remote-render-submit-failed",
+        issues: error.issues ?? [],
+      });
+      return true;
+    }
     const activeJob = findActiveJob(slug, stage);
     if (activeJob) {
       sendJson(response, 200, { result: { action, status: "already-running" }, job: activeJob });
       return true;
     }
     try {
-      const renderProject = loadProject(slug, { refresh: true });
+      assertRenderStageReady(renderProject);
       prepareRemoteRenderInputs(renderProject);
       const inputIssues = validateRemoteRenderPackage(renderProject);
       if (inputIssues.length > 0) {
@@ -666,8 +687,9 @@ async function serveAction(response, request, pathname, runtime) {
       sendJson(response, 400, { error: "prepare-remote-render only supports render" });
       return true;
     }
-    const renderProject = loadProject(slug, { refresh: true });
     try {
+      const renderProject = loadProject(slug, { refresh: true });
+      assertRenderStageReady(renderProject, "准备远程渲染资源");
       const preparation = prepareRemoteRenderInputs(renderProject);
       assertRemoteRenderDeliveryInputs(renderProject);
       sendJson(response, 200, {
@@ -735,7 +757,7 @@ async function serveAction(response, request, pathname, runtime) {
       break;
     case "run": {
       const stage = body.stage ?? project.state.currentStage;
-      if (STAGE_DEFINITIONS[stage]?.executor === "agent") {
+      if (workflowStageDefinition(project, stage)?.executor === "agent") {
         if (stage === "remotion") {
           const remotionIssues = validateStage(project, "remotion");
           const requiresRebuild = project.state.stages.remotion.invalidatedBy === "gate-3-rejected";

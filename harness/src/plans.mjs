@@ -1,4 +1,8 @@
-import { STAGE_DEFINITIONS, STAGES, getWorkflowDefinition } from "./stages.mjs";
+import {
+  requireWorkflowDefinition,
+  workflowStageDefinitions,
+  workflowStages,
+} from "./workflows/registry.mjs";
 import { resolveStyleId } from "./styles.mjs";
 
 function commandFor(command, slug, stage = null) {
@@ -8,21 +12,20 @@ function commandFor(command, slug, stage = null) {
 
 export function buildProjectPlan(project, targetOverride = null) {
   const { config, state } = project;
-  const workflow = getWorkflowDefinition(config.workflow);
-  if (!workflow) {
-    throw new Error(`Unknown workflow: ${config.workflow}`);
-  }
+  const workflow = requireWorkflowDefinition(config);
+  const stagesForWorkflow = workflowStages(project);
+  const definitionsForWorkflow = workflowStageDefinitions(project);
 
   const target = targetOverride ?? config.target;
-  const targetIndex = STAGES.indexOf(target);
+  const targetIndex = stagesForWorkflow.indexOf(target);
   if (targetIndex < 0) {
     throw new Error(`Unknown target stage: ${target}`);
   }
 
-  const stages = STAGES.slice(0, targetIndex + 1).map((stage) => {
-    const definition = STAGE_DEFINITIONS[stage];
+  const stages = stagesForWorkflow.slice(0, targetIndex + 1).map((stage) => {
+    const definition = definitionsForWorkflow[stage];
     const item = state.stages[stage];
-    const inScope = STAGES.indexOf(stage) <= targetIndex;
+    const inScope = stagesForWorkflow.indexOf(stage) <= targetIndex;
     return {
       stage,
       order: definition.order,
@@ -47,7 +50,7 @@ export function buildProjectPlan(project, targetOverride = null) {
     harnessVersion: config.harnessVersion,
     project: {
       slug: state.slug,
-      workflow: config.workflow,
+      workflow: config.workflow ?? workflow.id,
       workflowVersion: config.workflowVersion,
       style: resolveStyleId(config, state.slug),
       configuredTarget: config.target,

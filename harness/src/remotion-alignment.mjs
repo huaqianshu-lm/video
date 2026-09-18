@@ -5,11 +5,16 @@ import { assertProjectMutable, assertProjectSlugMutable, readJson, writeJson } f
 import { buildRemotionTimingPlan } from "./remotion-timing.mjs";
 import { validateVisualBindings } from "./visual-timing.mjs";
 import { renderInputDirectory, validateCurrentRenderInput } from "./render-input.mjs";
+import { workflowPaths, workflowStageDefinition, workflowForProject } from "./workflows/registry.mjs";
+import { validatePromoRemotion } from "./workflows/product-promo-validation.mjs";
 
 export const REMOTION_ALIGNMENT_SCHEMA_VERSION = 2;
 
 export function remotionAlignmentPath(project) {
-  return `videos/${project.config.slug}/remotion-alignment.json`;
+  const paths = workflowPaths(project);
+  return workflowForProject(project).timelineMode === "visual-beats"
+    ? `${paths.remotionDirectory}/remotion-alignment.json`
+    : `videos/${project.config.slug}/remotion-alignment.json`;
 }
 
 export function prototypeBaselinePath(project) {
@@ -39,8 +44,13 @@ function prototypeSceneIds(text) {
 }
 
 export function buildPrototypeBaseline(project) {
-  const visualScriptPath = `videos/${project.config.slug}/visual-script.md`;
-  const prototypePath = `videos/${project.config.slug}/visual-prototype.html`;
+  const visualScriptPath = workflowStageDefinition(project, "visual-script")?.artifacts?.[0]
+    ?.replaceAll("{slug}", project.config.slug);
+  const prototypeStage = workflowForProject(project).timelineMode === "visual-beats"
+    ? "motion-prototype"
+    : "visual-prototype";
+  const prototypePath = workflowStageDefinition(project, prototypeStage)?.artifacts?.[0]
+    ?.replaceAll("{slug}", project.config.slug);
   const visualScript = readWorkspaceText(project, visualScriptPath);
   const prototype = readWorkspaceText(project, prototypePath);
   if (visualScript === null || prototype === null) {
@@ -66,11 +76,13 @@ export function freezePrototypeBaseline(project) {
   assertProjectMutable(project, "冻结 Visual Prototype 基线");
   assertProjectSlugMutable(project.config.slug, "冻结 Visual Prototype 基线");
   const baseline = buildPrototypeBaseline(project);
-  const remotionDirectory = path.join(project.config.workspaceRoot, "src", "videos", project.config.slug);
+  const remotionDirectory = path.join(project.config.workspaceRoot, project.config.remotionDirectory);
   const hasExistingImplementation = fs.existsSync(path.join(remotionDirectory, "video.config.ts"))
     && fs.existsSync(remotionDirectory)
     && fs.readdirSync(remotionDirectory).some((entry) => entry.endsWith("Video.tsx"));
-  baseline.alignmentRequired = !hasExistingImplementation;
+  baseline.alignmentRequired = workflowForProject(project).timelineMode === "visual-beats"
+    ? true
+    : !hasExistingImplementation;
   writeJson(prototypeBaselinePath(project), baseline);
   return baseline;
 }
@@ -322,6 +334,12 @@ function validateSceneTiming(scene, expected, relativePath, issues) {
 }
 
 export function validateRemotionAlignment(project) {
+  if (workflowForProject(project).timelineMode === "visual-beats") {
+    return [
+      ...validatePromoRemotion(project, "remotion"),
+      ...validateTemporaryRenderEntry(project),
+    ];
+  }
   const baseline = getPrototypeBaseline(project);
   const relativePath = remotionAlignmentPath(project);
   if (!baseline) {

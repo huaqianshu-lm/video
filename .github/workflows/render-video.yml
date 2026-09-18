@@ -81,36 +81,55 @@ jobs:
       - name: Install render input into temporary workspace
         run: |
           input_root="$RUNNER_TEMP/render-input"
-          manifest_slug="$(node -e "console.log(require(process.argv[1]).videoSlug)" "$input_root/render-input.json")"
-          manifest_composition="$(node -e "console.log(require(process.argv[1]).compositionId)" "$input_root/render-input.json")"
+          manifest_values="$(node --input-type=module - "$input_root/render-input.json" <<'NODE'
+          import fs from 'node:fs';
+          import {requireWorkflowDefinition, workflowPaths} from './harness/src/workflows/registry.mjs';
+          const manifest = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
+          const workflow = requireWorkflowDefinition({workflow: manifest.workflow, workflowVersion: manifest.workflowVersion});
+          const paths = workflowPaths({config: {workflow: workflow.id, workflowVersion: workflow.version, slug: manifest.videoSlug}}, manifest.videoSlug);
+          if (!manifest.entry?.configPath || !manifest.entry?.componentPath) throw new Error('render-input.json is missing Remotion entry paths');
+          console.log(manifest.videoSlug);
+          console.log(manifest.compositionId);
+          console.log(paths.sourceDirectory);
+          console.log(paths.remotionDirectory);
+          console.log(paths.assetArchive);
+          console.log(manifest.entry.configPath);
+          console.log(manifest.entry.componentPath);
+          NODE
+          )"
+          mapfile -t manifest_values_array <<< "$manifest_values"
+          manifest_slug="${manifest_values_array[0]}"
+          manifest_composition="${manifest_values_array[1]}"
+          source_directory="${manifest_values_array[2]}"
+          remotion_directory="${manifest_values_array[3]}"
+          asset_archive="${manifest_values_array[4]}"
+          config_path="${manifest_values_array[5]}"
+          component_path="${manifest_values_array[6]}"
           test "$manifest_slug" = "$VIDEO_SLUG"
           test "$manifest_composition" = "$COMPOSITION_ID"
-          mkdir -p videos src/videos assets
-          cp -R "$input_root/videos/$VIDEO_SLUG" "videos/$VIDEO_SLUG"
-          cp -R "$input_root/src/videos/$VIDEO_SLUG" "src/videos/$VIDEO_SLUG"
-          cp "$input_root/assets/$VIDEO_SLUG-assets.zip" "assets/$VIDEO_SLUG-assets.zip"
+          mkdir -p "$(dirname "$source_directory")" "$(dirname "$remotion_directory")" "$(dirname "$asset_archive")"
+          cp -R "$input_root/$source_directory" "$source_directory"
+          cp -R "$input_root/$remotion_directory" "$remotion_directory"
+          cp "$input_root/$asset_archive" "$asset_archive"
           node harness/src/cli.mjs render-input entry \
             --manifest "$input_root/render-input.json" \
             --output src/RenderInputRoot.tsx
           mkdir -p public/local-assets
-          unzip -q "assets/$VIDEO_SLUG-assets.zip" -d public/local-assets
+          unzip -q "$asset_archive" -d public/local-assets
 
       - name: Validate workflow inputs
         run: |
           [[ "$VIDEO_SLUG" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]]
           [[ "$COMPOSITION_ID" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]]
-          test -f "src/videos/${VIDEO_SLUG}/generated/audio-manifest.json"
-          test -f "src/videos/${VIDEO_SLUG}/generated/subtitle-manifest.json"
-          test -f "src/videos/${VIDEO_SLUG}/generated/timeline-manifest.json"
-          test -f "src/videos/${VIDEO_SLUG}/video.config.ts"
+          manifest_config_path="$(node -e "console.log(require(process.argv[1]).entry.configPath)" "$RUNNER_TEMP/render-input/render-input.json")"
+          manifest_component_path="$(node -e "console.log(require(process.argv[1]).entry.componentPath)" "$RUNNER_TEMP/render-input/render-input.json")"
+          test -f "$manifest_config_path"
+          test -f "$manifest_component_path"
           test -f src/RenderInputRoot.tsx
 
       - name: Verify render inputs
         run: |
-          test -f "public/local-assets/${VIDEO_SLUG}/subtitles/captions.vtt"
-          expected_audio_count="$(VIDEO_SLUG="$VIDEO_SLUG" node -e "const manifest = require('./src/videos/' + process.env.VIDEO_SLUG + '/generated/audio-manifest.json'); console.log(manifest.scenes.reduce((count, scene) => count + scene.segments.length, 0));")"
-          actual_audio_count="$(find "public/local-assets/${VIDEO_SLUG}/audio" -type f -name '*.mp3' | wc -l | tr -d ' ')"
-          test "$actual_audio_count" -eq "$expected_audio_count"
+          node harness/src/cli.mjs render-input validate-path "$RUNNER_TEMP/render-input"
 
       - name: Type-check project
         run: npm run check

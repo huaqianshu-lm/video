@@ -1,7 +1,7 @@
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
-import { STAGE_DEFINITIONS } from "./stages.mjs";
+import { workflowStageDefinition } from "./workflows/registry.mjs";
 
 function expandArtifactPaths(root, relativePath) {
   const parts = relativePath.split("/");
@@ -32,7 +32,7 @@ function hashFile(hash, root, relativePath) {
 }
 
 export function fingerprintStageArtifacts(project, stage) {
-  const templates = STAGE_DEFINITIONS[stage]?.artifacts ?? [];
+  const templates = workflowStageDefinition(project, stage)?.artifacts ?? [];
   if (templates.length === 0) return null;
 
   const hash = crypto.createHash("sha256");

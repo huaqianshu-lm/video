@@ -1,9 +1,10 @@
 import {
-  RETIRED_STAGE_DEFINITIONS,
-  STAGE_DEFINITIONS,
-  getWorkflowDefinition,
-  isGateStage,
-} from "./stages.mjs";
+  requireWorkflowDefinition,
+  retiredStageDefinition,
+  workflowIsGateStage,
+  workflowStageDefinition,
+  workflowForProject,
+} from "./workflows/registry.mjs";
 import { getStyleDefinition, resolveStyleId } from "./styles.mjs";
 import { matchesArtifactPath } from "./artifact-paths.mjs";
 import { getPrototypeBaseline, remotionAlignmentPath } from "./remotion-alignment.mjs";
@@ -33,10 +34,7 @@ function uniquePaths(entries) {
 
 export function buildTaskPacket(project) {
   const { config, state } = project;
-  const workflow = getWorkflowDefinition(config.workflow);
-  if (!workflow) {
-    throw new Error(`Unknown workflow: ${config.workflow}`);
-  }
+  const workflow = requireWorkflowDefinition(config);
   const styleId = resolveStyleId(config, state.slug);
   const style = getStyleDefinition(styleId);
   if (!style) {
@@ -63,9 +61,9 @@ export function buildTaskPacket(project) {
   }
 
   const stage = state.currentStage;
-  const definition = STAGE_DEFINITIONS[stage];
+  const definition = workflowStageDefinition(project, stage);
   if (!definition) {
-    if (RETIRED_STAGE_DEFINITIONS[stage]) {
+    if (retiredStageDefinition(stage)) {
       return {
         schemaVersion: 1,
         kind: "video-stage-task",
@@ -90,17 +88,18 @@ export function buildTaskPacket(project) {
   const currentValidationIssues = validateProjectStage(project, stage);
   const inputs = artifactEntries(project, contract.inputStages);
   const outputs = artifactEntries(project, [stage]);
-  const styleReferencePaths = ["visual-script", "visual-prototype"].includes(stage)
+  const prototypeStage = workflow.timelineMode === "visual-beats" ? "motion-prototype" : "visual-prototype";
+  const styleReferencePaths = ["visual-script", prototypeStage].includes(stage)
     ? [style.path]
     : [];
-  const prototypeReferencePaths = stage === "visual-prototype" && style.prototypeBaselinePath
+  const prototypeReferencePaths = stage === prototypeStage && style.prototypeBaselinePath
     ? [style.prototypeBaselinePath]
     : [];
   const referencePaths = [...styleReferencePaths, ...prototypeReferencePaths];
   const prototypeBaseline = stage === "remotion" ? getPrototypeBaseline(project) : null;
   let remotionTimingPlan = null;
   let remotionTimingPlanError = null;
-  if (stage === "remotion") {
+  if (stage === "remotion" && workflow.timelineMode === "narrated-manifest") {
     try {
       remotionTimingPlan = buildRemotionTimingPlanForProject(project);
     } catch (error) {
@@ -122,7 +121,7 @@ export function buildTaskPacket(project) {
   if (stage === "remotion" && prototypeBaseline?.alignmentRequired !== false) {
     for (const outputPath of [
       remotionAlignmentPath(project),
-      `src/videos/${config.slug}/*.tsx`,
+      `${config.remotionDirectory}/*.tsx`,
     ]) {
       outputs.push({
         stage,
@@ -134,11 +133,11 @@ export function buildTaskPacket(project) {
   }
   const commands = {
     validate: commandFor("validate", state.slug, stage),
-    execute: isGateStage(stage)
+    execute: workflowIsGateStage(project, stage)
       ? commandFor("run", state.slug, stage)
       : commandFor("run", state.slug, stage),
   };
-  if (isGateStage(stage)) {
+  if (workflowIsGateStage(project, stage)) {
     commands.approve = commandFor("approve", state.slug, stage);
     commands.reject = `node harness/src/cli.mjs reject ${state.slug} ${stage} --return-to <stage> --reason "<reason>"`;
   }
@@ -179,6 +178,8 @@ export function buildTaskPacket(project) {
       workspaceRoot: config.workspaceRoot,
       sourceDirectory: config.sourceDirectory,
       remotionDirectory: config.remotionDirectory,
+      assetArchive: config.assetArchive,
+      renderInputDirectory: config.renderInputDirectory,
       style: {
         id: style.id,
         version: style.version,
@@ -196,12 +197,12 @@ export function buildTaskPacket(project) {
           "这是 Gate 3 驳回后的 Remotion 重制任务，必须先读取并处理 context.rebuildRequest，不能只做只读检查。",
           remotionRebuildRequest.requirement,
         ] : []),
-        ...(stage === "visual-prototype" ? [
+        ...(["visual-prototype", "motion-prototype"].includes(stage) ? [
           `必须读取并复用 ${style.prototypeBaselinePath} 的完整原型基线：shell、toolbar、stage、section.scene、caption、controls、progress 和 meta。`,
           "系列标题、每个 Scene 的唯一标题区、PATH／幕数、右上导航、幕内字幕和底部进度区必须保持基线位置与排版；每个 Scene 的标题区至少包含 eyebrow 和 h1／title，统一位于左上安全区域，禁止缺失、重复、居中或由 Scene 专属样式改位；只替换当前视频内容、Scene 数量和 Scene 内部视觉事件。",
           "不得只复制 class 名称后另起页面布局、定位规则、色彩系统或 Scene 容器格式；完成后必须通过基线结构和布局校验。",
         ] : []),
-        ...(stage === "remotion" ? [
+        ...(stage === "remotion" && workflow.timelineMode === "narrated-manifest" ? [
           "Gate 2 冻结的 Visual Script 与 Visual Prototype 是 Remotion 的强制视觉基线。",
           "必须读取并校验冻结的 tts-script.json，以及由它生成的 Audio Manifest、Subtitle Manifest 和 Timeline Manifest；四类产物共同构成当前视频的声音与时间输入。",
           "Timeline Manifest 是唯一时间基准，tts-script.json 只用于确认 Scene／Segment 文本和 ID 边界，不能使用其他口播文本或旧音频资料替代。",
@@ -212,9 +213,15 @@ export function buildTaskPacket(project) {
           "每个需要延迟出现的画面元素都必须在 remotion-alignment.json 的 visualElements 中声明，并通过 bindingId 一对一绑定命名 visualBindings；箭头、连线和关系标签必须声明依赖项，并从所有依赖项中最晚的显示帧开始。实现文件必须声明 implementationSymbols，禁止使用 Cue 数组下标、任意 fallback 帧、固定间隔推算或默认从 Scene 起始帧显示。",
           "Remotion Agent 不得写入或修改受跟踪的 src/Root.tsx；产物完成后由 Harness 从当前视频已校验的独立输入包生成被忽略的 src/RenderInputRoot.tsx，校验和 Studio 预览只使用这个临时入口。",
         ] : []),
+        ...(stage === "remotion" && workflow.timelineMode === "visual-beats" ? [
+          "Gate 2 冻结的 Visual Script 与 Motion Prototype 是 Remotion 的强制视觉基线。",
+          "必须读取并校验 asset-manifest.json 和 visual-timeline.json；Visual Timeline 是宣传片唯一时间基准，不得生成或使用 TTS、字幕或 narrated Timeline 作为替代。",
+          "必须逐 Scene 对齐 Scene、Beat、Transition、屏幕文字、素材、实现文件和组件符号；不得使用固定间隔估算或在渲染时联网抓取素材。",
+          "最终 Composition 不得包含预览导航、进度、控件、调试标记或辅助说明；Remotion Agent 不得写入或修改受跟踪的 src/Root.tsx。",
+        ] : []),
       ],
       ...(stage === "remotion" ? { prototypeBaseline } : {}),
-      ...(stage === "remotion" ? { timingPlan: remotionTimingPlan } : {}),
+      ...(stage === "remotion" && workflow.timelineMode === "narrated-manifest" ? { timingPlan: remotionTimingPlan } : {}),
       ...(stage === "remotion" && remotionTimingPlanError ? { timingPlanError: remotionTimingPlanError } : {}),
       ...(remotionRebuildRequest ? { rebuildRequest: remotionRebuildRequest } : {}),
     },

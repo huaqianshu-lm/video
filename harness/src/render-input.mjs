@@ -8,6 +8,8 @@ import { resolveGitHubToken } from "./github-auth.mjs";
 import { validateRenderInputUrl } from "./github-config.mjs";
 import { validateRemoteRenderInputs } from "./remote-executor.mjs";
 import { assertProjectMutable, assertProjectSlugMutable, isCompletedProject, loadProject } from "./storage.mjs";
+import { allWorkflowDefinitions, requireWorkflowDefinition, workflowForProject, workflowPaths } from "./workflows/registry.mjs";
+import { promoTimelineSourceIssues } from "./workflows/product-promo-validation.mjs";
 
 const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const IDENTIFIER_PATTERN = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
@@ -150,11 +152,14 @@ function sourceSnapshotFingerprint(snapshot) {
   return crypto.createHash("sha256").update(JSON.stringify(snapshot)).digest("hex");
 }
 
-function sourcePaths(workspaceRoot, slug) {
+function sourcePaths(workspaceRoot, slug, projectOrWorkflow = null) {
+  const input = projectOrWorkflow ?? { config: { slug, workspaceRoot } };
+  const paths = workflowPaths(input, slug);
   return {
-    source: path.join(workspaceRoot, "videos", slug),
-    remotion: path.join(workspaceRoot, "src", "videos", slug),
-    assetArchive: path.join(workspaceRoot, "assets", `${slug}-assets.zip`),
+    source: path.join(workspaceRoot, paths.sourceDirectory),
+    remotion: path.join(workspaceRoot, paths.remotionDirectory),
+    assetArchive: path.join(workspaceRoot, paths.assetArchive),
+    relative: paths,
   };
 }
 
@@ -168,11 +173,17 @@ function requireFile(filePath, label) {
 
 function inferExportName(filePath, suffixPattern) {
   const source = fs.readFileSync(filePath, "utf8");
-  const match = source.match(new RegExp(`export\\s+(?:const|function)\\s+([A-Za-z_$][A-Za-z0-9_$]*${suffixPattern})`));
+  const match = source.match(new RegExp(`export\\s+(?:const|function)\\s+((?:[A-Za-z_$][A-Za-z0-9_$]*)?${suffixPattern})\\b`));
   return match?.[1] ?? null;
 }
 
-function selectEntry(remotionDirectory, { componentFile = null, componentExport = null, configFile = "video.config.ts", configExport = "videoConfig" } = {}) {
+function selectEntry(remotionDirectory, {
+  componentFile = null,
+  componentExport = null,
+  configFile = "video.config.ts",
+  configExport = "videoConfig",
+  requireDurationExport = false,
+} = {}) {
   if (!CONFIG_PATTERN.test(configFile)) fail(`Invalid config file: ${configFile}`);
   if (!IDENTIFIER_PATTERN.test(configExport)) fail(`Invalid config export: ${configExport}`);
   const componentFiles = fs.readdirSync(remotionDirectory)
@@ -189,12 +200,19 @@ function selectEntry(remotionDirectory, { componentFile = null, componentExport 
   }
   const configPath = path.join(remotionDirectory, configFile);
   requireFile(configPath, "video config");
+  const durationExport = inferExportName(configPath, "TotalDurationFrames");
+  if (requireDurationExport && !durationExport) {
+    fail("宣传片 Remotion 配置必须导出 TotalDurationFrames，并从 Visual Timeline 派生时长", "render-input-promo-duration-export-missing");
+  }
+  if (requireDurationExport && durationExport !== "TotalDurationFrames") {
+    fail("宣传片 Remotion 配置必须使用精确的 TotalDurationFrames 导出", "render-input-promo-duration-export-invalid");
+  }
   return {
     componentFile: selectedComponentFile,
     componentExport: selectedComponentExport,
     configFile,
     configExport,
-    durationExport: inferExportName(configPath, "TotalDurationFrames"),
+    durationExport,
   };
 }
 
@@ -250,6 +268,17 @@ function validateManifestShape(manifest) {
   }
   if (!manifest?.sourceSnapshot || typeof manifest.sourceSnapshot !== "object" || Array.isArray(manifest.sourceSnapshot)) {
     issues.push("render-input.json 缺少源资料快照");
+  }
+  let workflow = null;
+  try {
+    workflow = requireWorkflowDefinition(manifest);
+  } catch (error) {
+    issues.push(`render-input.json 的 Workflow 无效：${error instanceof Error ? error.message : String(error)}`);
+  }
+  if (workflow?.timelineMode === "visual-beats"
+    && manifest?.entry
+    && manifest.entry.durationExport !== "TotalDurationFrames") {
+    issues.push("宣传片 render-input.json 必须使用 TotalDurationFrames 作为时长导出");
   }
   return issues;
 }
@@ -357,7 +386,7 @@ export function validateRenderInputDelivery(project, { inputRoot: inputRootOverr
       if (delivery.packageFingerprint !== manifest.packageFingerprint) issues.push("交付记录的 packageFingerprint 与当前输入包不一致");
       const archiveSha256 = sha256File(archivePath);
       if (delivery.archiveSha256 !== archiveSha256) issues.push("交付记录的 archiveSha256 与当前 ZIP 不一致，请重新绑定");
-      if (!manifestMatchesWorkspaceSources(manifest, workspaceRoot, slug)) {
+      if (!manifestMatchesWorkspaceSources(manifest, workspaceRoot, slug, project)) {
         issues.push("当前视频源资料已变化，输入包已过期，请重新准备、打包并绑定");
       }
     } catch (error) {
@@ -555,10 +584,30 @@ export function validateRenderInputDirectory(directory, { expectedSlug = null, l
   }
 
   if (SLUG_PATTERN.test(String(slug ?? "")) && manifest.entry && typeof manifest.entry === "object") {
+    let packagePaths = null;
+    let packageWorkflow = null;
+    try {
+      packageWorkflow = requireWorkflowDefinition({
+        config: {
+          slug,
+          workspaceRoot: packageRoot,
+          ...(manifest.workflow ? { workflow: manifest.workflow } : {}),
+          ...(manifest.workflowVersion !== undefined ? { workflowVersion: manifest.workflowVersion } : {}),
+        },
+      });
+      packagePaths = workflowPaths({ config: {
+        slug,
+        workspaceRoot: packageRoot,
+        ...(manifest.workflow ? { workflow: manifest.workflow } : {}),
+        ...(manifest.workflowVersion !== undefined ? { workflowVersion: manifest.workflowVersion } : {}),
+      } }, slug);
+    } catch (error) {
+      issues.push(`输入包 Workflow 无效：${error instanceof Error ? error.message : String(error)}`);
+    }
     for (const relativePath of [
-      `videos/${slug}`,
-      `src/videos/${slug}`,
-      `assets/${slug}-assets.zip`,
+      packagePaths?.sourceDirectory,
+      packagePaths?.remotionDirectory,
+      packagePaths?.assetArchive,
       manifest.entry.componentPath,
       manifest.entry.configPath,
     ]) {
@@ -577,10 +626,44 @@ export function validateRenderInputDirectory(directory, { expectedSlug = null, l
         issues.push(`输入包路径不是普通文件或目录：${relativePath}`);
       }
     }
+    if (packageWorkflow?.timelineMode === "visual-beats") {
+      if (manifest.entry.durationExport !== "TotalDurationFrames") {
+        issues.push("宣传片输入包必须声明 entry.durationExport=TotalDurationFrames");
+      }
+      try {
+        const configRelativePath = requireSafeRelative(manifest.entry.configPath, "entry.configPath");
+        const configPath = path.join(packageRoot, configRelativePath);
+        if (fs.existsSync(configPath) && fs.lstatSync(configPath).isFile()) {
+          const configSource = fs.readFileSync(configPath, "utf8");
+          if (!/export\s+(?:const|function)\s+TotalDurationFrames\b/.test(configSource)) {
+            issues.push("宣传片输入包的 Remotion 配置必须导出 TotalDurationFrames");
+          }
+          const timelineRelativePath = path.posix.join(packagePaths.sourceDirectory, "visual-timeline.json");
+          issues.push(...promoTimelineSourceIssues({
+            configSource,
+            configPath: manifest.entry.configPath,
+            timelinePath: timelineRelativePath,
+          }));
+        }
+      } catch {
+        // The entry path issue is reported by the package path validation above.
+      }
+      for (const requiredFile of packageWorkflow.delivery?.requiredStaticFiles ?? []) {
+        const requiredPath = path.join(packageRoot, packagePaths.sourceDirectory, requiredFile);
+        if (!fs.existsSync(requiredPath) || !fs.lstatSync(requiredPath).isFile()) {
+          issues.push(`宣传片输入包缺少 ${path.posix.join(packagePaths.sourceDirectory, requiredFile)}`);
+        }
+      }
+    }
   }
 
   if (SLUG_PATTERN.test(String(slug ?? ""))) {
-    const remoteIssues = validateRemoteRenderInputs({ config: { slug, workspaceRoot: packageRoot } }, {
+    const remoteIssues = validateRemoteRenderInputs({ config: {
+      slug,
+      workspaceRoot: packageRoot,
+      ...(manifest.workflow ? { workflow: manifest.workflow } : {}),
+      ...(manifest.workflowVersion !== undefined ? { workflowVersion: manifest.workflowVersion } : {}),
+    } }, {
       listArchiveEntries,
       compareLocalAssets: false,
     });
@@ -598,30 +681,34 @@ export function assertRenderInputDirectory(directory, options = {}) {
   throw error;
 }
 
-function buildManifest({ slug, compositionId, entry, packageRoot }) {
+function buildManifest({ slug, compositionId, entry, packageRoot, project }) {
+  const definition = workflowForProject(project);
+  const paths = workflowPaths(project, slug);
   const sources = {
-    source: path.join(packageRoot, "videos", slug),
-    remotion: path.join(packageRoot, "src", "videos", slug),
-    assetArchive: path.join(packageRoot, "assets", `${slug}-assets.zip`),
+    source: path.join(packageRoot, paths.sourceDirectory),
+    remotion: path.join(packageRoot, paths.remotionDirectory),
+    assetArchive: path.join(packageRoot, paths.assetArchive),
   };
   const snapshot = sourceSnapshot({ sources, entry, compositionId });
   return {
     schemaVersion: SCHEMA_VERSION,
     kind: "video-render-input",
     videoSlug: slug,
+    workflow: definition.id,
+    workflowVersion: definition.version,
     compositionId,
     createdAt: new Date().toISOString(),
     entry: {
-      componentPath: `src/videos/${slug}/${entry.componentFile}`,
+      componentPath: `${paths.remotionDirectory}/${entry.componentFile}`,
       componentExport: entry.componentExport,
-      configPath: `src/videos/${slug}/${entry.configFile}`,
+      configPath: `${paths.remotionDirectory}/${entry.configFile}`,
       configExport: entry.configExport,
       ...(entry.durationExport ? { durationExport: entry.durationExport } : {}),
     },
     payload: {
-      sourceDirectory: `videos/${slug}`,
-      remotionDirectory: `src/videos/${slug}`,
-      assetArchive: `assets/${slug}-assets.zip`,
+      sourceDirectory: paths.sourceDirectory,
+      remotionDirectory: paths.remotionDirectory,
+      assetArchive: paths.assetArchive,
     },
     sourceFingerprint: sourceSnapshotFingerprint(snapshot),
     sourceSnapshot: snapshot,
@@ -648,8 +735,16 @@ function manifestEntry(manifest) {
   };
 }
 
-function manifestMatchesWorkspaceSources(manifest, workspaceRoot, slug) {
-  const sources = sourcePaths(workspaceRoot, slug);
+function manifestMatchesWorkspaceSources(manifest, workspaceRoot, slug, projectOrWorkflow = null) {
+  const workflowInput = projectOrWorkflow ?? {
+    config: {
+      slug,
+      workspaceRoot,
+      ...(manifest?.workflow ? { workflow: manifest.workflow } : {}),
+      ...(manifest?.workflowVersion !== undefined ? { workflowVersion: manifest.workflowVersion } : {}),
+    },
+  };
+  const sources = sourcePaths(workspaceRoot, slug, workflowInput);
   if (![sources.source, sources.remotion, sources.assetArchive].every((sourcePath) => fs.existsSync(sourcePath))) return false;
   return manifestMatchesSources(manifest, {
     sources,
@@ -665,7 +760,7 @@ export function validateCurrentRenderInput(project) {
   const issues = validateRenderInputDirectory(directory, { expectedSlug: slug });
   if (issues.length > 0) return [...new Set(issues)];
   const manifest = readManifest(path.join(directory, "render-input.json"));
-  if (!manifestMatchesWorkspaceSources(manifest, workspaceRoot, slug)) {
+  if (!manifestMatchesWorkspaceSources(manifest, workspaceRoot, slug, project)) {
     issues.push("当前输入包与视频源资料不一致，请重新准备输入包");
   }
   return [...new Set(issues)];
@@ -709,10 +804,13 @@ function assertRenderEntryOutputPath(outputPath, slugs, manifestPath = null, wor
     for (const slug of slugs) {
       const protectedPaths = [
         path.join(root, "videos", slug),
+        path.join(root, "videos", "product-promo", slug),
         path.join(root, "src", "videos", slug),
+        path.join(root, "src", "videos", "product-promo", slug),
         path.join(root, "public", "local-assets", slug),
         path.join(root, "local", "render-input", slug),
         path.join(root, "assets", `${slug}-assets.zip`),
+        path.join(root, "assets", "product-promo", `${slug}-assets.zip`),
       ];
       if (protectedPaths.some((protectedPath) => target === protectedPath || target.startsWith(`${protectedPath}${path.sep}`))) {
         fail("临时入口不能写入具体视频资料、资源或输入包目录", "render-input-entry-output-protected");
@@ -733,18 +831,24 @@ export function prepareRenderInput(project, {
   const workspaceRoot = requireWorkspaceRoot(project);
   const slug = requireSlug(project?.config?.slug ?? project?.state?.slug);
   if (typeof compositionId !== "string" || !compositionId.trim()) fail("compositionId is required", "render-input-composition-invalid");
-  const sources = sourcePaths(workspaceRoot, slug);
-  requireDirectory(sources.source, `videos/${slug}`);
-  requireDirectory(sources.remotion, `src/videos/${slug}`);
+  const paths = workflowPaths(project, slug);
+  const sources = sourcePaths(workspaceRoot, slug, project);
+  requireDirectory(sources.source, paths.sourceDirectory);
+  requireDirectory(sources.remotion, paths.remotionDirectory);
 
-  const projectForAssets = { config: { slug, workspaceRoot } };
   assertProjectSlugMutable(slug, "生成或更新视频资源 ZIP");
-  const archiveResult = ensureAssetArchive(projectForAssets);
+  const archiveResult = ensureAssetArchive(project);
   if (!["current", "packaged", "archive-only"].includes(archiveResult.status)) {
     fail(`Cannot prepare asset archive for ${slug}`, "render-input-assets-invalid");
   }
-  requireFile(sources.assetArchive, `assets/${slug}-assets.zip`);
-  const entry = selectEntry(sources.remotion, { componentFile, componentExport, configFile, configExport });
+  requireFile(sources.assetArchive, paths.assetArchive);
+  const entry = selectEntry(sources.remotion, {
+    componentFile,
+    componentExport,
+    configFile,
+    configExport,
+    requireDurationExport: workflowForProject(project).timelineMode === "visual-beats",
+  });
   const root = renderInputRoot(workspaceRoot);
   const destination = renderInputDirectory(workspaceRoot, slug);
   assertProjectSlugMutable(slug, "准备视频输入包目录");
@@ -768,11 +872,11 @@ export function prepareRenderInput(project, {
 
   const temporaryDirectory = fs.mkdtempSync(path.join(root, `.${slug}-`));
   try {
-    copyTree(sources.source, path.join(temporaryDirectory, "videos", slug));
-    copyTree(sources.remotion, path.join(temporaryDirectory, "src", "videos", slug));
-    fs.mkdirSync(path.join(temporaryDirectory, "assets"), { recursive: true });
-    fs.copyFileSync(sources.assetArchive, path.join(temporaryDirectory, "assets", `${slug}-assets.zip`));
-    const manifest = buildManifest({ slug, compositionId, entry, packageRoot: temporaryDirectory });
+    copyTree(sources.source, path.join(temporaryDirectory, paths.sourceDirectory));
+    copyTree(sources.remotion, path.join(temporaryDirectory, paths.remotionDirectory));
+    fs.mkdirSync(path.dirname(path.join(temporaryDirectory, paths.assetArchive)), { recursive: true });
+    fs.copyFileSync(sources.assetArchive, path.join(temporaryDirectory, paths.assetArchive));
+    const manifest = buildManifest({ slug, compositionId, entry, packageRoot: temporaryDirectory, project });
     fs.writeFileSync(path.join(temporaryDirectory, "render-input.json"), `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
     assertRenderInputDirectory(temporaryDirectory, { expectedSlug: slug });
     replaceRenderInputDirectory(temporaryDirectory, destination, () => assertProjectSlugMutable(slug, "替换视频输入包目录"));
@@ -849,11 +953,25 @@ export function discoverStudioEntries(workspaceRoot) {
   const entries = [];
   const skipped = [];
 
+  const namespaces = new Set(Object.values(allWorkflowDefinitions())
+    .map((definition) => definition.pathNamespace)
+    .filter(Boolean));
   const candidateSlugs = new Set();
-  for (const directory of [remotionRoot, inputRoot]) {
+  const candidateDirectories = [
+    remotionRoot,
+    ...Object.values(allWorkflowDefinitions())
+      .map((definition) => definition.pathNamespace ? path.join(remotionRoot, definition.pathNamespace) : null)
+      .filter(Boolean),
+    inputRoot,
+  ];
+  for (const [index, directory] of candidateDirectories.entries()) {
     if (!fs.existsSync(directory) || !fs.statSync(directory).isDirectory()) continue;
     for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
-      if (entry.isDirectory() && SLUG_PATTERN.test(entry.name)) candidateSlugs.add(entry.name);
+      if (entry.isDirectory()
+        && SLUG_PATTERN.test(entry.name)
+        && (index !== 0 || !namespaces.has(entry.name))) {
+        candidateSlugs.add(entry.name);
+      }
     }
   }
 

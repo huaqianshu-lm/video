@@ -1,10 +1,17 @@
 import fs from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 import { matchesArtifactPath } from "./artifact-paths.mjs";
 import { projectFiles, loadProject } from "./storage.mjs";
 import { buildNextAction, buildProjectReport } from "./reports.mjs";
-import { RETIRED_STAGE_DEFINITIONS, stagesForProjectView, STAGES, STAGE_DEFINITIONS } from "./stages.mjs";
+import {
+  allWorkflowDefinitions,
+  retiredStageDefinition,
+  stagesForWorkflowProjectView,
+  workflowForProject,
+  workflowStageDefinition,
+  workflowPaths,
+  workflowStages,
+} from "./workflows/registry.mjs";
 import { resolveStyleId } from "./styles.mjs";
 
 const repositoryRoot = path.resolve(new URL("../..", import.meta.url).pathname);
@@ -28,9 +35,24 @@ function directorySlugs(directory) {
     .map((entry) => entry.name);
 }
 
+function workflowNamespaces() {
+  return new Set(Object.values(allWorkflowDefinitions())
+    .map((definition) => definition.pathNamespace)
+    .filter(Boolean));
+}
+
+function sourceCandidates(slug) {
+  return [
+    path.join(videosRoot(), slug, "source.md"),
+    ...Object.values(allWorkflowDefinitions())
+      .filter((definition) => definition.pathNamespace)
+      .map((definition) => path.join(videosRoot(), definition.pathNamespace, slug, "source.md")),
+  ];
+}
+
 function sequenceForSlug(slug) {
-  const sourcePath = path.join(videosRoot(), slug, "source.md");
-  if (!fs.existsSync(sourcePath)) return null;
+  const sourcePath = sourceCandidates(slug).find((candidate) => fs.existsSync(candidate));
+  if (!sourcePath) return null;
   const firstLine = fs.readFileSync(sourcePath, "utf8").split(/\r?\n/, 1)[0];
   const match = firstLine.match(/^#\s+(\d+)\s+·/);
   return match ? Number(match[1]) : null;
@@ -48,9 +70,15 @@ function compareVideoSlugs(left, right) {
 }
 
 function allVideoSlugs() {
+  const namespaces = workflowNamespaces();
+  const namespacedSlugs = [...namespaces].flatMap((namespace) => [
+    ...directorySlugs(path.join(videosRoot(), namespace)),
+    ...directorySlugs(path.join(remotionRoot(), namespace)),
+  ]);
   return [...new Set([
-    ...directorySlugs(videosRoot()),
-    ...directorySlugs(remotionRoot()),
+    ...directorySlugs(videosRoot()).filter((slug) => !namespaces.has(slug)),
+    ...directorySlugs(remotionRoot()).filter((slug) => !namespaces.has(slug)),
+    ...namespacedSlugs,
   ])].sort(compareVideoSlugs);
 }
 
@@ -61,8 +89,9 @@ function projectIdentity(slug) {
   };
 }
 
-function artifactPaths(slug, stage) {
-  const definition = STAGE_DEFINITIONS[stage] ?? RETIRED_STAGE_DEFINITIONS[stage];
+function artifactPaths(slug, stage, workflowInput = { config: { workflow: "default", workflowVersion: 2 } }) {
+  const definition = workflowStageDefinition(workflowInput, stage)
+    ?? retiredStageDefinition(stage);
   return (definition?.artifacts ?? []).map((artifact) => artifact.replaceAll("{slug}", slug));
 }
 
@@ -79,10 +108,12 @@ function remoteArtifactPresent(stage, stateItem, slug) {
   );
 }
 
-function artifactPresence(slug, stage, stateItem = null) {
-  return artifactPaths(slug, stage).map((relativePath) => ({
+function artifactPresence(slug, stage, stateItem = null, workflowInput = null) {
+  const config = workflowInput?.config ?? workflowInput ?? {};
+  const root = config.workspaceRoot ?? workspaceRoot();
+  return artifactPaths(slug, stage, workflowInput ?? { config: { workflow: "default", workflowVersion: 2 } }).map((relativePath) => ({
     path: relativePath,
-    present: matchesArtifactPath(repositoryRoot, relativePath) || remoteArtifactPresent(stage, stateItem, slug),
+    present: matchesArtifactPath(root, relativePath) || remoteArtifactPresent(stage, stateItem, slug),
   }));
 }
 
@@ -108,10 +139,29 @@ function stageView(definition, stateItem, artifacts) {
   };
 }
 
+function projectWorkflowInput(slug) {
+  const configPath = projectFiles(slug).config;
+  if (fs.existsSync(configPath)) {
+    try {
+      return { config: JSON.parse(fs.readFileSync(configPath, "utf8")) };
+    } catch {
+      return { config: { workflow: "default", workflowVersion: 2, slug } };
+    }
+  }
+  const promoDefinition = Object.values(allWorkflowDefinitions()).find((definition) => definition.pathNamespace
+    && fs.existsSync(path.join(videosRoot(), definition.pathNamespace, slug)));
+  return promoDefinition
+    ? { config: { workflow: promoDefinition.id, workflowVersion: promoDefinition.version, slug } }
+    : { config: { workflow: "default", workflowVersion: 2, slug } };
+}
+
 function buildUninitializedView(slug) {
-  const stages = STAGES.map((stage) => {
-    const definition = STAGE_DEFINITIONS[stage];
-    const artifacts = artifactPresence(slug, stage);
+  const workflow = projectWorkflowInput(slug);
+  workflow.config.workspaceRoot = workspaceRoot();
+  const workflowStagesForView = workflowStages(workflow);
+  const stages = workflowStagesForView.map((stage) => {
+    const definition = workflowStageDefinition(workflow, stage);
+    const artifacts = artifactPresence(slug, stage, null, workflow);
     const hasArtifacts = artifacts.length > 0 && artifacts.every((artifact) => artifact.present);
     return stageView(
       definition,
@@ -130,9 +180,13 @@ function buildUninitializedView(slug) {
     currentStage: null,
     progress: artifactStages.length === 0 ? 0 : Math.round((availableStages.length / artifactStages.length) * 100),
     succeededCount: availableStages.length,
-    stageCount: STAGES.length,
-    sourceDirectory: `videos/${slug}`,
-    remotionDirectory: `src/videos/${slug}`,
+    stageCount: workflowStagesForView.length,
+    workflow: workflow.config.workflow,
+    workflowVersion: workflow.config.workflowVersion,
+    timelineMode: workflowForProject(workflow).timelineMode,
+    audioMode: workflowForProject(workflow).audioMode,
+    batchSupported: workflowForProject(workflow).batchSupported !== false,
+    ...workflowPaths(workflow, slug),
     style: resolveStyleId({}, slug),
     next: {
       action: "initialize",
@@ -148,11 +202,11 @@ function buildUninitializedView(slug) {
 function buildInitializedView(slug) {
   const project = loadProject(slug, { refresh: true });
   const report = buildProjectReport(project);
-  const displayStages = stagesForProjectView(project);
+  const displayStages = stagesForWorkflowProjectView(project);
   const stages = displayStages.map((stage) => {
-    const definition = STAGE_DEFINITIONS[stage] ?? RETIRED_STAGE_DEFINITIONS[stage];
+    const definition = workflowStageDefinition(project, stage) ?? retiredStageDefinition(stage);
     const reportItem = report.stages.find((item) => item.stage === stage);
-    return stageView(definition, project.state.stages[stage], artifactPresence(slug, stage, project.state.stages[stage]), reportItem);
+    return stageView(definition, project.state.stages[stage], artifactPresence(slug, stage, project.state.stages[stage], project), reportItem);
   });
   const succeededCount = stages.filter((stage) => stage.status === "succeeded").length;
 
@@ -167,6 +221,13 @@ function buildInitializedView(slug) {
     stageCount: stages.length,
     sourceDirectory: project.config.sourceDirectory,
     remotionDirectory: project.config.remotionDirectory,
+    assetArchive: project.config.assetArchive,
+    renderInputDirectory: project.config.renderInputDirectory,
+    workflow: project.config.workflow,
+    workflowVersion: project.config.workflowVersion,
+    timelineMode: workflowForProject(project).timelineMode,
+    audioMode: workflowForProject(project).audioMode,
+    batchSupported: workflowForProject(project).batchSupported !== false,
     style: resolveStyleId(project.config, slug),
     next: buildNextAction(project),
     stages,

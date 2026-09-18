@@ -4,9 +4,15 @@ import {
   DEFAULT_WORKFLOW_ID,
   HARNESS_VERSION,
   WORKFLOW_DEFINITIONS,
-  createStagesState,
-  STAGES,
 } from "./stages.mjs";
+import {
+  createWorkflowStagesState,
+  allWorkflowDefinitions,
+  getWorkflowDefinition,
+  requireWorkflowDefinition,
+  workflowPaths,
+  workflowStages,
+} from "./workflows/registry.mjs";
 import { artifactManifestFor } from "./artifacts.mjs";
 import { fingerprintStageArtifacts } from "./fingerprints.mjs";
 import { resolveStyleId } from "./styles.mjs";
@@ -93,28 +99,61 @@ export function readJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, "utf8"));
 }
 
-export function initializeProject(slug, { style = null, prototypeBaseline = "codex-v1" } = {}) {
+export function initializeProject(slug, {
+  style = null,
+  prototypeBaseline = "codex-v1",
+  workflow = DEFAULT_WORKFLOW_ID,
+  workflowVersion = null,
+} = {}) {
   const files = projectFiles(slug);
   if (fs.existsSync(files.config) || fs.existsSync(files.state) || fs.existsSync(files.artifacts)) {
     throw new Error(`Harness project already exists: ${slug}`);
   }
 
+  const requestedWorkflowVersion = workflowVersion
+    ?? (workflow === DEFAULT_WORKFLOW_ID
+      ? WORKFLOW_DEFINITIONS[DEFAULT_WORKFLOW_ID].version
+      : getWorkflowDefinition(workflow)?.version ?? null);
+  const workflowDefinition = requireWorkflowDefinition({
+    workflow,
+    workflowVersion: requestedWorkflowVersion ?? undefined,
+  });
+  const workspaceRoot = path.resolve(process.env.HARNESS_WORKSPACE_ROOT ?? repositoryRoot);
+  const conflictingWorkflowPath = Object.values(allWorkflowDefinitions())
+    .filter((definition) => definition.id !== workflowDefinition.id)
+    .flatMap((definition) => {
+      const candidate = workflowPaths(definition, slug);
+      return [candidate.sourceDirectory, candidate.remotionDirectory];
+    })
+    .map((relativePath) => path.join(workspaceRoot, relativePath))
+    .find((candidate) => fs.existsSync(candidate));
+  if (conflictingWorkflowPath) {
+    const error = new Error(`视频 slug ${slug} 已被其他 Workflow 使用：${path.relative(workspaceRoot, conflictingWorkflowPath)}`);
+    error.code = "workflow-slug-conflict";
+    error.slug = slug;
+    error.path = path.relative(workspaceRoot, conflictingWorkflowPath);
+    throw error;
+  }
+  const persistedWorkflowVersion = requestedWorkflowVersion ?? workflowDefinition.version;
+  const paths = workflowPaths(workflowDefinition, slug);
   const now = new Date().toISOString();
-  writeJson(files.config, {
+  const config = {
     schemaVersion: 1,
     harnessVersion: HARNESS_VERSION,
     validationPolicy: "strict",
     prototypeBaseline,
     slug,
-    workflow: DEFAULT_WORKFLOW_ID,
-    workflowVersion: WORKFLOW_DEFINITIONS[DEFAULT_WORKFLOW_ID].version,
+    workflow,
+    workflowVersion: persistedWorkflowVersion,
     style: resolveStyleId(style ? { style } : {}, slug),
-    target: "gate-4",
+    target: workflowDefinition.stages.at(-1),
     createdAt: now,
     updatedAt: now,
     workspaceRoot: path.resolve(process.env.HARNESS_WORKSPACE_ROOT ?? repositoryRoot),
-    sourceDirectory: `videos/${slug}`,
-    remotionDirectory: `src/videos/${slug}`,
+    ...paths,
+  };
+  writeJson(files.config, {
+    ...config,
   });
   writeJson(files.state, {
     schemaVersion: 1,
@@ -122,13 +161,13 @@ export function initializeProject(slug, { style = null, prototypeBaseline = "cod
     currentStage: "source",
     createdAt: now,
     updatedAt: now,
-    stages: createStagesState(),
+    stages: createWorkflowStagesState({ config }),
   });
   writeJson(files.artifacts, {
     schemaVersion: 1,
     slug,
     generatedAt: now,
-    stages: artifactManifestFor(slug),
+    stages: artifactManifestFor({ config }),
   });
 
   return files;
@@ -146,19 +185,20 @@ export function applySeriesStyle(slug, style) {
   assertProjectMutable(project, "应用系列风格");
 
   const now = new Date().toISOString();
+  const stages = workflowStages(project);
   project.config.style = style;
   project.config.prototypeBaseline = "codex-v1";
   project.config.updatedAt = now;
   writeJson(project.files.config, project.config);
 
   const restartAt = "visual-script";
-  const restartIndex = STAGES.indexOf(restartAt);
+  const restartIndex = stages.indexOf(restartAt);
   const currentIndex = project.state.currentStage === "completed"
-    ? STAGES.length
-    : STAGES.indexOf(project.state.currentStage);
+    ? stages.length
+    : stages.indexOf(project.state.currentStage);
   if (currentIndex < restartIndex) return { changed: true, restartedAt: null };
 
-  for (const stage of STAGES.slice(restartIndex)) {
+  for (const stage of stages.slice(restartIndex)) {
     const item = project.state.stages[stage];
     item.status = stage === restartAt ? "ready" : "invalidated";
     item.error = null;
@@ -195,6 +235,7 @@ function saveState(project) {
 
 export function reconcileCurrentRemotionOutput(project) {
   assertProjectMutable(project, "恢复 Remotion 产物状态");
+  const stages = workflowStages(project);
   const remotion = project.state.stages.remotion;
   const gate = project.state.stages["gate-3"];
   const isStaleRemotionState = project.state.currentStage === "remotion"
@@ -230,7 +271,7 @@ export function reconcileCurrentRemotionOutput(project) {
   gate.outputFingerprint = null;
   gate.updatedAt = now;
 
-  for (const stage of STAGES.slice(STAGES.indexOf("gate-3") + 1)) {
+  for (const stage of stages.slice(stages.indexOf("gate-3") + 1)) {
     const item = project.state.stages[stage];
     item.status = "invalidated";
     item.outputs = [];
@@ -255,8 +296,9 @@ export function reconcileCurrentRemotionOutput(project) {
 
 export function refreshProject(project) {
   if (isCompletedProject(project)) return { changed: false, stage: null, readOnly: true };
+  const stages = workflowStages(project);
 
-  const changedStages = STAGES.filter((stage) => {
+  const changedStages = stages.filter((stage) => {
     const item = project.state.stages[stage];
     if (item.status !== "succeeded" || !item.outputFingerprint) return false;
     const currentFingerprint = fingerprintStageArtifacts(project, stage);
@@ -271,10 +313,10 @@ export function refreshProject(project) {
   }
 
   const changedStage = changedStages[0];
-  const changedIndex = STAGES.indexOf(changedStage);
+  const changedIndex = stages.indexOf(changedStage);
   const now = new Date().toISOString();
-  for (let index = changedIndex; index < STAGES.length; index += 1) {
-    const stage = STAGES[index];
+  for (let index = changedIndex; index < stages.length; index += 1) {
+    const stage = stages[index];
     const item = project.state.stages[stage];
     item.status = stage === changedStage ? "ready" : "invalidated";
     item.error = null;
@@ -295,10 +337,11 @@ export function reopenGate3ForSeriesCover(slug) {
   if (!fs.existsSync(files.config) || !fs.existsSync(files.state) || !fs.existsSync(files.artifacts)) return false;
   const project = loadProject(slug, { refresh: false });
   assertProjectMutable(project, "因系列封面重开 Gate 3");
-  const gateIndex = STAGES.indexOf("gate-3");
+  const stages = workflowStages(project);
+  const gateIndex = stages.indexOf("gate-3");
   const currentIndex = project.state.currentStage === "completed"
-    ? STAGES.length
-    : STAGES.indexOf(project.state.currentStage);
+    ? stages.length
+    : stages.indexOf(project.state.currentStage);
   if (currentIndex < gateIndex) return false;
 
   const now = new Date().toISOString();
@@ -311,7 +354,7 @@ export function reopenGate3ForSeriesCover(slug) {
   gate.outputFingerprint = null;
   gate.updatedAt = now;
 
-  for (const stage of STAGES.slice(gateIndex + 1)) {
+  for (const stage of stages.slice(gateIndex + 1)) {
     const item = project.state.stages[stage];
     item.status = "invalidated";
     item.outputs = [];

@@ -3,6 +3,7 @@ import path from "node:path";
 import { initializeProject, projectDirectory } from "./storage.mjs";
 import { getSeries, listSeries, saveSeries } from "./series-assets.mjs";
 import { getStyleDefinition } from "./styles.mjs";
+import { allWorkflowDefinitions, getWorkflowDefinition, requireWorkflowDefinition, workflowPaths } from "./workflows/registry.mjs";
 
 const repositoryRoot = path.resolve(new URL("../..", import.meta.url).pathname);
 export const MAX_SOURCE_BYTES = 10 * 1024 * 1024;
@@ -95,15 +96,29 @@ function selectedSeriesForImport(seriesId, slug) {
   return series;
 }
 
-export function importSourceProject({ slug, filename, content, seriesId = null }) {
+export function importSourceProject({ slug, filename, content, seriesId = null, workflow = "default", workflowVersion = null }) {
   const safeFilename = validateSourceFilename(filename);
   const normalizedSlug = normalizeSourceSlug(slug, safeFilename);
   const selectedSeries = selectedSeriesForImport(seriesId, normalizedSlug);
-  const sourceDirectory = path.join(workspaceRoot(), "videos", normalizedSlug);
+  const resolvedVersion = workflowVersion ?? (workflow === "default" ? 2 : getWorkflowDefinition(workflow)?.version ?? null);
+  const workflowDefinition = requireWorkflowDefinition({ workflow, workflowVersion: resolvedVersion });
+  const workspace = workspaceRoot();
+  const paths = workflowPaths(workflowDefinition, normalizedSlug);
+  const sourceDirectory = path.join(workspace, paths.sourceDirectory);
+  const remotionDirectory = path.join(workspace, paths.remotionDirectory);
   const harnessDirectory = projectDirectory(normalizedSlug);
-  if (fs.existsSync(sourceDirectory) || fs.existsSync(harnessDirectory)) {
+  const conflictingWorkflowDirectory = Object.values(allWorkflowDefinitions())
+    .filter((definition) => definition.id !== workflowDefinition.id)
+    .flatMap((definition) => {
+      const candidate = workflowPaths(definition, normalizedSlug);
+      return [candidate.sourceDirectory, candidate.remotionDirectory];
+    })
+    .map((relativePath) => path.join(workspace, relativePath))
+    .find((candidate) => fs.existsSync(candidate));
+  if (fs.existsSync(sourceDirectory) || fs.existsSync(remotionDirectory) || fs.existsSync(harnessDirectory) || conflictingWorkflowDirectory) {
     const error = new Error(`视频项目已存在，拒绝覆盖：${normalizedSlug}`);
     error.code = "source-project-exists";
+    if (conflictingWorkflowDirectory) error.conflictingPath = path.relative(workspace, conflictingWorkflowDirectory);
     throw error;
   }
 
@@ -116,7 +131,11 @@ export function importSourceProject({ slug, filename, content, seriesId = null }
   try {
     fs.writeFileSync(temporaryPath, sourceContent);
     fs.renameSync(temporaryPath, sourcePath);
-    const files = initializeProject(normalizedSlug, { style: selectedSeries?.style ?? null });
+    const files = initializeProject(normalizedSlug, {
+      style: selectedSeries?.style ?? null,
+      workflow,
+      workflowVersion: resolvedVersion,
+    });
     initialized = true;
     if (selectedSeries && !selectedSeries.videos.includes(normalizedSlug)) {
       saveSeries({ ...selectedSeries, videos: [...selectedSeries.videos, normalizedSlug] });

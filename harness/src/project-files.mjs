@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 import { getVideoProject } from "./project-view.mjs";
+import { workflowForProject, workflowStageDefinitions } from "./workflows/registry.mjs";
 
 const repositoryRoot = path.resolve(new URL("../..", import.meta.url).pathname);
 
@@ -9,26 +9,8 @@ function workspaceRoot() {
   return path.resolve(process.env.HARNESS_WORKSPACE_ROOT ?? repositoryRoot);
 }
 
-const documentFiles = Object.freeze([
-  ["source.md", "source", "原始内容"],
-  ["content-analysis.md", "content-analysis", "内容分析"],
-  ["video-narrative.md", "video-narrative", "视频叙事"],
-  ["scene-script.md", "scene-script", "Scene 脚本"],
-  ["narration-script.md", "narration-script", "口播稿"],
-  ["visual-script.md", "visual-script", "视觉脚本"],
-  ["visual-prototype.html", "visual-prototype", "视觉原型"],
-  ["remotion-alignment.json", "remotion", "Remotion 对齐清单"],
-  ["tts-script.json", "tts", "TTS 输入"],
-]);
-
-const generatedFiles = Object.freeze([
-  ["generated/audio-manifest.json", "subtitle-timeline", "音频 Manifest"],
-  ["generated/subtitle-manifest.json", "subtitle-timeline", "字幕 Manifest"],
-  ["generated/timeline-manifest.json", "subtitle-timeline", "Timeline Manifest"],
-]);
-
-function pathEntry(relativePath, stage, label, kind = "document") {
-  const absolutePath = path.resolve(workspaceRoot(), relativePath);
+function pathEntry(relativePath, stage, label, kind = "document", workspace = workspaceRoot()) {
+  const absolutePath = path.resolve(workspace, relativePath);
   return {
     path: relativePath,
     stage,
@@ -38,23 +20,73 @@ function pathEntry(relativePath, stage, label, kind = "document") {
   };
 }
 
+function expandArtifactPath(relativePath, workspace) {
+  const parts = relativePath.split("/");
+  const wildcardIndex = parts.findIndex((part) => part.includes("*"));
+  if (wildcardIndex < 0) return [relativePath];
+  const directory = path.join(workspace, ...parts.slice(0, wildcardIndex));
+  if (!fs.existsSync(directory) || !fs.statSync(directory).isDirectory()) return [relativePath];
+  const pattern = new RegExp(`^${parts[wildcardIndex].split("*").map((part) => part.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\\\$&")).join(".*")}$`);
+  return fs.readdirSync(directory)
+    .filter((entry) => pattern.test(entry))
+    .sort()
+    .map((entry) => path.posix.join(...parts.slice(0, wildcardIndex), entry, ...parts.slice(wildcardIndex + 1)));
+}
+
+function fileLabel(stage, relativePath) {
+  const labels = {
+    source: "原始内容",
+    "content-analysis": "内容分析",
+    "video-narrative": "视频叙事",
+    "promo-brief": "Promo Brief",
+    "creative-concept": "Creative Concept",
+    "scene-script": "Scene 脚本",
+    "narration-script": "口播稿",
+    "visual-script": "视觉脚本",
+    "visual-prototype": "视觉原型",
+    "motion-prototype": "Motion Prototype",
+    "tts": "TTS 输入",
+    "subtitle-timeline": "音频／字幕／Timeline Manifest",
+    "asset-preparation": "Asset Manifest",
+    "visual-timeline": "Visual Timeline",
+    remotion: "Remotion 产物",
+  };
+  if (relativePath.endsWith("video.config.ts")) return "Remotion 配置";
+  if (relativePath.endsWith("remotion-alignment.json")) return "Remotion 对齐清单";
+  if (relativePath.endsWith("audio-manifest.json")) return "音频 Manifest";
+  if (relativePath.endsWith("subtitle-manifest.json")) return "字幕 Manifest";
+  if (relativePath.endsWith("timeline-manifest.json")) return "Timeline Manifest";
+  return labels[stage] ?? relativePath.split("/").at(-1);
+}
+
+function projectConfigForView(projectView, slug) {
+  return {
+    slug,
+    workflow: projectView.workflow ?? "default",
+    workflowVersion: projectView.workflowVersion ?? 2,
+    workspaceRoot: workspaceRoot(),
+    sourceDirectory: projectView.sourceDirectory,
+    remotionDirectory: projectView.remotionDirectory,
+  };
+}
+
 export function listProjectFiles(slug) {
-  if (!getVideoProject(slug)) return null;
-
-  const entries = [
-    ...documentFiles.map(([file, stage, label]) => pathEntry(`videos/${slug}/${file}`, stage, label)),
-    ...generatedFiles.map(([file, stage, label]) => pathEntry(`src/videos/${slug}/${file}`, stage, label, "manifest")),
-    pathEntry(`src/videos/${slug}/video.config.ts`, "remotion", "Remotion 配置", "remotion"),
-  ];
-
-  const remotionDirectory = path.resolve(workspaceRoot(), "src", "videos", slug);
-  if (fs.existsSync(remotionDirectory) && fs.statSync(remotionDirectory).isDirectory()) {
-    for (const entry of fs.readdirSync(remotionDirectory)) {
-      if (!entry.endsWith("Video.tsx")) continue;
-      entries.push(pathEntry(`src/videos/${slug}/${entry}`, "remotion", entry, "remotion"));
+  const projectView = getVideoProject(slug);
+  if (!projectView) return null;
+  const config = projectConfigForView(projectView, slug);
+  const definitions = workflowStageDefinitions({ config });
+  const entries = [];
+  const seen = new Set();
+  for (const [stage, definition] of Object.entries(definitions)) {
+    for (const template of definition.artifacts ?? []) {
+      for (const relativePath of expandArtifactPath(template.replaceAll("{slug}", slug), config.workspaceRoot)) {
+        if (relativePath.startsWith("out/") || seen.has(relativePath)) continue;
+        seen.add(relativePath);
+        const kind = relativePath.startsWith(config.remotionDirectory) ? "remotion" : relativePath.endsWith("manifest.json") ? "manifest" : "document";
+        entries.push(pathEntry(relativePath, stage, fileLabel(stage, relativePath), kind, config.workspaceRoot));
+      }
     }
   }
-
   return entries;
 }
 
@@ -70,5 +102,11 @@ export function getProjectFile(slug, relativePath) {
 }
 
 export function getProjectPrototype(slug) {
-  return getProjectFile(slug, `videos/${slug}/visual-prototype.html`);
+  const project = getVideoProject(slug);
+  if (!project) return null;
+  const stage = workflowForProject({ config: { workflow: project.workflow, workflowVersion: project.workflowVersion } }).timelineMode === "visual-beats"
+    ? "motion-prototype"
+    : "visual-prototype";
+  const prototype = listProjectFiles(slug)?.find((item) => item.stage === stage && item.present && item.path.endsWith(".html"));
+  return prototype ? getProjectFile(slug, prototype.path) : null;
 }

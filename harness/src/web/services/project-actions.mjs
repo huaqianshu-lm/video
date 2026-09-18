@@ -13,10 +13,10 @@ import { buildProjectPlan } from "../../plans.mjs";
 import { getVideoProject } from "../../project-view.mjs";
 import { buildNextAction, buildProjectReport } from "../../reports.mjs";
 import { ensureRemotionTask, listRemotionTasks } from "../../remotion-tasks.mjs";
-import { assertRemoteRenderDeliveryInputs, prepareRemoteRenderInputs, validateRemoteRenderPackage } from "../../remote-executor.mjs";
+import { assertRemoteRenderDeliveryInputs, assertRenderStageReady, prepareRemoteRenderInputs, validateRemoteRenderPackage } from "../../remote-executor.mjs";
 import { bindRenderInputDelivery } from "../../render-input.mjs";
-import { initializeProject, loadProject } from "../../storage.mjs";
-import { STAGE_DEFINITIONS } from "../../stages.mjs";
+import { assertProjectMutable, initializeProject, loadProject } from "../../storage.mjs";
+import { workflowStageDefinition } from "../../workflows/registry.mjs";
 import { approveGate, rejectGate, resumeProject, retryStage, runStage, validateStage } from "../../runner.mjs";
 import { validateProjectStage } from "../../validation.mjs";
 import { createAgentJob } from "../../agent-jobs.mjs";
@@ -37,6 +37,10 @@ export function normalizeProjectAction(input = {}) {
     selectedPaths: Array.isArray(input.selectedPaths) ? input.selectedPaths : null,
     renderInputUrl: typeof input.renderInputUrl === "string" ? input.renderInputUrl : null,
     renderInputSha256: typeof input.renderInputSha256 === "string" ? input.renderInputSha256 : null,
+    ...(typeof input.workflow === "string" ? { workflow: input.workflow } : {}),
+    ...(input.workflowVersion === undefined || input.workflowVersion === null || input.workflowVersion === ""
+      ? {}
+      : { workflowVersion: Number(input.workflowVersion) }),
   };
 }
 
@@ -74,7 +78,18 @@ export function createProjectActionService(runtime) {
       }
       if (action.action === "initialize") {
         if (projectView.initialized) { const error = new Error("Harness project is already initialized"); error.code = "project-already-initialized"; throw error; }
-        return { status: 200, result: { action: action.action, status: "initialized", files: initializeProject(action.slug) }, project: getVideoProject(action.slug) };
+        return {
+          status: 200,
+          result: {
+            action: action.action,
+            status: "initialized",
+            files: initializeProject(action.slug, {
+              workflow: action.workflow ?? projectView.workflow ?? "default",
+              ...(action.workflowVersion === undefined || action.workflowVersion === null ? {} : { workflowVersion: action.workflowVersion }),
+            }),
+          },
+          project: getVideoProject(action.slug),
+        };
       }
       if (action.action === "legacy-validate") {
         const stage = action.stage ?? "remotion";
@@ -118,7 +133,7 @@ export function createProjectActionService(runtime) {
         case "plan": if (!input.until) { const error = new Error("plan requires until"); error.code = "plan-target-required"; throw error; } result = buildProjectPlan(project, input.until); break;
         case "run": {
           const stage = action.stage ?? project.state.currentStage;
-          if (STAGE_DEFINITIONS[stage]?.executor === "agent") {
+          if (workflowStageDefinition(project, stage)?.executor === "agent") {
             if (stage === "remotion") {
               const needsBuild = validateStage(project, "remotion").length > 0 || project.state.stages.remotion.invalidatedBy === "gate-3-rejected";
               if (!needsBuild) { const stageResult = runStage(project, "remotion", { adapters: {} }); const gateResult = runStage(loadProject(action.slug, { refresh: true }), "gate-3", { adapters: {} }); result = { action: action.action, status: "succeeded", stageResult, gateResult }; break; }
@@ -146,9 +161,12 @@ export function createProjectActionService(runtime) {
     async remoteRun(action) {
       if (action.stage === "smoke-render") { const error = new Error("Smoke Render 已退出 Harness 生产流程，请从 GitHub Actions 手动触发独立环境检查。"); error.code = "standalone-smoke-render"; throw error; }
       if (action.stage !== "render") { const error = new Error("remote-run only supports render"); error.code = "invalid-remote-stage"; throw error; }
+      const project = loadProject(action.slug, { refresh: true });
+      assertProjectMutable(project, "提交远程渲染任务");
       const active = findActiveJob(action.slug, action.stage);
       if (active) return { status: 200, result: { action: action.action, status: "already-running" }, job: active };
-      const project = loadProject(action.slug, { refresh: true }); prepareRemoteRenderInputs(project); const inputIssues = validateRemoteRenderPackage(project);
+      assertRenderStageReady(project);
+      prepareRemoteRenderInputs(project); const inputIssues = validateRemoteRenderPackage(project);
       if (inputIssues.length) { const error = new Error(`远程渲染输入预检失败：${inputIssues.join("；")}`); error.code = "remote-render-inputs-invalid"; error.issues = inputIssues; throw error; }
       const preflight = typeof runtime?.githubPreflight === "function" ? runtime.githubPreflight : assertGitHubActionsReady;
       await preflight({ project, checkRenderInput: false });
@@ -168,7 +186,7 @@ export function createProjectActionService(runtime) {
     },
     async prepareRemote(action) {
       const stage = action.stage; if (stage !== "render") { const error = new Error("prepare-remote-render only supports render"); error.code = "invalid-remote-stage"; throw error; }
-      const project = loadProject(action.slug, { refresh: true }); const preparation = prepareRemoteRenderInputs(project); try { assertRemoteRenderDeliveryInputs(project); return { status: 200, result: { action: action.action, status: "ready", preparation }, project: getVideoProject(action.slug) }; } catch (error) { if (error.code === "remote-render-delivery-invalid") return { status: 200, result: { action: action.action, status: "blocked" }, error: error.message, code: error.code, issues: error.issues ?? [], project: getVideoProject(action.slug) }; throw error; }
+      const project = loadProject(action.slug, { refresh: true }); assertRenderStageReady(project, "准备远程渲染资源"); const preparation = prepareRemoteRenderInputs(project); try { assertRemoteRenderDeliveryInputs(project); return { status: 200, result: { action: action.action, status: "ready", preparation }, project: getVideoProject(action.slug) }; } catch (error) { if (error.code === "remote-render-delivery-invalid") return { status: 200, result: { action: action.action, status: "blocked" }, error: error.message, code: error.code, issues: error.issues ?? [], project: getVideoProject(action.slug) }; throw error; }
     },
   };
 }

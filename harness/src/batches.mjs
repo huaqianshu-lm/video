@@ -4,7 +4,7 @@ import path from "node:path";
 import { assertProjectSlugMutable, isCompletedProject, loadProject, projectsRoot, readJson, writeJson } from "./storage.mjs";
 import { retryStage, runStage, validateStage } from "./runner.mjs";
 import { buildNextAction } from "./reports.mjs";
-import { stageIndex, STAGE_DEFINITIONS } from "./stages.mjs";
+import { workflowForProject, workflowStageDefinition, workflowStageIndex } from "./workflows/registry.mjs";
 import { ensureRemotionTask, getRemotionTask, retryRemotionTask } from "./remotion-tasks.mjs";
 import { createRemoteJobMonitor } from "./remote-jobs.mjs";
 import { createRemoteRenderExecutor } from "./remote-executor.mjs";
@@ -162,13 +162,13 @@ function preflightItem(type, slug) {
   }
 
   const current = project.state.currentStage;
-  if (current !== "completed" && !STAGE_DEFINITIONS[current]) {
+  if (current !== "completed" && !workflowStageDefinition(project, current)) {
     return item(slug, "skipped", "项目仍处于旧版阶段，未自动迁移；请只读查看或建立独立新项目。", {
       preflight: "legacy-stage",
       phase: current,
     });
   }
-  if (current === "completed" || stageIndex(current) > stageIndex(definition.targetStage)) {
+  if (current === "completed" || workflowStageIndex(project, current) > workflowStageIndex(project, definition.targetStage)) {
     return item(slug, "succeeded", `已超过批次目标阶段 ${definition.targetStage}，不重复执行。`, {
       preflight: "already-reached",
       phase: current,
@@ -247,6 +247,17 @@ export function createBatch({ type, slugs }) {
   if (!Array.isArray(slugs) || slugs.length === 0) throw new Error("A batch requires at least one video slug");
   const uniqueSlugs = [...new Set(slugs)];
   for (const slug of uniqueSlugs) assertProjectSlugMutable(slug, "创建视频批次");
+  for (const slug of uniqueSlugs) {
+    if (!projectPathExists(slug)) continue;
+    const project = loadProject(slug, { refresh: false });
+    if (workflowForProject(project).batchSupported === false) {
+      const error = new Error(`Workflow ${workflowForProject(project).id} 首期不支持批量生产：${slug}`);
+      error.code = "unsupported-workflow-batch";
+      error.workflow = workflowForProject(project).id;
+      error.slug = slug;
+      throw error;
+    }
+  }
   const now = new Date().toISOString();
   const batch = {
     schemaVersion: 2,
@@ -555,11 +566,11 @@ async function executeItem(batch, batchItem, definition, options) {
       const currentStage = project.state.currentStage;
       batchItem.phase = currentStage;
 
-      if (currentStage === "completed" || stageIndex(currentStage) > stageIndex(definition.targetStage)) {
+      if (currentStage === "completed" || workflowStageIndex(project, currentStage) > workflowStageIndex(project, definition.targetStage)) {
         updateItem(batch, batchItem, { status: "succeeded", phase: currentStage, message: "已到达或超过批次目标阶段。", completedAt: new Date().toISOString() });
         return;
       }
-      if (!STAGE_DEFINITIONS[currentStage]) {
+      if (!workflowStageDefinition(project, currentStage)) {
         throw new Error("项目处于旧版阶段 " + currentStage + "，批次不会自动迁移该项目。");
       }
 
@@ -580,7 +591,7 @@ async function executeItem(batch, batchItem, definition, options) {
         && typeof options.queueAgentJob === "function"
         && currentStage !== "source"
         && currentStage !== "remotion"
-        && STAGE_DEFINITIONS[currentStage]?.executor === "agent";
+        && workflowStageDefinition(project, currentStage)?.executor === "agent";
       if (shouldQueueAgentJob) {
         const job = createAgentJob({ slug: batchItem.slug, stage: currentStage, batchId: batch.id });
         updateItem(batch, batchItem, {

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { initializeProject, loadProject } from "./storage.mjs";
-import { STAGES } from "./stages.mjs";
+import { workflowCatalog, workflowStages } from "./workflows/registry.mjs";
 import { approveGate, rejectGate, resumeProject, retryStage, runStage, validateStage } from "./runner.mjs";
 import { createGitHubActionsAdapterFromEnv } from "./adapters.mjs";
 import { requireGitHubActionsConfig } from "./github-config.mjs";
@@ -48,7 +48,8 @@ import {
 
 function usage() {
   console.log(`Usage:
-  node harness/src/cli.mjs init <slug>
+  node harness/src/cli.mjs init <slug> [--workflow <id>] [--workflow-version <version>]
+  node harness/src/cli.mjs workflow list [--json]
   node harness/src/cli.mjs adopt <slug> --to gate-2 [--json]
   node harness/src/cli.mjs adopt <slug> --to completed --historical [--json]
   node harness/src/cli.mjs status <slug> [--json]
@@ -107,9 +108,10 @@ function printStatus(project, asJson) {
 
   const { state } = project;
   console.log(`Project: ${state.slug}`);
+  console.log(`Workflow: ${project.config.workflow ?? "narrated-tutorial-v1 (legacy default)"}`);
   console.log(`Current stage: ${state.currentStage}`);
   console.log("Stages:");
-  for (const stage of STAGES) {
+  for (const stage of workflowStages(project)) {
     const item = state.stages[stage];
     console.log(`  ${stage}: ${item.status}`);
   }
@@ -249,6 +251,17 @@ async function main(args) {
     return 1;
   }
 
+  if (command === "workflow" || command === "workflows") {
+    if (slug !== "list") {
+      usage();
+      return 1;
+    }
+    const catalog = workflowCatalog();
+    if (options.includes("--json")) console.log(JSON.stringify(catalog, null, 2));
+    else catalog.forEach((workflow) => console.log(`${workflow.id}@${workflow.version} · ${workflow.label} · ${workflow.stages.length} 阶段 · ${workflow.pathMode}`));
+    return 0;
+  }
+
   if (command === "doctor") {
     const result = await diagnoseGitHubActions({ checkRenderInput: false });
     if (slug === "--json" || options.includes("--json")) console.log(JSON.stringify(result, null, 2));
@@ -355,7 +368,12 @@ async function main(args) {
 
   if (command === "init") {
     validateSlug(slug);
-    const files = initializeProject(slug);
+    const workflowIndex = options.indexOf("--workflow");
+    const workflowVersionIndex = options.indexOf("--workflow-version");
+    const files = initializeProject(slug, {
+      ...(workflowIndex >= 0 ? { workflow: options[workflowIndex + 1] } : {}),
+      ...(workflowVersionIndex >= 0 ? { workflowVersion: Number(options[workflowVersionIndex + 1]) } : {}),
+    });
     console.log(`Initialized Harness project: ${slug}`);
     console.log(`State: ${files.state}`);
     return 0;

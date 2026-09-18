@@ -8,9 +8,9 @@ import {
   REMOTE_JOB_STATUS,
   classifyRemoteError,
 } from "./remote-status.mjs";
-import { isGateStage } from "./stages.mjs";
+import { workflowIsGateStage } from "./workflows/registry.mjs";
 import { assertProjectSlugMutable, isCompletedProject, loadProject } from "./storage.mjs";
-import { assertRemoteRenderDeliveryInputs, prepareRemoteRenderInputs } from "./remote-executor.mjs";
+import { assertRemoteRenderDeliveryInputs, assertRenderStageReady, prepareRemoteRenderInputs } from "./remote-executor.mjs";
 import { assertRenderInputDelivery, readRenderInputDelivery } from "./render-input.mjs";
 
 const DEFAULT_POLL_INTERVAL_MS = 20 * 60 * 1_000;
@@ -388,7 +388,7 @@ export function createRemoteJobMonitor({
         const completedProject = loadProject(job.slug, { refresh: true });
         const result = completeAdapterStage(completedProject, job.stage, inspection.result);
         const nextStage = completedProject.state.currentStage;
-        if (isGateStage(nextStage)) {
+        if (workflowIsGateStage(completedProject, nextStage)) {
           runStage(completedProject, nextStage);
         }
         const updated = updateJob(job.slug, job.id, schedulePatch(job, {
@@ -481,7 +481,7 @@ export function createRemoteJobMonitor({
     const completedProject = loadProject(slug, { refresh: true });
     const stageResult = completeAdapterStage(completedProject, stage, inspection.result);
     const nextStage = completedProject.state.currentStage;
-    if (isGateStage(nextStage)) runStage(completedProject, nextStage);
+    if (workflowIsGateStage(completedProject, nextStage)) runStage(completedProject, nextStage);
     return updateJob(slug, job.id, {
       status: "succeeded",
       remote: inspection.remote,
@@ -514,6 +514,7 @@ export function createRemoteJobMonitor({
       throw new Error("A remote job for this stage is already running");
     }
     const project = loadProject(slug, { refresh: true });
+    assertRenderStageReady(project);
     const delivery = assertRenderInputDelivery(project);
     const compositionId = project.config.compositionId ?? project.config.slug;
     const dispatchId = randomUUID();

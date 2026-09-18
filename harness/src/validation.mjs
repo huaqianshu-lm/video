@@ -1,7 +1,8 @@
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
-import { STAGE_DEFINITIONS, stageIndex } from "./stages.mjs";
+import { workflowForProject, workflowStageDefinition, workflowStageIndex } from "./workflows/registry.mjs";
+import { validatePromoStageContent } from "./workflows/product-promo-validation.mjs";
 import { matchesArtifactPath } from "./artifact-paths.mjs";
 import { validateRemotionAlignment } from "./remotion-alignment.mjs";
 import { getSeriesDefinitionForSlug, getStyleDefinition } from "./styles.mjs";
@@ -30,7 +31,7 @@ const NON_SPOKEN_TTS_PATTERNS = [
 
 export function validateStageArtifacts(project, stage, { remotePreflight = false } = {}) {
   const entries = project.artifacts.stages[stage] ?? [];
-  const definition = STAGE_DEFINITIONS[stage];
+  const definition = workflowStageDefinition(project, stage);
   const remoteOutputVerified = hasVerifiedRemoteOutput(project, stage);
   const workspaceRoot = project.config.workspaceRoot;
   return entries
@@ -52,7 +53,7 @@ function absolutePath(project, relativePath) {
 }
 
 function hasVerifiedRemoteOutput(project, stage) {
-  const definition = STAGE_DEFINITIONS[stage];
+  const definition = workflowStageDefinition(project, stage);
   if (!definition?.remoteOutput) return false;
   return (project.state?.stages?.[stage]?.outputs ?? []).some((output) =>
     output.artifactName === project.config.slug
@@ -154,7 +155,7 @@ function validateStageStructure(project, stage) {
   const prototypePath = artifactPathFor(project, "visual-prototype", 0);
   const remotionConfigPath = artifactPathFor(project, "remotion", 0);
 
-  if (stageIndex(stage) >= stageIndex("content-analysis")) {
+  if (workflowStageIndex(project, stage) >= workflowStageIndex(project, "content-analysis")) {
     issues.push(...validateMarkdownStructure(project, stage, contentAnalysisPath, {
       label: "Content Analysis",
       minimumHeadings: 3,
@@ -164,7 +165,7 @@ function validateStageStructure(project, stage) {
       ],
     }));
   }
-  if (stageIndex(stage) >= stageIndex("video-narrative")) {
+  if (workflowStageIndex(project, stage) >= workflowStageIndex(project, "video-narrative")) {
     issues.push(...validateMarkdownStructure(project, stage, narrativePath, {
       label: "Video Narrative",
       minimumHeadings: 3,
@@ -174,7 +175,7 @@ function validateStageStructure(project, stage) {
       ],
     }));
   }
-  if (stageIndex(stage) >= stageIndex("scene-script")) {
+  if (workflowStageIndex(project, stage) >= workflowStageIndex(project, "scene-script")) {
     issues.push(...validateMarkdownStructure(project, stage, sceneScriptPath, {
       label: "Scene Script",
       minimumHeadings: 1,
@@ -190,7 +191,7 @@ function validateStageStructure(project, stage) {
       { label: "videoValue", patterns: [/videoValue/i] },
     ]));
   }
-  if (stageIndex(stage) >= stageIndex("visual-script")) {
+  if (workflowStageIndex(project, stage) >= workflowStageIndex(project, "visual-script")) {
     issues.push(...validateMarkdownStructure(project, stage, visualScriptPath, {
       label: "Visual Script",
       minimumHeadings: 2,
@@ -204,7 +205,7 @@ function validateStageStructure(project, stage) {
       { label: "Visual Type", patterns: [/Visual Type|视觉类型/i] },
     ]));
   }
-  if (stageIndex(stage) >= stageIndex("visual-prototype")) {
+  if (workflowStageIndex(project, stage) >= workflowStageIndex(project, "visual-prototype")) {
     const prototype = readTextArtifact(project, prototypePath);
     if (prototype !== null) {
       if (!/<section\b[^>]*class=["'][^"']*\bscene\b/i.test(prototype)) {
@@ -218,7 +219,7 @@ function validateStageStructure(project, stage) {
       }
     }
   }
-  if (stageIndex(stage) >= stageIndex("remotion")) {
+  if (workflowStageIndex(project, stage) >= workflowStageIndex(project, "remotion")) {
     const config = readTextArtifact(project, remotionConfigPath);
     if (config !== null) {
       if (!/export\s+const\s+videoConfig\b/.test(config)) {
@@ -257,7 +258,7 @@ function sceneIdsFromJson(value) {
 }
 
 function artifactPathFor(project, stage, index) {
-  const template = STAGE_DEFINITIONS[stage]?.artifacts[index] ?? null;
+  const template = workflowStageDefinition(project, stage)?.artifacts[index] ?? null;
   return template?.replaceAll("{slug}", project.config.slug) ?? null;
 }
 
@@ -429,7 +430,7 @@ function validateSeriesStyle(project, stage) {
     return issues;
   }
 
-  if (stageIndex(stage) < stageIndex("visual-prototype")) return issues;
+  if (workflowStageIndex(project, stage) < workflowStageIndex(project, "visual-prototype")) return issues;
   const prototypePath = artifactPathFor(project, "visual-prototype", 0);
   const prototype = readTextArtifact(project, prototypePath);
   if (prototype !== null) {
@@ -439,7 +440,7 @@ function validateSeriesStyle(project, stage) {
     }
   }
 
-  if (stageIndex(stage) < stageIndex("remotion")) return issues;
+  if (workflowStageIndex(project, stage) < workflowStageIndex(project, "remotion")) return issues;
   const remotionRelativeDirectory = project.config.remotionDirectory ?? `src/videos/${project.config.slug}`;
   const remotionDirectory = path.join(project.config.workspaceRoot, remotionRelativeDirectory);
   const remotionFiles = fs.existsSync(remotionDirectory) && fs.statSync(remotionDirectory).isDirectory()
@@ -562,16 +563,23 @@ function validateTimeline(project, stage) {
 }
 
 export function validateStageContent(project, stage, options = {}) {
+  if (workflowForProject(project).timelineMode === "visual-beats") {
+    const issues = validatePromoStageContent(project, stage, options);
+    if (workflowStageIndex(project, stage) >= workflowStageIndex(project, "remotion")) {
+      issues.push(...validateRemotionAlignment(project));
+    }
+    return issues;
+  }
   const strict = options.strict ?? project.config.validationPolicy !== "legacy";
-  const index = stageIndex(stage);
+  const index = workflowStageIndex(project, stage);
   const issues = [];
   issues.push(...validateSeriesStyle(project, stage));
   issues.push(...validateStageStructure(project, stage));
-  if (index >= stageIndex("scene-script")) issues.push(...validateSceneAlignment(project, stage));
-  if (index >= stageIndex("narration-script")) issues.push(...validateNarration(project, stage, { strict }));
-  if (index >= stageIndex("tts")) issues.push(...validateTts(project, stage, { strict }));
-  if (index >= stageIndex("subtitle-timeline")) issues.push(...validateTimeline(project, stage));
-  if (index >= stageIndex("remotion")) issues.push(...validateRemotionAlignment(project));
+  if (index >= workflowStageIndex(project, "scene-script")) issues.push(...validateSceneAlignment(project, stage));
+  if (index >= workflowStageIndex(project, "narration-script")) issues.push(...validateNarration(project, stage, { strict }));
+  if (index >= workflowStageIndex(project, "tts")) issues.push(...validateTts(project, stage, { strict }));
+  if (index >= workflowStageIndex(project, "subtitle-timeline")) issues.push(...validateTimeline(project, stage));
+  if (index >= workflowStageIndex(project, "remotion")) issues.push(...validateRemotionAlignment(project));
   return issues;
 }
 

@@ -1,4 +1,13 @@
-import { isGateStage, nextStage, previousStage, stageIndex, ADAPTER_REQUIRED_STAGES, STAGES, STAGE_DEFINITIONS } from "./stages.mjs";
+import {
+  workflowAdapterStages,
+  workflowIsGateStage,
+  workflowNextStage,
+  workflowPreviousStage,
+  workflowStageDefinition,
+  workflowStageIndex,
+  workflowStages,
+  workflowForProject,
+} from "./workflows/registry.mjs";
 import { validateProjectStage } from "./validation.mjs";
 import { assertProjectMutable, writeJson } from "./storage.mjs";
 import { fingerprintStageArtifacts } from "./fingerprints.mjs";
@@ -10,15 +19,15 @@ function saveState(project) {
   writeJson(project.files.state, project.state);
 }
 
-function requireKnownStage(stage) {
-  if (!STAGES.includes(stage)) {
+function requireKnownStage(project, stage) {
+  if (!workflowStages(project).includes(stage)) {
     throw new Error(`Unknown stage: ${stage}`);
   }
 }
 
 function requireCurrentStage(project, requestedStage) {
   const stage = requestedStage ?? project.state.currentStage;
-  requireKnownStage(stage);
+  requireKnownStage(project, stage);
   if (stage !== project.state.currentStage) {
     throw new Error(`Cannot skip stages: current stage is ${project.state.currentStage}`);
   }
@@ -33,7 +42,7 @@ function requireReady(project, stage) {
 }
 
 function requirePreviousSucceeded(project, stage) {
-  const previous = previousStage(stage);
+  const previous = workflowPreviousStage(project, stage);
   if (previous && project.state.stages[previous].status !== "succeeded") {
     throw new Error(`Previous stage is not complete: ${previous}`);
   }
@@ -48,6 +57,7 @@ function setStageAvailable(item, status) {
 
 function completeStage(project, stage, outputs = []) {
   assertProjectMutable(project, `完成 ${stage} 阶段`);
+  const definition = workflowStageDefinition(project, stage);
   const item = project.state.stages[stage];
   item.status = "succeeded";
   item.error = null;
@@ -55,11 +65,11 @@ function completeStage(project, stage, outputs = []) {
   item.rebuildBaselineFingerprint = null;
   item.outputs = outputs;
   item.remote = null;
-  item.outputFingerprint = STAGE_DEFINITIONS[stage].remoteOutput
+  item.outputFingerprint = definition.remoteOutput
     ? null
     : fingerprintStageArtifacts(project, stage);
   item.updatedAt = new Date().toISOString();
-  const following = nextStage(stage);
+  const following = workflowNextStage(project, stage);
   if (following) {
     project.state.currentStage = following;
     setStageAvailable(project.state.stages[following], "ready");
@@ -129,10 +139,10 @@ export function completeAdapterStage(project, stage, result) {
 
 export function validateStage(project, requestedStage, options = {}) {
   const stage = requestedStage ?? project.state.currentStage;
-  requireKnownStage(stage);
+  requireKnownStage(project, stage);
   const defaultOptions = {
     remotePreflight: project.state?.stages?.[stage]?.status === "ready"
-      && STAGE_DEFINITIONS[stage].remoteOutput === true,
+      && workflowStageDefinition(project, stage).remoteOutput === true,
   };
   return validateProjectStage(project, stage, { ...defaultOptions, ...options });
 }
@@ -149,7 +159,7 @@ export function runStage(project, requestedStage, { adapters = {}, executors = {
   item.updatedAt = new Date().toISOString();
   saveState(project);
 
-  if (isGateStage(stage)) {
+  if (workflowIsGateStage(project, stage)) {
     item.review = null;
     item.error = null;
     const issues = validateStage(project, stage);
@@ -167,7 +177,7 @@ export function runStage(project, requestedStage, { adapters = {}, executors = {
     return { stage, status: "waiting", message: `Waiting for manual approval: ${stage}` };
   }
 
-  if (ADAPTER_REQUIRED_STAGES.has(stage)) {
+  if (workflowAdapterStages(project).has(stage)) {
     const adapter = adapters[stage];
     if (!adapter) {
       const error = {
@@ -211,7 +221,7 @@ export function runStage(project, requestedStage, { adapters = {}, executors = {
     }
   }
 
-  if (stage === "subtitle-timeline") {
+  if (workflowStageDefinition(project, stage)?.validation?.includes("tts-coverage")) {
     const inputIssues = validateProjectStage(project, "tts").filter((item) => item.severity !== "warning");
     if (inputIssues.length > 0) {
       const error = { code: "input-validation-failed", stage, inputStage: "tts", issues: inputIssues };
@@ -266,8 +276,8 @@ export function runStage(project, requestedStage, { adapters = {}, executors = {
 
 export function approveGate(project, gate) {
   assertProjectMutable(project, `确认 ${gate}`);
-  requireKnownStage(gate);
-  if (!isGateStage(gate)) {
+  requireKnownStage(project, gate);
+  if (!workflowIsGateStage(project, gate)) {
     throw new Error(`${gate} is not a Gate stage`);
   }
   if (project.state.currentStage !== gate || project.state.stages[gate].status !== "waiting") {
@@ -275,12 +285,14 @@ export function approveGate(project, gate) {
   }
 
   let ttsScript = null;
-  if (gate === "gate-2") {
+  if (gate === "gate-2" && workflowForProject(project).audioMode === "tts") {
     ttsScript = ensureTtsScript(project);
     const issues = validateStage(project, "tts").filter((item) => item.severity !== "warning");
     if (issues.length > 0) {
       throw new Error(`Gate 2 通过后无法进入 TTS：${issues.map((item) => item.message).join("；")}`);
     }
+  }
+  if (gate === "gate-2") {
     freezePrototypeBaseline(project);
   }
 
@@ -299,12 +311,12 @@ export function approveGate(project, gate) {
 
 export function rejectGate(project, gate, returnTo, reason) {
   assertProjectMutable(project, `驳回 ${gate}`);
-  requireKnownStage(gate);
-  requireKnownStage(returnTo);
-  if (!isGateStage(gate)) {
+  requireKnownStage(project, gate);
+  requireKnownStage(project, returnTo);
+  if (!workflowIsGateStage(project, gate)) {
     throw new Error(`${gate} is not a Gate stage`);
   }
-  if (stageIndex(returnTo) >= stageIndex(gate)) {
+  if (workflowStageIndex(project, returnTo) >= workflowStageIndex(project, gate)) {
     throw new Error(`Return stage must be before ${gate}`);
   }
   if (!reason) {
@@ -319,8 +331,9 @@ export function rejectGate(project, gate, returnTo, reason) {
   const rebuildBaselineFingerprint = gate === "gate-3" && returnTo === "remotion"
     ? returnStageItem.outputFingerprint
     : null;
-  for (let index = stageIndex(returnTo); index <= stageIndex(gate); index += 1) {
-    const stage = STAGES[index];
+  const stages = workflowStages(project);
+  for (let index = workflowStageIndex(project, returnTo); index <= workflowStageIndex(project, gate); index += 1) {
+    const stage = stages[index];
     project.state.stages[stage].status = stage === returnTo ? "ready" : "pending";
     project.state.stages[stage].error = stage === gate ? rejection : null;
     project.state.stages[stage].outputs = [];
@@ -348,7 +361,7 @@ export function rejectGate(project, gate, returnTo, reason) {
 export function retryStage(project, requestedStage) {
   assertProjectMutable(project, "重试阶段");
   const stage = requestedStage ?? project.state.currentStage;
-  requireKnownStage(stage);
+  requireKnownStage(project, stage);
   const item = project.state.stages[stage];
   if (item.status !== "failed") {
     throw new Error(`Stage ${stage} is not failed`);

@@ -3,7 +3,11 @@ import path from "node:path";
 import { artifactManifestFor } from "./artifacts.mjs";
 import { fingerprintStageArtifacts } from "./fingerprints.mjs";
 import { assertProjectMutable, projectFiles, initializeProject, loadProject, writeJson } from "./storage.mjs";
-import { GATE_STAGES, STAGES, stageIndex } from "./stages.mjs";
+import {
+  workflowStageDefinition,
+  workflowStageIndex,
+  workflowStages,
+} from "./workflows/registry.mjs";
 import { matchesArtifactPath } from "./artifact-paths.mjs";
 import { validateProjectStage, validateStageArtifacts } from "./validation.mjs";
 
@@ -21,6 +25,8 @@ function candidateProject(slug) {
       slug,
       workspaceRoot: workspaceRoot(),
       validationPolicy: "strict",
+      workflow: "default",
+      workflowVersion: 2,
     },
     artifacts: { stages: artifactManifestFor(slug) },
     state: { stages: {} },
@@ -28,14 +34,16 @@ function candidateProject(slug) {
 }
 
 function requiredArtifactIssues(project) {
-  return STAGES
-    .slice(0, stageIndex(LAST_ADOPTED_STAGE) + 1)
+  const stages = workflowStages(project);
+  return stages
+    .slice(0, workflowStageIndex(project, LAST_ADOPTED_STAGE) + 1)
     .flatMap((stage) => validateStageArtifacts(project, stage));
 }
 
 function downstreamArtifactIssues(project) {
-  return STAGES
-    .slice(stageIndex(ADOPTABLE_TARGET) + 1)
+  const stages = workflowStages(project);
+  return stages
+    .slice(workflowStageIndex(project, ADOPTABLE_TARGET) + 1)
     .flatMap((stage) => (project.artifacts.stages[stage] ?? [])
       .filter((entry) => matchesArtifactPath(project.config.workspaceRoot, entry.path))
       .map((entry) => ({
@@ -50,8 +58,9 @@ function isFreshInitializedProject(project) {
   if (project.config.adoption || project.config.historical) return false;
   if (project.state.currentStage === "completed") return false;
 
-  const lastAdoptedIndex = stageIndex(LAST_ADOPTED_STAGE);
-  return STAGES.every((stage, index) => {
+  const stages = workflowStages(project);
+  const lastAdoptedIndex = workflowStageIndex(project, LAST_ADOPTED_STAGE);
+  return stages.every((stage, index) => {
     const item = project.state.stages[stage];
     if (!item || item.outputs.length > 0 || item.review || item.error || item.invalidatedBy) return false;
     if (index === 0) return ["ready", "succeeded"].includes(item.status);
@@ -71,7 +80,8 @@ function completeGate2Adoption(project, method) {
   };
   project.config.updatedAt = now;
 
-  const adoptedStages = STAGES.slice(0, stageIndex(LAST_ADOPTED_STAGE) + 1);
+  const stages = workflowStages(project);
+  const adoptedStages = stages.slice(0, workflowStageIndex(project, LAST_ADOPTED_STAGE) + 1);
   for (const stage of adoptedStages) {
     const item = project.state.stages[stage];
     item.status = "succeeded";
@@ -165,17 +175,17 @@ export function markHistoricalProjectCompleted(slug, reason = "user-confirmed-hi
   };
   project.config.updatedAt = now;
 
-  for (const stage of STAGES) {
+  for (const stage of workflowStages(project)) {
     const item = project.state.stages[stage];
     item.status = "succeeded";
     item.attempts = 0;
     item.outputs = [];
     item.error = null;
     item.invalidatedBy = null;
-    item.outputFingerprint = GATE_STAGES.has(stage) || stage === "render"
+    item.outputFingerprint = workflowStageDefinition(project, stage)?.kind === "gate" || stage === "render"
       ? null
       : fingerprintStageArtifacts(project, stage);
-    item.review = GATE_STAGES.has(stage)
+    item.review = workflowStageDefinition(project, stage)?.kind === "gate"
       ? {
         decision: "approved",
         reviewedAt: now,
@@ -196,6 +206,6 @@ export function markHistoricalProjectCompleted(slug, reason = "user-confirmed-hi
     currentStage: project.state.currentStage,
     status: "completed",
     historical: true,
-    completedStages: STAGES.length,
+    completedStages: workflowStages(project).length,
   };
 }

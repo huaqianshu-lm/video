@@ -4,7 +4,7 @@ import path from "node:path";
 import { buildTaskPacket } from "./context.mjs";
 import { retryStage, runStage } from "./runner.mjs";
 import { assertProjectMutable, assertProjectSlugMutable, isCompletedProject, loadProject, projectsRoot, readJson, writeJson } from "./storage.mjs";
-import { STAGE_DEFINITIONS } from "./stages.mjs";
+import { workflowStageDefinition } from "./workflows/registry.mjs";
 
 const ACTIVE_STATUSES = new Set(["queued", "running"]);
 
@@ -56,7 +56,7 @@ export function createAgentJob({ slug, stage, batchId = null }) {
   if (project.state.currentStage !== stage || project.state.stages[stage]?.status !== "ready") {
     throw new Error(`${slug} 的 ${stage} 当前不可执行`);
   }
-  if (STAGE_DEFINITIONS[stage]?.executor !== "agent" || stage === "remotion") {
+  if (workflowStageDefinition(project, stage)?.executor !== "agent" || stage === "remotion") {
     throw new Error(`${stage} 不使用通用 Agent Job`);
   }
   const now = new Date().toISOString();
