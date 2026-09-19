@@ -40,6 +40,7 @@ export function createApiClient({ fetchImpl = globalThis.fetch, baseUrl = "" } =
 
   return Object.freeze({
     getHealth: () => json("/api/health"),
+    getWorkflows: async () => (await json("/api/workflows")).workflows ?? [],
     getProjects: async () => (await json("/api/projects")).projects ?? [],
     getProject: async (slug) => (await json(`/api/projects/${encodeURIComponent(slug)}`)).project,
     getProjectWorkspace: (slug) => json(`/api/projects/${encodeURIComponent(slug)}/workspace`),
@@ -55,10 +56,12 @@ export function createApiClient({ fetchImpl = globalThis.fetch, baseUrl = "" } =
     getRemotionTask: async (id) => (await json(`/api/remotion-tasks/${encodeURIComponent(id)}`)).task,
     getSeries: async () => (await json("/api/series")).series ?? [],
     getGitHubDiagnostics: () => json("/api/diagnostics/github"),
-    importSource: (file, { slug, seriesId } = {}) => {
+    importSource: (file, { slug, seriesId, workflow, workflowVersion } = {}) => {
       const query = new URLSearchParams({ filename: file.name });
       if (slug) query.set("slug", slug);
       if (seriesId && seriesId !== "none") query.set("seriesId", seriesId);
+      if (workflow) query.set("workflow", workflow);
+      if (workflowVersion !== undefined && workflowVersion !== null) query.set("workflowVersion", String(workflowVersion));
       return json(`/api/projects/import?${query}`, {
         method: "PUT",
         headers: { "Content-Type": file.type || "text/plain" },

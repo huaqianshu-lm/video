@@ -58,6 +58,43 @@ Remotion 实现
 最终视频
 ```
 
+## 1.1 首期 Workflow Profile
+
+当前 Harness 的生产流程分为两条明确的 Workflow，公共内核负责状态、任务、人工 Gate、校验调度和远程交付，Workflow Profile 负责阶段、产物和输入契约。
+
+| Workflow | 适用视频 | 时间基准 | 音频／字幕 | 当前资料路径 |
+| --- | --- | --- | --- | --- |
+| `narrated-tutorial-v1` | 带口播教程 | narrated Timeline Manifest | TTS、MP3、VTT、SRT | 现有 `videos/<slug>/`、`src/videos/<slug>/`、`assets/<slug>-assets.zip` |
+| `product-promo-v1` | 视觉节奏驱动的产品宣传片 | `visual-timeline.json` | 不生成口播、TTS、字幕或 narrated Timeline；音乐／音效按素材声明可选 | `videos/product-promo/<slug>/`、`src/videos/product-promo/<slug>/`、`assets/product-promo/<slug>-assets.zip` |
+
+历史项目缺少 `workflow` 或使用兼容值 `default` 时，运行时解释为 `narrated-tutorial-v1`，不批量迁移资料或重写状态。新 Workflow 使用唯一的 `pathNamespace`；项目 `project.json.workflow` 是事实来源，目录命名空间只用于物理隔离和一致性校验。`local/render-input/<slug>/` 仍是两类视频共用的逐视频独立输入包边界。
+
+宣传片的内容制作要求、Scene 设计和人工 Gate 另见本地 `drafts/PRODUCT-PROMO-CONTENT-REQUIREMENTS.md`；本文件只规定生产流程与 Harness 的职责边界。`product-promo-v1` 必须完成真实试点的 Gate 4 后才能标记为稳定。
+
+宣传片的流程为：
+
+```text
+Source
+→ Promo Brief
+→ Creative Concept
+→ Scene Storyboard
+→ Visual Script
+→ Motion Prototype
+→ Gate 2
+→ Asset Preparation
+→ Visual Timeline
+→ Remotion
+→ Gate 3
+→ Render
+→ Gate 4
+```
+
+Smoke Render 不属于任一 Workflow 的生产阶段，只是新系列或渲染环境变化时的独立手动环境检查，不创建生产 Job、不推进阶段，也不写入 Gate 审查记录。
+
+宣传片 Remotion 的时长来源必须可静态追溯：配置从当前 `visual-timeline.json` 的精确相对路径导入，并由 `TotalDurationFrames` 直接返回导入对象的 `durationInFrames`。Gate 3、输入包和远程交付校验均拒绝硬编码时长、注释式引用或旧 Timeline；当前输入包生成的 `src/RenderInputRoot.tsx` 也是进入 Gate 3 的必要条件。
+
+之后增加新 Workflow 时，必须新增独立的 Profile 文件并在 Registry 注册，分配唯一 `id`、版本和 `pathNamespace`，再同步阶段契约、产物 Schema、CLI／Web UI／Studio／Render Input 入口和回归测试。不能只在公共模块散落条件分支，也不能把新 Workflow 的目录或产物放回 narrated 的 legacy-flat 路径。
+
 ---
 
 # 2. 每条视频的标准流程
@@ -75,6 +112,8 @@ videos/
 └── claude-code-what-is/
     └── source.md
 ```
+
+上例是 `narrated-tutorial-v1` 的 legacy-flat 路径。`product-promo-v1` 必须使用 `videos/product-promo/<slug>/source.md`；对应的 Remotion 配置／组件和资源归档分别位于 `src/videos/product-promo/<slug>/` 与 `assets/product-promo/<slug>-assets.zip`。具体路径始终以项目 `project.json` 的 Workflow Profile 解析结果为准。
 
 ---
 

@@ -4,6 +4,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { createWebServer } from "../src/server.mjs";
+import { createWebServer as createLegacyWebServer } from "../src/web/legacy-server.mjs";
 import { fingerprintStageArtifacts } from "../src/fingerprints.mjs";
 import { createJobRecord } from "../src/jobs.mjs";
 import { initializeProject, loadProject, writeJson } from "../src/storage.mjs";
@@ -114,6 +115,11 @@ test("serves the Web UI shell and health endpoint on localhost", async () => {
       harnessVersion: "0.6.0",
       status: "ok",
     });
+
+    const workflows = await request(webServer, "/api/workflows");
+    assert.equal(workflows.status, 200);
+    const workflowPayload = JSON.parse(workflows.body);
+    assert.ok(workflowPayload.workflows.some((item) => item.id === "product-promo-v1" && item.pathNamespace === "product-promo" && item.batchSupported === false));
 
     const projects = await request(webServer, "/api/projects");
     assert.equal(projects.status, 200);
@@ -849,7 +855,7 @@ test("exposes the active remote job and treats repeated submission as idempotent
   initializeProject(slug);
   const project = loadProject(slug, { refresh: false });
   project.state.currentStage = "render";
-  project.state.stages.render.status = "ready";
+  project.state.stages.render.status = "running";
   writeJson(project.files.state, project.state);
   const activeJob = createJobRecord({ slug, stage: "render" });
   let submitCount = 0;
@@ -893,6 +899,55 @@ test("exposes the active remote job and treats repeated submission as idempotent
     if (previousRef === undefined) delete process.env.GITHUB_REF_NAME;
     else process.env.GITHUB_REF_NAME = previousRef;
     fs.rmSync(projectsRoot, { recursive: true, force: true });
+  }
+});
+
+test("legacy Web server blocks remote preparation and submission before Render is ready", async () => {
+  const previousProjectsRoot = process.env.HARNESS_PROJECTS_DIR;
+  const previousWorkspaceRoot = process.env.HARNESS_WORKSPACE_ROOT;
+  const projectsRoot = fs.mkdtempSync(path.join(os.tmpdir(), "video-harness-legacy-stage-guard-"));
+  const workspaceRoot = fs.mkdtempSync(path.join(os.tmpdir(), "video-harness-legacy-stage-guard-workspace-"));
+  process.env.HARNESS_PROJECTS_DIR = projectsRoot;
+  process.env.HARNESS_WORKSPACE_ROOT = workspaceRoot;
+  const slug = "legacy-stage-guard";
+  fs.mkdirSync(path.join(workspaceRoot, "videos", slug), { recursive: true });
+  fs.writeFileSync(path.join(workspaceRoot, "videos", slug, "source.md"), "# Legacy stage guard\n", "utf8");
+  initializeProject(slug);
+  let submitCount = 0;
+  const webServer = createLegacyWebServer({
+    port: 0,
+    remoteJobMonitor: {
+      start() {},
+      stop() {},
+      async poll() {},
+      submit() {
+        submitCount += 1;
+        return { id: "unexpected", status: "queued" };
+      },
+    },
+  });
+  await webServer.listen();
+
+  try {
+    for (const action of ["prepare-remote-render", "remote-run"]) {
+      const response = await request(webServer, `/api/projects/${slug}/action`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action, stage: "render" }),
+      });
+      const payload = JSON.parse(response.body);
+      assert.equal(response.status, 400);
+      assert.equal(payload.code, "render-stage-not-ready");
+    }
+    assert.equal(submitCount, 0);
+  } finally {
+    await webServer.close();
+    if (previousProjectsRoot === undefined) delete process.env.HARNESS_PROJECTS_DIR;
+    else process.env.HARNESS_PROJECTS_DIR = previousProjectsRoot;
+    if (previousWorkspaceRoot === undefined) delete process.env.HARNESS_WORKSPACE_ROOT;
+    else process.env.HARNESS_WORKSPACE_ROOT = previousWorkspaceRoot;
+    fs.rmSync(projectsRoot, { recursive: true, force: true });
+    fs.rmSync(workspaceRoot, { recursive: true, force: true });
   }
 });
 

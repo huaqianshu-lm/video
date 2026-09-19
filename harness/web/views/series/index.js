@@ -4,6 +4,7 @@ import { escapeHtml } from "../../shared/html.js";
 export function createSeriesView({ elements, api, getProjects, onImported } = {}) {
   let mounted = false;
   let series = [];
+  let workflows = [];
   let projects = [];
   let activeId = "";
   let previewUrl = null;
@@ -17,6 +18,7 @@ export function createSeriesView({ elements, api, getProjects, onImported } = {}
   let uploadCoverHandler;
   let importFileHandler;
   let importSeriesHandler;
+  let importWorkflowHandler;
   let importSubmitHandler;
   const active = () => series.find((item) => item.id === activeId) ?? null;
   const clearPreview = () => { if (previewUrl) URL.revokeObjectURL(previewUrl); previewUrl = null; };
@@ -24,10 +26,23 @@ export function createSeriesView({ elements, api, getProjects, onImported } = {}
   function updateImportAvailability(updateMessage = true) {
     const hasFile = Boolean(elements.importFile.files?.[0]);
     const hasSeries = Boolean(elements.importSeries.value);
-    elements.importSubmit.disabled = importing || !hasFile || !hasSeries;
+    const hasWorkflow = !elements.importWorkflow || Boolean(elements.importWorkflow.value);
+    elements.importSubmit.disabled = importing || !hasFile || !hasSeries || !hasWorkflow;
     if (updateMessage && !importing && (!hasFile || !hasSeries)) {
-      elements.importState.textContent = !hasFile && !hasSeries ? "请选择一个原文件和所属系列。" : !hasFile ? "已选择系列，请再选择一个原文件。" : "已选择原文件，请再选择所属系列。";
+      elements.importState.textContent = !hasFile && !hasSeries ? "请选择一个原文件和所属系列。" : !hasFile ? "已选择系列，请再选择一个原文件。" : !hasSeries ? "已选择原文件，请再选择所属系列。" : "请选择生产流程。";
+    } else if (updateMessage && !importing && !hasWorkflow) {
+      elements.importState.textContent = "请选择生产流程。";
     }
+  }
+
+  function renderWorkflowOptions() {
+    if (!elements.importWorkflow) return;
+    const selected = elements.importWorkflow.value;
+    const options = workflows.length > 0
+      ? workflows.map((item) => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.label)} · ${escapeHtml(item.id)} · ${item.stages.length} 阶段</option>`)
+      : ['<option value="">暂无可用生产流程</option>'];
+    elements.importWorkflow.innerHTML = ['<option value="">请选择生产流程</option>', ...options].join("");
+    elements.importWorkflow.value = workflows.some((item) => item.id === selected) ? selected : "";
   }
 
   function renderImportOptions() {
@@ -47,11 +62,16 @@ export function createSeriesView({ elements, api, getProjects, onImported } = {}
     else { elements.seriesCoverPreview.innerHTML = "<span>尚未上传系列封面</span>"; elements.seriesState.textContent = current ? "系列已建立，请选择封面文件后上传。" : "选择或创建系列后上传封面。"; }
     elements.uploadSeriesCover.disabled = uploading || !current || !elements.seriesCoverFile.files?.[0];
     renderImportOptions();
+    renderWorkflowOptions();
     updateImportAvailability(false);
   }
 
   async function refresh() {
-    series = await api.getSeries(); projects = getProjects?.() ?? projects;
+    series = await api.getSeries();
+    if (elements.importWorkflow && typeof api.getWorkflows === "function") {
+      try { workflows = await api.getWorkflows(); } catch { workflows = []; }
+    }
+    projects = getProjects?.() ?? projects;
     if (activeId && !series.some((item) => item.id === activeId)) activeId = "";
     if (!activeId && series[0]) activeId = series[0].id;
     render();
@@ -107,7 +127,7 @@ export function createSeriesView({ elements, api, getProjects, onImported } = {}
     event.preventDefault(); const file = elements.importFile.files?.[0]; if (importing || !file) return;
     importing = true; elements.importSubmit.disabled = true; elements.importState.textContent = "正在上传并创建视频项目……";
     let completed = false;
-    try { if (file.size > 10 * 1024 * 1024) throw new Error("原文件不能超过 10 MB"); const result = await api.importSource(file, { slug: elements.importSlug.value.trim(), seriesId: elements.importSeries.value }); elements.importForm.reset(); renderImportOptions(); elements.importState.textContent = `已创建项目 ${result.result.slug}，正在打开项目详情……`; completed = true; await onImported?.(result.result.slug); }
+    try { if (file.size > 10 * 1024 * 1024) throw new Error("原文件不能超过 10 MB"); const selectedWorkflow = workflows.find((item) => item.id === elements.importWorkflow?.value); const importOptions = { slug: elements.importSlug.value.trim(), seriesId: elements.importSeries.value }; if (selectedWorkflow) { importOptions.workflow = selectedWorkflow.id; importOptions.workflowVersion = selectedWorkflow.version; } const result = await api.importSource(file, importOptions); elements.importForm.reset(); renderImportOptions(); renderWorkflowOptions(); elements.importState.textContent = `已创建项目 ${result.result.slug}，正在打开项目详情……`; completed = true; await onImported?.(result.result.slug); }
     catch (error) { elements.importState.textContent = `导入失败：${error.message}`; }
     finally { importing = false; if (!completed) updateImportAvailability(false); }
   }
@@ -121,10 +141,11 @@ export function createSeriesView({ elements, api, getProjects, onImported } = {}
     uploadCoverHandler = () => { void uploadCover(); };
     importFileHandler = () => updateImportAvailability();
     importSeriesHandler = () => updateImportAvailability();
+    importWorkflowHandler = () => updateImportAvailability();
     importSubmitHandler = importSource;
     elements.newSeries.addEventListener("click", newSeriesHandler);
     elements.seriesSelect.addEventListener("change", seriesSelectHandler);
-    elements.seriesForm.addEventListener("submit", seriesSubmitHandler); elements.seriesCoverFile.addEventListener("change", coverFileHandler); elements.uploadSeriesCover.addEventListener("click", uploadCoverHandler); elements.importFile.addEventListener("change", importFileHandler); elements.importSeries.addEventListener("change", importSeriesHandler); elements.importForm.addEventListener("submit", importSubmitHandler); elements.uploadSeriesCover.setAttribute?.("aria-describedby", "series-state"); elements.importSubmit.setAttribute?.("aria-describedby", "source-import-state"); updateImportAvailability(); void refresh();
+    elements.seriesForm.addEventListener("submit", seriesSubmitHandler); elements.seriesCoverFile.addEventListener("change", coverFileHandler); elements.uploadSeriesCover.addEventListener("click", uploadCoverHandler); elements.importFile.addEventListener("change", importFileHandler); elements.importSeries.addEventListener("change", importSeriesHandler); elements.importWorkflow?.addEventListener("change", importWorkflowHandler); elements.importForm.addEventListener("submit", importSubmitHandler); elements.uploadSeriesCover.setAttribute?.("aria-describedby", "series-state"); elements.importSubmit.setAttribute?.("aria-describedby", "source-import-state"); updateImportAvailability(); void refresh();
   }
-  return { mount, unmount() { if (!mounted) return; mounted = false; elements.newSeries.removeEventListener("click", newSeriesHandler); elements.seriesSelect.removeEventListener("change", seriesSelectHandler); elements.seriesForm.removeEventListener("submit", seriesSubmitHandler); elements.seriesCoverFile.removeEventListener("change", coverFileHandler); elements.uploadSeriesCover.removeEventListener("click", uploadCoverHandler); elements.importFile.removeEventListener("change", importFileHandler); elements.importSeries.removeEventListener("change", importSeriesHandler); elements.importForm.removeEventListener("submit", importSubmitHandler); clearPreview(); }, refresh, setProjects(next) { projects = next; render(); } };
+  return { mount, unmount() { if (!mounted) return; mounted = false; elements.newSeries.removeEventListener("click", newSeriesHandler); elements.seriesSelect.removeEventListener("change", seriesSelectHandler); elements.seriesForm.removeEventListener("submit", seriesSubmitHandler); elements.seriesCoverFile.removeEventListener("change", coverFileHandler); elements.uploadSeriesCover.removeEventListener("click", uploadCoverHandler); elements.importFile.removeEventListener("change", importFileHandler); elements.importSeries.removeEventListener("change", importSeriesHandler); elements.importWorkflow?.removeEventListener("change", importWorkflowHandler); elements.importForm.removeEventListener("submit", importSubmitHandler); clearPreview(); }, refresh, setProjects(next) { projects = next; render(); } };
 }

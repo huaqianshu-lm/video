@@ -1810,6 +1810,7 @@ test("WebUI semantic tokens, state classes and accessibility hooks are present a
   assert.match(html, /class="series-import-layout"/);
   assert.match(html, /class="series-panel"/);
   assert.match(html, /class="source-import-panel"/);
+  assert.match(html, /id="source-import-workflow"/);
   assert.match(dashboard, /\.batch-record-grid\s*\{/);
   assert.match(dashboard, /\.batches-page,\s*\.remotion-tasks-page\s*\{[\s\S]*?overflow:\s*hidden/);
   assert.match(dashboard, /\.batch-record-section,\s*\.remotion-task-section\s*\{[\s\S]*?display:\s*flex[\s\S]*?min-height:\s*0/);

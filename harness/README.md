@@ -33,16 +33,42 @@
 
 完整校验项和当前实现状态见 [`VALIDATION-MATRIX.md`](./VALIDATION-MATRIX.md)。
 
+## 当前 Workflow Profile
+
+Harness 的阶段顺序、产物、时间基准和资源前置条件由 Workflow Registry 统一提供。当前有两套可选 Workflow：
+
+| Workflow | 阶段边界 | 时间／声音契约 | 资料命名空间 |
+| --- | --- | --- | --- |
+| `narrated-tutorial-v1` | 14 个 narrated 生产阶段 | TTS、音频、字幕和 `timeline-manifest.json` | 现有 legacy-flat：`videos/<slug>/`、`src/videos/<slug>/`、`assets/<slug>-assets.zip` |
+| `product-promo-v1` | 13 个视觉宣传片阶段 | `visual-timeline.json`；无口播、TTS、VTT、SRT，音乐／音效可选 | namespaced：`videos/product-promo/<slug>/`、`src/videos/product-promo/<slug>/`、`assets/product-promo/<slug>-assets.zip` |
+
+对应阶段顺序为：
+
+```text
+narrated-tutorial-v1:
+source → content-analysis → video-narrative → scene-script
+→ narration-script → visual-script → visual-prototype → gate-2
+→ tts → subtitle-timeline → remotion → gate-3 → render → gate-4
+
+product-promo-v1:
+source → promo-brief → creative-concept → scene-script → visual-script
+→ motion-prototype → gate-2 → asset-preparation → visual-timeline
+→ remotion → gate-3 → render → gate-4
+```
+
+项目 `project.json.workflow` 和 `workflowVersion` 是事实来源；未知 Workflow 或版本会 fail closed。历史缺少该字段或使用 `default` 的项目只按 narrated 兼容读取，不批量迁移目录和状态。两类项目共用 `harness/projects/<slug>/` 状态目录和 `local/render-input/<slug>/` 独立输入包，但 slug 仍必须全局唯一。`product-promo-v1` 首期不支持批量入口。
+
+宣传片 Remotion 配置必须从当前 `videos/product-promo/<slug>/visual-timeline.json` 使用精确相对路径导入，并导出精确的 `TotalDurationFrames`，直接返回该导入对象的 `durationInFrames`。配置、Gate 3 校验和独立 Render Input 包都会拒绝硬编码时长或只在注释中提及 Visual Timeline；Gate 3 还要求当前输入包生成的 `src/RenderInputRoot.tsx` 存在且通过校验。
+
 ## 仓库边界
 
 Harness 的代码、测试夹具和实现文档放在当前仓库的顶层 `harness/` 目录；通用视频模板放在 `templates/`，项目专项 Skill 放在 `.claude/skills/`。
 
-Harness 可以读取并调用现有的：
+Harness 可以按 Workflow Profile 读取并调用现有的：
 
-- 本地 `videos/<video-slug>/` 生产资料；
-- 本地 `src/videos/<video-slug>/` 视频配置和组件；
-- 现有检查脚本；
-- 项目既定的 TTS 和 GitHub Actions 入口。
+- narrated 的本地 `videos/<video-slug>/`、`src/videos/<video-slug>/` 和资源归档；
+- promo 的本地 `videos/product-promo/<video-slug>/`、`src/videos/product-promo/<video-slug>/` 和 namespaced 资源归档；
+- 现有检查脚本、通用 Remotion 能力和对应的 GitHub Actions 入口。
 
 这些具体视频目录不属于远端仓库能力，Harness 不应把它们当作唯一的通用模板来源。可复用的原型基线和脚本结构使用受 Git 跟踪的 `templates/`。Harness 不直接修改已经完成的视频资料，也不重写共享 Remotion 场景。真实视频只用于只读回归，继续用最小测试项目验证 Harness 自身行为。
 
@@ -58,8 +84,8 @@ Harness 可以读取并调用现有的：
 6. 失败重试和断点续做。
 7. TTS、字幕／时间轴、Remotion 和远程渲染适配器接口。
 8. Mock 适配器和自动化验收测试。
-9. 14 个当前生产阶段的统一 Workflow 元数据；历史 15 阶段记录只读展示。
-10. Scene／口播／TTS／字幕／Timeline 的确定性资料校验。
+9. 两套 Workflow 的阶段、Gate、适配器、路径和交付契约；历史 Smoke 阶段只读展示。
+10. Scene／口播／TTS／字幕／Timeline，以及宣传片 Brief／素材／Visual Timeline 的确定性资料校验。
 11. SHA-256 产物指纹和上游变化后的下游失效。
 12. `next` 和 `report` 状态报告。
 13. GitHub Actions Run 与 Artifact 有效性验收。
@@ -79,6 +105,7 @@ Harness 可以读取并调用现有的：
 ## 阶段顺序
 
 ```text
+narrated-tutorial-v1:
 source
 → content-analysis
 → video-narrative
@@ -95,7 +122,24 @@ source
 → gate-4
 ```
 
-Smoke Render 不属于当前生产 Workflow。新系列首次渲染或字体、Runner、依赖、资源链路等渲染环境发生变化时，使用 GitHub Actions 页面手动运行 `Smoke test video`；它不推进 Harness 阶段、不创建 Harness Job，也不写入视频审核记录。手动输入包括 `video_slug`、`composition_id`、`dispatch_id`、`render_input_url` 和 `render_input_sha256`。
+```text
+product-promo-v1:
+source
+→ promo-brief
+→ creative-concept
+→ scene-script
+→ visual-script
+→ motion-prototype
+→ gate-2
+→ asset-preparation
+→ visual-timeline
+→ remotion
+→ gate-3
+→ render
+→ gate-4
+```
+
+Smoke Render 不属于任一当前生产 Workflow。新系列首次渲染或字体、Runner、依赖、资源链路等渲染环境发生变化时，使用 GitHub Actions 页面手动运行 `Smoke test video`；它不推进 Harness 阶段、不创建 Harness Job，也不写入视频审核记录。手动输入包括 `video_slug`、`composition_id`、`dispatch_id`、`render_input_url` 和 `render_input_sha256`。
 
 其中 Gate 1 是 `content-analysis`、`video-narrative` 和 `scene-script` 的组合审查；Gate 2 是口播、视觉脚本和原型的组合审查。TTS、字幕和时间轴必须从 Gate 2 冻结后的 `tts-script.json` 派生。
 
@@ -150,7 +194,7 @@ Harness 0.1 已完成以下验证：
 
 Harness 0.2 已完成以下验证：
 
-- 15 个阶段由单一 Workflow 定义提供顺序、Gate、适配器和产物信息。
+- 两套 Workflow 由 Registry 定义顺序、Gate、适配器、路径和产物信息；历史 15 阶段记录只读展示。
 - 严格口播来源指代、TTS 覆盖、Scene 对齐和 Timeline Segment 校验通过。
 - 产物变化检测和下游 `invalidated` 状态通过自动化测试。
 - `next`／`report` 的 ready、waiting、failed、invalidated 状态输出通过测试和 CLI 冒烟。
@@ -194,9 +238,9 @@ http://127.0.0.1:4173
 
 当前 Web UI 支持：
 
-- 查看视频项目列表、14 个当前生产阶段和下一步动作；历史 Smoke 阶段只读展示；
-- 在首页导入 Markdown 或纯文本原文件；系统按文件名或手工填写的 slug 创建新项目，保存为 `videos/<slug>/source.md`，已存在项目不会被覆盖；
-- 查看生产资料、TTS／字幕／Timeline Manifest 和 Remotion 文件；
+- 查看视频项目列表、当前 Workflow 的阶段和下一步动作；历史 Smoke 阶段只读展示；
+- 在首页导入 Markdown 或纯文本原文件；导入时选择 Workflow，默认是 narrated，系统按所选 Profile 创建对应的 Source 路径，已存在项目不会被覆盖；
+- 查看当前 Workflow 的生产资料、narrated 的 TTS／字幕／Timeline Manifest 或 promo 的 Asset／Visual Timeline，以及 Remotion 文件；
 - 预览 Visual Prototype；
 - 初始化 Harness 项目状态；
 - 为 Agent 阶段创建持久化后台任务，查看状态、有界日志并在失败后重试；Agent 退出后只有真实产物通过 Harness 校验才推进阶段；
@@ -204,13 +248,13 @@ http://127.0.0.1:4173
 - 执行校验、阶段推进、Gate 通过／驳回、重试和断点续做；
 - 发起完整 Render 后查看远程任务状态和 Artifact 元数据；Smoke Render 只从 GitHub Actions 手动触发，不经过项目阶段按钮；
 - 已完成视频仍可查看和做只读校验，但不能执行阶段、Gate、重试、刷新回写、批次、系列或远程任务写入；如需新版本，使用新的 video slug；
-- 在远程渲染阶段提供“准备远程渲染资源”动作：从本地 `videos/<video-slug>/`、`src/videos/<video-slug>/` 和资源包整理独立输入包，并在提交前检查输入包、Manifest、能力代码和 dispatch 分支；不自动 commit 或 push；
-- 通过 `render-input` 命令把本地 `videos/<video-slug>/`、`src/videos/<video-slug>/` 和资源包整理为被 Git 忽略的独立输入包；远端只下载这个包到临时工作区，不把具体视频资料混入能力仓库；
+- 在远程渲染阶段提供“准备远程渲染资源”动作：从当前 Workflow 解析出的 Source、Remotion 和资源归档整理独立输入包，并在提交前检查输入包、Manifest、能力代码和 dispatch 分支；不自动 commit 或 push；
+- 通过 `render-input` 命令把当前 Workflow 的本地资料和资源归档整理为被 Git 忽略的独立输入包；远端只下载这个包到临时工作区，不把具体视频资料混入能力仓库；
 - 查看后台任务的 Run 链接、Run ID、Artifact 名称、最近检查时间和失败原因；
 - 在首页查看所有视频项目的远程任务，并手动执行 GitHub 配置诊断；
 - 对未初始化的旧视频执行 Legacy 只读检查。
 
-Web UI 只监听 `127.0.0.1`，运行状态写入被 Git 忽略的 `harness/projects/`。导入原文件时先选择系列；项目会锁定系列 Style，并在视觉原型阶段读取该 Style 对应的已验证原型基线。Agent 任务会按当前阶段声明的输出路径修改视频生产资料，但仍不自动通过人工 Gate。普通 Agent 阶段默认使用项目内适配器调用本机 `codex` CLI；TTS 阶段默认使用项目内 TTS 适配器；Remotion 阶段使用独立的 Remotion 适配器。环境变量只用于显式覆盖默认执行器。
+Web UI 只监听 `127.0.0.1`，运行状态写入被 Git 忽略的 `harness/projects/`。导入原文件时先选择 Workflow 和系列；项目会锁定 Workflow、系列 Style，并在原型阶段读取该 Style 对应的已验证原型基线。Agent 任务会按当前阶段声明的输出路径修改视频生产资料，但仍不自动通过人工 Gate。普通 Agent 阶段默认使用项目内适配器调用本机 `codex` CLI；仅 narrated 项目的 TTS／字幕阶段使用 TTS 适配器；Remotion 阶段使用独立的 Remotion 适配器。环境变量只用于显式覆盖默认执行器。
 
 如果需要替换普通 Agent 的执行器，可配置本地命令及 JSON 参数数组：
 
@@ -224,7 +268,7 @@ Harness 通过 stdin 发送结构化阶段任务包。`subtitle-timeline` 和 `r
 
 ### TTS 执行器
 
-当前项目已提供可直接接入既有 TTS 工程的 Harness 适配器。Gate 2 通过时，Harness 会调用既有 TTS 工程的 `scripts/build_tts_script.py`，从冻结的 `narration-script.md` 生成 `tts-script.json`；CLI、WebUI 不各自实现 Markdown 解析规则。普通 `npm run harness:web` 会自动使用该适配器；它读取生成并校验过的 `videos/<video-slug>/tts-script.json`，按 `+25%` 调用 TTS 工程中的三个脚本，再把音频、字幕和 Timeline Manifest 同步到当前视频目录，并自动生成 `assets/<video-slug>-assets.zip`。默认假设 TTS 工程与本仓库同级，目录为 `../tts`；如果目录不同，或需要替换适配器，显式设置：
+当前项目已提供可直接接入既有 TTS 工程的 Harness 适配器，但它只适用于 `narrated-tutorial-v1`。Gate 2 通过时，Harness 会调用既有 TTS 工程的 `scripts/build_tts_script.py`，从冻结的 `narration-script.md` 生成 `tts-script.json`；CLI、WebUI 不各自实现 Markdown 解析规则。普通 `npm run harness:web` 会自动使用该适配器；它读取生成并校验过的 narrated `videos/<video-slug>/tts-script.json`，按 `+25%` 调用 TTS 工程中的三个脚本，再把音频、字幕和 Timeline Manifest 同步到当前视频目录，并自动生成 narrated 资源归档。`product-promo-v1` 不创建 TTS Script、MP3、VTT、SRT 或 narrated Manifest；它在 Gate 2 后进入 Asset Preparation 和 Visual Timeline。默认假设 TTS 工程与本仓库同级，目录为 `../tts`；如果目录不同，或需要替换适配器，显式设置：
 
 ```bash
 export HARNESS_TTS_EXECUTOR_COMMAND="node"
@@ -242,6 +286,7 @@ export HARNESS_TTS_SCRIPT_BUILDER="/Users/limiao/personal/2-topic/4-AI/project/t
 初始化和查看项目状态：
 
 ```bash
+node harness/src/cli.mjs workflow list [--json]
 node harness/src/cli.mjs init <video-slug>
 node harness/src/cli.mjs status <video-slug>
 node harness/src/cli.mjs jobs <video-slug>
@@ -261,6 +306,12 @@ node harness/src/cli.mjs render-input validate <video-slug> --json
 node harness/src/cli.mjs render-input package <video-slug> --json
 node harness/src/cli.mjs render-input bind <video-slug> --url <published-zip-url> --sha256 <zip-sha256> --json
 node harness/src/cli.mjs render-input entry-all --output src/RenderInputRoot.tsx --json
+```
+
+初始化宣传片项目时显式选择 Workflow：
+
+```bash
+node harness/src/cli.mjs init <video-slug> --workflow product-promo-v1 --workflow-version 1
 ```
 
 远程渲染输入包位于被忽略的 `local/render-input/<video-slug>/`，压缩包位于同目录下的 `<video-slug>.zip`。准备输入包不会 commit 或 push：

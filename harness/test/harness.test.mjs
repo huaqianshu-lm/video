@@ -165,6 +165,21 @@ test("declares an exact dispatch marker in both remote workflows", () => {
   }
 });
 
+test("installs Render Input paths from the Workflow Registry in both Actions workflows", () => {
+  for (const workflow of ["render-video.yml", "smoke-test-video.yml"]) {
+    const content = fs.readFileSync(path.join(repositoryRoot, ".github", "workflows", workflow), "utf8");
+    assert.match(content, /workflowPaths/);
+    assert.match(content, /render-input validate-path/);
+    assert.doesNotMatch(content, /src\/videos\/\$\{VIDEO_SLUG\}\/generated\/audio-manifest/);
+    assert.doesNotMatch(content, /public\/local-assets\/\$\{VIDEO_SLUG\}\/subtitles\/captions\.vtt/);
+  }
+  const smokeContent = fs.readFileSync(path.join(repositoryRoot, ".github", "workflows", "smoke-test-video.yml"), "utf8");
+  assert.match(smokeContent, /timelineMode/);
+  assert.match(smokeContent, /TIMELINE_MODE/);
+  assert.doesNotMatch(smokeContent, /WORKFLOW_ID/);
+  assert.doesNotMatch(smokeContent, /product-promo-v1/);
+});
+
 test("initializes explicit workflow, style, and target project configuration", () => {
   const { slug } = createFixture({ prototypeBaseline: "codex-v1" });
   const project = loadFixture(slug);
@@ -405,6 +420,27 @@ test("reconciles a valid existing Remotion output before Gate 3 rejection", asyn
   assert.equal(rejected.state.currentStage, "remotion");
   assert.equal(rejected.state.stages.remotion.status, "ready");
   assert.equal(rejected.state.stages.remotion.invalidatedBy, "gate-3-rejected");
+});
+
+test("blocks Web remote preparation and submission before the Render stage is ready", async () => {
+  const { slug } = createFixture();
+  let submitCount = 0;
+  const service = createProjectActionService({
+    remoteJobMonitor: {
+      submit() {
+        submitCount += 1;
+        return { id: "unexpected", status: "queued" };
+      },
+    },
+  });
+
+  for (const action of ["prepare-remote-render", "remote-run"]) {
+    await assert.rejects(
+      service.execute({ slug, action, stage: "render" }),
+      (error) => error.code === "render-stage-not-ready",
+    );
+  }
+  assert.equal(submitCount, 0);
 });
 
 test("builds a single-stage context task packet with bounded read and write paths", () => {

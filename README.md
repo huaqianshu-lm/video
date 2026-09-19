@@ -4,9 +4,11 @@
 
 它不是“点一下就自动出片”的黑盒。系统负责记录状态、校验资料、调度任务、保存失败信息和恢复上下文；口播、视觉原型、Remotion 预览和最终视频仍然要经过人工 Gate。
 
-当前 Harness 版本为 `0.6.0`。当前生产流程有 14 个阶段；历史上的 `Smoke Render` 已经退出生产阶段，只保留为独立的 GitHub Actions 环境检查。
+当前 Harness 版本为 `0.6.0`。首期支持两套 Workflow：现有的 `narrated-tutorial-v1` 和新的 `product-promo-v1`。历史上的 `Smoke Render` 已经退出生产阶段，只保留为独立的 GitHub Actions 环境检查。
 
 ## 当前生产流程
+
+### `narrated-tutorial-v1`
 
 ```text
 原始内容
@@ -43,6 +45,19 @@ source
 → gate-4
 ```
 
+### `product-promo-v1`
+
+```text
+Source → Promo Brief → Creative Concept → Scene Storyboard
+  → Visual Script → Motion Prototype → Gate 2
+  → Asset Preparation → Visual Timeline → Remotion
+  → Gate 3 → 完整 Render → Gate 4
+```
+
+宣传片是 20～30 秒、1920×1080、30fps 的视觉节奏驱动流程，默认不生成口播、TTS、字幕或 narrated Timeline；音乐／音效按 Asset Manifest 可选。它使用 `videos/product-promo/<slug>/`、`src/videos/product-promo/<slug>/` 和 `assets/product-promo/<slug>-assets.zip`，不会复用教程的扁平目录。
+
+两套 Workflow 共用状态、Agent Job、人工 Gate、Remotion、独立 Render Input 和远程交付内核，但阶段、资料和校验由服务端 Registry 决定。项目的 `project.json.workflow` 是事实来源；新 Workflow 使用独立 `pathNamespace`。`product-promo-v1` 首期不支持批量生产，真实宣传片仍必须由用户完成 Gate 2、Gate 3 和 Gate 4。
+
 其中：
 
 - Gate 1 是内容分析、视频叙事和 Scene 脚本完成后的内部审查，不是一个单独的生产阶段。
@@ -63,6 +78,9 @@ source
 - GitHub Actions 远程 Render：Runner 在临时目录恢复输入包，校验 slug、Composition、资源、Manifest 和 SHA-256 后生成最终 MP4 并上传 Artifact。
 - 远程任务恢复：保存准确的 dispatch、Run ID、Run URL 和 Artifact 信息；批量远程 Job 进入终态后可以继续批次，不会因为页面关闭而丢失上下文。
 - 只读保护：已完成视频的资料、配置、状态、Gate、Job、批次和相关产物都不能被 Harness、Web UI 或后台任务修改。
+- Workflow Registry：可通过 `workflow list` 或 Web UI 的 Workflow Catalog 选择流程；未知 Workflow 和版本会 fail closed。
+- 宣传片契约：校验 Promo Brief、Scene／Visual Script、Asset Manifest、Visual Timeline、Gate 2 冻结基线和 Remotion 对齐清单。
+- 宣传片通用 Remotion 能力：复用固定 16:9 外壳、左上标题、Beat 驱动的 Scene／Transition 和可选音乐／音效；具体文案和素材仍留在本地视频目录。
 
 ## 快速开始
 
@@ -117,6 +135,7 @@ npx remotion studio src/RenderInputRoot.tsx
 常用的状态和诊断命令：
 
 ```bash
+node harness/src/cli.mjs workflow list [--json]
 node harness/src/cli.mjs init <video-slug>
 node harness/src/cli.mjs status <video-slug>
 node harness/src/cli.mjs validate <video-slug> [stage]
@@ -127,6 +146,12 @@ node harness/src/cli.mjs plan <video-slug> --until visual-prototype
 node harness/src/cli.mjs jobs <video-slug>
 node harness/src/cli.mjs jobs --all
 node harness/src/cli.mjs doctor --json
+```
+
+初始化宣传片项目时显式选择 Workflow：
+
+```bash
+node harness/src/cli.mjs init <video-slug> --workflow product-promo-v1 --workflow-version 1
 ```
 
 阶段执行和人工 Gate：
@@ -161,6 +186,8 @@ Remotion 任务只有在项目当前处于 `remotion / ready` 时才能执行。
 | `to-tts` | TTS、音频、字幕和 Timeline | TTS 人工质检 |
 | `to-remotion` | Remotion 任务和产物校验 | Gate 3 人工预览 |
 | `to-render` | Gate 3 通过后的完整 Render 交付 | Gate 4 人工验收 |
+
+上述批量目标只适用于支持批量的 Workflow。`product-promo-v1` 首期明确拒绝批量入口，并返回 `unsupported-workflow-batch`，不会转换为 narrated 批次。
 
 批量记录可以用 CLI 查看和创建：
 
@@ -201,9 +228,9 @@ node harness/src/cli.mjs batch approve-tts-qc <batch-id> <video-slug>
 ```text
 local/render-input/<video-slug>/
 ├── render-input.json
-├── videos/<video-slug>/...
-├── src/videos/<video-slug>/...
-└── assets/<video-slug>-assets.zip
+├── videos/<workflow-path>/<video-slug>/...
+├── src/videos/<workflow-path>/<video-slug>/...
+└── assets/<workflow-path>/<video-slug>-assets.zip
 
 local/render-input/<video-slug>.zip
 local/render-input/<video-slug>.delivery.json
@@ -226,11 +253,11 @@ node harness/src/cli.mjs render-input bind <video-slug> \
 - `packageFingerprint` 和源资料快照。
 - Remotion 配置、组件导出和 Composition ID。
 - 资源 ZIP 是否可以完整解压，顶层目录是否正确。
-- `captions.vtt`、`captions.srt`、Audio／Subtitle／Timeline Manifest 是否存在且相互匹配。
-- 资源 ZIP 中的每一个 MP3 路径和数量是否与 Audio Manifest 一致。
+- narrated 项目的 `captions.vtt`、`captions.srt`、Audio／Subtitle／Timeline Manifest 是否存在且相互匹配，以及每一个 MP3 路径和数量是否与 Audio Manifest 一致。
+- promo 项目的 Asset Manifest、Visual Timeline、声明素材、可选音乐／音效引用和 20～30 秒视觉时间轴是否一致；不会要求或伪造 MP3、VTT、SRT。
 - 发布 URL 下载到的内容是否与本地 ZIP 的 SHA-256 一致。
 
-GitHub Actions 会把 ZIP 下载到 Runner 临时目录，在临时工作区恢复 `videos/`、`src/videos/` 和资源包，生成临时 `src/RenderInputRoot.tsx`，完成类型检查后执行完整 Render。具体视频资料和媒体不会进入能力仓库。
+GitHub Actions 会把 ZIP 下载到 Runner 临时目录，从输入包的 Workflow Registry 解析并恢复对应的 `videos/`、`src/videos/` 和资源包路径，生成临时 `src/RenderInputRoot.tsx`，完成 Workflow 适用的输入校验和类型检查后执行完整 Render。具体视频资料和媒体不会进入能力仓库。
 
 ## GitHub Actions 和认证
 
@@ -273,8 +300,10 @@ Smoke Render 应选择未完成视频或独立副本；不能对已经 `complete
 ├── src/Root.tsx             # 受跟踪的通用 Composition 入口
 ├── src/RenderInputRoot.tsx  # 被忽略的逐视频临时入口
 ├── docs/                    # 稳定规范、架构和使用文档
-├── videos/<slug>/           # 本地具体视频资料，不提交
-├── src/videos/<slug>/       # 本地具体视频配置和组件，不提交
+├── videos/<slug>/           # narrated 本地具体视频资料，不提交
+├── videos/product-promo/<slug>/ # promo 本地具体视频资料，不提交
+├── src/videos/<slug>/       # narrated 本地具体视频配置和组件，不提交
+├── src/videos/product-promo/<slug>/ # promo 本地具体视频配置和组件，不提交
 ├── assets/                  # 本地资源 ZIP，不提交
 ├── public/local-assets/     # 本地解压资源，不提交
 ├── series/                  # 本地系列资料，不提交
