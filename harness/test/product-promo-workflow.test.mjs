@@ -95,7 +95,7 @@ CTA：访问产品入口
 核心价值：让价值被看见
 核心卖点：可演示的界面状态变化
 CTA：访问产品入口
-时长：20～30 秒
+时长：20～60 秒
 不可说：未确认的数据和承诺
 `);
   write(workspaceRoot, `${base}/creative-concept.md`, `# Creative Concept

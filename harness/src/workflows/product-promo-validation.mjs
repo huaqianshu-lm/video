@@ -211,8 +211,8 @@ function validateSceneDocument(project, stage, kind) {
   if (text === null) return [];
   const scenes = sceneBlocks(text);
   const issues = [];
-  if (scenes.length < 4 || scenes.length > 6) {
-    issues.push(issue(stage, "promo-scene-count-invalid", `宣传片必须有 4～6 个 Scene，当前为 ${scenes.length}`, relativePath));
+  if (scenes.length < 4 || scenes.length > 7) {
+    issues.push(issue(stage, "promo-scene-count-invalid", `宣传片必须有 4～7 个 Scene，当前为 ${scenes.length}`, relativePath));
   }
   const seen = new Set();
   for (const scene of scenes) {
@@ -361,8 +361,8 @@ function validateVisualTimeline(project, stage) {
   if (value.schemaVersion !== 1 || value.slug !== project.config.slug || value.fps !== 30 || value.width !== 1920 || value.height !== 1080) {
     issues.push(issue(stage, "invalid-promo-timeline-schema", "Visual Timeline 必须声明 schemaVersion=1、正确 slug、1920×1080 和 30fps", relativePath));
   }
-  if (!integerFrame(value.durationInFrames) || value.durationInFrames < 600 || value.durationInFrames > 900) {
-    issues.push(issue(stage, "promo-timeline-duration-invalid", "Visual Timeline 总时长必须为 20～30 秒（600～900 帧）", relativePath));
+  if (!integerFrame(value.durationInFrames) || value.durationInFrames < 600 || value.durationInFrames > 1800) {
+    issues.push(issue(stage, "promo-timeline-duration-invalid", "Visual Timeline 总时长必须为 20～60 秒（600～1800 帧）", relativePath));
   }
   const sceneIds = sceneIdsFromText(readText(project, artifactPath(project, "scene-script")) ?? "");
   const textIndex = sceneTextIndex(project);

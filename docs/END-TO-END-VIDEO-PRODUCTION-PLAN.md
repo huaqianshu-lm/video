@@ -104,7 +104,7 @@ GitHub Actions 完整渲染
 完成
 ```
 
-宣传片的时间基准是 `visual-timeline.json`，默认 20～30 秒、1920×1080、30fps；Remotion 配置必须从当前 Timeline 的精确相对路径导入，并由 `TotalDurationFrames` 直接返回其 `durationInFrames`，禁止硬编码时长或注释式引用。音乐／音效可选，但所有资源必须在 Asset Manifest 中声明并从本地输入包读取。宣传片不创建或伪造 `narration-script.md`、`tts-script.json`、Audio／Subtitle／narrated Timeline Manifest、MP3、VTT 或 SRT。
+宣传片的时间基准是 `visual-timeline.json`，默认 20～60 秒、1920×1080、30fps；Remotion 配置必须从当前 Timeline 的精确相对路径导入，并由 `TotalDurationFrames` 直接返回其 `durationInFrames`，禁止硬编码时长或注释式引用。音乐／音效可选，但所有资源必须在 Asset Manifest 中声明并从本地输入包读取。宣传片不创建或伪造 `narration-script.md`、`tts-script.json`、Audio／Subtitle／narrated Timeline Manifest、MP3、VTT 或 SRT。
 
 ## 4. 阶段和人工闸门
 
@@ -128,7 +128,7 @@ GitHub Actions 完整渲染
 |---|---|---|---|
 | Promo Brief | `promo-brief.md` | 受众、一个传播目标、核心价值、证据和 CTA | Source／Promo Brief |
 | Creative Concept | `creative-concept.md` | 视觉表达机制、节奏和素材路线 | Promo Brief／Concept |
-| Scene Storyboard | `scene-script.md` | 4～6 个 Scene、每幕单一任务和 Video Value | Scene Storyboard |
+| Scene Storyboard | `scene-script.md` | 4～7 个 Scene、每幕单一任务和 Video Value | Scene Storyboard |
 | Visual Script | `visual-script.md` | 视觉事件、屏幕文字来源和素材使用 | Visual Script／Scene Storyboard |
 | Motion Prototype | `motion-prototype.html` | 统一外壳、构图、运动语言和信息密度 | Visual Script／Prototype |
 | Gate 2 | 无新增文件 | 创意、关键素材、授权风险和原型 | Visual Script |

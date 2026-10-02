@@ -54,7 +54,7 @@ Source → Promo Brief → Creative Concept → Scene Storyboard
   → Gate 3 → 完整 Render → Gate 4
 ```
 
-宣传片是 20～30 秒、1920×1080、30fps 的视觉节奏驱动流程，默认不生成口播、TTS、字幕或 narrated Timeline；音乐／音效按 Asset Manifest 可选。它使用 `videos/product-promo/<slug>/`、`src/videos/product-promo/<slug>/` 和 `assets/product-promo/<slug>-assets.zip`，不会复用教程的扁平目录。
+宣传片是 20～60 秒、1920×1080、30fps 的视觉节奏驱动流程，默认不生成口播、TTS、字幕或 narrated Timeline；音乐／音效按 Asset Manifest 可选。它使用 `videos/product-promo/<slug>/`、`src/videos/product-promo/<slug>/` 和 `assets/product-promo/<slug>-assets.zip`，不会复用教程的扁平目录。
 
 两套 Workflow 共用状态、Agent Job、人工 Gate、Remotion、独立 Render Input 和远程交付内核，但阶段、资料和校验由服务端 Registry 决定。项目的 `project.json.workflow` 是事实来源；新 Workflow 使用独立 `pathNamespace`。`product-promo-v1` 首期不支持批量生产，真实宣传片仍必须由用户完成 Gate 2、Gate 3 和 Gate 4。
 
@@ -254,7 +254,7 @@ node harness/src/cli.mjs render-input bind <video-slug> \
 - Remotion 配置、组件导出和 Composition ID。
 - 资源 ZIP 是否可以完整解压，顶层目录是否正确。
 - narrated 项目的 `captions.vtt`、`captions.srt`、Audio／Subtitle／Timeline Manifest 是否存在且相互匹配，以及每一个 MP3 路径和数量是否与 Audio Manifest 一致。
-- promo 项目的 Asset Manifest、Visual Timeline、声明素材、可选音乐／音效引用和 20～30 秒视觉时间轴是否一致；不会要求或伪造 MP3、VTT、SRT。
+- promo 项目的 Asset Manifest、Visual Timeline、声明素材、可选音乐／音效引用和 20～60 秒视觉时间轴是否一致；不会要求或伪造 MP3、VTT、SRT。
 - 发布 URL 下载到的内容是否与本地 ZIP 的 SHA-256 一致。
 
 GitHub Actions 会把 ZIP 下载到 Runner 临时目录，从输入包的 Workflow Registry 解析并恢复对应的 `videos/`、`src/videos/` 和资源包路径，生成临时 `src/RenderInputRoot.tsx`，完成 Workflow 适用的输入校验和类型检查后执行完整 Render。具体视频资料和媒体不会进入能力仓库。

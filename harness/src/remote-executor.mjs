@@ -219,8 +219,8 @@ function validatePromoRemoteRenderInputs(project, { listArchiveEntries = archive
   if (visualTimeline && (visualTimeline.schemaVersion !== 1 || visualTimeline.fps !== 30 || visualTimeline.width !== 1920 || visualTimeline.height !== 1080)) {
     issues.push("宣传片 Visual Timeline 必须声明 schemaVersion=1、1920×1080 和 30fps");
   }
-  if (visualTimeline && (!Number.isInteger(visualTimeline.durationInFrames) || visualTimeline.durationInFrames < 600 || visualTimeline.durationInFrames > 900)) {
-    issues.push("宣传片 Visual Timeline 总时长必须为 20～30 秒（600～900 帧）");
+  if (visualTimeline && (!Number.isInteger(visualTimeline.durationInFrames) || visualTimeline.durationInFrames < 600 || visualTimeline.durationInFrames > 1800)) {
+    issues.push("宣传片 Visual Timeline 总时长必须为 20～60 秒（600～1800 帧）");
   }
 
   let entries = [];
