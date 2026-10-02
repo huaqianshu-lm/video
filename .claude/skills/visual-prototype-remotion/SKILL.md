@@ -14,7 +14,15 @@ Use this skill when working on a Visual Prototype, Remotion composition, Scene i
 - Use a single visible title block per Scene, containing an eyebrow and a main title, anchored in the common upper-left position.
 - Keep the 16:9 stage, preview-only controls, subtitle area, and progress metadata separate from the final Composition output.
 - Do not add Scene-specific CSS that moves, centers, duplicates, or resizes the title block.
+- The shared title block is a layout anchor, not permission to create a standalone title page: its scale, timing, and content must remain subordinate to the visual evidence. Follow the Workflow-specific anti-PPT rules in `docs/VIDEO-PRODUCTION-RULES.md`.
 - 两条首期 Workflow 共用这套 Prototype 外壳；`product-promo-v1` 可以把字幕区域作为视觉信息布局区域，但不要求教程式口播字幕，最终 Composition 仍不得包含预览控件、导航、进度或调试文字。
+
+## Gate 2 visual convergence
+
+- Before requesting Gate 2, inspect actual prototype or preview frames against the Visual Script and the visual convergence checklist in `docs/VIDEO-PRODUCTION-RULES.md`.
+- Save the result as `visual-self-review.json`; Gate 2 automation must reject missing, stale, incomplete, or failed review records before exposing the project as ready for human approval. This is a machine precondition, not automatic Gate 2 approval.
+- A passing structural validator is not visual evidence. If the sequence still reads as repeated title／card pages, return to Visual Script and invalidate downstream work instead of proceeding to Remotion.
+- Keep the shared shell for both Workflow Profiles, but apply the different visual threshold: product promos must lead with action and evidence; narrated tutorials may retain explanatory UI or diagrams when they clearly support the narration.
 
 ## Remotion sequence
 

@@ -26,7 +26,8 @@
 | visual-script | `visual-script-structure` | 自动 | 0.4 补齐 |
 |  | `screen-text-provenance` | 自动／规则化 | 0.4 补齐可确定部分 |
 | visual-prototype | `prototype-structure` | 自动 | 0.4 补齐 |
-| gate-2 | `manual-gate` | 人工 | 保留人工确认 |
+| gate-2 | `visual-self-review-contract` | 自动前置 | 规则已定义；Harness 机器校验待实现 |
+|  | `manual-gate` | 人工 | 保留人工确认 |
 | tts | `tts-script-alignment` | 自动 | 已实现 |
 |  | `tts-script-purity` | 自动 | 已实现 |
 | subtitle-timeline | `tts-coverage` | 自动 | 已实现 |
@@ -53,7 +54,7 @@
 | scene-script | `required-artifacts`、`promo-scene-structure`、`screen-text-provenance` | 自动 | 已实现 |
 | visual-script | `required-artifacts`、`promo-visual-structure`、`screen-text-provenance` | 自动 | 已实现 |
 | motion-prototype | `required-artifacts`、`promo-prototype-structure`、`scene-alignment` | 自动 | 已实现 |
-| gate-2 | `manual-gate`、`promo-gate-2-structure` | 人工／自动结构检查 | 人工确认保留；结构校验已实现 |
+| gate-2 | `visual-self-review-contract`、`manual-gate`、`promo-gate-2-structure` | 自动前置／人工／自动结构检查 | 自检契约已定义；机器校验待实现；人工确认保留，结构校验已实现 |
 | asset-preparation | `required-artifacts`、`promo-asset-manifest` | 自动 | 已实现 |
 | visual-timeline | `required-artifacts`、`promo-visual-timeline` | 自动 | 已实现 |
 | remotion | `required-artifacts`、`promo-remotion-config`、`promo-remotion-alignment` | 自动 | 已实现 |
@@ -61,7 +62,7 @@
 | render | `adapter-result`、`render-artifact-metadata` | 适配器 | 已接入公共远程交付契约，未执行真实 Run |
 | gate-4 | `manual-gate`、`final-output-review`、`promo-final-output` | 人工／自动结构检查 | 真实 MP4 未生成，人工确认待定 |
 
-宣传片自动校验至少覆盖：Workflow 与 namespaced 目录一致、Source／Brief／Concept／Scene／Visual Script 结构、Scene 与屏幕文字来源、Motion Prototype 的统一 16:9 外壳、Asset Manifest 的安全本地路径／来源／授权字段／Scene 关联、Visual Timeline 的 20～30 秒连续 Scene／Beat／Transition、可选音频引用，以及 Remotion 配置从当前 Timeline 精确导入并由 `TotalDurationFrames` 派生时长、Scene／Beat／Transition／文字／素材对齐。缺失或伪造 narrated 产物会阻断；不能用硬编码时长、注释式 Timeline 引用、空 MP3、空字幕或旧 Timeline 绕过宣传片契约。
+宣传片自动校验至少覆盖：Workflow 与 namespaced 目录一致、Source／Brief／Concept／Scene／Visual Script 结构、Scene 与屏幕文字来源、Motion Prototype 的统一 16:9 外壳、Asset Manifest 的安全本地路径／来源／授权字段／Scene 关联、Visual Timeline 的 20～60 秒连续 Scene／Beat／Transition、可选音频引用，以及 Remotion 配置从当前 Timeline 精确导入并由 `TotalDurationFrames` 派生时长、Scene／Beat／Transition／文字／素材对齐。缺失或伪造 narrated 产物会阻断；不能用硬编码时长、注释式 Timeline 引用、空 MP3、空字幕或旧 Timeline 绕过宣传片契约。
 
 ## 已完成视频只读边界
 
@@ -105,4 +106,4 @@ Smoke Render 只能针对未完成视频或独立副本，并通过 GitHub Actio
 - Web UI 的 Agent 阶段先创建本地持久化 Job，再由 Server 调用配置的命令；浏览器只读取状态和有界日志。
 - 命令进程退出码为 0 仍不代表阶段完成；Harness 必须重新读取当前阶段产物并执行全部确定性校验。
 - Gate 2 冻结前已经存在 Remotion 实现的历史项目按兼容模式处理；新项目必须提供引用当前冻结指纹的 `remotion-alignment.json`。
-- 自动校验只检查契约完整性和指纹有效性，实际布局、动画和视觉质量仍在 Gate 3 人工对照。
+- 自动校验只检查契约完整性和指纹有效性，`visual-self-review-contract` 还要检查 Gate 2 自检记录及其证据路径；它不自动判断审美质量，也不自动通过人工 Gate。实际布局、动画和视觉质量仍需在 Gate 2／Gate 3 人工对照。

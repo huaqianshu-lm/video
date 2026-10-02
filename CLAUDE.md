@@ -67,6 +67,8 @@ Workflow 的判断以 Harness 服务端 Registry 和项目 `project.json.workflo
 - Remotion 必须使用已校验的 Timeline Manifest 作为 narrated 视频的时间基准，并保持 Scene、Audio、Subtitle 和视觉事件的映射一致。
 - `product-promo-v1` 不使用 narrated Timeline；Remotion 配置必须从当前视频的 `visual-timeline.json` 精确相对路径导入，并由唯一的 `TotalDurationFrames` 导出直接返回该对象的 `durationInFrames`，再以它作为唯一时间基准，并按 Asset Manifest 校验本地素材。两类 Workflow 的校验契约不得互相放宽或串线。
 - Visual Prototype 先于正式 Remotion 实现；原型和 Remotion 必须使用统一的可复用外壳、左上标题区、字幕区、导航区和进度区。
+- 两类 Workflow 在进入 Gate 2 前都必须完成 `docs/VIDEO-PRODUCTION-RULES.md` 定义的视觉收敛自检；TypeScript、结构、文件存在、Harness 状态或指纹校验通过，不能替代对实际 Prototype／预览画面的质量检查。自检不通过时必须回到 Visual Script，宣传片和教程片按各自 Workflow 的视觉约束重新设计。
+- Gate 2 的视觉自检必须产出当前视频资料目录下的 `visual-self-review.json`，并由 Harness 校验 schema、Workflow、Visual Script／Prototype 指纹、证据路径以及所有 MUST 检查项；缺失、过期或失败时阻断 Gate 2 的就绪和下游阶段。该机器校验只能验证契约完整性，不能自动通过人工 Gate 2；Harness 尚未实现前必须明确标记为“机器校验待实现”。
 - 进入 Gate 3 前必须对照冻结的 Visual Script、Visual Prototype 和 `remotion-alignment.json`；最终输出必须通过清洁画面检查。
 - 画面中的标题、标签、按钮、状态、终端输出和卡片文案必须能追溯到当前视频资料，不得复制参考视频的业务语义或固定文案。
 - 每条系列视频的最后一个视觉事件必须包含有资料依据的下一集预告；系列封面、风格和成员关系按需读取对应 Skill。
@@ -85,7 +87,7 @@ Workflow 的判断以 Harness 服务端 Registry 和项目 `project.json.workflo
 
 1. 确认任务涉及的 Skill 和参考文档。
 2. 新建或更新本地视频的 Source、Content Analysis、Video Narrative 和 Scene Script，完成 Gate 1 内部审查。
-3. 更新 Narration Script、Visual Script 和 Visual Prototype，完成 Gate 2。
+3. 更新 Narration Script、Visual Script 和 Visual Prototype，完成视觉收敛自检后进入 Gate 2。
 4. narrated 视频在 Gate 2 后派生并校验 `tts-script.json`，再生成音频、字幕和 Timeline，并完成 TTS 质检。
 5. 按冻结原型和 Timeline Manifest 实现 Remotion，完成 Gate 3。
 6. Gate 3 通过后完成远程交付预检，直接进入完整渲染；渲染成功后进入 Gate 4 人工验收。Smoke Render 只在新系列或渲染环境变化时作为独立检查手动运行。
