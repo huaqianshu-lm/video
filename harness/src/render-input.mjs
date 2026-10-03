@@ -329,7 +329,11 @@ function validateRenderInputArchive(packageRoot, archivePath) {
   for (const relativePath of packageFiles) {
     let archived;
     try {
-      archived = execFileSync("unzip", ["-p", archivePath, relativePath], { encoding: "buffer", stdio: ["ignore", "pipe", "pipe"] });
+      archived = execFileSync("unzip", ["-p", archivePath, relativePath], {
+        encoding: "buffer",
+        maxBuffer: 64 * 1024 * 1024,
+        stdio: ["ignore", "pipe", "pipe"],
+      });
     } catch (error) {
       issues.push(`输入包 ZIP 缺少或无法读取 ${relativePath}：${error instanceof Error ? error.message : String(error)}`);
       continue;
