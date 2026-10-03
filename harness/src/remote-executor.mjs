@@ -219,8 +219,8 @@ function validatePromoRemoteRenderInputs(project, { listArchiveEntries = archive
   if (visualTimeline && (visualTimeline.schemaVersion !== 1 || visualTimeline.fps !== 30 || visualTimeline.width !== 1920 || visualTimeline.height !== 1080)) {
     issues.push("宣传片 Visual Timeline 必须声明 schemaVersion=1、1920×1080 和 30fps");
   }
-  if (visualTimeline && (!Number.isInteger(visualTimeline.durationInFrames) || visualTimeline.durationInFrames < 600 || visualTimeline.durationInFrames > 900)) {
-    issues.push("宣传片 Visual Timeline 总时长必须为 20～30 秒（600～900 帧）");
+  if (visualTimeline && (!Number.isInteger(visualTimeline.durationInFrames) || visualTimeline.durationInFrames < 600 || visualTimeline.durationInFrames > 1800)) {
+    issues.push("宣传片 Visual Timeline 总时长必须为 20～60 秒（600～1800 帧）");
   }
 
   let entries = [];
@@ -301,7 +301,20 @@ export function prepareRemoteRenderInputs(project, options = {}) {
     return { status: "skipped", sourceIssues: [], archivePath: null, archiveRelativePath: null, sourcePath: null };
   }
   try {
-    const result = prepareRenderInput(project, options);
+    const manifestPath = path.join(renderInputDirectory(project.config.workspaceRoot, project.config.slug), "render-input.json");
+    let previousManifest = null;
+    if (fs.existsSync(manifestPath)) {
+      try { previousManifest = readJson(manifestPath, "Render Input Manifest"); } catch {}
+    }
+    const previousEntry = previousManifest?.entry ?? {};
+    const result = prepareRenderInput(project, {
+      compositionId: previousManifest?.compositionId,
+      componentFile: typeof previousEntry.componentPath === "string" ? path.posix.basename(previousEntry.componentPath) : null,
+      componentExport: previousEntry.componentExport ?? null,
+      configFile: typeof previousEntry.configPath === "string" ? path.posix.basename(previousEntry.configPath) : "video.config.ts",
+      configExport: previousEntry.configExport ?? "videoConfig",
+      ...options,
+    });
     const packageResult = packageRenderInput(project.config.workspaceRoot, project.config.slug);
     return {
       ...result,
