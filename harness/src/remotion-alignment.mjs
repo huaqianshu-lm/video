@@ -4,7 +4,7 @@ import path from "node:path";
 import { assertProjectMutable, assertProjectSlugMutable, readJson, writeJson } from "./storage.mjs";
 import { buildRemotionTimingPlan } from "./remotion-timing.mjs";
 import { validateVisualBindings } from "./visual-timing.mjs";
-import { renderInputDirectory, validateCurrentRenderInput } from "./render-input.mjs";
+import { renderEntryPointSource, renderInputDirectory, validateCurrentRenderInput } from "./render-input.mjs";
 import { workflowPaths, workflowStageDefinition, workflowForProject } from "./workflows/registry.mjs";
 import { validatePromoRemotion } from "./workflows/product-promo-validation.mjs";
 
@@ -144,7 +144,13 @@ function validateTemporaryRenderEntry(project) {
   if (!new RegExp(`\\bid\\s*=\\s*[\"']${escapeRegExp(expectedCompositionId)}[\"']`).test(source)) {
     issues.push(alignmentIssue("render-input-entry-mismatch", `临时入口的 Composition ID 不是 ${expectedCompositionId}。`, entryPath));
   }
-  if (!new RegExp(`\\bcomponent\\s*=\\s*\\{\\s*${escapeRegExp(componentExport)}\\s*\\}`).test(source)) {
+  if (manifest.entry?.cover) {
+    // The generated cover entry owns the wrapper, body offset and total duration.
+    // Check the complete canonical entry so a stray CoveredVideo alias cannot pass.
+    if (source.trim() !== renderEntryPointSource(manifest).trim()) {
+      issues.push(alignmentIssue("render-input-entry-mismatch", "带封面的临时入口与当前输入包生成结果不一致，请重新生成入口。", entryPath));
+    }
+  } else if (!new RegExp(`\\bcomponent\\s*=\\s*\\{\\s*${escapeRegExp(componentExport)}\\s*\\}`).test(source)) {
     issues.push(alignmentIssue("render-input-entry-mismatch", "临时入口没有把当前输入包组件注册到 Composition。", entryPath));
   }
   if (!source.includes("registerRoot(Root)")) {

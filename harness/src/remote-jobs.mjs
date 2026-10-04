@@ -109,6 +109,7 @@ export function createRemoteJobMonitor({
   setIntervalImpl = setInterval,
   clearIntervalImpl = clearInterval,
   onJobSettled = null,
+  environment = process.env,
 } = {}) {
   const inFlight = new Set();
   let timer = null;
@@ -183,25 +184,26 @@ export function createRemoteJobMonitor({
     return updated;
   }
 
-  async function processJob(jobId) {
+  async function processJob(jobId, { reconcile = false } = {}) {
     if (inFlight.has(jobId)) return getJobForId(jobId);
     inFlight.add(jobId);
     try {
       let job = listAllJobs().find((item) => item.id === jobId) ?? null;
-      if (!job || !isPollableJob(job)) {
+      const knownTimedOutRun = [REMOTE_JOB_STATUS.TIMEOUT, REMOTE_JOB_STATUS.FAILED].includes(job?.status)
+        && REMOTE_STAGES.has(job.stage) && hasRunId(job.remote);
+      if (!job || (!isPollableJob(job) && !(reconcile && knownTimedOutRun))) {
         return job;
       }
       if (isCompletedProject(job.slug)) return job;
 
-      if (timeoutReached(job)) {
-        return job.remote?.dispatchState === "sending" && !hasRunId(job.remote)
-          ? uncertainDispatchJob(job)
-          : timeoutJob(job);
+      if (timeoutReached(job) && !hasRunId(job.remote)) {
+        return uncertainDispatchJob(job);
       }
 
       let project;
       try {
         project = loadProject(job.slug, { refresh: true });
+        if (reconcile && knownTimedOutRun && project.state.currentStage !== job.stage) return job;
         const currentDelivery = readRenderInputDelivery(project.config.workspaceRoot, job.slug);
         if (job.remote?.renderInputUrl || job.remote?.renderInputSha256) {
           if (!currentDelivery
@@ -260,7 +262,7 @@ export function createRemoteJobMonitor({
           } else {
             if (adapter.requiresRenderPreflight) {
               prepareRemoteRenderInputs(project);
-              assertRemoteRenderDeliveryInputs(project);
+              assertRemoteRenderDeliveryInputs(project, {environment});
             }
             const dispatchingAt = remote.dispatchedAt ?? job.dispatchingAt ?? job.createdAt;
             updateJob(job.slug, job.id, {
@@ -364,6 +366,8 @@ export function createRemoteJobMonitor({
           recoverExisting: canReconcileDispatchedJob(job),
         });
         if (inspection.status === "waiting-run" || inspection.status === "running") {
+          // Check the real Run first: elapsed local time does not prove remote failure.
+          if (timeoutReached(job)) return timeoutJob({ ...job, remote: inspection.remote ?? remote });
           const inspectedRemote = inspection.remote ?? remote;
           const normalizedRemote = inspectedRemote?.runId !== null && inspectedRemote?.runId !== undefined
             ? {
@@ -382,7 +386,9 @@ export function createRemoteJobMonitor({
         }
         if (inspection.status === "failed") {
           const inspectedRemote = inspection.remote ?? remote;
-          return failJob({ ...job, remote: inspectedRemote }, new Error(inspection.error));
+          const error = new Error(inspection.error);
+          error.code = 'remote-run-failed';
+          return failJob({ ...job, remote: inspectedRemote }, error);
         }
 
         const completedProject = loadProject(job.slug, { refresh: true });
@@ -503,12 +509,13 @@ export function createRemoteJobMonitor({
 
   async function refreshProjectJobs(slug) {
     const jobs = listJobs(slug).filter((job) => isPollableJob(job)
-      && (hasRunId(job.remote) || job.remote?.dispatchState === "sending"));
-    await Promise.all(jobs.map((job) => processJob(job.id)));
+      && (hasRunId(job.remote) || job.remote?.dispatchState === "sending")
+      || (job.status === REMOTE_JOB_STATUS.TIMEOUT && hasRunId(job.remote)));
+    await Promise.all(jobs.map((job) => processJob(job.id, { reconcile: true })));
     return listJobs(slug);
   }
 
-  function submit({ slug, stage, batchId = null }) {
+  function submit({ slug, stage, batchId = null, processImmediately = true }) {
     if (!REMOTE_STAGES.has(stage)) {
       const error = new Error(stage === "smoke-render"
         ? "Smoke Render 已退出 Harness 生产流程，请从 GitHub Actions 手动触发独立环境检查。"
@@ -542,7 +549,7 @@ export function createRemoteJobMonitor({
         },
       },
     });
-    void processJob(job.id);
+    if (processImmediately) void processJob(job.id);
     return job;
   }
 

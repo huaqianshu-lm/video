@@ -5,6 +5,8 @@ import { execFileSync } from "node:child_process";
 import { assertProjectMutable, assertProjectSlugMutable } from "./storage.mjs";
 import { workflowForProject, workflowPaths, workflowStageDefinition } from "./workflows/registry.mjs";
 
+import {videoCoverAssetIssues} from './video-cover.mjs';
+
 const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 function requireProjectSlug(project) {
@@ -93,7 +95,7 @@ export function assetSourceIssues(project) {
     return [`缺少 public/local-assets/${requireProjectSlug(project)}`];
   }
   const files = listFiles(sourceRoot);
-  const issues = [];
+  const issues = videoCoverAssetIssues(project);
   if (workflowForProject(project).audioMode === "optional-music") {
     const manifestRelativePath = workflowStageDefinition(project, "asset-preparation")?.artifacts?.[0]
       ?.replaceAll("{slug}", requireProjectSlug(project));
@@ -229,6 +231,8 @@ export function packageVideoAssets(
 }
 
 export function ensureAssetArchive(project, options = {}) {
+  const coverIssues = videoCoverAssetIssues(project);
+  if (coverIssues.length) throw new Error(coverIssues.join('；'));
   const sourceRoot = assetSourcePath(project);
   const sourceExists = fs.existsSync(sourceRoot) && fs.statSync(sourceRoot).isDirectory();
   const archivePath = assetArchivePath(project);

@@ -8,6 +8,8 @@ import { matchesArtifactPath } from "./artifact-paths.mjs";
 import { validateRemotionAlignment } from "./remotion-alignment.mjs";
 import { getSeriesDefinitionForSlug, getStyleDefinition } from "./styles.mjs";
 
+import {videoCoverAssetIssues} from './video-cover.mjs';
+
 const SOURCE_REFERENCE_PATTERNS = [
   { label: "原文档", test: (text) => text.includes("原文档") },
   { label: "源文档", test: (text) => text.includes("源文档") },
@@ -552,6 +554,7 @@ function validateTimeline(project, stage) {
 export function validateStageContent(project, stage, options = {}) {
   if (workflowForProject(project).timelineMode === "visual-beats") {
     const issues = validatePromoStageContent(project, stage, options);
+    if (project.config.seriesSelection || project.config.seriesSelectionRequired) issues.push(...videoCoverAssetIssues(project).map(message => issue(stage, 'video-cover-invalid', message)));
     if (workflowStageIndex(project, stage) >= workflowStageIndex(project, "remotion")) {
       issues.push(...validateRemotionAlignment(project));
     }
@@ -560,6 +563,7 @@ export function validateStageContent(project, stage, options = {}) {
   const strict = options.strict ?? project.config.validationPolicy !== "legacy";
   const index = workflowStageIndex(project, stage);
   const issues = [];
+  if (project.config.seriesSelection || project.config.seriesSelectionRequired) issues.push(...videoCoverAssetIssues(project).map(message => issue(stage, 'video-cover-invalid', message)));
   issues.push(...validateSeriesStyle(project, stage));
   issues.push(...validateStageStructure(project, stage));
   if (index >= workflowStageIndex(project, "scene-script")) issues.push(...validateSceneAlignment(project, stage));

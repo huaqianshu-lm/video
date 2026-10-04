@@ -1,13 +1,17 @@
 #!/usr/bin/env node
 
-import { initializeProject, loadProject } from "./storage.mjs";
+import path from 'node:path';
+import {fileURLToPath} from 'node:url';
+import fs from 'node:fs';
+import {seriesChoices, selectVideoSeries} from './video-cover.mjs';
+import {getStyleDefinition} from './styles.mjs';
+import {saveSeries, saveSeriesCover} from './series-assets.mjs';
+import {renderDeliveryCli} from './render-delivery.mjs';
+import { initializeProject, loadProject, writeJson, reopenGate3ForSeriesCover } from "./storage.mjs";
 import { workflowCatalog, workflowStages } from "./workflows/registry.mjs";
 import { approveGate, rejectGate, resumeProject, retryStage, runStage, validateStage } from "./runner.mjs";
-import { createGitHubActionsAdapterFromEnv } from "./adapters.mjs";
-import { requireGitHubActionsConfig } from "./github-config.mjs";
 import { createTtsExecutorFromEnv } from "./tts-executor.mjs";
 import { createRemotionExecutorFromEnv } from "./remotion-executor.mjs";
-import { createRemoteRenderExecutor } from "./remote-executor.mjs";
 import { packageVideoAssets } from "./asset-bundler.mjs";
 import {
   bindRenderInputDelivery,
@@ -24,8 +28,6 @@ import { buildNextAction, buildProjectReport } from "./reports.mjs";
 import { buildTaskPacket } from "./context.mjs";
 import { buildProjectPlan } from "./plans.mjs";
 import { listAllJobs, listJobs } from "./jobs.mjs";
-import { createRemoteJobMonitor } from "./remote-jobs.mjs";
-import { createRuntime } from "./web/runtime.mjs";
 import { diagnoseGitHubActions } from "./diagnostics.mjs";
 import { adoptExistingProjectToGate2, markHistoricalProjectCompleted } from "./adoption.mjs";
 import {
@@ -50,6 +52,10 @@ import {
 function usage() {
   console.log(`Usage:
   node harness/src/cli.mjs init <slug> [--workflow <id>] [--workflow-version <version>]
+  node harness/src/cli.mjs series list [--json]
+  node harness/src/cli.mjs series select <slug> <series-id|none>
+  node harness/src/cli.mjs series create <id> --title <title> --style <style>
+  node harness/src/cli.mjs series cover <id> --file <image>
   node harness/src/cli.mjs workflow list [--json]
   node harness/src/cli.mjs adopt <slug> --to gate-2 [--json]
   node harness/src/cli.mjs adopt <slug> --to completed --historical [--json]
@@ -58,7 +64,7 @@ function usage() {
   node harness/src/cli.mjs jobs --all [--json]
   node harness/src/cli.mjs validate <slug> [stage]
   node harness/src/cli.mjs run <slug> [stage]
-  node harness/src/cli.mjs remote-run <slug> render [--json]
+  node harness/src/cli.mjs render-delivery <prepare|start|resume> <slug> [--confirm-plan <id>] [--json]
   node harness/src/cli.mjs assets package <slug> [--json]
   node harness/src/cli.mjs render-input prepare <slug> [--composition-id <id>] [--component-file <file>] [--component-export <name>] [--json]
   node harness/src/cli.mjs render-input validate <slug> [--json]
@@ -235,18 +241,46 @@ function printRemotionTask(result, asJson = false) {
   if (result.batch) printBatch(result.batch);
 }
 
-function configuredAdapters() {
-  requireGitHubActionsConfig();
-  const adapter = createGitHubActionsAdapterFromEnv();
-  return { render: adapter };
-}
-
 function configuredExecutors() {
   return { "subtitle-timeline": createTtsExecutorFromEnv() };
 }
 
-async function main(args) {
+export async function main(args, {deliveryDependencies = {}} = {}) {
   const [command, slug, ...options] = args;
+  if (command === 'series') {
+    const value = flag => options.includes(flag) ? options[options.indexOf(flag) + 1] : null;
+    let result;
+    if (slug === 'list') {
+      result = seriesChoices();
+      if (!options.includes('--json')) {
+        result.forEach(item => console.log(`${item.title}（${item.id}） · ${item.style} · ${item.coverAvailable ? '已有封面' : '缺少封面'}`));
+        console.log('也可以选择：新建系列／不加入系列');
+        return 0;
+      }
+    } else if (slug === 'select') {
+      validateSlug(options[0]);
+      if (!options[1]) throw new Error('series select requires <slug> <series-id|none>');
+      result = selectVideoSeries(options[0], options[1]);
+    } else if (slug === 'create') {
+      if (!value('--title') || !value('--style')) throw new Error('新建系列需要 --title 和 --style');
+      if (!getStyleDefinition(value('--style'))) throw new Error('未知系列风格');
+      if (seriesChoices().some(item => item.id === options[0])) throw new Error('系列已存在，拒绝覆盖');
+      result = saveSeries({id: options[0], title: value('--title'), style: value('--style'), videos: []});
+    } else if (slug === 'cover') {
+      const file = value('--file');
+      if (!file) throw new Error('series cover requires --file <image>');
+      const type = {'.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp'}[path.extname(file).toLowerCase()];
+      result = saveSeriesCover(options[0], fs.readFileSync(file), type);
+      result.reopenedProjects = result.series.videos.filter(video => reopenGate3ForSeriesCover(video));
+    } else throw new Error('未知 series 命令');
+    console.log(JSON.stringify(result, null, 2));
+    return 0;
+  }
+  if (command === 'render-delivery') {
+    const result = await renderDeliveryCli([slug, ...options], deliveryDependencies);
+    console.log(JSON.stringify(result, null, 2));
+    return ['awaiting-confirmation', 'running', 'waiting-run', 'submitted', 'queued', 'succeeded'].includes(result.status) ? 0 : 1;
+  }
   if (!command) {
     usage();
     return 1;
@@ -375,6 +409,9 @@ async function main(args) {
       ...(workflowIndex >= 0 ? { workflow: options[workflowIndex + 1] } : {}),
       ...(workflowVersionIndex >= 0 ? { workflowVersion: Number(options[workflowVersionIndex + 1]) } : {}),
     });
+    const config = JSON.parse(fs.readFileSync(files.config, 'utf8'));
+    writeJson(files.config, {...config, seriesSelectionRequired: true});
+    console.log('请先运行 series list，向用户展示系列并确认选择，再执行 series select。');
     console.log(`Initialized Harness project: ${slug}`);
     console.log(`State: ${files.state}`);
     return 0;
@@ -412,31 +449,14 @@ async function main(args) {
     }
     validateSlug(slug);
     if (options.includes("--refresh")) {
-      const monitor = createRemoteJobMonitor();
-      createRuntime({ remoteJobMonitor: monitor });
-      await monitor.refreshProjectJobs(slug);
+      await renderDeliveryCli(['resume', slug], deliveryDependencies);
     }
     printJobs(slug, options.includes("--json"));
     return 0;
   }
 
   if (command === "remote-run") {
-    validateSlug(slug);
-    const stage = options.find((value) => value !== "--json");
-    if (stage === "smoke-render") {
-      throw new Error("Smoke Render 已退出 Harness 生产流程，请从 GitHub Actions 手动触发独立环境检查。");
-    }
-    if (stage !== "render") {
-      throw new Error("remote-run requires render");
-    }
-    requireGitHubActionsConfig();
-    const project = loadProject(slug, { refresh: true });
-    const monitor = createRemoteJobMonitor();
-    const executor = createRemoteRenderExecutor({ monitor });
-    const result = await runSingleStage(project, stage, { remoteExecutor: executor });
-    if (options.includes("--json")) console.log(JSON.stringify(result, null, 2));
-    else console.log(`Queued remote ${stage} job for ${slug}: ${result.job.id}`);
-    return 0;
+    throw new Error('Agent 单条渲染统一使用 render-delivery prepare／start／resume；remote-run 已停用，不能跳过成功方法与文件清单确认。');
   }
 
   if (command === "assets") {
@@ -578,17 +598,14 @@ async function main(args) {
 
     if (command === "run") {
       const stage = options[0] ?? project.state.currentStage;
-      const adapters = stage === "render" ? configuredAdapters() : {};
+      if (stage === 'render') throw new Error('单条完整渲染请使用 render-delivery prepare／start／resume，不能跳过交付确认。');
+      const adapters = {};
       const ttsExecutor = stage === "subtitle-timeline" ? configuredExecutors()["subtitle-timeline"] : null;
       const remotionExecutor = stage === "remotion" ? createRemotionExecutorFromEnv() : null;
-      const remoteExecutor = stage === "render"
-        ? createRemoteRenderExecutor({ monitor: createRemoteJobMonitor() })
-        : null;
       console.log(JSON.stringify(await runSingleStage(project, stage, {
         adapters,
         ttsExecutor,
         remotionExecutor,
-        remoteExecutor,
       }), null, 2));
       return 0;
     }
@@ -622,9 +639,11 @@ async function main(args) {
   return 1;
 }
 
-try {
-  process.exitCode = await main(process.argv.slice(2));
-} catch (error) {
-  console.error(`Harness error: ${error.message}`);
-  process.exitCode = 1;
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  try {
+    process.exitCode = await main(process.argv.slice(2));
+  } catch (error) {
+    console.error(`Harness error: ${error.message}`);
+    process.exitCode = 1;
+  }
 }

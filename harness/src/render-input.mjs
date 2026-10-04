@@ -11,6 +11,9 @@ import { assertProjectMutable, assertProjectSlugMutable, isCompletedProject, loa
 import { allWorkflowDefinitions, requireWorkflowDefinition, workflowForProject, workflowPaths } from "./workflows/registry.mjs";
 import { promoTimelineSourceIssues } from "./workflows/product-promo-validation.mjs";
 
+import {readVideoCover, videoCoverAssetIssues} from './video-cover.mjs';
+import {validateCover} from './series-assets.mjs';
+
 const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const IDENTIFIER_PATTERN = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
 const COMPONENT_PATTERN = /^[A-Za-z0-9_-]+\.tsx$/;
@@ -258,6 +261,13 @@ function validateManifestShape(manifest) {
       && (typeof manifest.entry.durationExport !== "string" || !IDENTIFIER_PATTERN.test(manifest.entry.durationExport))) {
       issues.push("render-input.json 的 entry.durationExport 无效");
     }
+  }
+  if (manifest?.entry?.cover) {
+    const cover = manifest.entry.cover;
+    if (cover.mode !== 'series' || cover.slug !== manifest.videoSlug || !Number.isInteger(cover.durationInFrames) || cover.durationInFrames <= 0
+      || !new RegExp(`^local-assets/${manifest.videoSlug}/cover/[a-f0-9]{64}[.](png|jpg|webp)$`).test(cover.src ?? '')
+      || !/^[a-f0-9]{64}$/.test(cover.sha256 ?? '')) issues.push('输入包封面快照无效');
+    if (manifest.workflow === 'product-promo-v1') issues.push('宣传片不支持独立封面片头');
   }
   if (!Array.isArray(manifest?.files)) issues.push("render-input.json 缺少 files 列表");
   if (typeof manifest?.packageFingerprint !== "string" || !/^[a-f0-9]{64}$/.test(manifest.packageFingerprint)) {
@@ -630,6 +640,21 @@ export function validateRenderInputDirectory(directory, { expectedSlug = null, l
         issues.push(`输入包路径不是普通文件或目录：${relativePath}`);
       }
     }
+    if (packagePaths) {
+      try {
+        const record = readVideoCover({config: {slug, workspaceRoot: packageRoot, sourceDirectory: packagePaths.sourceDirectory}});
+        const expected = record?.mode === 'series' ? record : null;
+        if (JSON.stringify(expected) !== JSON.stringify(manifest.entry.cover ?? null)) issues.push('输入 Manifest 封面与当前视频快照不一致');
+        if (expected) {
+          const archivePath = path.join(packageRoot, packagePaths.assetArchive);
+          const assetEntry = expected.src.replace(/^local-assets\//, '');
+          const bytes = execFileSync('unzip', ['-p', archivePath, assetEntry], {encoding: 'buffer', maxBuffer: 11 * 1024 * 1024, stdio: ['ignore', 'pipe', 'pipe']});
+          const type = {png: 'image/png', jpg: 'image/jpeg', webp: 'image/webp'}[path.extname(assetEntry).slice(1)];
+          validateCover(bytes, type);
+          if (crypto.createHash('sha256').update(bytes).digest('hex') !== expected.sha256) issues.push('资源 ZIP 封面与冻结 SHA-256 不一致');
+        }
+      } catch (error) { issues.push(`封面输入校验失败：${error.message}`); }
+    }
     if (packageWorkflow?.timelineMode === "visual-beats") {
       if (manifest.entry.durationExport !== "TotalDurationFrames") {
         issues.push("宣传片输入包必须声明 entry.durationExport=TotalDurationFrames");
@@ -708,6 +733,7 @@ function buildManifest({ slug, compositionId, entry, packageRoot, project }) {
       configPath: `${paths.remotionDirectory}/${entry.configFile}`,
       configExport: entry.configExport,
       ...(entry.durationExport ? { durationExport: entry.durationExport } : {}),
+      ...(entry.cover ? {cover: entry.cover} : {}),
     },
     payload: {
       sourceDirectory: paths.sourceDirectory,
@@ -736,6 +762,7 @@ function manifestEntry(manifest) {
     configFile: path.posix.basename(manifest.entry.configPath),
     configExport: manifest.entry.configExport,
     durationExport: manifest.entry.durationExport ?? null,
+    ...(manifest.entry.cover ? {cover: manifest.entry.cover} : {}),
   };
 }
 
@@ -853,6 +880,16 @@ export function prepareRenderInput(project, {
     configExport,
     requireDurationExport: workflowForProject(project).timelineMode === "visual-beats",
   });
+  const coverIssues = videoCoverAssetIssues(project);
+  if (coverIssues.length) fail(coverIssues.join('；'), 'render-input-cover-invalid');
+  const selectedCover = readVideoCover(project);
+  if (selectedCover?.mode === 'series') {
+    if (workflowForProject(project).timelineMode === 'visual-beats') fail('宣传片不支持独立封面片头');
+    entry.cover = selectedCover;
+    const configSource = fs.readFileSync(path.join(sources.remotion, entry.configFile), 'utf8');
+    const componentSource = fs.readFileSync(path.join(sources.remotion, entry.componentFile), 'utf8');
+    if (/\bcoverSrc\b/.test(configSource) || /\bSeriesCover\b|\bVideoWithCover\b/.test(componentSource)) fail('正文不能重复添加封面或封面时间偏移');
+  }
   const root = renderInputRoot(workspaceRoot);
   const destination = renderInputDirectory(workspaceRoot, slug);
   assertProjectSlugMutable(slug, "准备视频输入包目录");
@@ -965,7 +1002,11 @@ export function renderEntryPointSource(manifest) {
   const durationExpression = manifest.entry.durationExport
     ? `${manifest.entry.durationExport}()`
     : `getTotalDurationFrames(${manifest.entry.configExport})`;
-  return `import {Composition, registerRoot} from 'remotion';\n${durationImport}import {${manifest.entry.componentExport}} from '${componentImport}';\nimport {${manifest.entry.configExport}} from '${configImport}';\n\nexport const Root = () => (\n  <Composition\n    id=${JSON.stringify(manifest.compositionId)}\n    component={${manifest.entry.componentExport}}\n    durationInFrames={${durationExpression}}\n    fps={${manifest.entry.configExport}.fps}\n    width={${manifest.entry.configExport}.width}\n    height={${manifest.entry.configExport}.height}\n  />\n);\n\nregisterRoot(Root);\n`;
+  const coverImport = manifest.entry.cover ? "import {createVideoWithCover} from './components/VideoWithCover';\n" : '';
+  const coverDeclaration = manifest.entry.cover ? `const CoveredVideo = createVideoWithCover(${manifest.entry.componentExport}, ${JSON.stringify(manifest.entry.cover)}, ${manifest.entry.configExport});\n` : '';
+  const component = manifest.entry.cover ? 'CoveredVideo' : manifest.entry.componentExport;
+  const totalDuration = manifest.entry.cover ? `(${durationExpression}) + ${manifest.entry.cover.durationInFrames}` : durationExpression;
+  return `import {Composition, registerRoot} from 'remotion';\n${coverImport}${durationImport}import {${manifest.entry.componentExport}} from '${componentImport}';\nimport {${manifest.entry.configExport}} from '${configImport}';\n\n${coverDeclaration}export const Root = () => (\n  <Composition\n    id=${JSON.stringify(manifest.compositionId)}\n    component={${component}}\n    durationInFrames={${totalDuration}}\n    fps={${manifest.entry.configExport}.fps}\n    width={${manifest.entry.configExport}.width}\n    height={${manifest.entry.configExport}.height}\n  />\n);\n\nregisterRoot(Root);\n`;
 }
 
 export function discoverStudioEntries(workspaceRoot) {
@@ -1044,6 +1085,7 @@ export function discoverStudioEntries(workspaceRoot) {
       configPath: manifest.entry.configPath,
       configExport: manifest.entry.configExport,
       durationExport: manifest.entry.durationExport ?? null,
+      ...(manifest.entry.cover ? {cover: manifest.entry.cover} : {}),
       packageFingerprint: manifest.packageFingerprint,
       sourceFingerprint: manifest.sourceFingerprint,
     });
@@ -1061,6 +1103,8 @@ export function renderStudioCatalogSource(entries) {
   if (!Array.isArray(entries) || entries.length === 0) fail("No Studio video entries were discovered", "render-input-studio-empty");
   const imports = ["import {Composition, registerRoot} from 'remotion';", "import {getTotalDurationFrames} from './lib/timing';"];
   const registrations = [];
+  const wrappers = [];
+  if (entries.some(entry => entry.cover)) imports.push("import {createVideoWithCover} from './components/VideoWithCover';");
   entries.forEach((entry, index) => {
     const identifier = identifierForEntry(entry, index);
     const componentImport = entry.componentPath.replace(/^src\//, "./").replace(/\.tsx$/, "");
@@ -1073,9 +1117,12 @@ export function renderStudioCatalogSource(entries) {
     const durationCall = entry.durationExport
       ? `${identifier}Duration()`
       : `getTotalDurationFrames(${configAlias})`;
-    registrations.push(`    <Composition\n      id=${JSON.stringify(entry.compositionId)}\n      component={${componentAlias}}\n      durationInFrames={${durationCall}}\n      fps={${configAlias}.fps}\n      width={${configAlias}.width}\n      height={${configAlias}.height}\n    />`);
+    if (entry.cover) wrappers.push(`const ${identifier}Covered = createVideoWithCover(${componentAlias}, ${JSON.stringify(entry.cover)}, ${configAlias});`);
+    const selectedComponent = entry.cover ? `${identifier}Covered` : componentAlias;
+    const selectedDuration = entry.cover ? `(${durationCall}) + ${entry.cover.durationInFrames}` : durationCall;
+    registrations.push(`    <Composition\n      id=${JSON.stringify(entry.compositionId)}\n      component={${selectedComponent}}\n      durationInFrames={${selectedDuration}}\n      fps={${configAlias}.fps}\n      width={${configAlias}.width}\n      height={${configAlias}.height}\n    />`);
   });
-  return `${imports.join("\n")}\n\nexport const Root = () => (\n  <>\n${registrations.join("\n")}\n  </>\n);\n\nregisterRoot(Root);\n`;
+  return `${imports.join("\n")}\n\n${wrappers.join("\n")}\nexport const Root = () => (\n  <>\n${registrations.join("\n")}\n  </>\n);\n\nregisterRoot(Root);\n`;
 }
 
 export function writeStudioCatalogEntryPoint(workspaceRoot, outputPath) {

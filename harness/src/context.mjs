@@ -12,6 +12,8 @@ import { getPrototypeBaseline, remotionAlignmentPath } from "./remotion-alignmen
 import { buildRemotionTimingPlanForProject } from "./remotion-timing.mjs";
 import { validateProjectStage } from "./validation.mjs";
 
+import {readVideoCover} from './video-cover.mjs';
+
 function commandFor(command, slug, stage = null) {
   const suffix = stage ? ` ${stage}` : "";
   return `node harness/src/cli.mjs ${command} ${slug}${suffix}`;
@@ -159,6 +161,8 @@ export function buildTaskPacket(project) {
       styleVersion: style.version,
       target: config.target,
       currentStage: stage,
+      seriesSelection: config.seriesSelection ?? null,
+      cover: readVideoCover(project),
       status: item.status,
     },
     task: {

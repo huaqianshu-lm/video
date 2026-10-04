@@ -18,9 +18,14 @@ const RENDER_RELEVANT_FILES = new Set([
 ]);
 const RENDER_ALLOWED_FILES = new Set([
   "src/TemplateVideo.tsx",
+  "src/components/SeriesCover.tsx",
+  "src/components/VideoWithCover.tsx",
   "src/HelloIntro.tsx",
   "src/index.ts",
   "harness/src/cli.mjs",
+  "harness/src/render-delivery.mjs",
+  "harness/src/video-cover.mjs",
+  "harness/src/render-preflight.mjs",
   "harness/src/render-input.mjs",
   "harness/src/remote-executor.mjs",
   "harness/src/diagnostics.mjs",
@@ -119,9 +124,14 @@ function isRenderRelevantPath(relativePath) {
 
 export function renderRequiredPaths(project) {
   return [
+    ...(project.config?.seriesSelection?.mode === 'series'
+      ? ["src/components/SeriesCover.tsx", "src/components/VideoWithCover.tsx"] : []),
     "src/TemplateVideo.tsx",
     "src/lib/timing.ts",
     "harness/src/cli.mjs",
+    "harness/src/render-delivery.mjs",
+    "harness/src/video-cover.mjs",
+    "harness/src/render-preflight.mjs",
     "harness/src/render-input.mjs",
     "harness/src/remote-executor.mjs",
     "harness/src/diagnostics.mjs",
@@ -445,6 +455,7 @@ export function commitAndPushRenderDelivery(
     commitMessage = `chore: prepare ${project.config.slug} complete render delivery`,
     deliveryPlanId = null,
     selectedPaths = null,
+    onCommit = null,
   } = {},
 ) {
   const workspaceRoot = path.resolve(project.config.workspaceRoot);
@@ -487,7 +498,8 @@ export function commitAndPushRenderDelivery(
     });
     const commit = localGitCommit(workspaceRoot);
     if (!commit) throw commitError("定向提交完成后无法解析本地提交", "git-render-commit-missing");
-    execFileSync("git", ["-C", workspaceRoot, "push", "origin", `HEAD:${plan.branch}`], { stdio: ["ignore", "pipe", "pipe"] });
+    if (onCommit) onCommit(commit);
+    execFileSync("git", ["-C", workspaceRoot, "push", "origin", `HEAD:${plan.branch}`], { env: environment, stdio: ["ignore", "pipe", "pipe"] });
     const remote = gitCommand(workspaceRoot, ["ls-remote", "--heads", "origin", plan.branch]).split(/\s+/)[0] ?? "";
     if (remote !== commit) {
       throw commitError(`推送完成后远程分支 ${plan.branch} 未指向本次提交`, "git-render-commit-remote-mismatch");

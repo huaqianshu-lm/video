@@ -286,7 +286,7 @@ export function assertRemoteRenderDeliveryInputs(project, options = {}) {
   const issues = [
     ...validateRemoteRenderPackage(project),
     ...validateRenderInputDelivery(project),
-    ...validateGitRenderDelivery(project, { requireRepository: options.requireRepository ?? true }),
+    ...validateGitRenderDelivery(project, { environment: options.environment ?? process.env, requireRepository: options.requireRepository ?? true }),
   ];
   if (issues.length === 0) return;
   const error = new Error(`远程渲染交付预检失败：${issues.join("；")}`);
