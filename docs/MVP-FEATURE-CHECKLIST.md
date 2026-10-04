@@ -20,6 +20,7 @@
 - [x] TTS、Remotion 和完整 Render 的生产执行器边界；Smoke Render 使用独立 GitHub Actions 工作流，不推进 Harness。
 - [x] Harness 四类批量任务、持久化 Job、失败重试和断点恢复。
 - [x] Harness Web UI 的项目状态、任务状态、Gate 操作和远程任务查询。
+- [x] CLI 按视频刷新已有远程 Job；只对账当前视频已派发的任务，不重新派发；依据 `harness/test/jobs.test.mjs`。
 - [x] 远程渲染资源包、Manifest、分支和 Git 交付预检。
 - [x] 已绑定 Render Input ZIP 在副本时间戳变化后的重复打包保留原 SHA；依据 `harness/test/render-input.test.mjs`。
 - [x] Agent／CLI 显式成功基线准备检查：`harness/src/render-preflight.mjs`，8 项专项回归及真实仓库正反例通过；固定输入包发布步骤见 `RENDER-DELIVERY-BASELINE.md`。

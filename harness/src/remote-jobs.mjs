@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 
 import { createGitHubActionsAdapterFromEnv } from "./adapters.mjs";
-import { createJobRecord, findActiveJob, getJob, listAllJobs, updateJob } from "./jobs.mjs";
+import { createJobRecord, findActiveJob, getJob, listAllJobs, listJobs, updateJob } from "./jobs.mjs";
 import { markAdapterStageFailed, completeAdapterStage, runStage } from "./runner.mjs";
 import {
   ACTIVE_REMOTE_JOB_STATUSES,
@@ -501,6 +501,13 @@ export function createRemoteJobMonitor({
     await Promise.all(jobs.map((job) => processJob(job.id)));
   }
 
+  async function refreshProjectJobs(slug) {
+    const jobs = listJobs(slug).filter((job) => isPollableJob(job)
+      && (hasRunId(job.remote) || job.remote?.dispatchState === "sending"));
+    await Promise.all(jobs.map((job) => processJob(job.id)));
+    return listJobs(slug);
+  }
+
   function submit({ slug, stage, batchId = null }) {
     if (!REMOTE_STAGES.has(stage)) {
       const error = new Error(stage === "smoke-render"
@@ -543,6 +550,7 @@ export function createRemoteJobMonitor({
     submit,
     processJob,
     poll,
+    refreshProjectJobs,
     setJobSettledHandler(handler) {
       if (handler !== null && typeof handler !== "function") throw new TypeError("Job settled handler must be a function or null");
       jobSettledHandler = handler;

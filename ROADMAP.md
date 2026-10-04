@@ -7,6 +7,8 @@
 
 ## 当前阶段
 
+- 2026-10-04：CLI 新增 `jobs <slug> --refresh`，可立即刷新指定视频的持久化远程任务；刷新只检查已有 Run 或按原 `dispatchId` 对账，不重新派发，也不触及其他视频。
+
 - 2026-10-04：已绑定输入包在源内容与 Manifest 指纹不变时，重复打包会校验并保留原 ZIP 字节及 SHA，避免文件复制后的 mtime 差异使远程绑定失效；渲染输入／远程执行器回归 22/22 通过，变更已独立提交，尚未推送。
 
 - 2026-10-04：Agent／CLI 的远程渲染成功基线检查已实现，覆盖宿主认证、代码与输入仓库写权限、成功 Render Run 及实际派发分支祖先关系；认证和准备专项回归 21/21、真实仓库正确版本通过／旧版本阻断均已验证。Web UI／批量自动接入、输入仓库自动发布及跨视频完整 Render／Gate 4 复用仍待完成。
@@ -232,6 +234,7 @@
 
 ## 最近验证（最近 10 条）
 
+- 2026-10-04：`jobs <slug> --refresh` 指定视频刷新与原 `dispatchId` 不重复派发回归通过；目标视频 Job 状态推进到 Gate 4，其他视频 Job 未变更。
 - 2026-09-18：完成 `product-promo-v1` 的最终契约回归；promo 7/7、Harness 核心 64/64、现代与旧版 Web Server 18/18、全量 Harness 回归均通过，覆盖当前 Visual Timeline 的直接时长来源、缺失临时输入入口、远程 `render / ready` 阶段守卫、活动任务幂等和既有 narrated 兼容路径。`npm run check`、全部 JavaScript／MJS 语法、两份 Actions YAML 和 `git diff --check` 通过；Workflow CLI 实际列出两套 Profile，未创建宣传片项目、未修改具体视频资料、未执行真实 Agent／TTS／浏览器／GitHub dispatch 或渲染。
 - 2026-09-17：按功能完成 5 个定向 commit：Remotion 阶段保护、输入包 ZIP 校验、远程 Job 批次恢复、批量完整 Render 交付和项目文档同步；第 3 批回归 79/79、第 4 批交付与 WebUI 回归 42/42，暂存差异检查通过，未提交视频资料、媒体或 `local/`。`npm run check` 在当前环境启动后长期无输出并已中止，不能记为通过；未执行 push 或真实 Render。
 - 2026-09-17：按当前 0.6.0 阶段契约、Web UI、批量交付、输入包和 GitHub Actions 实现重写根 README；补充 14 个生产阶段、Smoke Render 独立边界、逐视频输入绑定和 `to-render` 的 WebUI 分步确认方式。`npm run check`、`git diff --check` 和 README 引用路径检查通过，未执行 commit、push 或真实 Render。
@@ -241,7 +244,6 @@
 - 2026-09-16：遗留 Remotion 任务阶段保护先复现失败再修复；`ensure/start/run/complete/retry`、Web API 排队前拦截、任务列表只读展示及 Gate 3 驳回后的合法重试均通过。
 - 2026-09-16：`web-and-cloud` 旧的 Smoke Render 状态已根据 Gate 3 和输入包真实状态迁移到 `render / ready`，未创建 Render Job，未修改已完成视频。
 - 2026-09-15：desktop Run `34950746560` 与 jetbrains Run `34950758276` 均以 `success` 完成；Artifact 名称、Run 归属、输入包 URL／SHA／Composition ID 均匹配且未过期，当时进入 `gate-4 / waiting`，后续已于 2026-09-17 完成人工 Gate 4 并进入 `completed`。
-- 2026-09-15：按用户确认的精确渲染清单完成定向 commit `c48daa1`、`b6a2879` 并推送到 `main`；未提交视频资料、媒体或输入包。
 
 ## 历史验证（旧记录）
 

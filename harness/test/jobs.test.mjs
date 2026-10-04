@@ -36,7 +36,7 @@ test("persists a background job and its completed result", async () => {
   }
 });
 
-test("recovers a persisted complete Render job and advances to Gate 4", async () => {
+test("refreshes only the requested persisted Render job and advances to Gate 4", async () => {
   const projectsRoot = fs.mkdtempSync(path.join(os.tmpdir(), "video-harness-remote-"));
   const previousRoot = process.env.HARNESS_PROJECTS_DIR;
   process.env.HARNESS_PROJECTS_DIR = projectsRoot;
@@ -82,6 +82,55 @@ test("recovers a persisted complete Render job and advances to Gate 4", async ()
     assert.equal(finished.status, "succeeded");
     assert.equal(finished.remote.runId, 123);
     assert.equal(loadProject("remote-video").state.currentStage, "gate-4");
+  } finally {
+    if (previousRoot === undefined) delete process.env.HARNESS_PROJECTS_DIR;
+    else process.env.HARNESS_PROJECTS_DIR = previousRoot;
+    fs.rmSync(projectsRoot, { recursive: true, force: true });
+  }
+});
+
+test("refreshes an unconfirmed dispatch by its dispatch ID without dispatching again", async () => {
+  const projectsRoot = fs.mkdtempSync(path.join(os.tmpdir(), "video-harness-refresh-dispatch-"));
+  const previousRoot = process.env.HARNESS_PROJECTS_DIR;
+  process.env.HARNESS_PROJECTS_DIR = projectsRoot;
+  fs.mkdirSync(path.join(projectsRoot, "pending-video"), { recursive: true });
+
+  try {
+    initializeProject("pending-video");
+    const job = createJobRecord({
+      slug: "pending-video",
+      stage: "render",
+      metadata: {
+        status: "dispatching",
+        remote: {
+          workflow: "render-video.yml",
+          ref: "main",
+          slug: "pending-video",
+          compositionId: "pending-video",
+          dispatchId: "dispatch-pending-video",
+          dispatchState: "sending",
+        },
+      },
+    });
+    let dispatchedRuns = 0;
+    let inspectedRuns = 0;
+    const adapter = {
+      findDispatchedRunOnce: async (dispatch) => {
+        assert.equal(dispatch.dispatchId, "dispatch-pending-video");
+        return null;
+      },
+      dispatchWorkflow: async () => { dispatchedRuns += 1; throw new Error("refresh must not dispatch a new run"); },
+      inspectRun: async ({ dispatch }) => {
+        inspectedRuns += 1;
+        return { status: "waiting-run", remote: dispatch };
+      },
+    };
+    const monitor = createRemoteJobMonitor({ adapterFactory: () => adapter });
+    const refreshed = await monitor.refreshProjectJobs("pending-video");
+
+    assert.equal(refreshed.find((item) => item.id === job.id)?.status, "waiting-run");
+    assert.equal(inspectedRuns, 1);
+    assert.equal(dispatchedRuns, 0);
   } finally {
     if (previousRoot === undefined) delete process.env.HARNESS_PROJECTS_DIR;
     else process.env.HARNESS_PROJECTS_DIR = previousRoot;
