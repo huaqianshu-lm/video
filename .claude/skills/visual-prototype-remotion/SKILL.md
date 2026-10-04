@@ -11,10 +11,10 @@ Use this skill when working on a Visual Prototype, Remotion composition, Scene i
 
 - Start from `templates/video-production/visual-prototype.html` and read `templates/video-production/visual-prototype-baseline.md` before changing the skeleton.
 - Keep `.shell`, `.toolbar`, `.stage`, `.scene`, `.caption`, `.controls`, `.progress`, and `.meta` in the fixed order and roles.
-- Use a single visible title block per Scene, containing an eyebrow and a main title, anchored in the common upper-left position.
+- Use short source-supported context text without a Scene number at the upper left. Let the visual subject carry the Scene; do not place a large recurring main title there.
 - Keep the 16:9 stage, preview-only controls, subtitle area, and progress metadata separate from the final Composition output.
-- Do not add Scene-specific CSS that moves, centers, duplicates, or resizes the title block.
-- The shared title block is a layout anchor, not permission to create a standalone title page: its scale, timing, and content must remain subordinate to the visual evidence. Follow the Workflow-specific anti-PPT rules in `docs/VIDEO-PRODUCTION-RULES.md`.
+- Keep this text quiet and consistent. Place any necessary content heading next to the object or evidence it explains, and follow the Workflow-specific anti-PPT rules in `docs/VIDEO-PRODUCTION-RULES.md`.
+- Preview the key before → action → after events and the handoff between Scenes at normal speed. A static layout or a sequence of entrance animations does not demonstrate the Visual Script's change of state.
 - 两条首期 Workflow 共用这套 Prototype 外壳；`product-promo-v1` 可以把字幕区域作为视觉信息布局区域，但不要求教程式口播字幕，最终 Composition 仍不得包含预览控件、导航、进度或调试文字。
 
 ## Gate 2 visual convergence
@@ -22,6 +22,7 @@ Use this skill when working on a Visual Prototype, Remotion composition, Scene i
 - Before requesting Gate 2, inspect actual prototype or preview frames against the Visual Script and the visual convergence checklist in `docs/VIDEO-PRODUCTION-RULES.md`.
 - Save the result as `visual-self-review.json`; Gate 2 automation must reject missing, stale, incomplete, or failed review records before exposing the project as ready for human approval. This is a machine precondition, not automatic Gate 2 approval.
 - A passing structural validator is not visual evidence. If the sequence still reads as repeated title／card pages, return to Visual Script and invalidate downstream work instead of proceeding to Remotion.
+- Preserve intentional reading holds. Judge whether each motion explains an action, relationship, or change; do not add idle movement to satisfy a freeze threshold.
 - Keep the shared shell for both Workflow Profiles, but apply the different visual threshold: product promos must lead with action and evidence; narrated tutorials may retain explanatory UI or diagrams when they clearly support the narration.
 
 ## Remotion sequence
@@ -45,3 +46,7 @@ Use this skill when working on a Visual Prototype, Remotion composition, Scene i
 - Read `docs/VIDEO-PRODUCTION-RULES.md` for prototype, animation, component, and quality rules.
 - Read `docs/VIDEO-PROJECT-WORKFLOW.md` for the handoff from production documents to Remotion.
 - Read `docs/END-TO-END-VIDEO-PRODUCTION-PLAN.md` for timing and remote-render handoffs.
+
+## Lightweight dynamic prototype
+
+Follow the lightweight prototype contract in `docs/VIDEO-PRODUCTION-RULES.md`: estimated playback, stable semantic event IDs, no downstream TTS dependency. Preserve layout, state changes and handoffs in Remotion; bind actual timing after Gate 2. The prototype task may write `visual-self-review.json` and review evidence, but must never claim visual checks passed without actual viewing.

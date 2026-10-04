@@ -14,8 +14,10 @@
       .stage { position: relative; aspect-ratio: 16 / 9; overflow: hidden; border: 1px solid var(--line); border-radius: 22px; background: radial-gradient(circle at 15% 10%, rgba(57, 215, 194, .14), transparent 30%), linear-gradient(145deg, #08131c, #050b10 68%); }
       .scene { position: absolute; inset: 0; display: none; padding: 5.2% 6% 13.8%; }
       .scene.active { display: flex; flex-direction: column; }
-      .eyebrow { color: var(--accent); font-size: clamp(12px, 1.15vw, 18px); letter-spacing: .16em; text-transform: uppercase; font-weight: 800; }
-      h1 { margin: 9px 0 6px; font-size: clamp(30px, 4vw, 62px); line-height: 1.08; }
+      .demo-track { position: relative; margin: 8% 0; height: 110px; border: 1px solid var(--line); border-radius: 14px; }
+      .demo-focus { position: absolute; left: 5%; top: 25px; width: 28%; padding: 18px; border: 2px solid var(--accent); border-radius: 10px; transform: translateX(var(--travel, 0px)); }
+      .demo-result { position: absolute; right: 5%; top: 35px; opacity: var(--result, 0); }
+      .eyebrow { display: inline-block; max-width: 48%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--accent); font-size: clamp(12px, 1.15vw, 18px); letter-spacing: .16em; text-transform: uppercase; font-weight: 800; }
       .content { flex: 1; min-height: 0; margin-top: 3.2%; }
       .caption { position: absolute; z-index: 4; left: 8%; right: 8%; bottom: 4.2%; min-height: 7%; display: grid; place-items: center; padding: 10px 26px; border: 1px solid var(--line); border-radius: 12px; background: rgba(2, 7, 11, .82); text-align: center; }
       .controls { display: flex; gap: 8px; }
@@ -28,13 +30,61 @@
   </head>
   <body>
     <main class="shell">
-      <header class="toolbar"><span>[系列／视频标题]</span><div class="controls"><button type="button">上一幕</button><button type="button">下一幕</button><button type="button">自动播放</button></div></header>
+      <header class="toolbar"><span>[系列／视频标题]</span><div class="controls"><button id="previous" type="button">上一幕</button><button id="next" type="button">下一幕</button><button id="play" type="button">播放</button><button id="replay" type="button">重播</button></div></header>
       <div class="stage" aria-label="Visual Prototype">
-        <section class="scene active" data-scene="1"><span class="eyebrow">SCENE 01</span><h1>[Scene 标题]</h1><div class="content">[主体视觉内容]</div></section>
-        <div class="caption">[幕内预览字幕]</div>
+        <section class="scene active" data-scene="1"><span class="eyebrow">[当前内容的简短文字]</span><div class="content"><div class="demo-track"><div class="demo-focus">[当前操作主体]</div><div class="demo-result">[可观察结果]</div></div></div><div class="caption">[幕内预览口播语义提示]</div></section>
       </div>
       <div class="progress" aria-label="Scene 进度"><button class="active" type="button"></button></div>
-      <div class="meta"><span>[当前 Scene]</span><span>[总 Scene 数]</span></div>
+      <div class="meta"><span id="position">[当前 Scene]</span><span>估算节奏 · 无正式音频／字幕</span></div>
     </main>
+    <script>
+      // Each Scene supplies stable semantic IDs and estimated seconds, never real Cue times.
+      const scenePlans = [{duration: 8, events: [
+        {id: 'focus-established', at: 0, state: 'before', prompt: '[建立主体与初始状态]'},
+        {id: 'focus-transferred', at: 2, state: 'action', prompt: '[触发操作，主体转移]'},
+        {id: 'result-visible', at: 4, state: 'after', prompt: '[完成态：停留供阅读]'}
+      ]}];
+      const sections = [...document.querySelectorAll('.scene')];
+      const dots = [...document.querySelectorAll('.progress button')];
+      const playButton = document.getElementById('play');
+      let index = 0, elapsed = 0, playing = false, lastTick = null;
+      const clamp = value => Math.max(0, Math.min(1, value));
+      function render() {
+        sections.forEach((section, i) => section.classList.toggle('active', i === index));
+        dots.forEach((dot, i) => dot.classList.toggle('active', i === index));
+        const plan = scenePlans[index];
+        const event = [...plan.events].reverse().find(item => elapsed >= item.at) || plan.events[0];
+        const section = sections[index];
+        section.dataset.state = event.state;
+        section.dataset.eventId = event.id;
+        const track = section.querySelector('.demo-track');
+        if (track) {
+          track.style.setProperty('--travel', `${Math.max(0, track.clientWidth * .36) * clamp((elapsed - 2) / .7)}px`);
+          track.style.setProperty('--result', String(clamp((elapsed - 4) / .4)));
+        }
+        document.querySelector('.scene.active .caption').textContent = event.prompt;
+        document.getElementById('position').textContent = `${index + 1} / ${scenePlans.length} · ${elapsed.toFixed(1)}s`;
+        playButton.textContent = playing ? '暂停' : '播放';
+      }
+      function select(next) { index = Math.max(0, Math.min(scenePlans.length - 1, next)); elapsed = 0; lastTick = null; render(); }
+      function tick(now) {
+        if (playing && lastTick !== null) {
+          elapsed += (now - lastTick) / 1000;
+          if (elapsed >= scenePlans[index].duration) {
+            if (index + 1 < scenePlans.length) select(index + 1);
+            else { elapsed = scenePlans[index].duration; playing = false; }
+          }
+        }
+        lastTick = now;
+        render();
+        requestAnimationFrame(tick);
+      }
+      playButton.addEventListener('click', () => { if (!playing && elapsed >= scenePlans[index].duration) select(0); playing = !playing; lastTick = null; render(); });
+      document.getElementById('replay').addEventListener('click', () => { select(0); playing = true; });
+      document.getElementById('previous').addEventListener('click', () => select(index - 1));
+      document.getElementById('next').addEventListener('click', () => select(index + 1));
+      dots.forEach((dot, i) => dot.addEventListener('click', () => select(i)));
+      render(); requestAnimationFrame(tick);
+    </script>
   </body>
 </html>

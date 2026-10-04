@@ -21,7 +21,8 @@ Use this skill when the task creates or revises a video's Source, Content Analys
 - A Scene in `narration-script.md` contains spoken text only. Do not put visual instructions, production notes, gate checklists, or source-document references in the spoken body.
 - Write narration as a self-contained video for viewers who have not seen the source material.
 - Visual Script and Visual Prototype must add visual information, process, state, or relationship; they must not merely repeat narration as slides.
-- Keep the fixed 16:9 prototype skeleton, one left-top title block per Scene, preview subtitle area, navigation, and progress area.
+- For each new Scene, identify the visual focus, before state, semantic trigger, visible after state, intentional hold, and handoff to the next focus. Apply the Workflow-specific timing source from `docs/VIDEO-PRODUCTION-RULES.md`; do not demand continuous motion during reading holds.
+- Keep the fixed 16:9 prototype skeleton, short source-supported context text, preview subtitle area, navigation, and progress area. At the upper left of the video canvas, omit Scene numbers and recurring large titles.
 - The final Scene in a series must include a source-supported next-episode teaser as a visual event.
 - Preserve human Gate decisions. Do not mark a gate passed because files merely exist or because structural checks passed.
 - Before Gate 2, perform the visual convergence check defined in `docs/VIDEO-PRODUCTION-RULES.md` using actual prototype or preview evidence. Treat structural, type, and file validation as supporting checks only; if the visual check fails, return to Visual Script and do not continue to Remotion.
@@ -34,3 +35,7 @@ Use this skill when the task creates or revises a video's Source, Content Analys
 - Before moving to the next stage, check structure against the generic templates and verify that all visible text belongs to the current video's production materials.
 - Record the visual evidence and any failed visual-convergence item before requesting Gate 2; do not describe a visual change as complete from code or Harness output alone.
 - Keep all concrete video materials under local ignored directories; extract only reusable patterns into tracked templates or Skill references.
+
+## Lightweight dynamic prototype
+
+Follow the lightweight prototype contract in `docs/VIDEO-PRODUCTION-RULES.md`: estimated playback, stable semantic event IDs, no downstream TTS dependency. Preserve layout, state changes and handoffs in Remotion; bind actual timing after Gate 2. The prototype task may write `visual-self-review.json` and review evidence, but must never claim visual checks passed without actual viewing.
