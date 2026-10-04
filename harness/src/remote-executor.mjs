@@ -301,7 +301,20 @@ export function prepareRemoteRenderInputs(project, options = {}) {
     return { status: "skipped", sourceIssues: [], archivePath: null, archiveRelativePath: null, sourcePath: null };
   }
   try {
-    const result = prepareRenderInput(project, options);
+    const manifestPath = path.join(renderInputDirectory(project.config.workspaceRoot, project.config.slug), "render-input.json");
+    let previousManifest = null;
+    if (fs.existsSync(manifestPath)) {
+      try { previousManifest = readJson(manifestPath, "Render Input Manifest"); } catch {}
+    }
+    const previousEntry = previousManifest?.entry ?? {};
+    const result = prepareRenderInput(project, {
+      compositionId: previousManifest?.compositionId,
+      componentFile: typeof previousEntry.componentPath === "string" ? path.posix.basename(previousEntry.componentPath) : null,
+      componentExport: previousEntry.componentExport ?? null,
+      configFile: typeof previousEntry.configPath === "string" ? path.posix.basename(previousEntry.configPath) : "video.config.ts",
+      configExport: previousEntry.configExport ?? "videoConfig",
+      ...options,
+    });
     const packageResult = packageRenderInput(project.config.workspaceRoot, project.config.slug);
     return {
       ...result,
