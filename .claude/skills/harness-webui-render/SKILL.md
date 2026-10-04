@@ -21,7 +21,16 @@ Use this skill for Harness Web UI, batch jobs, Agent executors, asset packaging,
 
 ## Remote delivery preflight
 
+Before operating this path, apply the mandatory successful-validation reuse requirements in the project `CLAUDE.md`. Carry forward the previous verified execution environment and code baseline; record unimplemented machine checks and incomplete cross-video validation explicitly rather than claiming that an operational workaround is a permanent fix.
+
 For Agent/CLI delivery with an existing successful full Render, read `docs/RENDER-DELIVERY-BASELINE.md` and run its `render-preflight.mjs` entry in the actual delivery checkout before proposing the exact file list. Save the passing report locally. Follow that document's independent Release publication and binding procedure; this explicit preparation entry is not yet automatically wired into Web UI or batch dispatch.
+
+### Agent execution environment
+
+- On macOS, the agent sandbox may block both the system keyring and GitHub networking. A failed `gh auth token` or `gh auth status` inside that sandbox does not prove that the saved credential is invalid.
+- When an authorized remote-render operation fails to read credentials or connect, use the execution tool's approved host-access mode to repeat the read-only checks with `GITHUB_TOKEN` and `GH_TOKEN` removed from that command's environment. Check `gh auth status`, Harness `doctor`, and the independent input repository's read/write permissions before proposing any credential change. Request sandbox escalation through the execution tool when required; do not attempt to escape the sandbox from application code.
+- Run input publication/binding, authorized Git push, dispatch, and monitoring in the same approved environment that passed those checks. A server started inside a restricted sandbox does not gain host access from a separate successful terminal check.
+- Recommend reauthentication only after the approved environment confirms missing credentials or GitHub actually rejects authentication. Do not modify tokens, shell startup files, secrets, or account login merely because the sandbox cannot read the keyring. Keep tokens out of output and persistent records.
 
 Before dispatching a Harness complete Render, and before manually triggering a standalone Smoke Render when its input package is prepared through Harness:
 
@@ -35,6 +44,8 @@ Before dispatching a Harness complete Render, and before manually triggering a s
 
 ## Git boundary
 
+- Before building a delivery plan, fetch the actual dispatch branch in the approved execution environment and compare its commit with the local branch. Local `origin/<branch>` may be stale. If a prior successful render exists, inspect its exact Run `head_sha` and ensure the new delivery baseline contains that commit or explicitly reviewed equivalent fixes; do not infer code compatibility from the branch name or a prior video's success.
+- If local development and the remote dispatch branch have diverged, prepare an isolated delivery checkout from the verified remote baseline, preserving the original dirty worktree. Recompute the exact necessary file differences against that baseline and obtain the required file-list confirmation before committing or pushing. Do not push unrelated local ancestors or recommit fixes already present remotely. This does not mark the development branches as synchronized; any remaining integration must stay explicit in ROADMAP.
 - Preparing resources must not commit or push.
 - Only the explicit user-confirmed “commit and complete Render” entry may perform a targeted commit and push for the current video's delivery files.
 - Never use `git add .`; never include unrelated videos, documents, or working-tree changes.

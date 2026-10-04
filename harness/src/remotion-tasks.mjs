@@ -111,9 +111,11 @@ export function getRemotionTask(id) {
 export function ensureRemotionTask({ slug, batchId }) {
   assertProjectSlugMutable(slug, "创建 Remotion 任务");
   const project = loadProject(slug, { refresh: true });
-  assertRemotionTaskStageReady({ slug }, "创建 Remotion 任务");
   const existing = listRemotionTasks({ slug, batchId })
     .find((task) => TASK_STATUSES.has(task.status) && task.status !== "failed" && task.status !== "completed");
+  // A repeat request only displays the already running task; it starts no new work.
+  if (existing?.status === "in-progress" && stageAvailability(existing).allowed) return existing;
+  assertRemotionTaskStageReady({ slug }, "创建 Remotion 任务");
   if (existing) return existing;
 
   const packet = buildTaskPacket(project);

@@ -152,6 +152,7 @@ Smoke Render 不属于任一当前生产 Workflow。新系列首次渲染或字�
 - Git 交付计划的 `planId` 同时绑定当前分支、提交、精确文件快照，以及视频 slug、Composition ID、输入包 URL、归档 SHA-256、`packageFingerprint` 和交付记录哈希。自动提交只处理计划列出的精确文件；必要文件缺失、删除、重命名、类型变化或哈希不可读时，在 `git add` 前阻断。
 - 远程 Job 在请求前先持久化唯一 `dispatchId`。Workflow 的 `run-name` 是 `${video_slug} / ${dispatch_id}`；派发请求使用 `return_run_details: true`，成功返回后直接保存准确 Run ID、Run API 地址和页面地址。没有返回 Run 详情时保持 `sending`，恢复只能按同一个 `dispatchId` 精确查找；零匹配继续等待，多匹配进入 `remote-dispatch-ambiguous`，超出有界恢复窗口进入 `remote-dispatch-uncertain`，都不能重派或任选“最新 Run”。
 - 若出现 `remote-dispatch-uncertain` 或 `remote-dispatch-ambiguous`，先用 `node harness/src/cli.mjs jobs <video-slug> --json` 记录 `dispatchId`，再按完整 Run 名称核对 GitHub Actions。不要重新提交；若确认某个成功 Run 的 Artifact 属于当前视频，可在 Web UI 的“查找历史 Artifact”中明确选择 Run ID 接管，仍无法唯一确认就保持阻塞。
+- `jobs <video-slug>` 默认读取本地持久化快照；加 `--refresh` 会立即查询并写回该视频已有精确 Run ID，或可按既有 `dispatchId` 安全恢复的远程 Job，不会触发新的渲染派发。完整 Render 成功后项目只会进入 `gate-4 / waiting`，仍需人工验收；派发结果有歧义或不确定时不会自动猜测或重派。
 
 ## 执行原则
 
@@ -290,7 +291,7 @@ export HARNESS_TTS_SCRIPT_BUILDER="/Users/limiao/personal/2-topic/4-AI/project/t
 node harness/src/cli.mjs workflow list [--json]
 node harness/src/cli.mjs init <video-slug>
 node harness/src/cli.mjs status <video-slug>
-node harness/src/cli.mjs jobs <video-slug>
+node harness/src/cli.mjs jobs <video-slug> [--refresh] [--json]
 node harness/src/cli.mjs jobs --all
 node harness/src/cli.mjs doctor
 node harness/src/cli.mjs validate <video-slug> [stage]
@@ -317,7 +318,7 @@ node harness/src/cli.mjs init <video-slug> --workflow product-promo-v1 --workflo
 
 远程渲染输入包位于被忽略的 `local/render-input/<video-slug>/`，压缩包位于同目录下的 `<video-slug>.zip`。准备输入包不会 commit 或 push：
 
-Agent／CLI 复用已有成功渲染时，先使用 `harness/src/render-preflight.mjs` 核实实际认证、两个仓库权限和成功代码基线。参数、独立 Release 发布与绑定步骤见 [成功基线复用手册](../docs/RENDER-DELIVERY-BASELINE.md)。该准备检查尚未自动接入 Web UI／批量，不替代输入包校验和人工交付确认。
+Agent／CLI 复用已有成功渲染时，先使用 `harness/src/render-preflight.mjs` 核实实际认证、两个仓库权限和成功代码基线。参数、独立 Release 发布与绑定步骤见 [成功基线复用手册](../docs/RENDER-DELIVERY-BASELINE.md)。该准备检查尚未自动接入 Web UI／批量，不替代后续输入包校验和人工交付确认。
 
 ```bash
 node harness/src/cli.mjs render-input prepare <video-slug>
@@ -388,6 +389,8 @@ node harness/src/cli.mjs run <video-slug> render
 
 本地默认使用 `gh auth` 保存的系统凭据；不要把 Token 写进 `.zshrc`、项目文件或命令历史。CI／测试如需显式传 Token，先设置 `HARNESS_GITHUB_AUTH_SOURCE=env`，再设置 `GITHUB_TOKEN` 或 `GH_TOKEN`。两个变量内容不一致时会阻止远程任务。`RENDER_INPUT_TOKEN` 只供 GitHub Actions 下载独立视频输入包，和本地 GitHub API Token 不是一回事。
 
+macOS 的 Agent 沙箱可能无法读取系统钥匙串或访问 GitHub；沙箱内的凭据读取失败不能证明账号失效。Agent 必须通过执行工具获准的宿主访问方式复核 `gh auth status`、`doctor` 和独立输入仓库权限，并从同一环境执行后续远程操作；具体操作边界见 `.claude/skills/harness-webui-render/SKILL.md`。只有该环境确认缺少凭据或 GitHub 实际拒绝认证时，才重新登录；应用代码不得自行绕过沙箱。
+
 如果旧 Token 已写进 shell 启动文件，请删除对应的导出行；当前终端先执行上面的 `unset`，避免 `gh` 命令继续使用旧值。
 
 绑定私有 GitHub Release API 资产时，本地会使用 `gh auth` 凭据；其他托管地址若需要认证，只在当前命令中提供 `HARNESS_RENDER_INPUT_TOKEN`，不要写入长期配置。
@@ -408,7 +411,7 @@ node harness/src/cli.mjs run <video-slug> render
 
 远程渲染提交前，Web UI 会要求输入包和渲染能力代码已准备，并确认 dispatch 分支包含当前能力代码提交。Git 交付预检会返回本次选中的相对路径、当前分支、当前提交、文件哈希和 `planId`；确认请求必须原样带回 `planId` 与 `selectedPaths`，文件、分支或清单变化后必须重新预检，服务端不会接受旧确认。提交范围只允许明确列出的精确文件：`src/TemplateVideo.tsx`、`src/HelloIntro.tsx`、`src/index.ts`、`src/lib/timing.ts`、`harness/src/cli.mjs`、`harness/src/render-input.mjs`、`harness/src/remote-executor.mjs`、`harness/src/diagnostics.mjs`、`harness/src/github-auth.mjs`、`harness/src/github-config.mjs`、`harness/src/remote-jobs.mjs`、`harness/src/adapters.mjs`、`.github/workflows/smoke-test-video.yml`、`.github/workflows/render-video.yml`、`package.json`、`package-lock.json` 和 `remotion.config.ts`。目录前缀不会自动放行；`src/Root.tsx`、`src/videos/`、`videos/`、`assets/`、`local/` 和无关源文件不会被自动加入。必要文件缺失、删除、重命名、类型变化或哈希不可读时，会在 `git add` 前阻断。准备资源不会 commit 或 push。
 
-真实渲染使用 GitHub Actions，不使用本机 Remotion 渲染；Web UI 后台监控器会持续查询已经记录的准确 Run ID，完成后检查 Artifact 名称、非空大小、未过期状态和视频归属，并推进 Harness 阶段。CLI 的 `run` 保留一次性等待模式；`jobs` 可查看已经持久化的远程任务，`jobs <video-slug> --refresh` 可立即刷新指定视频已有的远程任务，不会重新派发。
+真实渲染使用 GitHub Actions，不使用本机 Remotion 渲染；Web UI 后台监控器会持续查询已经记录的准确 Run ID，完成后检查 Artifact 名称、非空大小、未过期状态和视频归属，并推进 Harness 阶段。CLI 的 `run` 保留一次性等待模式；`jobs` 可查看已经持久化的远程任务，`jobs <video-slug> --refresh` 可立即刷新指定视频已有的远程任务，不必等待后台轮询，也不会重新派发。
 
 ### 轻量动态原型与 Gate 2 自检
 
