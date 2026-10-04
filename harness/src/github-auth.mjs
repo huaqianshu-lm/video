@@ -62,7 +62,7 @@ function readGhCliToken({ environment, execFileSyncImpl, ghBinary, hostname }) {
       token: "",
       issue: authIssue(
         "github-auth-unavailable",
-        "无法从 GitHub CLI 读取有效认证，请先运行 gh auth login --hostname github.com。",
+        "当前执行环境无法读取 GitHub CLI 凭据，尚不能判断账号是否失效。请先检查沙箱及系统钥匙串访问权限，并在获准的宿主环境复核 gh auth status 和 Harness doctor；只有确认缺少凭据或 GitHub 拒绝认证时才重新登录。",
       ),
     };
   }
@@ -73,7 +73,7 @@ function readGhCliToken({ environment, execFileSyncImpl, ghBinary, hostname }) {
       token: "",
       issue: authIssue(
         "github-auth-empty",
-        "GitHub CLI 没有返回有效认证，请先运行 gh auth login --hostname github.com。",
+        "当前执行环境中的 GitHub CLI 未返回可用凭据，尚不能判断账号是否失效。请在获准的宿主环境复核系统钥匙串、gh auth status 和 Harness doctor，再决定是否需要重新登录。",
       ),
     };
   }

@@ -4,6 +4,8 @@
 
 ## 校验类型
 
+独立 Agent／CLI 准备入口 `src/render-preflight.mjs` 的回归位于 `test/render-preflight.test.mjs`：覆盖真实 Git 祖先关系、旧代码阻断、钥匙串不可读、网络／401 区分、两个仓库写权限、成功 Workflow 归属、API／fetch 快照变化、origin 不匹配及凭据不外泄。仅准备检查；Web UI／批量尚未自动调用，不能代替阶段矩阵或完整 Render 验证。
+
 | 类型 | 含义 |
 | --- | --- |
 | 自动 | Harness 可以基于文件、Manifest 或代码结构确定判断结果 |
@@ -86,6 +88,7 @@ Smoke Render 只能针对未完成视频或独立副本，并通过 GitHub Actio
 
 ## 0.6 远程任务边界
 
+- CLI `jobs <slug> --refresh` 只刷新该视频已有 Run ID 或处于 `sending` 的持久化任务；未确认派发时只按原 `dispatchId` 对账，不会创建新派发。回归覆盖目标视频隔离和不重复派发：`test/jobs.test.mjs`。
 - 远程任务提交前必须通过 GitHub Actions 配置和真实 API 预检；本地默认读取 `gh auth` 系统凭据，只有显式设置 `HARNESS_GITHUB_AUTH_SOURCE=env` 时才读取 `GITHUB_TOKEN`／`GH_TOKEN`。
 - 完整 Render 的 Git 交付预检必须展示精确候选文件、分支、当前提交、文件哈希和 `planId`；`planId` 同时绑定 Git 分支／提交／文件快照，以及视频 slug、Composition ID、输入包 URL、归档 SHA-256、`packageFingerprint` 和交付记录哈希。确认请求必须携带同一 `planId` 与 `selectedPaths`，任何变化都要求重新确认。自动提交只允许精确文件，必要文件缺失、删除、重命名、类型变化或哈希不可读时必须在 `git add` 前阻断。
 - Run 发现、状态查询和 Artifact 验证可以分次执行，任务记录保存在 `harness/projects/<slug>/jobs/`；正常派发优先使用 API 返回的准确 Run ID，不按“同分支最新 Run”猜测。

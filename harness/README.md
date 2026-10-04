@@ -147,6 +147,7 @@ Smoke Render 不属于任一当前生产 Workflow。新系列首次渲染或字�
 
 - 输入包由 `render-input.json`、清单声明的文件和 ZIP 组成；实际文件集合必须与清单完全相等。路径必须是安全的 POSIX 相对路径，不能重复、越界、指向目录、符号链接或其他特殊文件；清单中的大小和 SHA-256 必须与实际文件逐项一致。
 - `packageFingerprint` 按排序后的实际文件，以 `path:<相对路径>\n`、文件字节和换行重新计算；`render-input.json` 不计入 payload 指纹，但必须存在并通过完整校验。源资料快照不一致时，输入包必须重新准备。
+- 输入包已有有效交付绑定，且 Composition、`packageFingerprint`、本地 ZIP SHA-256 和 ZIP 内容仍一致时，重复准备／打包会保留原 ZIP 字节，不会因复制目录后的文件修改时间变化而使绑定失效。Payload 变化后仍须重新准备、打包、发布并绑定。
 - 单视频临时入口只能是当前工作区的 `src/RenderInputRoot.tsx`，并且只能由当前完整校验通过的输入包生成；不能写 `src/Root.tsx`、具体视频目录、资源目录或输入包目录。
 - Git 交付计划的 `planId` 同时绑定当前分支、提交、精确文件快照，以及视频 slug、Composition ID、输入包 URL、归档 SHA-256、`packageFingerprint` 和交付记录哈希。自动提交只处理计划列出的精确文件；必要文件缺失、删除、重命名、类型变化或哈希不可读时，在 `git add` 前阻断。
 - 远程 Job 在请求前先持久化唯一 `dispatchId`。Workflow 的 `run-name` 是 `${video_slug} / ${dispatch_id}`；派发请求使用 `return_run_details: true`，成功返回后直接保存准确 Run ID、Run API 地址和页面地址。没有返回 Run 详情时保持 `sending`，恢复只能按同一个 `dispatchId` 精确查找；零匹配继续等待，多匹配进入 `remote-dispatch-ambiguous`，超出有界恢复窗口进入 `remote-dispatch-uncertain`，都不能重派或任选“最新 Run”。
@@ -316,6 +317,8 @@ node harness/src/cli.mjs init <video-slug> --workflow product-promo-v1 --workflo
 
 远程渲染输入包位于被忽略的 `local/render-input/<video-slug>/`，压缩包位于同目录下的 `<video-slug>.zip`。准备输入包不会 commit 或 push：
 
+Agent／CLI 复用已有成功渲染时，先使用 `harness/src/render-preflight.mjs` 核实实际认证、两个仓库权限和成功代码基线。参数、独立 Release 发布与绑定步骤见 [成功基线复用手册](../docs/RENDER-DELIVERY-BASELINE.md)。该准备检查尚未自动接入 Web UI／批量，不替代输入包校验和人工交付确认。
+
 ```bash
 node harness/src/cli.mjs render-input prepare <video-slug>
 node harness/src/cli.mjs render-input package <video-slug>
@@ -405,7 +408,7 @@ node harness/src/cli.mjs run <video-slug> render
 
 远程渲染提交前，Web UI 会要求输入包和渲染能力代码已准备，并确认 dispatch 分支包含当前能力代码提交。Git 交付预检会返回本次选中的相对路径、当前分支、当前提交、文件哈希和 `planId`；确认请求必须原样带回 `planId` 与 `selectedPaths`，文件、分支或清单变化后必须重新预检，服务端不会接受旧确认。提交范围只允许明确列出的精确文件：`src/TemplateVideo.tsx`、`src/HelloIntro.tsx`、`src/index.ts`、`src/lib/timing.ts`、`harness/src/cli.mjs`、`harness/src/render-input.mjs`、`harness/src/remote-executor.mjs`、`harness/src/diagnostics.mjs`、`harness/src/github-auth.mjs`、`harness/src/github-config.mjs`、`harness/src/remote-jobs.mjs`、`harness/src/adapters.mjs`、`.github/workflows/smoke-test-video.yml`、`.github/workflows/render-video.yml`、`package.json`、`package-lock.json` 和 `remotion.config.ts`。目录前缀不会自动放行；`src/Root.tsx`、`src/videos/`、`videos/`、`assets/`、`local/` 和无关源文件不会被自动加入。必要文件缺失、删除、重命名、类型变化或哈希不可读时，会在 `git add` 前阻断。准备资源不会 commit 或 push。
 
-真实渲染使用 GitHub Actions，不使用本机 Remotion 渲染；Web UI 后台监控器会持续查询已经记录的准确 Run ID，完成后检查 Artifact 名称、非空大小、未过期状态和视频归属，并推进 Harness 阶段。CLI 的 `run` 保留一次性等待模式；`jobs` 可查看已经持久化的远程任务。
+真实渲染使用 GitHub Actions，不使用本机 Remotion 渲染；Web UI 后台监控器会持续查询已经记录的准确 Run ID，完成后检查 Artifact 名称、非空大小、未过期状态和视频归属，并推进 Harness 阶段。CLI 的 `run` 保留一次性等待模式；`jobs` 可查看已经持久化的远程任务，`jobs <video-slug> --refresh` 可立即刷新指定视频已有的远程任务，不会重新派发。
 
 ### 轻量动态原型与 Gate 2 自检
 

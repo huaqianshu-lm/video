@@ -25,6 +25,7 @@ import { buildTaskPacket } from "./context.mjs";
 import { buildProjectPlan } from "./plans.mjs";
 import { listAllJobs, listJobs } from "./jobs.mjs";
 import { createRemoteJobMonitor } from "./remote-jobs.mjs";
+import { createRuntime } from "./web/runtime.mjs";
 import { diagnoseGitHubActions } from "./diagnostics.mjs";
 import { adoptExistingProjectToGate2, markHistoricalProjectCompleted } from "./adoption.mjs";
 import {
@@ -53,7 +54,7 @@ function usage() {
   node harness/src/cli.mjs adopt <slug> --to gate-2 [--json]
   node harness/src/cli.mjs adopt <slug> --to completed --historical [--json]
   node harness/src/cli.mjs status <slug> [--json]
-  node harness/src/cli.mjs jobs <slug> [--json]
+  node harness/src/cli.mjs jobs <slug> [--refresh] [--json]
   node harness/src/cli.mjs jobs --all [--json]
   node harness/src/cli.mjs validate <slug> [stage]
   node harness/src/cli.mjs run <slug> [stage]
@@ -405,10 +406,16 @@ async function main(args) {
 
   if (command === "jobs") {
     if (slug === "--all") {
+      if (options.includes("--refresh")) throw new Error("--refresh 需要指定单个视频 slug，请使用 jobs <slug> --refresh");
       printAllJobs(options.includes("--json"));
       return 0;
     }
     validateSlug(slug);
+    if (options.includes("--refresh")) {
+      const monitor = createRemoteJobMonitor();
+      createRuntime({ remoteJobMonitor: monitor });
+      await monitor.refreshProjectJobs(slug);
+    }
     printJobs(slug, options.includes("--json"));
     return 0;
   }
