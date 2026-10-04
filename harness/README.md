@@ -147,6 +147,7 @@ Smoke Render 不属于任一当前生产 Workflow。新系列首次渲染或字�
 
 - 输入包由 `render-input.json`、清单声明的文件和 ZIP 组成；实际文件集合必须与清单完全相等。路径必须是安全的 POSIX 相对路径，不能重复、越界、指向目录、符号链接或其他特殊文件；清单中的大小和 SHA-256 必须与实际文件逐项一致。
 - `packageFingerprint` 按排序后的实际文件，以 `path:<相对路径>\n`、文件字节和换行重新计算；`render-input.json` 不计入 payload 指纹，但必须存在并通过完整校验。源资料快照不一致时，输入包必须重新准备。
+- 输入包已有有效交付绑定，且 Composition、`packageFingerprint`、本地 ZIP SHA-256 和 ZIP 内容仍一致时，重复准备／打包会保留原 ZIP 字节，不会因复制目录后的文件修改时间变化而使绑定失效。Payload 变化后仍须重新准备、打包、发布并绑定。
 - 单视频临时入口只能是当前工作区的 `src/RenderInputRoot.tsx`，并且只能由当前完整校验通过的输入包生成；不能写 `src/Root.tsx`、具体视频目录、资源目录或输入包目录。
 - Git 交付计划的 `planId` 同时绑定当前分支、提交、精确文件快照，以及视频 slug、Composition ID、输入包 URL、归档 SHA-256、`packageFingerprint` 和交付记录哈希。自动提交只处理计划列出的精确文件；必要文件缺失、删除、重命名、类型变化或哈希不可读时，在 `git add` 前阻断。
 - 远程 Job 在请求前先持久化唯一 `dispatchId`。Workflow 的 `run-name` 是 `${video_slug} / ${dispatch_id}`；派发请求使用 `return_run_details: true`，成功返回后直接保存准确 Run ID、Run API 地址和页面地址。没有返回 Run 详情时保持 `sending`，恢复只能按同一个 `dispatchId` 精确查找；零匹配继续等待，多匹配进入 `remote-dispatch-ambiguous`，超出有界恢复窗口进入 `remote-dispatch-uncertain`，都不能重派或任选“最新 Run”。

@@ -905,6 +905,24 @@ export function packageRenderInput(workspaceRoot, slug) {
   if (!manifestMatchesWorkspaceSources(manifest, requireWorkspaceRoot(workspaceRoot), slug)) {
     fail("当前视频源资料已变化，不能打包旧输入包，请先重新准备", "render-input-source-stale");
   }
+  if (fs.existsSync(archivePath)) {
+    let delivery = null;
+    try { delivery = readDeliveryRecord(workspaceRoot, slug); } catch {}
+    const existingArchiveSha256 = sha256File(archivePath);
+    if (delivery?.compositionId === manifest.compositionId
+      && delivery?.packageFingerprint === manifest.packageFingerprint
+      && delivery?.archiveSha256 === existingArchiveSha256
+      && validateRenderInputArchive(packageRoot, archivePath).length === 0) {
+      return {
+        status: "packaged",
+        preserved: true,
+        directory: packageRoot,
+        archivePath,
+        archiveSha256: existingArchiveSha256,
+        packageFingerprint: manifest.packageFingerprint,
+      };
+    }
+  }
   const temporaryArchive = path.join(os.tmpdir(), `${slug}-render-input-${process.pid}-${Date.now()}.zip`);
   try {
     execFileSync("zip", ["-q", "-r", "-X", temporaryArchive, "."], { cwd: packageRoot, stdio: "pipe" });

@@ -291,6 +291,40 @@ test("binds one published package URL and SHA to its current manifest", async ()
   }
 });
 
+test("preserves the bound ZIP when a copied input snapshot has different file modification times", async () => {
+  const fixture = createFixture();
+  try {
+    prepareRenderInput(fixture.project);
+    const packaged = packageRenderInput(fixture.workspaceRoot, fixture.slug);
+    const archiveBytes = fs.readFileSync(packaged.archivePath);
+    await bindRenderInputDelivery(fixture.project, {
+      url: "https://inputs.example.test/render-input.zip",
+      sha256: packaged.archiveSha256,
+      fetchImpl: async () => ({ ok: true, status: 200, arrayBuffer: async () => archiveBytes }),
+    });
+
+    const packageRoot = path.join(fixture.workspaceRoot, "local", "render-input", fixture.slug);
+    const copiedTimestamp = new Date("2020-01-01T00:00:00.000Z");
+    const rewriteTimes = (directory) => {
+      for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+        const entryPath = path.join(directory, entry.name);
+        if (entry.isDirectory()) rewriteTimes(entryPath);
+        fs.utimesSync(entryPath, copiedTimestamp, copiedTimestamp);
+      }
+      fs.utimesSync(directory, copiedTimestamp, copiedTimestamp);
+    };
+    rewriteTimes(packageRoot);
+
+    const repackaged = packageRenderInput(fixture.workspaceRoot, fixture.slug);
+    assert.equal(repackaged.preserved, true);
+    assert.equal(repackaged.archiveSha256, packaged.archiveSha256);
+    assert.deepEqual(fs.readFileSync(repackaged.archivePath), archiveBytes);
+    assert.deepEqual(validateRenderInputDelivery(fixture.project), []);
+  } finally {
+    fs.rmSync(fixture.workspaceRoot, { recursive: true, force: true });
+  }
+});
+
 test("uses the GitHub CLI credential for a private GitHub input asset instead of stale token variables", async () => {
   const fixture = createFixture();
   try {

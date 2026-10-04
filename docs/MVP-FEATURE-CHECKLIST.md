@@ -21,6 +21,7 @@
 - [x] Harness 四类批量任务、持久化 Job、失败重试和断点恢复。
 - [x] Harness Web UI 的项目状态、任务状态、Gate 操作和远程任务查询。
 - [x] 远程渲染资源包、Manifest、分支和 Git 交付预检。
+- [x] 已绑定 Render Input ZIP 在副本时间戳变化后的重复打包保留原 SHA；依据 `harness/test/render-input.test.mjs`。
 - [x] Agent／CLI 显式成功基线准备检查：`harness/src/render-preflight.mjs`，8 项专项回归及真实仓库正反例通过；固定输入包发布步骤见 `RENDER-DELIVERY-BASELINE.md`。
 - [ ] 成功基线准备检查自动接入 Web UI／批量，以及新一条视频的完整 Render／Gate 4 复用验证。
 - [x] 系列风格、系列封面和 45 帧正文起点规则。

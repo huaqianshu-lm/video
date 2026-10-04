@@ -7,6 +7,8 @@
 
 ## 当前阶段
 
+- 2026-10-04：已绑定输入包在源内容与 Manifest 指纹不变时，重复打包会校验并保留原 ZIP 字节及 SHA，避免文件复制后的 mtime 差异使远程绑定失效；渲染输入／远程执行器回归 22/22 通过，变更已独立提交，尚未推送。
+
 - 2026-10-04：Agent／CLI 的远程渲染成功基线检查已实现，覆盖宿主认证、代码与输入仓库写权限、成功 Render Run 及实际派发分支祖先关系；认证和准备专项回归 21/21、真实仓库正确版本通过／旧版本阻断均已验证。Web UI／批量自动接入、输入仓库自动发布及跨视频完整 Render／Gate 4 复用仍待完成。
 
 - 2026-09-19 实时状态：当前 Harness 管理 63 个视频，其中 20 个为 `completed`、40 个为 `gate-2 / waiting`、`09-ide` 为 `gate-3 / waiting`，`project-structure` 与 `web-and-cloud` 为 `visual-script / ready`。当前进度以各项目 `state.json` 为准，不以旧批次快照覆盖。
