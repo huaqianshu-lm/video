@@ -75,7 +75,7 @@ const rawStageDefinitions = [
     stage: "gate-2",
     label: "Gate 2：口播与视觉原型确认",
     kind: "gate",
-    artifacts: [],
+    artifacts: ["videos/{slug}/visual-self-review.json"],
     objective: "确认口播、视觉表达和原型可以进入下游生产。",
     inputStages: ["narration-script", "visual-script", "visual-prototype"],
     executor: "human",

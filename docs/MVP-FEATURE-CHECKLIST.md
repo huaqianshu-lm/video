@@ -30,6 +30,8 @@
 - [x] 首条真实产品宣传片的 Gate 2、Gate 3、完整 Render 和 Gate 4 验收；以 `huaqianshu-site-promo` 的真实端到端验证为依据。
 - [x] 完成当前用户确认范围内的最终视频导出闭环；Artifact 已通过远程校验并完成 Gate 4 人工验收。
 
+- [x] 轻量动态原型播放／暂停／重播／切幕，以及 Gate 2 当前版本视觉自检机器阻断；依据 `dynamic-prototype.test.mjs` 与 `visual-self-review.test.mjs`，真实新视频的 Gate 2／Gate 3 验证仍进行中。
+
 ## 维护原则
 
 - 只记录仓库能力，不记录具体视频的本地产物状态。

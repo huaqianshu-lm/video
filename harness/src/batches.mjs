@@ -1,3 +1,4 @@
+import { validateVisualSelfReview } from "./visual-self-review.mjs";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
@@ -573,6 +574,9 @@ async function executeItem(batch, batchItem, definition, options) {
       if (!workflowStageDefinition(project, currentStage)) {
         throw new Error("项目处于旧版阶段 " + currentStage + "，批次不会自动迁移该项目。");
       }
+
+      const reviewIssues = validateVisualSelfReview(project, currentStage);
+      if (reviewIssues.length) throw new Error(reviewIssues.map((item) => item.message).join("；"));
 
       if (currentStage === definition.targetStage && project.state.stages[currentStage].status === "waiting") {
         updateItem(batch, batchItem, { status: "waiting-gate", phase: currentStage, message: `等待人工确认 ${currentStage}。` });

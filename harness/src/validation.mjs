@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import { validateVisualSelfReview } from "./visual-self-review.mjs";
 import fs from "node:fs";
 import path from "node:path";
 import { workflowForProject, workflowStageDefinition, workflowStageIndex } from "./workflows/registry.mjs";
@@ -198,11 +199,11 @@ function validateStageStructure(project, stage) {
       requirements: [{ label: "全局视觉原则", patterns: [/全局视觉原则|全局视觉/i] }],
     }));
     issues.push(...validateSceneFields(project, stage, visualScriptPath, [
-      { label: "视觉目标", patterns: [/视觉目标|视觉意图/i] },
-      { label: "画面结构", patterns: [/画面结构|画面内容/i] },
-      { label: "动画", patterns: [/动画|动作/i] },
+      { label: "视觉目标", patterns: [/视觉目标|视觉意图|认知任务/i] },
+      { label: "画面结构", patterns: [/画面结构|画面内容|初始状态/i] },
+      { label: "动画", patterns: [/动画|动作|关键视觉事件/i] },
       { label: "屏幕文字", patterns: [/屏幕文字|画面文字/i] },
-      { label: "Visual Type", patterns: [/Visual Type|视觉类型/i] },
+      { label: "Visual Type", patterns: [/Visual Type|视觉类型|视觉焦点/i] },
     ]));
   }
   if (workflowStageIndex(project, stage) >= workflowStageIndex(project, "visual-prototype")) {
@@ -338,11 +339,11 @@ function validatePrototypeSceneTitles(stage, prototypePath, prototype) {
     const h1Count = countMatches(block, /<h1\b/gi);
     const titleClassCount = countMatches(block, /class=["'][^"']*\btitle\b[^"']*["']/gi);
     const headingCount = Math.max(h1Count, titleClassCount);
-    if (eyebrowCount !== 1 || headingCount !== 1) {
+    if (eyebrowCount !== 1 || headingCount > 1) {
       issues.push(issue(
         stage,
         "prototype-baseline-scene-title-mismatch",
-        `Scene ${sceneNumber} 必须且只能有一个基线标题区，并包含一个 eyebrow 和一个 h1／title；当前 eyebrow=${eyebrowCount}、标题=${headingCount}`,
+        `Scene ${sceneNumber} 必须有一个简短内容文字区，且不能重复标题；当前 eyebrow=${eyebrowCount}、标题=${headingCount}`,
         prototypePath,
       ));
       continue;
@@ -350,28 +351,14 @@ function validatePrototypeSceneTitles(stage, prototypePath, prototype) {
 
     const eyebrowIndex = block.search(/class=["'][^"']*\beyebrow\b[^"']*["']/i);
     const headingIndex = block.search(/<h1\b|class=["'][^"']*\btitle\b[^"']*["']/i);
-    if (headingIndex < eyebrowIndex) {
+    if (headingIndex >= 0 && headingIndex < eyebrowIndex) {
       issues.push(issue(
         stage,
         "prototype-baseline-scene-title-order-mismatch",
-        `Scene ${sceneNumber} 的标题区必须按 eyebrow → h1／title 的基线顺序位于主体视觉内容之前`,
+        `Scene ${sceneNumber} 的简短内容文字应位于主体视觉内容之前`,
         prototypePath,
       ));
     }
-  }
-
-  const titleLayoutPatterns = [
-    /(?:^|})\s*[^{}]*\.scene(?:[-.]?[\w-]+)?[^{}]*\{[^}]*\btext-align\s*:\s*center/i,
-    /(?:^|})\s*[^{}]*\.scene(?:[-.]?[\w-]+)?[^{}]*\{[^}]*\b(?:align-items|justify-items|place-items)\s*:\s*center/i,
-    /(?:^|})\s*[^{}]*\.scene(?:[-.]?[\w-]+)?[^{}]*(?:head|title|eyebrow|h1|copy)[^{}]*\{[^}]*\b(?:text-align|align-self|justify-self)\s*:\s*center/i,
-  ];
-  if (titleLayoutPatterns.some((pattern) => pattern.test(prototype))) {
-    issues.push(issue(
-      stage,
-      "prototype-baseline-scene-title-layout-mismatch",
-      "Visual Prototype 的 Scene 标题不得通过 Scene 专属 CSS 居中或单独改变定位；所有标题必须使用基线左上锚点",
-      prototypePath,
-    ));
   }
 
   return issues;
@@ -410,7 +397,7 @@ function validatePrototypeBaseline(project, stage, prototypePath, prototype) {
     /\.meta\s*\{[^}]*display:\s*flex[^}]*justify-content:\s*space-between/s,
   ];
   if (!layoutPatterns.every((pattern) => pattern.test(prototype))) {
-    issues.push(issue(stage, "prototype-baseline-layout-mismatch", "Visual Prototype 的标题区、舞台区、字幕区、导航区或底部进度区偏离 Codex 基线布局", prototypePath));
+    issues.push(issue(stage, "prototype-baseline-layout-mismatch", "Visual Prototype 的舞台区、字幕区、导航区或底部进度区偏离 Codex 基线布局", prototypePath));
   }
   return issues;
 }
@@ -588,6 +575,7 @@ export function validateProjectStage(project, stage, options = {}) {
     ...validateStageArtifacts(project, stage, options),
     ...validateStageContent(project, stage, options),
   ];
-  if (project.config.validationPolicy !== "legacy") return issues;
-  return issues.map((item) => ({ ...item, severity: "warning" }));
+  const reviewIssues = validateVisualSelfReview(project, stage);
+  if (project.config.validationPolicy !== "legacy") return [...issues, ...reviewIssues];
+  return [...issues.map((item) => ({ ...item, severity: "warning" })), ...reviewIssues];
 }

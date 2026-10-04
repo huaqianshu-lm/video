@@ -1,3 +1,4 @@
+import { writeVisualReviewFixture } from "./helpers/visual-review-fixture.mjs";
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -392,7 +393,15 @@ test("automatically queues a Remotion modification after Gate 3 rejection", asyn
   const tasksRoot = fs.mkdtempSync(path.join(os.tmpdir(), "video-harness-web-gate3-reject-tasks-"));
   process.env.HARNESS_PROJECTS_DIR = projectsRoot;
   process.env.HARNESS_REMOTION_TASKS_DIR = tasksRoot;
+  const previousWorkspaceRoot = process.env.HARNESS_WORKSPACE_ROOT;
+  process.env.HARNESS_WORKSPACE_ROOT = fs.mkdtempSync(path.join(os.tmpdir(), "video-web-visual-review-"));
   const slug = "claude-code-what-is";
+  const materials = path.join(process.env.HARNESS_WORKSPACE_ROOT, "videos", slug);
+  fs.mkdirSync(materials, {recursive: true});
+  fs.writeFileSync(path.join(materials, "source.md"), "# Test source");
+  fs.writeFileSync(path.join(materials, "visual-script.md"), "# Visual Script\n## Scene 01\nState changes");
+  fs.writeFileSync(path.join(materials, "visual-prototype.html"), "<section class=\"scene\">Current subject</section>");
+  writeVisualReviewFixture(process.env.HARNESS_WORKSPACE_ROOT, slug);
   initializeProject(slug);
   const project = loadProject(slug, { refresh: false });
   for (const stage of [
@@ -475,6 +484,8 @@ test("automatically queues a Remotion modification after Gate 3 rejection", asyn
     assert.equal(rebuildRequests[1]?.reason, "修复场景重叠和时间延迟。");
   } finally {
     await webServer.close();
+    if (previousWorkspaceRoot === undefined) delete process.env.HARNESS_WORKSPACE_ROOT;
+    else process.env.HARNESS_WORKSPACE_ROOT = previousWorkspaceRoot;
     if (previousProjectsRoot === undefined) delete process.env.HARNESS_PROJECTS_DIR;
     else process.env.HARNESS_PROJECTS_DIR = previousProjectsRoot;
     if (previousTasksRoot === undefined) delete process.env.HARNESS_REMOTION_TASKS_DIR;
@@ -553,6 +564,7 @@ test("runs one continuous Gate 2 batch through persisted Agent Jobs and stops fo
     fs.mkdirSync(path.dirname(target), { recursive: true });
     fs.writeFileSync(target, `${content}\n`, "utf8");
   }
+  writeVisualReviewFixture(process.env.HARNESS_WORKSPACE_ROOT, "claude-code-what-is");
   const stages = [];
   const webServer = createWebServer({
     port: 0,

@@ -1,3 +1,4 @@
+import { writeVisualReviewFixture } from "./helpers/visual-review-fixture.mjs";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
@@ -108,6 +109,7 @@ function createFixture({ prototypeBaseline = null } = {}) {
   process.env.HARNESS_PROJECTS_DIR = projectsRoot;
   process.env.HARNESS_WORKSPACE_ROOT = workspaceRoot;
   process.env.HARNESS_TTS_PROJECT_DIR = path.resolve(repositoryRoot, "..", "tts");
+  writeVisualReviewFixture(workspaceRoot, slug);
   initializeProject(slug, { prototypeBaseline });
   return { slug, projectsRoot };
 }
@@ -233,6 +235,8 @@ test("adds the style-specific prototype baseline to the visual prototype task pa
   assert.deepEqual(packet.context.referencePaths, [
     "styles/codex/STYLE.md",
     "templates/video-production/visual-prototype.html",
+    "docs/VIDEO-PRODUCTION-RULES.md",
+    "templates/video-production/visual-script.md",
   ]);
   assert.ok(packet.context.readPaths.includes("styles/codex/STYLE.md"));
   assert.ok(packet.context.readPaths.includes("templates/video-production/visual-prototype.html"));
@@ -255,7 +259,7 @@ test("requires the immutable Codex prototype shell and layout contract", () => {
   assert.equal(invalidIssues.some((item) => item.code === "prototype-baseline-layout-mismatch"), true);
 });
 
-test("requires one upper-left baseline title block in every prototype scene", () => {
+test("requires one short context label and permits a prototype without a main title", () => {
   const { slug } = createFixture({ prototypeBaseline: "codex-v1" });
   const project = loadFixture(slug);
   const prototypePath = path.join(project.config.workspaceRoot, `videos/${slug}/visual-prototype.html`);
@@ -265,18 +269,21 @@ test("requires one upper-left baseline title block in every prototype scene", ()
   assert.equal(validIssues.some((item) => item.code === "prototype-baseline-scene-title-mismatch"), false);
   assert.equal(validIssues.some((item) => item.code === "prototype-baseline-scene-title-layout-mismatch"), false);
 
-  const missingTitle = baseline.replace(
-    '<span class="eyebrow">SCENE 01</span><h1>[Scene 标题]</h1>',
-    '<span class="eyebrow">SCENE 01</span>',
+  const missingMarker = baseline.replace(
+    '<span class="eyebrow">[当前内容的简短文字]</span>',
+    '',
   );
-  fs.writeFileSync(prototypePath, missingTitle, "utf8");
-  const missingTitleIssues = validateStage(loadFixture(slug), "visual-prototype");
-  assert.equal(missingTitleIssues.some((item) => item.code === "prototype-baseline-scene-title-mismatch"), true);
+  fs.writeFileSync(prototypePath, missingMarker, "utf8");
+  const missingMarkerIssues = validateStage(loadFixture(slug), "visual-prototype");
+  assert.equal(missingMarkerIssues.some((item) => item.code === "prototype-baseline-scene-title-mismatch"), true);
 
-  const centeredTitle = baseline.replace("</style>", ".scene h1 { text-align: center; }\n    </style>");
-  fs.writeFileSync(prototypePath, centeredTitle, "utf8");
-  const centeredTitleIssues = validateStage(loadFixture(slug), "visual-prototype");
-  assert.equal(centeredTitleIssues.some((item) => item.code === "prototype-baseline-scene-title-layout-mismatch"), true);
+  const repeatedMarker = baseline.replace(
+    '<span class="eyebrow">[当前内容的简短文字]</span>',
+    '<span class="eyebrow">[当前内容的简短文字]</span><span class="eyebrow">[当前内容的简短文字]</span>',
+  );
+  fs.writeFileSync(prototypePath, repeatedMarker, "utf8");
+  const repeatedMarkerIssues = validateStage(loadFixture(slug), "visual-prototype");
+  assert.equal(repeatedMarkerIssues.some((item) => item.code === "prototype-baseline-scene-title-mismatch"), true);
 });
 
 test("restarts an existing project from Visual Script when its series style changes", () => {
@@ -1263,6 +1270,7 @@ test("passes read-only regression for four real videos without writing their dir
     const before = snapshotTree(roots);
     const project = {
       config: { slug, workspaceRoot, validationPolicy: "legacy" },
+      state: { currentStage: "completed" },
       artifacts: { stages: artifactManifestFor(slug) },
     };
     const issues = ["scene-script", "narration-script", "tts", "subtitle-timeline", "visual-prototype", "remotion"]

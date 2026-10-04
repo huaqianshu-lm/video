@@ -94,10 +94,13 @@ export function buildNextAction(project) {
       issues: [],
     };
   }
-  const issues = item.status === "ready"
+  const issues = (item.status === "ready" || (stage === "gate-2" && item.status === "waiting"))
     ? [...validateStage(project, stage), ...remoteDeliveryIssues(project, stage)]
     : [];
   const blockingIssues = issues.filter((issue) => isBlockingPreExecutionIssue(project, stage, issue));
+  if (stage === "gate-2" && item.status === "waiting" && issues.some((item) => item.severity !== "warning")) {
+    return { currentStage: stage, status: item.status, action: "fix-validation-issues", message: "视觉资料或自检无效，修复后才能人工确认 Gate 2。", requiresUser: false, commands: [commandFor(project, "validate", stage)], issues, returnToStages: workflowReturnToStages(project, stage), recommendedReturnTo: "visual-script" };
+  }
   if (item.status === "waiting" && workflowIsGateStage(project, stage)) {
     return {
       currentStage: stage,

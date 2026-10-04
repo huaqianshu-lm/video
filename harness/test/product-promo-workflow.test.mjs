@@ -1,3 +1,4 @@
+import { writeVisualReviewFixture } from "./helpers/visual-review-fixture.mjs";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
@@ -110,6 +111,7 @@ CTA：访问产品入口
   write(workspaceRoot, `${base}/scene-script.md`, sceneScript());
   write(workspaceRoot, `${base}/visual-script.md`, visualScript());
   write(workspaceRoot, `${base}/motion-prototype.html`, prototype());
+  writeVisualReviewFixture(workspaceRoot, slug, "product-promo-v1");
   for (const [index, name] of ["logo.svg", "dashboard.png", "result.png", "cta.png"].entries()) {
     write(workspaceRoot, `public/local-assets/${slug}/${name}`, `fixture-asset-${index}\n`);
   }

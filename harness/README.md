@@ -406,3 +406,11 @@ node harness/src/cli.mjs run <video-slug> render
 远程渲染提交前，Web UI 会要求输入包和渲染能力代码已准备，并确认 dispatch 分支包含当前能力代码提交。Git 交付预检会返回本次选中的相对路径、当前分支、当前提交、文件哈希和 `planId`；确认请求必须原样带回 `planId` 与 `selectedPaths`，文件、分支或清单变化后必须重新预检，服务端不会接受旧确认。提交范围只允许明确列出的精确文件：`src/TemplateVideo.tsx`、`src/HelloIntro.tsx`、`src/index.ts`、`src/lib/timing.ts`、`harness/src/cli.mjs`、`harness/src/render-input.mjs`、`harness/src/remote-executor.mjs`、`harness/src/diagnostics.mjs`、`harness/src/github-auth.mjs`、`harness/src/github-config.mjs`、`harness/src/remote-jobs.mjs`、`harness/src/adapters.mjs`、`.github/workflows/smoke-test-video.yml`、`.github/workflows/render-video.yml`、`package.json`、`package-lock.json` 和 `remotion.config.ts`。目录前缀不会自动放行；`src/Root.tsx`、`src/videos/`、`videos/`、`assets/`、`local/` 和无关源文件不会被自动加入。必要文件缺失、删除、重命名、类型变化或哈希不可读时，会在 `git add` 前阻断。准备资源不会 commit 或 push。
 
 真实渲染使用 GitHub Actions，不使用本机 Remotion 渲染；Web UI 后台监控器会持续查询已经记录的准确 Run ID，完成后检查 Artifact 名称、非空大小、未过期状态和视频归属，并推进 Harness 阶段。CLI 的 `run` 保留一次性等待模式；`jobs` 可查看已经持久化的远程任务。
+
+### 轻量动态原型与 Gate 2 自检
+
+新原型从 `templates/video-production/visual-prototype.html` 开始，使用估算节奏与稳定事件 ID，支持播放／暂停／重播／切幕；不依赖下游 TTS 或正式字幕。正式 Remotion 在 Gate 2 后按实际 Manifest 对齐这些事件。
+
+原型任务可以写入当前资料目录下的 `visual-self-review.json` 与 `visual-review/` 证据。没有实际观看画面时必须记录未通过。Gate 2 在进入审批和点击通过时校验当前资料指纹、Workflow、Visual Script／Workflow 必检项及非空安全证据路径；legacy 不降级这些错误。未完成项目的 TTS、资产准备、Timeline、Remotion 与 Gate 3 继续检查，已有远程渲染结果的回收不追溯新增视觉审批。完成项目保持只读。
+
+自检失败时修复记录；若实际画面需要重设计，使用 `reject <slug> gate-2 --return-to visual-script --reason "具体视觉问题"`，阻断的 ready／failed Gate 2 也支持该回退。所有正常审批仍须人工执行。

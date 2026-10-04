@@ -66,7 +66,8 @@ Workflow 的判断以 Harness 服务端 Registry 和项目 `project.json.workflo
 - narrated 视频默认显式使用 TTS `+25%` 语速；字幕展示文本去掉句末标点，但不能修改朗读文本、音频或时间轴。
 - Remotion 必须使用已校验的 Timeline Manifest 作为 narrated 视频的时间基准，并保持 Scene、Audio、Subtitle 和视觉事件的映射一致。
 - `product-promo-v1` 不使用 narrated Timeline；Remotion 配置必须从当前视频的 `visual-timeline.json` 精确相对路径导入，并由唯一的 `TotalDurationFrames` 导出直接返回该对象的 `durationInFrames`，再以它作为唯一时间基准，并按 Asset Manifest 校验本地素材。两类 Workflow 的校验契约不得互相放宽或串线。
-- Visual Prototype 先于正式 Remotion 实现；原型和 Remotion 必须使用统一的可复用外壳、左上标题区、字幕区、导航区和进度区。
+- Visual Prototype 先于正式 Remotion 实现；原型和 Remotion 必须使用统一的可复用外壳、字幕区、导航区和进度区。画布左上只保留有资料依据的简短内容文字，不显示 Scene／场景编号或固定大标题；内容标题仅在确有视觉任务时融入主体，不得形成逐页标题加卡片的结构。历史原型和已完成视频保持只读。
+- 新视频的每个 Scene 要有明确的视觉焦点和可观察的状态／关系变化，旧主体应在新主体出现时让位或有意保留；允许为阅读和理解静置，不以持续运动或镜头次数代替视觉质量。Visual Script、Prototype 和 Remotion 必须表达同一条变化链，并在 Gate 2／Gate 3 看实际画面确认。
 - 两类 Workflow 在进入 Gate 2 前都必须完成 `docs/VIDEO-PRODUCTION-RULES.md` 定义的视觉收敛自检；TypeScript、结构、文件存在、Harness 状态或指纹校验通过，不能替代对实际 Prototype／预览画面的质量检查。自检不通过时必须回到 Visual Script，宣传片和教程片按各自 Workflow 的视觉约束重新设计。
 - Gate 2 的视觉自检必须产出当前视频资料目录下的 `visual-self-review.json`，并由 Harness 校验 schema、Workflow、Visual Script／Prototype 指纹、证据路径以及所有 MUST 检查项；缺失、过期或失败时阻断 Gate 2 的就绪和下游阶段。该机器校验只能验证契约完整性，不能自动通过人工 Gate 2；Harness 尚未实现前必须明确标记为“机器校验待实现”。
 - 进入 Gate 3 前必须对照冻结的 Visual Script、Visual Prototype 和 `remotion-alignment.json`；最终输出必须通过清洁画面检查。

@@ -1,3 +1,4 @@
+import { validateVisualSelfReview } from "./visual-self-review.mjs";
 import {
   workflowAdapterStages,
   workflowIsGateStage,
@@ -153,6 +154,11 @@ export function runStage(project, requestedStage, { adapters = {}, executors = {
   requireReady(project, stage);
   requirePreviousSucceeded(project, stage);
 
+  if (stage !== "gate-2") {
+    const reviewIssues = validateVisualSelfReview(project, stage);
+    if (reviewIssues.length) throw new Error(reviewIssues.map((item) => item.message).join("；"));
+  }
+
   const item = project.state.stages[stage];
   item.status = "running";
   item.attempts += 1;
@@ -284,6 +290,9 @@ export function approveGate(project, gate) {
     throw new Error(`Gate ${gate} is not waiting for approval`);
   }
 
+  const gateIssues = (gate === "gate-2" ? validateStage(project, gate) : []).filter((item) => item.severity !== "warning");
+  if (gateIssues.length > 0) throw new Error(`Gate 审批阻断：${gateIssues.map((item) => item.message).join("；")}`);
+
   let ttsScript = null;
   if (gate === "gate-2" && workflowForProject(project).audioMode === "tts") {
     ttsScript = ensureTtsScript(project);
@@ -322,7 +331,10 @@ export function rejectGate(project, gate, returnTo, reason) {
   if (!reason) {
     throw new Error("Gate rejection requires --reason");
   }
-  if (project.state.currentStage !== gate || project.state.stages[gate].status !== "waiting") {
+  const blockedVisualGate = gate === "gate-2"
+    && ["ready", "failed"].includes(project.state.stages[gate].status)
+    && validateVisualSelfReview(project, gate).length > 0;
+  if (project.state.currentStage !== gate || (project.state.stages[gate].status !== "waiting" && !blockedVisualGate)) {
     throw new Error(`Gate ${gate} is not waiting for rejection`);
   }
 

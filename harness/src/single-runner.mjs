@@ -1,3 +1,4 @@
+import { validateVisualSelfReview } from "./visual-self-review.mjs";
 import { assertProjectMutable, loadProject } from "./storage.mjs";
 import { runStage, validateStage } from "./runner.mjs";
 import { ensureRemotionTask, getRemotionTask, runRemotionTask } from "./remotion-tasks.mjs";
@@ -15,6 +16,10 @@ export async function runSingleStage(project, stage, {
   adapters = {},
 } = {}) {
   assertProjectMutable(project, "执行视频阶段");
+  if (stage === "remotion" || stage === "subtitle-timeline") {
+    const reviewIssues = validateVisualSelfReview(project, stage);
+    if (reviewIssues.length) throw new Error(reviewIssues.map((item) => item.message).join("；"));
+  }
   if (stage === "remotion") {
     if (!remotionExecutor) {
       try {

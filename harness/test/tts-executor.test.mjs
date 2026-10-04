@@ -1,3 +1,4 @@
+import { writeVisualReviewFixture } from "./helpers/visual-review-fixture.mjs";
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -30,6 +31,7 @@ function fixture() {
     fs.mkdirSync(path.dirname(target), { recursive: true });
     fs.writeFileSync(target, content, "utf8");
   }
+  writeVisualReviewFixture(workspaceRoot, slug);
   return { slug, project, workspaceRoot, projectsRoot };
 }
 

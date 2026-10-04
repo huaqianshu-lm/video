@@ -1,3 +1,4 @@
+import { writeVisualReviewFixture } from "./helpers/visual-review-fixture.mjs";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
@@ -15,6 +16,12 @@ function setup() {
   process.env.HARNESS_PROJECTS_DIR = path.join(root, "projects");
   process.env.HARNESS_REMOTION_TASKS_DIR = path.join(root, "remotion-tasks");
   fs.mkdirSync(process.env.HARNESS_REMOTION_TASKS_DIR, { recursive: true });
+  process.env.HARNESS_WORKSPACE_ROOT = path.join(root, "workspace");
+  const materials = path.join(process.env.HARNESS_WORKSPACE_ROOT, "videos/recovery-video");
+  fs.mkdirSync(materials, {recursive: true});
+  fs.writeFileSync(path.join(materials, "visual-script.md"), "# Visual Script\n## Scene 01\nState changes");
+  fs.writeFileSync(path.join(materials, "visual-prototype.html"), "<section class=\"scene\">Current subject</section>");
+  writeVisualReviewFixture(process.env.HARNESS_WORKSPACE_ROOT, "recovery-video");
   initializeProject("recovery-video");
   const project = loadProject("recovery-video", { refresh: false });
   project.state.currentStage = "remotion";

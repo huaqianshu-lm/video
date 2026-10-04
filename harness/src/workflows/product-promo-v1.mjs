@@ -79,7 +79,7 @@ const stageSpecs = [
     stage: "gate-2",
     label: "Gate 2：创意与 Motion Prototype 确认",
     kind: "gate",
-    artifacts: [],
+    artifacts: ["videos/product-promo/{slug}/visual-self-review.json"],
     objective: "人工确认宣传目标、创意、Scene、素材和 Motion Prototype 后再进入技术生产。",
     inputStages: ["promo-brief", "creative-concept", "scene-script", "visual-script", "motion-prototype"],
     executor: "human",

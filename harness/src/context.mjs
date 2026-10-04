@@ -1,3 +1,4 @@
+import { visualSelfReviewPath } from "./visual-self-review.mjs";
 import {
   requireWorkflowDefinition,
   retiredStageDefinition,
@@ -89,13 +90,17 @@ export function buildTaskPacket(project) {
   const inputs = artifactEntries(project, contract.inputStages);
   const outputs = artifactEntries(project, [stage]);
   const prototypeStage = workflow.timelineMode === "visual-beats" ? "motion-prototype" : "visual-prototype";
+  if (stage === prototypeStage) {
+    outputs.push({ stage, path: visualSelfReviewPath(project), status: "unverified", exists: matchesArtifactPath(config.workspaceRoot, visualSelfReviewPath(project)) });
+    outputs.push({ stage, path: `${config.sourceDirectory}/visual-review/*`, status: "unverified", exists: false });
+  }
   const styleReferencePaths = ["visual-script", prototypeStage].includes(stage)
     ? [style.path]
     : [];
   const prototypeReferencePaths = stage === prototypeStage && style.prototypeBaselinePath
     ? [style.prototypeBaselinePath]
     : [];
-  const referencePaths = [...styleReferencePaths, ...prototypeReferencePaths];
+  const referencePaths = [...styleReferencePaths, ...prototypeReferencePaths, ...(["visual-script", prototypeStage, "gate-2", "remotion"].includes(stage) ? ["docs/VIDEO-PRODUCTION-RULES.md", "templates/video-production/visual-script.md"] : [])];
   const prototypeBaseline = stage === "remotion" ? getPrototypeBaseline(project) : null;
   let remotionTimingPlan = null;
   let remotionTimingPlanError = null;
@@ -197,13 +202,25 @@ export function buildTaskPacket(project) {
           "这是 Gate 3 驳回后的 Remotion 重制任务，必须先读取并处理 context.rebuildRequest，不能只做只读检查。",
           remotionRebuildRequest.requirement,
         ] : []),
+        ...(stage === "visual-script" ? [
+          "新 Visual Script 的每个 Scene 要写清视觉焦点、初始状态、关键事件的语义触发与可观察结果、完成态停留，以及旧主体让位和跨幕承接；不能只列出要放哪些卡片。教程片按口播语义规划，宣传片按 Beat 规划。",
+          "静置可以用于阅读和比较；运镜与动效只在它们帮助理解时使用，不以持续运动为目标。",
+        ] : []),
         ...(["visual-prototype", "motion-prototype"].includes(stage) ? [
+          "采用轻量动态分镜：估算节奏、稳定事件 ID、口播语义提示；支持播放、暂停、重播和切幕，不读取或生成下游 TTS、正式字幕或实际 Timeline。",
+          "完成实际动态画面检查后写 visual-self-review.json（契约见 docs/VIDEO-PRODUCTION-RULES.md），证据路径相对于视频资料目录。未观看画面必须记录未通过，不得以源码、截图存在或模板输出假造 passed。",
           `必须读取并复用 ${style.prototypeBaselinePath} 的完整原型基线：shell、toolbar、stage、section.scene、caption、controls、progress 和 meta。`,
-          "系列标题、每个 Scene 的唯一标题区、PATH／幕数、右上导航、幕内字幕和底部进度区必须保持基线位置与排版；每个 Scene 的标题区至少包含 eyebrow 和 h1／title，统一位于左上安全区域，禁止缺失、重复、居中或由 Scene 专属样式改位；只替换当前视频内容、Scene 数量和 Scene 内部视觉事件。",
+          "系列标识、每个 Scene 左上有资料依据的简短内容文字、PATH／幕数、右上导航、幕内字幕和底部进度区保持基线位置；左上省略 SCENE／场景编号和固定大标题。必要的文字说明随主体对象或视觉证据出现，不用标题加卡片组织每一幕。历史已冻结原型可按旧基线只读展示。",
+          "原型要能正常速度预览关键事件的前态、动作、后态、主体让位和跨幕承接；阅读停留可保持稳定，不能用静态布局或所有元素依次淡入代替动态分镜。",
           "不得只复制 class 名称后另起页面布局、定位规则、色彩系统或 Scene 容器格式；完成后必须通过基线结构和布局校验。",
+        ] : []),
+        ...(stage === "gate-2" ? [
+          "人工检查实际动态原型：每幕焦点、信息变化、完成态阅读停留、旧主体让位和跨幕关系均须与 Visual Script 一致；结构检查通过不能代替观看画面。",
         ] : []),
         ...(stage === "remotion" && workflow.timelineMode === "narrated-manifest" ? [
           "Gate 2 冻结的 Visual Script 与 Visual Prototype 是 Remotion 的强制视觉基线。",
+          "新基线的画布左上只保留简短内容文字，不显示 Scene／场景编号或固定大标题；历史已冻结的大标题原型不得未经人工 Gate 2 重新确认而单改 Remotion。",
+          "对照冻结原型实现每个关键事件的前态、动作和后态，处理旧主体的让位与跨幕承接；不能把执行、扫描、连接、状态改变全部实现为相同的淡入上浮。允许与口播匹配的稳定阅读段。",
           "必须读取并校验冻结的 tts-script.json，以及由它生成的 Audio Manifest、Subtitle Manifest 和 Timeline Manifest；四类产物共同构成当前视频的声音与时间输入。",
           "Timeline Manifest 是唯一时间基准，tts-script.json 只用于确认 Scene／Segment 文本和 ID 边界，不能使用其他口播文本或旧音频资料替代。",
           "对于有口播的视频，必须先读取 context.timingPlan，并以其中的 Timeline 时间坐标制作 Scene 时长、音频位置、字幕位置和动画事件；不得使用估算时长或任意硬编码时间替代映射。",
@@ -215,6 +232,8 @@ export function buildTaskPacket(project) {
         ] : []),
         ...(stage === "remotion" && workflow.timelineMode === "visual-beats" ? [
           "Gate 2 冻结的 Visual Script 与 Motion Prototype 是 Remotion 的强制视觉基线。",
+          "新宣传片左上只显示有资料依据的简短内容文字，省略 Scene／场景编号和固定大标题；复用 PromoComposition 时显式设置 titleMode='context-text'，旧模式只用于已冻结的历史视频。",
+          "按 Visual Timeline Beat 实现主体建立、变化、让位和跨幕承接；静置有内容阅读理由即可，不为保持像素变化添加循环装饰。",
           "必须读取并校验 asset-manifest.json 和 visual-timeline.json；Visual Timeline 是宣传片唯一时间基准，不得生成或使用 TTS、字幕或 narrated Timeline 作为替代。",
           "必须逐 Scene 对齐 Scene、Beat、Transition、屏幕文字、素材、实现文件和组件符号；不得使用固定间隔估算或在渲染时联网抓取素材。",
           "最终 Composition 不得包含预览导航、进度、控件、调试标记或辅助说明；Remotion Agent 不得写入或修改受跟踪的 src/Root.tsx。",

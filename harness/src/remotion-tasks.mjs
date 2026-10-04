@@ -1,3 +1,4 @@
+import { validateVisualSelfReview } from "./visual-self-review.mjs";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
@@ -45,7 +46,17 @@ function stageAvailability(task, { refresh = false } = {}) {
 
 export function assertRemotionTaskStageReady(task, operation = "执行 Remotion 任务") {
   const availability = stageAvailability(task, { refresh: true });
-  if (availability.allowed) return availability;
+  if (availability.allowed) {
+    const project = loadProject(task.slug, { refresh: false });
+    const issues = validateVisualSelfReview(project, "remotion");
+    if (issues.length) {
+      const error = new Error(issues.map((item) => item.message).join("；"));
+      error.code = "visual-self-review-invalid";
+      error.issues = issues;
+      throw error;
+    }
+    return availability;
+  }
   const error = new Error(
     `${task.slug} 当前为 ${availability.currentStage} / ${availability.remotionStatus}，只有 remotion / ready 才能${operation}。`,
   );

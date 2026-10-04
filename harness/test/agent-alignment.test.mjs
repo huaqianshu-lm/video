@@ -1,3 +1,4 @@
+import { writeVisualReviewFixture } from "./helpers/visual-review-fixture.mjs";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
@@ -117,6 +118,7 @@ function createAlignmentFixture() {
   initializeProject(slug, { prototypeBaseline: null });
   const project = loadProject(slug, { refresh: false });
   for (const stage of ["source", "content-analysis", "video-narrative", "scene-script", "narration-script", "visual-script", "visual-prototype"]) runStage(project, stage);
+  writeVisualReviewFixture(workspace, slug);
   runStage(project, "gate-2");
   approveGate(project, "gate-2");
   runStage(project, "tts");

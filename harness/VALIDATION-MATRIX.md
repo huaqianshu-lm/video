@@ -26,7 +26,7 @@
 | visual-script | `visual-script-structure` | 自动 | 0.4 补齐 |
 |  | `screen-text-provenance` | 自动／规则化 | 0.4 补齐可确定部分 |
 | visual-prototype | `prototype-structure` | 自动 | 0.4 补齐 |
-| gate-2 | `visual-self-review-contract` | 自动前置 | 规则已定义；Harness 机器校验待实现 |
+| gate-2 | `visual-self-review-contract` | 自动前置 | 已实现：当前指纹、证据路径、必检项；审批前重检 |
 |  | `manual-gate` | 人工 | 保留人工确认 |
 | tts | `tts-script-alignment` | 自动 | 已实现 |
 |  | `tts-script-purity` | 自动 | 已实现 |
@@ -54,7 +54,7 @@
 | scene-script | `required-artifacts`、`promo-scene-structure`、`screen-text-provenance` | 自动 | 已实现 |
 | visual-script | `required-artifacts`、`promo-visual-structure`、`screen-text-provenance` | 自动 | 已实现 |
 | motion-prototype | `required-artifacts`、`promo-prototype-structure`、`scene-alignment` | 自动 | 已实现 |
-| gate-2 | `visual-self-review-contract`、`manual-gate`、`promo-gate-2-structure` | 自动前置／人工／自动结构检查 | 自检契约已定义；机器校验待实现；人工确认保留，结构校验已实现 |
+| gate-2 | `visual-self-review-contract`、`manual-gate`、`promo-gate-2-structure` | 自动前置／人工／自动结构检查 | 自检机器阻断已实现；人工确认保留，结构校验已实现 |
 | asset-preparation | `required-artifacts`、`promo-asset-manifest` | 自动 | 已实现 |
 | visual-timeline | `required-artifacts`、`promo-visual-timeline` | 自动 | 已实现 |
 | remotion | `required-artifacts`、`promo-remotion-config`、`promo-remotion-alignment` | 自动 | 已实现 |
@@ -107,3 +107,5 @@ Smoke Render 只能针对未完成视频或独立副本，并通过 GitHub Actio
 - 命令进程退出码为 0 仍不代表阶段完成；Harness 必须重新读取当前阶段产物并执行全部确定性校验。
 - Gate 2 冻结前已经存在 Remotion 实现的历史项目按兼容模式处理；新项目必须提供引用当前冻结指纹的 `remotion-alignment.json`。
 - 自动校验只检查契约完整性和指纹有效性，`visual-self-review-contract` 还要检查 Gate 2 自检记录及其证据路径；它不自动判断审美质量，也不自动通过人工 Gate。实际布局、动画和视觉质量仍需在 Gate 2／Gate 3 人工对照。
+
+轻量原型播放与视觉自检回归：`node --test harness/test/dynamic-prototype.test.mjs harness/test/visual-self-review.test.mjs`。覆盖估算事件播放／暂停／重播／切幕、Workflow 分离、版本失效、证据越界、legacy 不降级、Web／单条／批量阻断和失败回退。机器校验不证明实际画面质量。
