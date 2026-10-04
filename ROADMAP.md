@@ -7,6 +7,8 @@
 
 ## 当前阶段
 
+- 2026-10-04：通用视频视觉改进分三项提交：轻量动态原型与反 PPT 基线、Gate 2 视觉自检机器阻断、宣传片左上简短内容文字。动态原型 1/1、Harness 与视觉自检 90/90、Web Server 18/18、`npm run check` 均通过；新视频的实际画面仍需在 Gate 2／Gate 3 人工检查。
+
 - 2026-09-19 实时状态：当前 Harness 管理 63 个视频，其中 20 个为 `completed`、40 个为 `gate-2 / waiting`、`09-ide` 为 `gate-3 / waiting`，`project-structure` 与 `web-and-cloud` 为 `visual-script / ready`。当前进度以各项目 `state.json` 为准，不以旧批次快照覆盖。
 - `desktop`、`jetbrains`、`07-desktop-app` 和 `huaqianshu-site-promo` 均已完成 Gate 4 人工验收并进入 `completed`，后续按永久只读处理；当前没有等待 Gate 4 的视频。
 - `project-structure` 与 `web-and-cloud` 当前因系列风格变更回到 `visual-script / ready`，需要重新完成后续视觉资料和人工 Gate；不能按旧批次快照把它们写成已完成或可渲染。

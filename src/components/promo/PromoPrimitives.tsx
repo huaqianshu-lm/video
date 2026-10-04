@@ -58,10 +58,15 @@ type PromoTitleProps = {
   description?: string;
   progress: number;
   theme?: PromoTheme;
+  mode?: 'legacy-title' | 'context-text';
 };
 
-export const PromoTitle = ({eyebrow, title, description, progress, theme: inputTheme}: PromoTitleProps) => {
+export const PromoTitle = ({eyebrow, title, description, progress, theme: inputTheme, mode = 'legacy-title'}: PromoTitleProps) => {
   const theme = {...defaultTheme, ...inputTheme};
+  if (mode === 'context-text') {
+    const contextText = eyebrow.replace(/^(?:scene|场景)\s*\d+\s*(?:[·:：/—-]\s*)?/i, '').trim() || title;
+    return <div style={{color: theme.accent, fontSize: 19, fontWeight: 750, letterSpacing: 3, opacity: progress}}>{contextText}</div>;
+  }
   return (
     <div style={{maxWidth: '76%', opacity: progress, transform: `translateY(${(1 - progress) * 20}px)`}}>
       <div style={{color: theme.accent, fontSize: 23, fontWeight: 800, letterSpacing: 5, textTransform: 'uppercase'}}>{eyebrow}</div>

@@ -282,8 +282,8 @@ function validatePrototype(project, stage) {
   for (const [index, block] of blocks.entries()) {
     const eyebrow = (block.match(/class=["'][^"']*\beyebrow\b[^"']*["']/gi) ?? []).length;
     const headings = (block.match(/<h1\b|class=["'][^"']*\btitle\b[^"']*["']/gi) ?? []).length;
-    if (eyebrow !== 1 || headings !== 1) {
-      issues.push(issue(stage, "promo-prototype-title-invalid", `Scene ${String(index + 1).padStart(2, "0")} 必须只有一个左上标题区`, relativePath));
+    if (eyebrow !== 1 || headings > 1) {
+      issues.push(issue(stage, "promo-prototype-title-invalid", `Scene ${String(index + 1).padStart(2, "0")} 必须有一个简短内容文字区，且不能重复标题`, relativePath));
     }
   }
   if (/上一幕|下一幕|自动播放|暂停播放/.test(text) === false) {

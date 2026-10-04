@@ -80,7 +80,7 @@ Source → Promo Brief → Creative Concept → Scene Storyboard
 - 只读保护：已完成视频的资料、配置、状态、Gate、Job、批次和相关产物都不能被 Harness、Web UI 或后台任务修改。
 - Workflow Registry：可通过 `workflow list` 或 Web UI 的 Workflow Catalog 选择流程；未知 Workflow 和版本会 fail closed。
 - 宣传片契约：校验 Promo Brief、Scene／Visual Script、Asset Manifest、Visual Timeline、Gate 2 冻结基线和 Remotion 对齐清单。
-- 宣传片通用 Remotion 能力：复用固定 16:9 外壳、左上标题、Beat 驱动的 Scene／Transition 和可选音乐／音效；具体文案和素材仍留在本地视频目录。
+- 宣传片通用 Remotion 能力：复用固定 16:9 外壳、左上简短内容文字、Beat 驱动的 Scene／Transition 和可选音乐／音效；新视频需启用 `context-text` 模式并省略 Scene 编号，旧视频保留原布局；具体文案和素材仍留在本地视频目录。
 
 ## 快速开始
 

@@ -26,7 +26,7 @@
 - [x] 新 Workflow 的 namespaced 本地目录、全局 slug 冲突校验和 legacy narrated 路径兼容。
 - [x] `product-promo-v1` 的 Promo Brief、Scene／Visual Script、Asset Manifest、Visual Timeline 和 Remotion Alignment 确定性校验。
 - [x] 无 TTS 宣传片的独立 Render Input、GitHub Actions 路径恢复和可选音乐／音效契约。
-- [x] 可复用的宣传片 16:9 外壳、左上标题、Beat 驱动 Scene／Transition 和可选音频 Remotion 组件。
+- [x] 可复用的宣传片 16:9 外壳、左上无 Scene 编号的简短内容文字、Beat 驱动 Scene／Transition 和可选音频 Remotion 组件；旧标题模式只供历史视频兼容。
 - [x] 首条真实产品宣传片的 Gate 2、Gate 3、完整 Render 和 Gate 4 验收；以 `huaqianshu-site-promo` 的真实端到端验证为依据。
 - [x] 完成当前用户确认范围内的最终视频导出闭环；Artifact 已通过远程校验并完成 Gate 4 人工验收。
 

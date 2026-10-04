@@ -34,13 +34,14 @@ export type PromoCompositionProps = {
   assetSources?: Record<string, string>;
   audioSources?: Record<string, string>;
   theme?: PromoTheme;
+  titleMode?: 'legacy-title' | 'context-text';
 };
 
 /**
  * Shared, data-driven promo Composition. Video-specific copy and asset URLs
  * stay in the local video configuration; all timing comes from visual-timeline.json.
  */
-export const PromoComposition = ({timeline, scenes, assetSources, audioSources, theme}: PromoCompositionProps) => {
+export const PromoComposition = ({timeline, scenes, assetSources, audioSources, theme, titleMode = 'legacy-title'}: PromoCompositionProps) => {
   const frame = useCurrentFrame();
   const scene = promoSceneAtFrame(timeline, frame);
   const content = scenes.find((item) => item.sceneId === scene.sceneId);
@@ -61,12 +62,13 @@ export const PromoComposition = ({timeline, scenes, assetSources, audioSources, 
       <PromoFrame theme={theme}>
         <PromoTitle
           description={content?.description}
-          eyebrow={content?.eyebrow ?? scene.sceneId}
+          eyebrow={titleMode === 'context-text' ? (content?.eyebrow ?? content?.title ?? '') : (content?.eyebrow ?? scene.sceneId)}
           progress={titleProgress}
           theme={theme}
           title={content?.title ?? scene.sceneId}
+          mode={titleMode}
         />
-        <div style={{bottom: 0, left: 0, position: 'absolute', right: 0, top: 310}}>
+        <div style={{bottom: 0, left: 0, position: 'absolute', right: 0, top: titleMode === 'context-text' ? 70 : 310}}>
           {scene.beats.map((beat) => {
             const beatContent = content?.beats?.[beat.id];
             const visible = frame >= beat.startFrame && frame < beat.endFrame;
