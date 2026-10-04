@@ -21,6 +21,8 @@
 - [x] Harness 四类批量任务、持久化 Job、失败重试和断点恢复。
 - [x] Harness Web UI 的项目状态、任务状态、Gate 操作和远程任务查询。
 - [x] 远程渲染资源包、Manifest、分支和 Git 交付预检。
+- [x] Agent／CLI 显式成功基线准备检查：`harness/src/render-preflight.mjs`，8 项专项回归及真实仓库正反例通过；固定输入包发布步骤见 `RENDER-DELIVERY-BASELINE.md`。
+- [ ] 成功基线准备检查自动接入 Web UI／批量，以及新一条视频的完整 Render／Gate 4 复用验证。
 - [x] 系列风格、系列封面和 45 帧正文起点规则。
 - [x] Workflow Registry：`narrated-tutorial-v1` 与 `product-promo-v1` 的阶段、版本、Gate、路径和交付契约统一解析。
 - [x] 新 Workflow 的 namespaced 本地目录、全局 slug 冲突校验和 legacy narrated 路径兼容。

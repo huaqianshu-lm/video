@@ -21,6 +21,8 @@ Use this skill for Harness Web UI, batch jobs, Agent executors, asset packaging,
 
 ## Remote delivery preflight
 
+For Agent/CLI delivery with an existing successful full Render, read `docs/RENDER-DELIVERY-BASELINE.md` and run its `render-preflight.mjs` entry in the actual delivery checkout before proposing the exact file list. Save the passing report locally. Follow that document's independent Release publication and binding procedure; this explicit preparation entry is not yet automatically wired into Web UI or batch dispatch.
+
 Before dispatching a Harness complete Render, and before manually triggering a standalone Smoke Render when its input package is prepared through Harness:
 
 - For complete Render, require a per-video binding record that fixes the slug, Composition ID, published URL, package fingerprint, and ZIP SHA-256; legacy global URL/SHA environment variables must not bypass this check.

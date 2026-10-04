@@ -7,6 +7,8 @@
 
 ## 当前阶段
 
+- 2026-10-04：Agent／CLI 的远程渲染成功基线检查已实现，覆盖宿主认证、代码与输入仓库写权限、成功 Render Run 及实际派发分支祖先关系；认证和准备专项回归 21/21、真实仓库正确版本通过／旧版本阻断均已验证。Web UI／批量自动接入、输入仓库自动发布及跨视频完整 Render／Gate 4 复用仍待完成。
+
 - 2026-09-19 实时状态：当前 Harness 管理 63 个视频，其中 20 个为 `completed`、40 个为 `gate-2 / waiting`、`09-ide` 为 `gate-3 / waiting`，`project-structure` 与 `web-and-cloud` 为 `visual-script / ready`。当前进度以各项目 `state.json` 为准，不以旧批次快照覆盖。
 - `desktop`、`jetbrains`、`07-desktop-app` 和 `huaqianshu-site-promo` 均已完成 Gate 4 人工验收并进入 `completed`，后续按永久只读处理；当前没有等待 Gate 4 的视频。
 - `project-structure` 与 `web-and-cloud` 当前因系列风格变更回到 `visual-script / ready`，需要重新完成后续视觉资料和人工 Gate；不能按旧批次快照把它们写成已完成或可渲染。

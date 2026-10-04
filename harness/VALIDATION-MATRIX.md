@@ -4,6 +4,8 @@
 
 ## 校验类型
 
+独立 Agent／CLI 准备入口 `src/render-preflight.mjs` 的回归位于 `test/render-preflight.test.mjs`：覆盖真实 Git 祖先关系、旧代码阻断、钥匙串不可读、网络／401 区分、两个仓库写权限、成功 Workflow 归属、API／fetch 快照变化、origin 不匹配及凭据不外泄。仅准备检查；Web UI／批量尚未自动调用，不能代替阶段矩阵或完整 Render 验证。
+
 | 类型 | 含义 |
 | --- | --- |
 | 自动 | Harness 可以基于文件、Manifest 或代码结构确定判断结果 |

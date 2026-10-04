@@ -71,6 +71,7 @@ Workflow 的判断以 Harness 服务端 Registry 和项目 `project.json.workflo
 - 画面中的标题、标签、按钮、状态、终端输出和卡片文案必须能追溯到当前视频资料，不得复制参考视频的业务语义或固定文案。
 - 每条系列视频的最后一个视觉事件必须包含有资料依据的下一集预告；系列封面、风格和成员关系按需读取对应 Skill。
 - 远程渲染前必须验证代码、配置和资源包的提交状态；不得使用 `git add .`。完整渲染交付入口必须先展示精确文件清单并获得用户明确确认，之后才可为本次交付定向 commit／push；Smoke Render 仅作为新系列或渲染环境变化时手动运行的独立检查，不推进生产阶段。
+- Agent／CLI 复用已有成功 Render 时，整理交付清单前必须在实际交付工作区运行 `harness/src/render-preflight.mjs` 并保存通过报告；认证、代码基线及独立输入包发布步骤以 `docs/RENDER-DELIVERY-BASELINE.md` 为权威来源。该检查尚未自动接入 Web UI／批量，不代替既有 Gate 和交付校验。
 - 具体视频的远程渲染输入必须通过被 Git 忽略的 `local/render-input/<video-slug>/` 整理，并以独立输入包 URL 和 SHA-256 交给 GitHub Actions；不得把 `videos/`、`src/videos/` 或视频资源重新加入能力代码仓库。
 - 现有 narrated 项目继续使用 `videos/<slug>/`、`src/videos/<slug>/` 和 `assets/<slug>-assets.zip` 的 legacy-flat 路径；新 Workflow 必须使用 `videos/<pathNamespace>/<slug>/`、`src/videos/<pathNamespace>/<slug>/` 和 `assets/<pathNamespace>/<slug>-assets.zip`。目录只提供物理隔离和安全校验，不能替代项目 Workflow 事实来源。
 - 本地 Studio 预览具体视频时，必须从独立输入包生成被忽略的 `src/RenderInputRoot.tsx` 临时入口；该入口支持注册单条视频或本地扫描后批量注册全部可匹配视频。受跟踪的 `src/Root.tsx` 只保留通用 Composition，不重新硬编码具体视频。

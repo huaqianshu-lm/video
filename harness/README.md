@@ -316,6 +316,8 @@ node harness/src/cli.mjs init <video-slug> --workflow product-promo-v1 --workflo
 
 远程渲染输入包位于被忽略的 `local/render-input/<video-slug>/`，压缩包位于同目录下的 `<video-slug>.zip`。准备输入包不会 commit 或 push：
 
+Agent／CLI 复用已有成功渲染时，先使用 `harness/src/render-preflight.mjs` 核实实际认证、两个仓库权限和成功代码基线。参数、独立 Release 发布与绑定步骤见 [成功基线复用手册](../docs/RENDER-DELIVERY-BASELINE.md)。该准备检查尚未自动接入 Web UI／批量，不替代输入包校验和人工交付确认。
+
 ```bash
 node harness/src/cli.mjs render-input prepare <video-slug>
 node harness/src/cli.mjs render-input package <video-slug>
