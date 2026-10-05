@@ -64,7 +64,8 @@ export async function publishRenderInput({method, archivePath, archiveSha256, sl
   }
   if (!Number.isSafeInteger(asset.id) || asset.size <= 0) fail('render-publication-asset-invalid', '发布资产无有效 ID 或内容为空。');
   if (asset.digest && asset.digest !== `sha256:${archiveSha256}`) fail('render-publication-hash-mismatch', '已有资产与当前包不同，停止并保留资产，请检查输入包。');
-  return {url: `${base}/assets/${asset.id}`, sha256: archiveSha256, tag, assetId: asset.id};
+  return {url: `${base}/assets/${asset.id}`, sha256: archiveSha256,
+    assetDigest: typeof asset.digest === 'string' && asset.digest ? asset.digest : null, tag, assetId: asset.id};
 }
 
 export async function runRenderDelivery(action, slug, options = {}, dependencies = {}) {
