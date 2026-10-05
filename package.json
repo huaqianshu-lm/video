@@ -4,15 +4,18 @@
   "private": true,
   "scripts": {
     "preview": "node harness/src/cli.mjs render-input entry-all --output src/RenderInputRoot.tsx && remotion studio src/RenderInputRoot.tsx",
+    "preview:motion": "remotion studio src/index.ts",
     "check": "tsc --noEmit",
     "render": "remotion render video-production-template out/video-production-template.mp4",
     "harness:web": "zsh -c 'source \"$HOME/.zshrc\"; exec npm run web --prefix harness'"
   },
   "dependencies": {
     "@remotion/cli": "latest",
-    "remotion": "latest",
+    "@remotion/paths": "4.0.496",
+    "@remotion/transitions": "4.0.496",
     "react": "latest",
-    "react-dom": "latest"
+    "react-dom": "latest",
+    "remotion": "latest"
   },
   "devDependencies": {
     "@types/react": "latest",

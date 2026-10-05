@@ -4,7 +4,11 @@
 
 ## 校验类型
 
+Agent 封面契约见 `docs/AGENT-SERIES-COVER.md`：新 CLI 项目必须明确选择系列或 none；检查本地快照／图片哈希、输入 Manifest 与资源 ZIP 封面一致性。旧无快照输入保持兼容，宣传片不能添加独立片头。带封面的单条 Gate 3 入口必须匹配当前 Manifest 的完整生成契约，防止漏封面或总时长偏移错误。11-agents-md 已验证实际选择、TTS 包装、输入包和 Studio 入口，相关 Alignment／Render Input 回归22/22通过；正式画面、Runner 和最终渲染仍待人工及真实交付验证。
+
 独立 Agent／CLI 准备入口 `src/render-preflight.mjs` 的回归位于 `test/render-preflight.test.mjs`：覆盖真实 Git 祖先关系、旧代码阻断、钥匙串不可读、网络／401 区分、两个仓库写权限、成功 Workflow 归属、API／fetch 快照变化、origin 不匹配及凭据不外泄。仅准备检查；Web UI／批量尚未自动调用，不能代替阶段矩阵或完整 Render 验证。
+
+Agent 单条固定交付入口 `cli.mjs render-delivery` 的回归位于 `test/render-delivery.test.mjs`：从实际 CLI 分派调用准备、发布／绑定、清单确认、真实 Fixture Git 定向提交／推送和既有 Monitor／GitHub 适配器；网络与凭据使用 Fixture，验证正常 Gate 4 停留、过期计划／绑定阻断、发布后绑定失败恢复、提交后推送失败恢复、派发响应中断的 dispatchId 恢复、已知 Run 超时对账、Artifact 过期阻断、显式远端失败重试及 completed 只读。不能据此声称执行了新的真实远端渲染。
 
 | 类型 | 含义 |
 | --- | --- |

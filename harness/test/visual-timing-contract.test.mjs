@@ -30,3 +30,15 @@ test("rejects missing and cyclic visual dependencies", () => {
   assert.equal(issues.some((issue) => issue.code === "visual-binding-dependency-missing"), true);
   assert.equal(issues.some((issue) => issue.code === "visual-binding-cycle"), true);
 });
+
+test("rejects invalid word-boundary offsets without changing legacy Cue bindings", () => {
+  for (const offsetFrames of [-1, 0.5, NaN]) {
+    assert.equal(validateVisualBindings([
+      {id: 'word', source: {type: 'cue', id: '01-01-a', offsetFrames}, atFrame: 40},
+    ]).some(issue => issue.code === 'visual-binding-offset-invalid'), true);
+  }
+  assert.deepEqual(validateVisualBindings([
+    {id: 'word', source: {type: 'cue', id: '01-01-a', offsetFrames: 10}, atFrame: 40},
+    {id: 'legacy', source: {type: 'cue', id: '01-01-b'}, atFrame: 50},
+  ]), []);
+});

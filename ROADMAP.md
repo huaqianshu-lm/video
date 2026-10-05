@@ -7,8 +7,12 @@
 
 ## 当前阶段
 
+- `13-prompting` 验证样片按用户指示仅对本片一次性确认口播稿、TTS、字幕／时间轴、Remotion 与 Gate 2／3；原型阶段按本片直接 Remotion 样片确认，未制作 HTML 原型。人工试听和正常速度全片复看仍在原始检查记录中标记 pending。输入包已获批发布并绑定，SHA-256 为 `bbf10788a977dbdf9553e26569ab762626c083eda99e7c5e595728f77fad3278`；定向提交 `af81d3c` 已推送，完整 Render Run `37313750923` 成功并产出非空 Artifact `11347616083`（11,721,283 字节）。Gate 4 机器校验因缺少 Codex 风格令牌导入失败一项，成片尚未完成用户验收；通用验证流程未改变。
+- `12-slash-commands` 已通过 Gate 4 并进入 `completed`，后续永久只读。用户已检查成片并确认无问题；Run `37254126010` 成功，head_sha 与推送提交 `151e9c11080e9c0afa1bd6ebe025a72ac0617db2` 一致，Artifact `11322455206` 为 5,389,975 bytes 且未过期。渲染使用 Composition ID `12-slash-commands`、输入包 SHA-256 `1e3e0396de194e817d04a8411c2536d12189fae81a100b70588f57bda6349189`；交付代码只包含 `harness/src/render-delivery.mjs` 和 `harness/src/render-input.mjs`。
+- `11-agents-md` 完整 Render Run `37202648340` 成功，Artifact 非空且有效，head_sha 与交付提交 `1d5550b` 一致；用户确认成片无问题、封面存在，Gate 4 已通过，Harness 为 `completed`，后续永久只读。
+- Agent 系列封面已通过 `11-agents-md` 原型、Gate 3 与最终成片人工验收；目录 Studio 一致性与封面精确帧数尚未单独实测，剩余项见 drafts 验证清单。
 - 通用反 PPT 视觉原型和 Gate 2 自检能力已合入 `main` 并通过专项验证；实际画面仍须由人工在 Gate 2／Gate 3 检查。`project-structure` 原型尚未实际观看，Gate 2 未通过。
-- 远程渲染可靠性改进已合入 `main`：CLI 可刷新既有 Job、有效输入绑定可复用原 ZIP，Agent／CLI 可检查认证、仓库权限和成功代码基线。Web UI／批量接入及跨视频完整 Render／Gate 4 验证仍未完成。
+- Agent 单条固定 `render-delivery prepare／start／resume` 已用 `11-agents-md` 走通真实发布绑定、确认后提交推送、派发、同一 Job 恢复及 Gate 4；12个渲染必需文件已提交推送。中断分支未全部在实片触发；Web UI／批量不在本次范围。
 
 ## 历史状态记录（旧状态，仅供追溯）
 
@@ -181,20 +185,22 @@
 
 ## 进行中
 
-- 正式试点 `10-cloud` 已通过 Gate 3；本地 Harness 将完整 Render Job 记录为 `timeout`，远端 Run 尚未核对。当前 `jobs --refresh` 不会刷新已确认 Run 的 timeout Job，因此 Artifact 和 Gate 4 状态待确认；渲染工作区仍为隔离路径。
+- 封面验收 AC-2～AC-5 的实际选择／包装／Studio／Runner 路径未验证；AC-1 已从真实 CLI 列出两个系列。下一条新视频按 drafts 验证清单的 CV-1～CV-5 完成，不能仅凭静态检查宣告迁移结束。
+- 动态防遮挡检查已写入制作规则 10.3，并扩充 VC-4／VC-5、两项制作 Skill 和模板；Gate 2／Gate 3 须提供实际观看证据，未新增自动遮挡识别能力。
+- 官方动效组件代码已接入并通过类型与入口编译检查，入口为 `npm run preview:motion`，契约见 `docs/MOTION-COMPONENTS.md`。用户截图发现输入轨迹在展开阶段残留：已纠正错误的全片保留区间，Remotion／HTML 输入路径与节点在 8 秒退出；规则 9.2 明确保留必须对应后续具体用途及退出边界。此次修正实际画面、样片整体、新视频跨视频验证及 Harness 自动可见性识别仍待完成，不能仅凭代码检查报告固化完成。
+- Agent 单条隔离交付工作区未自动生成 `src/RenderInputRoot.tsx` 时，`render-delivery resume` 会在 Gate 4 校验失败；本条通过当前输入包重新生成入口后恢复并验收成功。固定入口的自动生成／前置检查尚待补齐，下一条视频前应修正并验证，不能依赖手工恢复作为永久方案。
 - 用户已确认将反 PPT 动态视觉方法用于后续视频；通用规则、模板、任务包和原型校验已覆盖 narrated 与 product-promo 两类 Workflow。质量仍须经过人工 Gate，已完成视频保持只读。
-- `10-cloud` 尚未关联到 `codex-guide` 系列；当前独立制作不受影响，系列成员登记和封面关联仍待处理。旧批次仅作历史记录，当前状态以项目 `state.json` 和已核实的远端 Job 为准。
+- 旧批次仅作历史记录，当前状态以项目 `state.json` 和已核实的远端 Job 为准。
 
 ## 下一步
 
-- 在通过基线检查的宿主环境只读核对 `10-cloud` 已确认的准确 Run，不重复派发；随后为已确认 Run 的 timeout Job 补充安全对账入口和回归检查，再核对 Artifact，并按本地记录恢复原 `workspaceRoot`。
-- 将成功基线和既有 Job 刷新检查接入 Web UI／批量入口，并从实际入口完成回归。
-- 完成跨视频的完整 Render 与 Gate 4 验证后，再判断渲染复用规则是否可以标记为稳定。
+- `13-prompting` 已完成 Run `37313750923` 和 Gate 4 用户验收，Harness 状态进入 `completed` 并永久只读。Gate 4 机器校验曾报告 Codex 风格令牌缺失；用户仅为本片一次性接受，记录见 `videos/13-prompting/one-time-user-acceptance.json`，通用校验流程未修改。
+- Codex 风格令牌检查问题仍需在另一条未完成视频中按正常 Gate 流程处理并验证；不得复用本片例外，也不得修改已完成的 `13-prompting`。
+- 单条真实验收后再考虑 Web UI／批量接入固定流程，当前暂不处理这些入口。
 
 ## 阻塞
 
-- `10-cloud` 的本地 Job 已超时，现有 CLI 刷新不会选中已确认 Run 的 timeout Job；远端 Run 和 Artifact 尚未核实，核实前不能判定渲染失败、确认交付或进入 Gate 4。
-- 渲染复用固化仍在进行：Agent／CLI 检查已验证，Web UI／批量入口尚未接入，跨视频完整 Render／Gate 4 尚未完成。
+- `13-prompting` 的 Gate 4 机器校验例外已由用户一次性接受并留档；Codex 风格令牌检查在其他视频上的正常流程验证尚未完成。`12-slash-commands` 与 `13-prompting` 均保持永久只读。
 
 ## 关键避坑
 
@@ -218,16 +224,17 @@
 
 ## 最近验证（最近 10 条）
 
+- 2026-10-05：`13-prompting` Run `37313750923` 成功，Artifact `11347616083`（11,721,283 字节、未过期）；用户观看成片并确认无问题，Gate 4 获本片一次性人工接受，Harness 进入 `completed`。Gate 4 机器校验曾报 Codex 风格令牌缺失，失败事实已留档；通用校验未改，未再次渲染。
+- 2026-10-05：`12-slash-commands` Run `37254126010` 以提交 `151e9c11080e9c0afa1bd6ebe025a72ac0617db2` 成功，Artifact `11322455206`（5,389,975 bytes，未过期）；用户检查成片并通过 Gate 4，Harness 进入 `completed`。隔离工作区首次 Gate 4 校验因缺 `src/RenderInputRoot.tsx` 失败；用已校验输入包生成该忽略入口后验证通过，并将精确 Run、Artifact、输入包绑定同步到主工作区后完成验收。
+- 2026-10-04：`12-slash-commands` Gate 3 获用户通过；固定单条渲染准备在隔离工作区通过，直接 `render-preflight.mjs` 报告确认仓库权限、最新成功 Run `37202648340` 与远端 `main` 提交 `1d5550bd`。独立输入包 Release digest 与本地 SHA 一致，精确计划为两份渲染交付代码；输入包／交付回归 31/31、`npm run check` 和 `git diff --check` 通过。待用户确认清单；未提交、推送或派发。
+- 2026-10-04：CLI 默认 TTS 与既有 TTS 执行器回归 9/9、单条入口回归 2/2、`npm run check` 和 `git diff --check` 通过，覆盖未配置、显式配置、部分覆盖、错误参数、冻结输入与 +25% 语速；未调用真实 TTS 服务。
+- 2026-10-04：Agent 单条固定交付 14/14、远程／输入包／认证相关回归 86/86、Git 交付／Harness／Workflow 兼容 89/89；`npm run check`、改动 MJS 语法和 `git diff --check` 通过。实际宿主预检确认两个仓库权限及成功 Run `37178358672` 的代码祖先关系，已保存无凭据方法配置；未触发新的真实渲染或推送。验收见 `local/agent-render-delivery-acceptance.md`。
+- 2026-10-04：`10-cloud` Run `37178358672` 成功，Artifact `11294510749` 未过期；经历史 Artifact 接管恢复 Render 成功，用户确认 Gate 4 后进入 `completed`。该视频保持永久只读。
 - 2026-10-04：`jobs <slug> --refresh` 指定视频刷新与原 `dispatchId` 不重复派发回归通过；目标视频 Job 状态推进到 Gate 4，其他视频 Job 未变更。
 - 2026-10-04：`10-cloud` Remotion、Timeline 和独立输入包校验通过，Gate 3 获人工确认；随后本地 Render Job 达到超时，远端 Run 状态和 Artifact 尚待核实。
 - 2026-10-03：轻量动态原型／视觉自检专项已验证，核心流程 88/88、入口与自检 28/28、Remotion 任务保护 9/9、Web Gate／幂等／过期任务保护 6/6；`npm run check`、JS 语法和差异检查通过。`project-structure` 从实际 CLI 完成视觉脚本与九幕原型，实际画面未观看，Gate 2 正确阻断。全量及广泛真实项目回归曾因长期无新增输出中止，未记为全量通过。
 - 2026-10-03：修复远程渲染输入包与状态恢复问题：有效绑定未变化时保留原 ZIP 字节；新增 `jobs <slug> --refresh`，按视频立即检查已有准确 Run ID 或可按原 `dispatchId` 安全恢复的 Job，并保持 Gate 4 人工等待。最终输入包／Job 定向回归 32/32、`npm run check`、CLI 冒烟和 `git diff --check` 通过。Harness 全量回归首次执行为 245/264 通过，19 项因沙箱禁止绑定 `127.0.0.1` 而报 `EPERM`；随后收紧即时刷新范围，并由最终定向回归覆盖。未执行 Render、commit 或 push。
 - 2026-10-03：`09-ide` 完整 Render 和 MP4 Artifact 上传检查通过；Harness 项目仍在等待 Gate 4 人工验收，未代替用户检查最终视频。
-- 2026-10-03：`09-ide` 原型确认后完成 Remotion／Gate 3 契约和采样帧检查，`npm run check` 与 bundle 通过；这些检查不替代最终 Render 画面验收。
-- 2026-10-02：反 PPT 动态视觉规则和左上文字要求推广到后续视频；通用模板与任务包更新。完整检查当时受失效的本地临时入口影响，Gate 2 机器阻断随后另行实现并验证。
-- 2026-09-18：完成 `product-promo-v1` 的最终契约回归；promo 7/7、Harness 核心 64/64、现代与旧版 Web Server 18/18、全量 Harness 回归均通过，覆盖当前 Visual Timeline 的直接时长来源、缺失临时输入入口、远程 `render / ready` 阶段守卫、活动任务幂等和既有 narrated 兼容路径。`npm run check`、全部 JavaScript／MJS 语法、两份 Actions YAML 和 `git diff --check` 通过；Workflow CLI 实际列出两套 Profile，未创建宣传片项目、未修改具体视频资料、未执行真实 Agent／TTS／浏览器／GitHub dispatch 或渲染。
-- 2026-09-17：按功能完成 5 个定向 commit：Remotion 阶段保护、输入包 ZIP 校验、远程 Job 批次恢复、批量完整 Render 交付和项目文档同步；第 3 批回归 79/79、第 4 批交付与 WebUI 回归 42/42，暂存差异检查通过，未提交视频资料、媒体或 `local/`。`npm run check` 在当前环境启动后长期无输出并已中止，不能记为通过；未执行 push 或真实 Render。
-- 2026-09-17：按当前 0.6.0 阶段契约、Web UI、批量交付、输入包和 GitHub Actions 实现重写根 README；补充 14 个生产阶段、Smoke Render 独立边界、逐视频输入绑定和 `to-render` 的 WebUI 分步确认方式。`npm run check`、`git diff --check` 和 README 引用路径检查通过，未执行 commit、push 或真实 Render。
 
 ## 历史验证（旧记录）
 

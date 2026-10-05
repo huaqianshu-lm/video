@@ -2,6 +2,20 @@
 
 本手册是 Agent／CLI 渲染准备检查和独立输入包发布步骤的权威来源。成功基线包含实际执行环境、认证来源、完整 Render Run 和该 Run 的代码提交。具体视频的 Run、报告和输入包绑定记录保存在本地忽略目录；凭据不得写入记录。
 
+## Agent 单条视频固定入口
+
+统一入口为 `node harness/src/cli.mjs render-delivery <prepare|start|resume> <slug>`。本次只收口 Agent／CLI 单条视频，Web UI 与批量入口不在迁移范围。生产者为当前视频资料／独立输入包与 Git 交付计划，消费者为现有 Render Monitor 和 GitHub Actions；不改变 Workflow、输入包 schema、人工 Gate 或 Actions 配置。旧 `remote-run` CLI 入口停用并指向新入口；低层输入包命令保留作诊断，不能替代完整交付。
+
+- `prepare`：读取本地固定方法配置，强制 gh 系统凭据来源与成功基线预检，准备／校验当前输入包，发布独立私有 Release 并绑定，保存精确交付清单供用户确认。首次指定 `--repository`、`--input-repository`、`--ref`、`--baseline-run`；检查通过后保存在忽略的 `local/render-method.json`，以后复用。多组件可用 `--component-file`／`--component-export` 明确入口。
+- `start --confirm-plan <planId>`：仅在用户明确确认展示过的精确清单后调用；重新检查代码、输入包和文件清单，定向 commit／push 后创建持久化 Job 并发起完整 Render。没有确认或计划变化时停止。原工作区与远端分叉时先按本手册准备独立交付工作区，不自动合并或推送无关提交。
+- `resume`：恢复当前视频已确认的交付与既有 Job，不重新准备包、不重复创建 Release 或渲染。提交成功而推送失败时复用已记录的提交；有 Run ID 时查询该 Run，不能用本地等待超时覆盖远端实际成功。远端成功且有效 Artifact 存在后停在 Gate 4，用户下载与验收。
+
+远端已明确失败且用户要求重新渲染时，使用 `prepare <slug> --retry-job <原JobId>` 重新准备并展示清单；本地超时、网络中断、派发结果不确定或 Artifact 过期都不能作为自动重渲染的理由。新计划仍须明确确认后 start。
+
+发布与绑定采用相同固定认证环境；网络／凭据错误保留断点并明确区分，不能解释为 Release 不存在。方法配置不含 Token，既有发布资产不覆盖。完成态视频不执行写操作。机器检查只能核对权限、字节、指纹、Git 与远端结果，不替代人工确认文件清单和 Gate。
+
+验收：AC-1 [MUST] 从实际 CLI 入口走通准备、确认后发起和恢复；AC-2 [MUST] 过期计划／绑定阻断派发；AC-3 [MUST] 发布、推送与派发后的中断能复用断点且不重复副作用；AC-4 [MUST] 超时后核实同一 Run／Artifact 并保持 Gate 4 人工验收；AC-5 [MUST] 不修改已完成视频或无关工作区内容。实现与 Fixture 全路径验证前保持“迁移中”；新的真实生产渲染须另有用户授权。
+
 ## 1. 在实际交付工作区检查成功基线
 
 已有成功完整 Render 时，Agent／CLI 在整理交付文件清单前必须运行：
@@ -60,10 +74,10 @@ node harness/src/cli.mjs render-input bind <slug> \
   --sha256 "<本次ZIP的SHA-256>"
 ```
 
-绑定入口下载并验证实际字节，将 URL、SHA、包指纹与视频归属持久化到当前视频的 delivery 记录。发布成功但绑定失败时，保留已发布资产并恢复绑定，不重新生成包或上传重复资产。不得只把 URL／SHA 留在临时 shell 变量中。
+绑定入口优先校验 GitHub Release Asset API 返回的 SHA-256 digest 与本地 ZIP；API 未提供 digest 时，下载完整字节并在 60 秒内验证 SHA-256。绑定成功后，将 URL、SHA、包指纹与视频归属持久化到当前视频的 delivery 记录。发布成功但绑定失败时，保留已发布资产并恢复绑定，不重新生成包或上传重复资产。不得只把 URL／SHA 留在临时 shell 变量中。
 
 ## 3. 检查范围与剩余交付
 
 准备检查会更新 Git 引用，不修改视频状态、人工 Gate、工作区内容，不 commit／push／派发。`ok=true` 只表示认证、权限和代码基线通过，仍需现有资源／Manifest 校验、绑定记录校验、精确文件清单确认、定向提交推送、完整 Render 和 Gate 4。
 
-当前该入口由 Agent／CLI 显式调用，尚未自动接入 Web UI／批量派发；Release 发布是已验证的操作步骤，尚不是自动发布功能。新增检查的全路径集成和跨视频完整渲染验证仍待完成，不能据此声明整个渲染流程已经固化。
+Agent 单条入口已串联本手册的准备检查、独立 Release 发布／绑定、清单确认、定向提交推送、派发和同一 Job 恢复；下述底层命令供诊断和人工恢复参考，不作为日常替代入口。Web UI／批量派发仍使用原路径，未纳入本次迁移。新的入口以 Fixture 全路径测试验证，真实认证／权限／成功代码基线另行预检；下一条实际视频仍需完成真实 Render 和 Gate 4，不能把 Fixture 当作实际成片。

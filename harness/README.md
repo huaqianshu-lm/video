@@ -1,5 +1,20 @@
 # Video Production Harness 0.6
 
+## Agent 新视频的系列和封面
+
+按 `docs/AGENT-SERIES-COVER.md`，先运行 `node harness/src/cli.mjs series list`，向用户展示系统里的实际名称和封面状态，再选择：
+
+```bash
+node harness/src/cli.mjs init <slug>
+node harness/src/cli.mjs series select <slug> <series-id>
+# 用户明确选择不加入系列时：series select <slug> none
+# 用户确认新系列与图片后：
+node harness/src/cli.mjs series create <id> --title <title> --style <style>
+node harness/src/cli.mjs series cover <id> --file <image>
+```
+
+选择必须在视觉设计开始前完成。新 CLI 项目未选择时不能继续生产；历史项目不自动迁移。系列图片冻结到该视频自己的资源中，单条与目录 Studio 入口统一添加片头，完整渲染使用相同入口。正文组件、音频、字幕保持正文相对时间，不能自行再偏移一次。宣传片暂不支持独立片头，不改变 Visual Timeline 总时长。
+
 ## 目标
 
 把当前已经验证的视频生产流程包装成一个可检查、可暂停、可恢复的单视频编排层。0.6 在 0.5 的阶段契约、资料校验和远程任务基础上，补齐远程任务状态分类、超时与可恢复错误、环境诊断、全局任务视图和 Gate 4 审查记录；不追求自动替代内容判断。
@@ -281,6 +296,8 @@ export HARNESS_TTS_PYTHON="/Users/limiao/personal/2-topic/4-AI/project/tts/.venv
 export HARNESS_TTS_SCRIPT_BUILDER="/Users/limiao/personal/2-topic/4-AI/project/tts/scripts/build_tts_script.py"
 ```
 
+CLI 的 `run <slug> subtitle-timeline` 也默认使用项目内适配器，无需设置 `HARNESS_TTS_EXECUTOR_COMMAND`。显式设置 COMMAND 时使用该命令及配置的 ARGS，未设置 ARGS 则传空参数；仅设置 ARGS／CWD 时覆盖默认适配器的对应配置。参数格式错误会直接报错，不静默回退。
+
 适配器会在 `harness/.cache/tts/` 保留按 TTS Script 内容哈希区分的可恢复中间结果；这个目录已加入 Git 忽略。启动 Web UI 的终端必须继承上述环境变量，修改后需要重启 Web Server。
 
 ## CLI 使用
@@ -318,15 +335,15 @@ node harness/src/cli.mjs init <video-slug> --workflow product-promo-v1 --workflo
 
 远程渲染输入包位于被忽略的 `local/render-input/<video-slug>/`，压缩包位于同目录下的 `<video-slug>.zip`。准备输入包不会 commit 或 push：
 
-Agent／CLI 复用已有成功渲染时，先使用 `harness/src/render-preflight.mjs` 核实实际认证、两个仓库权限和成功代码基线。参数、独立 Release 发布与绑定步骤见 [成功基线复用手册](../docs/RENDER-DELIVERY-BASELINE.md)。该准备检查尚未自动接入 Web UI／批量，不替代后续输入包校验和人工交付确认。
+Agent／CLI 单条完整渲染使用固定交付入口，自动检查成功方法、准备包、发布和绑定，展示当前精确文件清单。首次传入已验证方法的参数，随后复用本地忽略的 `local/render-method.json`。执行 `start` 前必须取得用户对展示清单的明确确认；发生中断后使用 `resume`。详细步骤见 [单条渲染方法手册](../docs/RENDER-DELIVERY-BASELINE.md)。Web UI／批量尚未接入此入口。
 
 ```bash
-node harness/src/cli.mjs render-input prepare <video-slug>
-node harness/src/cli.mjs render-input package <video-slug>
-node harness/src/cli.mjs render-input bind <video-slug> \
-  --url "<private-input-package-url>" \
-  --sha256 "<sha256-of-zip>"
-node harness/src/cli.mjs remote-run <video-slug> render
+node harness/src/cli.mjs render-delivery prepare <video-slug> \
+  --repository "<owner/code-repo>" --input-repository "<owner/input-repo>" \
+  --ref "<dispatch-branch>" --baseline-run "<successful-full-render-run>"
+# 后续视频直接 prepare；以下 start 仅在用户确认清单后执行。
+node harness/src/cli.mjs render-delivery start <video-slug> --confirm-plan "<planId>"
+node harness/src/cli.mjs render-delivery resume <video-slug>
 ```
 
 如果输入包托管在私有 GitHub Release，绑定时传入的 URL 必须是 API 资产地址 `https://api.github.com/repos/<owner>/<repo>/releases/assets/<asset-id>`；不要填写 `https://github.com/<owner>/<repo>/releases/download/...` 网页下载地址。绑定和提交前的 Harness 预检都会直接拦截后者，避免任务运行到 Runner 才因重定向返回 404。
@@ -370,22 +387,16 @@ node harness/src/cli.mjs retry <video-slug> [stage]
 node harness/src/cli.mjs resume <video-slug>
 ```
 
-执行 Harness 管理的完整 Render 时，需要提供：
+已有成功方法配置后，Agent 单条完整 Render 直接执行：
 
 ```bash
-unset GITHUB_TOKEN GH_TOKEN
-gh auth login --hostname github.com --git-protocol https --web
-gh auth setup-git
-export GITHUB_REPOSITORY="<owner>/<repo>"
-export HARNESS_GITHUB_REF="<optional-explicit-branch>"
-node harness/src/cli.mjs doctor --json
-node harness/src/cli.mjs render-input bind <video-slug> \
-  --url "<private-input-package-url>" \
-  --sha256 "<sha256-of-zip>"
-node harness/src/cli.mjs run <video-slug> render
+node harness/src/cli.mjs render-delivery prepare <video-slug>
+# 确认返回的精确文件清单后：
+node harness/src/cli.mjs render-delivery start <video-slug> --confirm-plan "<planId>"
+node harness/src/cli.mjs render-delivery resume <video-slug>
 ```
 
-登录的 GitHub 账号必须能写目标仓库并触发其中的 Actions；`doctor` 会在真正创建远程 Job 前先检查身份、仓库、分支和 Workflow。
+登录账号须能写两个仓库并触发 Actions；prepare 自动检查身份、仓库、分支、Workflow 和成功代码基线。首次配置环境才需要登录／设置 Git 认证，不能每条视频重复登录。旧 CLI `remote-run` 与 `run <slug> render` 已停用并提示统一入口，低层输入包命令保留作诊断。`jobs <slug> --refresh` 对新交付调用同一 resume 路径。
 
 本地默认使用 `gh auth` 保存的系统凭据；不要把 Token 写进 `.zshrc`、项目文件或命令历史。CI／测试如需显式传 Token，先设置 `HARNESS_GITHUB_AUTH_SOURCE=env`，再设置 `GITHUB_TOKEN` 或 `GH_TOKEN`。两个变量内容不一致时会阻止远程任务。`RENDER_INPUT_TOKEN` 只供 GitHub Actions 下载独立视频输入包，和本地 GitHub API Token 不是一回事。
 

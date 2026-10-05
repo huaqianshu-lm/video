@@ -9,6 +9,7 @@ Use this skill when the task creates or revises a video's Source, Content Analys
 
 ## Before working
 
+- For new Agent videos, follow `docs/AGENT-SERIES-COVER.md`: list actual series names, IDs and cover availability for the user to choose; include new-series and no-series options. Never infer the choice from a filename. After confirmation, freeze it with `series select`; show the cover and handoff in the prototype. Do not alter completed members.
 - Read only the relevant sections of `docs/VIDEO-PRODUCTION-RULES.md` and `docs/VIDEO-PROJECT-WORKFLOW.md`.
 - For full background or historical rationale, read `docs/article-to-video-complete-workflow-summary.md` only when needed.
 - Use the generic structures in `templates/video-production/`; do not use a local video's private files as the only baseline.
@@ -22,6 +23,12 @@ Use this skill when the task creates or revises a video's Source, Content Analys
 - Write narration as a self-contained video for viewers who have not seen the source material.
 - Visual Script and Visual Prototype must add visual information, process, state, or relationship; they must not merely repeat narration as slides.
 - For each new Scene, identify the visual focus, before state, semantic trigger, visible after state, intentional hold, and handoff to the next focus. Apply the Workflow-specific timing source from `docs/VIDEO-PRODUCTION-RULES.md`; do not demand continuous motion during reading holds.
+- Select and describe motion semantics using section 9.1 of `docs/VIDEO-PRODUCTION-RULES.md`; use consistent expressions for the same meaning and do not invent changes to fit an animation component.
+- Before choosing paths for code or execution scenes, apply the three code-execution and path-expression rules in section 9.1; record the actual execution changes and the source-supported meaning of any path geometry in Visual Script.
+- Apply sections 8.4／8.5 for titles as visual events and persistent subjects in a shared evolving space; record title handoff, world relationships, camera movement and reasons for any viewpoint change.
+- Apply sections 9.3～9.5 for animation capability selection, action chains, whole-film rhythm and strategy coverage; record available versus proposed components and bind formal timing to the current Workflow. Use the expanded Visual Script template rather than relying on the local motion sample as the only guide.
+- Apply section 9.2 to record each element's entry, visible interval, exit and any reason for retaining it across Scenes; include underlying paths, arrows, labels and effects in actual prototype review.
+- Apply section 10.3 of `docs/VIDEO-PRODUCTION-RULES.md` to inspect text throughout each relevant animation; record actual viewing evidence under VC-4／VC-5, including intermediate and overlapping states.
 - Keep the fixed 16:9 prototype skeleton, short source-supported context text, preview subtitle area, navigation, and progress area. At the upper left of the video canvas, omit Scene numbers and recurring large titles.
 - The final Scene in a series must include a source-supported next-episode teaser as a visual event.
 - Preserve human Gate decisions. Do not mark a gate passed because files merely exist or because structural checks passed.

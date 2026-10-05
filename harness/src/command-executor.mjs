@@ -106,8 +106,9 @@ export function createCommandExecutor({
   };
 }
 
-export function commandConfigFromEnv(prefix) {
-  const command = process.env[`${prefix}_COMMAND`];
+export function commandConfigFromEnv(prefix, defaults = {}) {
+  const explicitCommand = process.env[`${prefix}_COMMAND`];
+  const command = explicitCommand || defaults.command;
   if (!command) {
     const error = new Error(`${prefix}_COMMAND is required`);
     error.code = "executor-not-configured";
@@ -115,7 +116,9 @@ export function commandConfigFromEnv(prefix) {
   }
   return {
     command,
-    args: parseArgs(process.env[`${prefix}_ARGS`]),
-    cwd: process.env[`${prefix}_CWD`] || undefined,
+    args: process.env[`${prefix}_ARGS`]
+      ? parseArgs(process.env[`${prefix}_ARGS`])
+      : explicitCommand ? [] : defaults.args ?? [],
+    cwd: process.env[`${prefix}_CWD`] || defaults.cwd,
   };
 }

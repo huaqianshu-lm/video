@@ -328,7 +328,11 @@ function validateSceneTiming(scene, expected, relativePath, issues) {
         issues.push(alignmentIssue("visual-binding-source-invalid", `Scene ${expected.sceneId} 的视觉事件来源不存在。`, relativePath));
         continue;
       }
-      if (sourceTiming && binding.atFrame !== sourceTiming.startFrame) {
+      const offset = source?.offsetFrames ?? 0;
+      if (sourceTiming && (!Number.isInteger(offset) || offset < 0 || sourceTiming.startFrame + offset >= sourceTiming.endFrame)) {
+        issues.push(alignmentIssue("visual-binding-offset-invalid", `Scene ${expected.sceneId} 的视觉事件 ${binding.id} 来源偏移无效或越界。`, relativePath));
+      }
+      if (sourceTiming && binding.atFrame !== sourceTiming.startFrame + offset) {
         issues.push(alignmentIssue("visual-binding-source-frame-mismatch", `Scene ${expected.sceneId} 的视觉事件 ${binding.id} 未从来源起始帧开始。`, relativePath));
       }
     }

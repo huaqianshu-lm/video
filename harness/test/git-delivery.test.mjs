@@ -48,6 +48,9 @@ function createRenderWorkspace(slug) {
     scenes: [{ sceneId: "scene-01" }],
   }));
   write(workspaceRoot, "harness/src/cli.mjs", "export {};\n");
+  write(workspaceRoot, "harness/src/render-delivery.mjs", "export {};\n");
+  write(workspaceRoot, "harness/src/video-cover.mjs", "export {};\n");
+  write(workspaceRoot, "harness/src/render-preflight.mjs", "export {};\n");
   write(workspaceRoot, "harness/src/render-input.mjs", "export {};\n");
   write(workspaceRoot, "harness/src/remote-executor.mjs", "export {};\n");
   write(workspaceRoot, "harness/src/diagnostics.mjs", "export {};\n");

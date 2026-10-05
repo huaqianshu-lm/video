@@ -21,9 +21,11 @@ Use this skill for Harness Web UI, batch jobs, Agent executors, asset packaging,
 
 ## Remote delivery preflight
 
+For Agent series covers, apply `docs/AGENT-SERIES-COVER.md`; the independent input must contain the frozen cover snapshot and matching image in the resource ZIP. Use the same generated cover entry for Studio and Runner; missing or inconsistent cover assets block delivery.
+
 Before operating this path, apply the mandatory successful-validation reuse requirements in the project `CLAUDE.md`. Carry forward the previous verified execution environment and code baseline; record unimplemented machine checks and incomplete cross-video validation explicitly rather than claiming that an operational workaround is a permanent fix.
 
-For Agent/CLI delivery with an existing successful full Render, read `docs/RENDER-DELIVERY-BASELINE.md` and run its `render-preflight.mjs` entry in the actual delivery checkout before proposing the exact file list. Save the passing report locally. Follow that document's independent Release publication and binding procedure; this explicit preparation entry is not yet automatically wired into Web UI or batch dispatch.
+For Agent/CLI single-video delivery, read `docs/RENDER-DELIVERY-BASELINE.md` and use `cli.mjs render-delivery prepare／start／resume` as the fixed entry. Reuse the verified local method configuration; preparation automatically checks the successful baseline and publishes/binds the input before presenting the exact commit list. Call start only after the user explicitly confirms that list, with its current plan ID. Resume the persisted delivery instead of rebuilding or redispatching. The old CLI `remote-run` and `run <slug> render` are disabled; Web UI and batch integration remain outside this migration.
 
 ### Agent execution environment
 

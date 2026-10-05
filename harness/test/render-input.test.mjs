@@ -353,6 +353,48 @@ test("uses the GitHub CLI credential for a private GitHub input asset instead of
   }
 });
 
+test("binds a GitHub Release asset from its verified digest without downloading the ZIP again", async () => {
+  const fixture = createFixture();
+  try {
+    prepareRenderInput(fixture.project);
+    const packaged = packageRenderInput(fixture.workspaceRoot, fixture.slug);
+    let fetchCalls = 0;
+    const result = await bindRenderInputDelivery(fixture.project, {
+      url: "https://api.github.com/repos/example/video-render-inputs/releases/assets/123",
+      sha256: packaged.archiveSha256,
+      assetDigest: `sha256:${packaged.archiveSha256}`,
+      fetchImpl: async () => { fetchCalls++; throw new Error("unexpected asset download"); },
+    });
+    assert.equal(result.status, "bound");
+    assert.equal(fetchCalls, 0);
+  } finally {
+    fs.rmSync(fixture.workspaceRoot, { recursive: true, force: true });
+  }
+});
+
+test("bounds package content verification and classifies timeout as recoverable", async () => {
+  const fixture = createFixture();
+  try {
+    prepareRenderInput(fixture.project);
+    const packaged = packageRenderInput(fixture.workspaceRoot, fixture.slug);
+    let signal;
+    await assert.rejects(
+      () => bindRenderInputDelivery(fixture.project, {
+        url: "https://inputs.example.test/render-input.zip",
+        sha256: packaged.archiveSha256,
+        fetchImpl: async (_url, options) => {
+          signal = options.signal;
+          throw Object.assign(new Error("timed out"), {name: "TimeoutError"});
+        },
+      }),
+      (error) => error.code === "render-input-delivery-remote-unavailable" && /60 秒/.test(error.message),
+    );
+    assert.ok(signal instanceof AbortSignal);
+  } finally {
+    fs.rmSync(fixture.workspaceRoot, { recursive: true, force: true });
+  }
+});
+
 test("does not create a binding when the published content is unreadable or has a different hash", async () => {
   const fixture = createFixture();
   try {

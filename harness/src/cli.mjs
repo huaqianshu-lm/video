@@ -10,7 +10,8 @@ import {renderDeliveryCli} from './render-delivery.mjs';
 import { initializeProject, loadProject, writeJson, reopenGate3ForSeriesCover } from "./storage.mjs";
 import { workflowCatalog, workflowStages } from "./workflows/registry.mjs";
 import { approveGate, rejectGate, resumeProject, retryStage, runStage, validateStage } from "./runner.mjs";
-import { createTtsExecutorFromEnv } from "./tts-executor.mjs";
+import { createTtsExecutor } from "./tts-executor.mjs";
+import { commandConfigFromEnv } from "./command-executor.mjs";
 import { createRemotionExecutorFromEnv } from "./remotion-executor.mjs";
 import { packageVideoAssets } from "./asset-bundler.mjs";
 import {
@@ -241,8 +242,16 @@ function printRemotionTask(result, asJson = false) {
   if (result.batch) printBatch(result.batch);
 }
 
+export function createCliTtsExecutor(options = {}) {
+  const config = commandConfigFromEnv("HARNESS_TTS_EXECUTOR", {
+    command: process.execPath,
+    args: [fileURLToPath(new URL("./tts-harness-adapter.mjs", import.meta.url))],
+  });
+  return createTtsExecutor({ ...options, ...config });
+}
+
 function configuredExecutors() {
-  return { "subtitle-timeline": createTtsExecutorFromEnv() };
+  return { "subtitle-timeline": createCliTtsExecutor() };
 }
 
 export async function main(args, {deliveryDependencies = {}} = {}) {

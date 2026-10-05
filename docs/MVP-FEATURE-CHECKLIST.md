@@ -24,8 +24,12 @@
 - [x] 远程渲染资源包、Manifest、分支和 Git 交付预检。
 - [x] 已绑定 Render Input ZIP 在副本时间戳变化后的重复打包保留原 SHA；依据 `harness/test/render-input.test.mjs`。
 - [x] Agent／CLI 显式成功基线准备检查：`harness/src/render-preflight.mjs`，8 项专项回归及真实仓库正反例通过；固定输入包发布步骤见 `RENDER-DELIVERY-BASELINE.md`。
-- [ ] 成功基线准备检查自动接入 Web UI／批量，以及新一条视频的完整 Render／Gate 4 复用验证。
+- [x] Agent 单条固定交付入口 `render-delivery prepare／start／resume`：复用方法配置、发布绑定、确认精确清单、定向提交推送及原 Job 恢复；`harness/test/render-delivery.test.mjs` 14/14，相关回归 86/86、兼容 89/89；真实成功基线预检通过。
+- [x] 已知 Render Run 的本地超时对账：先检查远端实际结果，显式恢复同一 Job；过期 Artifact 不能推进 Gate 4，依据单条交付与 Job 回归。
+- [ ] 固定入口在下一条新视频上的真实完整 Render／Gate 4 验收；Fixture 不代替实际成片。
+- [ ] 固定交付入口接入 Web UI／批量（本次范围之外）。
 - [x] 系列风格、系列封面和 45 帧正文起点规则。
+- [ ] Agent 系列选择与封面交付完整验证：CLI、快照、统一 Studio／Runner 片头及 ZIP 检查已实现；下一条新视频仍需选择／包装／Gate 2／Gate 3／真实 Render 验证，详见 `AGENT-SERIES-COVER.md`。
 - [x] Workflow Registry：`narrated-tutorial-v1` 与 `product-promo-v1` 的阶段、版本、Gate、路径和交付契约统一解析。
 - [x] 新 Workflow 的 namespaced 本地目录、全局 slug 冲突校验和 legacy narrated 路径兼容。
 - [x] `product-promo-v1` 的 Promo Brief、Scene／Visual Script、Asset Manifest、Visual Timeline 和 Remotion Alignment 确定性校验。
@@ -35,6 +39,9 @@
 - [x] 完成当前用户确认范围内的最终视频导出闭环；Artifact 已通过远程校验并完成 Gate 4 人工验收。
 
 - [x] 轻量动态原型播放／暂停／重播／切幕，以及 Gate 2 当前版本视觉自检机器阻断；依据 `dynamic-prototype.test.mjs` 与 `visual-self-review.test.mjs`，真实新视频的 Gate 2／Gate 3 验证仍进行中。
+
+- [x] 官方动效能力代码接入：版本匹配的 `@remotion/paths`／`@remotion/transitions`、帧驱动弹簧、共享空间、路径运动／描边、展开合并、形状／状态、焦点和到达反馈；通用 Studio 样片见 `docs/MOTION-COMPONENTS.md`，类型检查和 `src/index.ts` 编译通过。
+- [ ] 官方动效样片实际画面验收及另一条新视频完整验证；Harness 自动可见性识别尚未实现。
 
 ## 维护原则
 

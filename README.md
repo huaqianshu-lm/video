@@ -130,6 +130,8 @@ npx remotion studio src/RenderInputRoot.tsx
 
 没有有效输入包的未完成视频会先尝试准备；`completed` 视频缺包或包损坏时只读跳过，不会为了预览修改它。
 
+公共动效组件样片使用独立命令 `npm run preview:motion`，选择 `motion-components-template`（连续空间）或 `motion-transition-template`（官方转场）。该入口只注册通用 Composition；组件用法与验收边界见 [公共动效组件文档](docs/MOTION-COMPONENTS.md)。
+
 ## 单视频 CLI
 
 常用的状态和诊断命令：

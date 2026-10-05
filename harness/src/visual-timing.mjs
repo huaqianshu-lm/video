@@ -18,6 +18,9 @@ export function validateVisualBindings(bindings) {
     if (binding.source && (!Number.isInteger(binding.atFrame) || binding.atFrame < 0)) {
       issues.push({ code: "visual-binding-frame-invalid", message: `视觉事件 ${binding.id} 缺少有效开始帧。` });
     }
+    if (binding.source?.offsetFrames !== undefined && (!Number.isInteger(binding.source.offsetFrames) || binding.source.offsetFrames < 0)) {
+      issues.push({ code: "visual-binding-offset-invalid", message: `视觉事件 ${binding.id} 的来源偏移必须为非负整数。` });
+    }
   }
 
   const visiting = new Set();

@@ -429,6 +429,7 @@ async function responseBytes(response) {
 export async function bindRenderInputDelivery(project, {
   url,
   sha256,
+  assetDigest = null,
   compositionId = null,
   fetchImpl = globalThis.fetch,
   environment = process.env,
@@ -458,30 +459,44 @@ export async function bindRenderInputDelivery(project, {
   if (localSha !== normalizedSha) fail("发布包 SHA-256 与当前本地 ZIP 不一致，请重新准备或填写正确哈希", "render-input-delivery-hash-mismatch");
   if (typeof fetchImpl !== "function") fail("无法读取发布包 URL，请提供可用的 fetch", "render-input-delivery-fetch-unavailable");
 
-  let response;
-  try {
-    const explicitToken = typeof environment.HARNESS_RENDER_INPUT_TOKEN === "string"
-      ? environment.HARNESS_RENDER_INPUT_TOKEN.trim()
-      : "";
-    let token = explicitToken;
+  let remoteSha;
+  if (assetDigest !== null && assetDigest !== undefined) {
     const parsedUrl = new URL(normalizedUrl);
-    if (!token && parsedUrl.hostname.toLowerCase() === "api.github.com") {
-      const auth = resolveGitHubToken({ environment, authSource, execFileSyncImpl, ghBinary, hostname });
-      token = auth.token;
+    const normalizedAssetDigest = typeof assetDigest === "string" ? assetDigest.trim().toLowerCase() : "";
+    if (parsedUrl.hostname.toLowerCase() !== "api.github.com" || !/^sha256:[a-f0-9]{64}$/.test(normalizedAssetDigest)) {
+      fail("GitHub Release Asset digest 无效，不能绑定该输入包", "render-input-delivery-remote-hash-mismatch");
     }
-    response = await fetchImpl(normalizedUrl, {
-      headers: {
-        Accept: "application/octet-stream",
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
-    });
-  } catch (error) {
-    fail(`发布包 URL 无法访问：${error instanceof Error ? error.message : String(error)}`, "render-input-delivery-remote-unavailable");
+    remoteSha = normalizedAssetDigest.slice("sha256:".length);
+  } else {
+    let response;
+    try {
+      const explicitToken = typeof environment.HARNESS_RENDER_INPUT_TOKEN === "string"
+        ? environment.HARNESS_RENDER_INPUT_TOKEN.trim()
+        : "";
+      let token = explicitToken;
+      const parsedUrl = new URL(normalizedUrl);
+      if (!token && parsedUrl.hostname.toLowerCase() === "api.github.com") {
+        const auth = resolveGitHubToken({ environment, authSource, execFileSyncImpl, ghBinary, hostname });
+        token = auth.token;
+      }
+      response = await fetchImpl(normalizedUrl, {
+        headers: {
+          Accept: "application/octet-stream",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        signal: AbortSignal.timeout(60_000),
+      });
+    } catch (error) {
+      const detail = error?.name === "TimeoutError" || error?.name === "AbortError"
+        ? "发布包读取超时（60 秒）"
+        : `发布包 URL 无法访问：${error instanceof Error ? error.message : String(error)}`;
+      fail(detail, "render-input-delivery-remote-unavailable");
+    }
+    if (!response?.ok) fail(`发布包 URL 返回 HTTP ${response?.status ?? "unknown"}`, "render-input-delivery-remote-unavailable");
+    const remoteBytes = await responseBytes(response);
+    if (!remoteBytes) fail("发布包 URL 没有返回可读取内容", "render-input-delivery-remote-unavailable");
+    remoteSha = crypto.createHash("sha256").update(remoteBytes).digest("hex");
   }
-  if (!response?.ok) fail(`发布包 URL 返回 HTTP ${response?.status ?? "unknown"}`, "render-input-delivery-remote-unavailable");
-  const remoteBytes = await responseBytes(response);
-  if (!remoteBytes) fail("发布包 URL 没有返回可读取内容", "render-input-delivery-remote-unavailable");
-  const remoteSha = crypto.createHash("sha256").update(remoteBytes).digest("hex");
   if (remoteSha !== normalizedSha) fail("发布包远端内容的 SHA-256 与当前本地 ZIP 不一致", "render-input-delivery-remote-hash-mismatch");
 
   const delivery = {
