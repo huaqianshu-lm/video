@@ -129,6 +129,7 @@ export type NarratedTiming = {
 export type VisualTimingSource = {
   type: 'cue' | 'segment';
   id: string;
+  offsetFrames?: number;
 };
 
 export type VisualTimingBinding = {
@@ -317,7 +318,11 @@ export const createVisualTiming = (
       if (!sourceTiming) {
         throw new Error(`视觉事件 ${id} 找不到 ${binding.source.type} 来源：${binding.source.id}`);
       }
-      frame = sourceTiming.startFrame - scene.startFrame;
+      const offset = binding.source.offsetFrames ?? 0;
+      if (!Number.isInteger(offset) || offset < 0 || sourceTiming.startFrame + offset >= sourceTiming.endFrame) {
+        throw new Error(`视觉事件 ${id} 的来源偏移无效或越界：${offset}`);
+      }
+      frame = sourceTiming.startFrame + offset - scene.startFrame;
     }
 
     for (const dependencyId of binding.dependsOn ?? []) {

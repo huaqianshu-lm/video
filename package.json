@@ -10,6 +10,8 @@
   },
   "dependencies": {
     "@remotion/cli": "latest",
+    "@remotion/paths": "4.0.496",
+    "@remotion/transitions": "4.0.496",
     "remotion": "latest",
     "react": "latest",
     "react-dom": "latest"
