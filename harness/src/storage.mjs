@@ -1,5 +1,5 @@
 import fs from "node:fs";
-import { productionContract, UNIFIED_PRODUCTION_CONTRACT, usesUnifiedProduction } from "./production-contract.mjs";
+import { productionContract, UNIFIED_PRODUCTION_CONTRACT, usesUnifiedProduction, usesStoryboardProduction } from "./production-contract.mjs";
 import { activeProductionTask, assertProductionTaskOwner } from "./production-lock.mjs";
 import path from "node:path";
 import {
@@ -202,7 +202,7 @@ export function applySeriesStyle(slug, style) {
   project.config.updatedAt = now;
   writeJson(project.files.config, project.config);
 
-  const restartAt = "visual-script";
+  const restartAt = usesStoryboardProduction(project) ? "narration-script" : "visual-script";
   const restartIndex = stages.indexOf(restartAt);
   const currentIndex = project.state.currentStage === "completed"
     ? stages.length
@@ -236,6 +236,9 @@ export function loadProject(slug, { refresh = true } = {}) {
     artifacts: readJson(files.artifacts),
   };
   productionContract(project);
+  if ((usesStoryboardProduction(project) && (workflowStages(project).some(stage => !project.state.stages[stage]) || ["scene-script", "visual-script", "visual-prototype"].some(stage => project.state.stages[stage]))) || (!usesStoryboardProduction(project) && project.state.stages.storyboard)) {
+    throw Object.assign(new Error("Storyboard 契约与持久化阶段不一致；禁止只修改字段迁移。请从原契约使用 storyboard-migration，或恢复同一迁移版本。"), { code: "production-contract-state-mismatch" });
+  }
   if (refresh) refreshProject(project);
   return project;
 }

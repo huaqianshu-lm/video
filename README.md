@@ -1,5 +1,28 @@
 # Remotion AI Video Harness
 
+## Storyboard 新契约（迁移中）
+
+`storyboard-v1` 合并内容分析／叙事策划，以纯口播与 Storyboard 共同收敛替代 Scene／Visual Script 和逐视频 HTML 原型。Gate 2 页面按序并排展示口播与分镜，可附静态图；实际画面与试听在 Gate 3 审核。对话、CLI、Web 和批量复用相同任务和审核版本。
+
+迁移期间新建默认仍为 `unified-v1`，旧项目不自动切换。新契约可显式创建，当前人工与跨视频验收待完成；完整边界见 [Storyboard 生产契约](docs/STORYBOARD-PRODUCTION-CONTRACT.md) 。
+
+```bash
+# 先准备 videos/<new-slug>/source.md；初始化后按项目规则确认系列与封面。
+node harness/src/cli.mjs init <new-slug> --production-contract storyboard-v1
+node harness/src/cli.mjs run <new-slug> source
+node harness/src/cli.mjs production-task claim <new-slug>
+# 根据任务包制作，再 complete；重复领取下一任务，完成后 run Gate 2。
+node harness/src/cli.mjs storyboard-review <new-slug>
+# Agent 获取同一机器审核包：追加 --json。
+node harness/src/cli.mjs approve <new-slug> gate-2 --review-version <reviewVersion>
+```
+
+旧项目显式迁移先运行 `storyboard-migration <slug> prepare`，查看精确影响后使用返回的 `migrationVersion` 调用 `start --migration-version <hash>`。活动任务、Gate 2 下游项目和 completed 均阻断；中断恢复同一版本，旧资料／任务及审核快照保留，重新审核 Gate 2。
+
+Web 项目详情页显示同一分镜卡片。HTTP `GET /api/projects/<slug>/storyboard-review` 获取审核包，`POST .../action` 的 approve 请求必须带当前 `reviewVersion`。导入支持显式 `productionContract=storyboard-v1` 查询参数，初始化 action 支持同名字段。普通导入界面默认值暂未切换；现有项目禁止仅改字段迁移。
+
+
+
 这是一个专门服务于视频生产的 Harness。它把一条视频从原始内容推进到最终 MP4：内容分析、视频叙事、Scene 脚本、口播稿、视觉脚本、视觉原型、TTS、字幕与时间轴、Remotion、远程渲染和人工验收都在同一套阶段契约下管理。
 
 它不是“点一下就自动出片”的黑盒。系统负责记录状态、校验资料、调度任务、保存失败信息和恢复上下文；口播、视觉原型、Remotion 预览和最终视频仍然要经过人工 Gate。

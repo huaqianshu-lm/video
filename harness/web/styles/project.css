@@ -632,3 +632,12 @@
     padding: var(--webui-space-3);
   }
 }
+
+/* Shared static storyboard review, with narration alongside its visual plan. */
+.storyboard-review > ol { display: grid; gap: var(--webui-space-4); padding-left: var(--webui-space-5); }
+.storyboard-columns { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: var(--webui-space-5); }
+.storyboard-text { white-space: pre-wrap; overflow-wrap: anywhere; }
+.storyboard-review code { overflow-wrap: anywhere; }
+.storyboard-image { max-width: 100%; height: auto; }
+.storyboard-visual figure { margin: var(--webui-space-3) 0; }
+@media (max-width: 760px) { .storyboard-columns { grid-template-columns: 1fr; } }

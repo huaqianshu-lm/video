@@ -1,9 +1,11 @@
 const ACTIONS = new Set([
   "initialize", "legacy-validate", "validate", "next", "report", "context", "plan", "run", "retry", "resume",
   "approve", "reject", "approve-tts-qc", "run-to-gate-2", "prepare-remote-render", "resume-render-delivery", "bind-render-input", "remote-run", "find-historical", "adopt-historical",
+  "prepare-storyboard-migration", "start-storyboard-migration",
 ]);
 
 import { artifactManifestFor } from "../../artifacts.mjs";
+import { prepareStoryboardMigration, startStoryboardMigration, storyboardMigrationPlanView } from "../../storyboard-migration.mjs";
 import { usesUnifiedProduction } from "../../production-contract.mjs";
 import { approveTtsQcForProject, createBatch, findActiveBatchForProject, getBatchForView, stopBatchesAfterGateRejection, runBatch } from "../../batches.mjs";
 import { buildTaskPacket } from "../../context.mjs";
@@ -24,11 +26,14 @@ import { findActiveJob } from "../../jobs.mjs";
 export function normalizeProjectAction(input = {}) {
   return {
     slug: input.slug,
+    ...(typeof input.productionContract === "string" ? { productionContract: input.productionContract } : {}),
     action: input.action,
     stage: input.stage ?? null,
     gate: input.gate ?? null,
     returnTo: input.returnTo ?? null,
     reason: input.reason ?? null,
+    ...(typeof input.reviewVersion === "string" ? { reviewVersion: input.reviewVersion } : {}),
+    ...(typeof input.migrationVersion === "string" ? { migrationVersion: input.migrationVersion } : {}),
     runId: input.runId ?? null,
     commitAndPush: input.commitAndPush === true,
     confirmDelivery: input.confirmDelivery === true,
@@ -70,6 +75,8 @@ export function createProjectActionService(runtime) {
         error.code = "unknown-project-action";
         throw error;
       }
+      if (action.action === "start-storyboard-migration") return { status: 200, result: startStoryboardMigration(action.slug, action.migrationVersion), project: getVideoProject(action.slug) };
+      if (action.action === "prepare-storyboard-migration") return { status: 200, result: storyboardMigrationPlanView(prepareStoryboardMigration(action.slug)), project: getVideoProject(action.slug) };
       const projectView = getVideoProject(action.slug);
       if (!projectView) {
         const error = new Error("Video project not found");
@@ -84,6 +91,7 @@ export function createProjectActionService(runtime) {
             action: action.action,
             status: "initialized",
             files: initializeProject(action.slug, {
+              ...(action.productionContract ? { productionContract: action.productionContract } : {}),
               workflow: action.workflow ?? projectView.workflow ?? "default",
               ...(action.workflowVersion === undefined || action.workflowVersion === null ? {} : { workflowVersion: action.workflowVersion }),
             }),
@@ -150,7 +158,7 @@ export function createProjectActionService(runtime) {
         }
         case "approve":
           if ((action.gate ?? action.stage) === "gate-3") { const task = listRemotionTasks({ slug: action.slug })[0]; if (project.state.stages.remotion.status !== "succeeded" && task && task.status !== "completed") { const error = new Error("Gate 3 暂无可验证的新 Remotion 产物，请先执行或重试 Agent 并完成产物校验。"); error.code = "remotion-output-required"; throw error; } }
-          result = approveGate(project, action.gate ?? action.stage); break;
+          result = approveGate(project, action.gate ?? action.stage, { reviewVersion: action.reviewVersion }); break;
         case "approve-tts-qc": result = await approveTtsQcForProject(action.slug); break;
         case "reject":
           result = rejectGate(project, action.gate ?? action.stage, action.returnTo, action.reason);

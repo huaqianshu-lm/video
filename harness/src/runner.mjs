@@ -1,5 +1,6 @@
 import { validateVisualSelfReview } from "./visual-self-review.mjs";
-import { usesUnifiedProduction } from "./production-contract.mjs";
+import { usesUnifiedProduction, usesStoryboardProduction } from "./production-contract.mjs";
+import { storyboardReview, frozenStoryboardIssues } from "./storyboard.mjs";
 import { assertProductionTaskOwner } from "./production-lock.mjs";
 import {
   workflowAdapterStages,
@@ -164,6 +165,11 @@ export function beginExecutorStage(project, requestedStage) {
   requireReady(project, stage);
   requirePreviousSucceeded(project, stage);
 
+  if (usesStoryboardProduction(project) && workflowStageIndex(project, stage) >= workflowStageIndex(project, "tts")) {
+    const issues = frozenStoryboardIssues(project);
+    if (issues.length) throw new Error(issues.map(item => item.message).join("；"));
+  }
+
   if (stage !== "gate-2") {
     const reviewIssues = validateVisualSelfReview(project, stage);
     if (reviewIssues.length) throw new Error(reviewIssues.map((item) => item.message).join("；"));
@@ -185,6 +191,10 @@ export function runStage(project, requestedStage, { adapters = {}, executors = {
   const stage = beginExecutorStage(project, requestedStage);
   const item = project.state.stages[stage];
 
+  if (stage === "tts" && usesStoryboardProduction(project)) {
+    try { ensureTtsScript(project); }
+    catch (error) { markExecutorStageFailed(project, stage, error); throw error; }
+  }
   if (workflowIsGateStage(project, stage)) {
     item.review = null;
     item.error = null;
@@ -300,7 +310,7 @@ export function runStage(project, requestedStage, { adapters = {}, executors = {
   return { stage, status: "succeeded", nextStage: project.state.currentStage };
 }
 
-export function approveGate(project, gate) {
+export function approveGate(project, gate, { reviewVersion = null } = {}) {
   assertProjectMutable(project, `确认 ${gate}`);
   assertProductionTaskOwner(project);
   requireKnownStage(project, gate);
@@ -311,11 +321,16 @@ export function approveGate(project, gate) {
     throw new Error(`Gate ${gate} is not waiting for approval`);
   }
 
+  if (gate === "gate-2" && usesStoryboardProduction(project)) {
+    const review = storyboardReview(project);
+    if (!reviewVersion || reviewVersion !== review.reviewVersion) throw Object.assign(new Error("审核版本缺失或已过期，请重新查看当前分镜审核包。"), { code: "storyboard-review-stale" });
+  }
+
   const gateIssues = (gate === "gate-2" || usesUnifiedProduction(project) ? validateStage(project, gate) : []).filter((item) => item.severity !== "warning");
   if (gateIssues.length > 0) throw new Error(`Gate 审批阻断：${gateIssues.map((item) => item.message).join("；")}`);
 
   let ttsScript = null;
-  if (gate === "gate-2" && workflowForProject(project).audioMode === "tts") {
+  if (gate === "gate-2" && !usesStoryboardProduction(project) && workflowForProject(project).audioMode === "tts") {
     ttsScript = ensureTtsScript(project);
     const issues = validateStage(project, "tts").filter((item) => item.severity !== "warning");
     if (issues.length > 0) {
@@ -323,12 +338,13 @@ export function approveGate(project, gate) {
     }
   }
   if (gate === "gate-2") {
-    freezePrototypeBaseline(project);
+    freezePrototypeBaseline(project, { reviewVersion });
   }
 
   project.state.stages[gate].review = {
     decision: "approved",
     reviewedAt: new Date().toISOString(),
+    ...(gate === "gate-2" && usesStoryboardProduction(project) ? { reviewVersion } : {}),
   };
   if (gate === "gate-3" && usesUnifiedProduction(project)) {
     const issues = validateStage(project, "subtitle-timeline").filter((item) => item.severity !== "warning");

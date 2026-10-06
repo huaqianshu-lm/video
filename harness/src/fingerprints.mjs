@@ -1,8 +1,9 @@
+import { storyboardReview } from "./storyboard.mjs";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { workflowStageDefinition } from "./workflows/registry.mjs";
-import { usesUnifiedProduction } from "./production-contract.mjs";
+import { usesUnifiedProduction, usesStoryboardProduction } from "./production-contract.mjs";
 
 function expandArtifactPaths(root, relativePath) {
   const parts = relativePath.split("/");
@@ -46,6 +47,7 @@ function hashDirectory(hash, root, relativePath) {
 }
 
 export function fingerprintStageArtifacts(project, stage) {
+  if (usesStoryboardProduction(project) && stage === "storyboard") return storyboardReview(project).reviewVersion;
   const templates = workflowStageDefinition(project, stage)?.artifacts ?? [];
   if (templates.length === 0) return null;
 

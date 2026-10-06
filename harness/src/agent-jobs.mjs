@@ -4,7 +4,7 @@ import path from "node:path";
 import { buildTaskPacket } from "./context.mjs";
 import { beginExecutorStage, completeExecutorStage, retryStage, runStage, validateStage } from "./runner.mjs";
 import { fingerprintStageArtifacts, fingerprintTaskInputs } from "./fingerprints.mjs";
-import { taskStages, usesUnifiedProduction } from "./production-contract.mjs";
+import { taskStages, planningStages, usesUnifiedProduction } from "./production-contract.mjs";
 import { acquireProductionTask, activeProductionTask, assertProductionTaskOwner, releaseProductionTask } from "./production-lock.mjs";
 import { prepareRenderInputEntry } from "./render-input.mjs";
 import { listRemotionTasks } from "./remotion-tasks.mjs";
@@ -148,8 +148,8 @@ function submitJob(job, execution = {}) {
     if (project.state.stages[stages[index]].status === "ready") beginExecutorStage(project, stages[index]);
     completeExecutorStage(project, stages[index], execution);
   }
-  if (stages.includes("scene-script") && (stages.length > 1 || usesUnifiedProduction(project))) {
-    project.state.stages["scene-script"].review = { kind: "gate-1", decision: "approved", internal: true, reviewedAt: new Date().toISOString() };
+  if (stages.includes(planningStages(project).at(-1)) && (stages.length > 1 || usesUnifiedProduction(project))) {
+    project.state.stages[planningStages(project).at(-1)].review = { kind: "gate-1", decision: "approved", internal: true, reviewedAt: new Date().toISOString() };
     writeJson(project.files.state, project.state);
   }
   job.status = "succeeded";

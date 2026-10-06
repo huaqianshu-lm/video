@@ -1,5 +1,8 @@
 # 视频端到端生产流程方案
 
+> 版本边界：`storyboard-v1` 按 [Storyboard 生产契约](STORYBOARD-PRODUCTION-CONTRACT.md) 整合 Scene／Visual Script，Gate 2 审核口播与分镜，无 HTML 原型或旧动态自检要求；本文原型制作及观看要求只适用于旧契约。新契约保留视觉质量规则，实际动态检查在 Gate 3 完成。
+
+
 > 状态：日常生产链路已调整为 Gate 3 后直接完整渲染；Smoke Render 仅作为新系列或渲染环境变化时的独立手动环境检查。本文继续作为人工确认闸门、Video 与 TTS 交付契约、远程渲染回路和无音频分支的实施依据。
 
 ## 1. 目标

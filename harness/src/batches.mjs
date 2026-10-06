@@ -16,7 +16,7 @@ import { getJob } from "./jobs.mjs";
 import { REMOTE_JOB_STATUS } from "./remote-status.mjs";
 import { createAgentJob, getAgentJob, retryAgentJob, runAgentJob } from "./agent-jobs.mjs";
 import { createAgentExecutorFromEnv } from "./agent-executor.mjs";
-import { usesUnifiedProduction } from "./production-contract.mjs";
+import { planningStages, usesUnifiedProduction } from "./production-contract.mjs";
 import { runRenderDelivery, readRenderDeliverySession, checkpointRenderDelivery } from "./render-delivery.mjs";
 import { assertCommittedBatchRenderDelivery, commitPreparedBatchRenderDelivery, prepareBatchRenderDelivery as prepareBatchRenderDeliveryPlan } from "./batch-delivery.mjs";
 
@@ -457,7 +457,7 @@ function agentJobState(batchItem) {
 function recordGate1Review(batch, batchItem) {
   const project = loadProject(batchItem.slug, { refresh: true });
   assertProjectSlugMutable(batchItem.slug, "记录 Gate 1 审查");
-  const stages = ["content-analysis", "video-narrative", "scene-script"];
+  const stages = planningStages(project);
   const issues = stages.flatMap((stage) => validateStage(project, stage));
   if (issues.length > 0) {
     const error = new Error(`Gate 1 内部审查发现 ${issues.length} 个问题。`);
@@ -473,7 +473,7 @@ function recordGate1Review(batch, batchItem) {
     reviewedAt,
     checks: ["内容一致性", "事实边界", "叙事关系", "Scene 拆分与 Video Value"],
   };
-  project.state.stages["scene-script"].review = review;
+  project.state.stages[stages.at(-1)].review = review;
   writeJson(project.files.state, project.state);
   batchItem.internalReviews = [...(batchItem.internalReviews ?? []).filter((item) => item.gate !== "gate-1"), review];
   saveBatch(batch);
@@ -493,7 +493,7 @@ async function resolveWaitingAgentItem(batch, batchItem) {
   }
 
   if (job.status === "succeeded") {
-    if ((job.stages ?? [job.stage]).includes("scene-script") && !(batchItem.internalReviews ?? []).some((review) => review.gate === "gate-1")) {
+    if ((job.stages ?? [job.stage]).includes(planningStages(loadProject(batchItem.slug, { refresh: false })).at(-1)) && !(batchItem.internalReviews ?? []).some((review) => review.gate === "gate-1")) {
       recordGate1Review(batch, batchItem);
     }
     updateItem(batch, batchItem, {

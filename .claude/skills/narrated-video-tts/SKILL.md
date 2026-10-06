@@ -7,6 +7,9 @@ description: Prepare and validate narration, TTS, audio, subtitles, and Timeline
 
 Use this skill when a video has spoken narration or when working on TTS, audio, subtitles, timing, or Timeline Manifest files.
 
+
+`storyboard-v1` 先读取 `docs/STORYBOARD-PRODUCTION-CONTRACT.md`，以其阶段、任务和审核边界覆盖本文的旧原型要求；旧契约继续遵守本文。新契约保留纯口播、真实 Timeline、人工 Gate 和共享交付约束。
+
 ## Required sequence
 
 1. Confirm Gate 2 has passed and the narration baseline is frozen.

@@ -1,4 +1,9 @@
-const projectPattern = /^\/api\/projects\/([a-z0-9]+(?:-[a-z0-9]+)*)(?:\/(workspace|files|file|jobs|agent-jobs|alignment|action))?$/;
+const projectPattern = /^\/api\/projects\/([a-z0-9]+(?:-[a-z0-9]+)*)(?:\/(workspace|files|file|jobs|agent-jobs|alignment|action|storyboard-review|storyboard-image))?$/;
+
+import fs from "node:fs";
+import { storyboardLocalFile } from "../../storyboard.mjs";
+import { buildStoryboardReview } from "../../storyboard-review.mjs";
+import { usesStoryboardProduction } from "../../production-contract.mjs";
 
 import { getProjectFile, getProjectPrototype, listProjectFiles } from "../../project-files.mjs";
 import { getVideoProject, listVideoProjects } from "../../project-view.mjs";
@@ -25,6 +30,7 @@ export function createProjectRoutes({ runtime, remoteJobMonitor } = {}) {
           filename: query.get("filename"),
           content: body,
           seriesId: query.get("seriesId"),
+          productionContract: query.get("productionContract") ?? undefined,
           workflow: query.get("workflow") ?? undefined,
           workflowVersion: query.get("workflowVersion") ? Number(query.get("workflowVersion")) : null,
         });
@@ -41,6 +47,25 @@ export function createProjectRoutes({ runtime, remoteJobMonitor } = {}) {
       return true;
     }
     if (request.method !== "GET" && request.method !== "HEAD") { sendError(response, 405, { message: "Method not allowed", code: "method-not-allowed" }); return true; }
+    if (["storyboard-review", "storyboard-image"].includes(route.resource)) {
+      try {
+        const project = loadProject(route.slug, { refresh: false });
+        if (!usesStoryboardProduction(project)) throw new Error("当前项目不是 Storyboard 契约");
+        const review = buildStoryboardReview(project);
+        if (route.resource === "storyboard-review") sendJson(response, 200, { review });
+        else {
+          const query = new URLSearchParams(search);
+          const file = query.get("path");
+          const cover = file === "cover" && review.seriesSelection?.mode === "series";
+          if (query.get("version") !== review.reviewVersion || (!cover && !review.scenes.some(scene => scene.diagrams?.some(diagram => diagram.path === file)))) throw new Error("示意图缺失或审核版本已过期");
+          const relative = cover ? `public/${review.seriesSelection.src}` : `${project.config.sourceDirectory}/${file}`;
+          const absolute = storyboardLocalFile(project, relative, { image: true });
+          response.writeHead(200, { "Content-Type": /\.png$/i.test(relative) ? "image/png" : /\.webp$/i.test(relative) ? "image/webp" : "image/jpeg", "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" });
+          response.end(request.method === "HEAD" ? undefined : fs.readFileSync(absolute));
+        }
+      } catch (error) { sendError(response, 400, { message: error.message, code: "storyboard-review-unavailable" }); }
+      return true;
+    }
     if (route.resource === "workspace") { const workspace = await getProjectWorkspace(route.slug, { remoteJobMonitor }); if (!workspace) sendError(response, 404, { message: "Video project not found", code: "video-project-not-found" }); else sendJson(response, 200, workspace); return true; }
     if (route.resource === "detail") { let project = getVideoProject(route.slug); if (!project) sendError(response, 404, { message: "Video project not found", code: "video-project-not-found" }); else { if (project.initialized) { await remoteJobMonitor.poll(); project = getVideoProject(route.slug); } sendJson(response, 200, { project }); } return true; }
     if (route.resource === "files") { const files = listProjectFiles(route.slug); if (!files) sendError(response, 404, { message: "Video project not found", code: "video-project-not-found" }); else sendJson(response, 200, { files }); return true; }

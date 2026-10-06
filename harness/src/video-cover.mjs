@@ -46,7 +46,7 @@ export function selectVideoSeries(slug, seriesId) {
   assertProjectMutable(project, '设置视频系列与封面');
   assertProductionTaskOwner(project);
   const stages = workflowStages(project);
-  const visualStage = stages.includes('visual-script') ? 'visual-script' : 'motion-script';
+  const visualStage = stages.includes('storyboard') ? 'narration-script' : stages.includes('visual-script') ? 'visual-script' : 'motion-script';
   if (stages.indexOf(project.state.currentStage) >= stages.indexOf(visualStage)) throw new Error('系列与封面须在视觉设计开始前选择；后续变更需要重新审核方案');
   const previous = readVideoCover(project);
   if (previous) {

@@ -1,6 +1,8 @@
 # TTS 安装与配置
 
-本文说明如何安装 Video Harness 使用的独立 TTS 模块。该模块负责从 Gate 2 冻结后的 `tts-script.json` 生成分段音频、字幕和时间轴，不直接读取整份口播文档，也不会自动通过 TTS 人工质检。
+本文说明如何安装 Video Harness 使用的独立 TTS 模块。该模块负责从 Gate 2 冻结后的 `tts-script.json` 生成分段音频、字幕和时间轴，不直接读取整份口播文档。`unified-v1`／`storyboard-v1` 在机器质检后继续 Remotion，人工试听合并到 Gate 3；仅旧契约保留独立 TTS 人工质检。
+
+Harness 调用标准 TTS Script 生成器时，会将 `## Scene 01：标题` 或英文冒号标题转换为生成器接受的 `## Scene 01｜标题` 临时输入；已冻结文件、Scene 正文和源文件指纹保持原样。
 
 ## 1. 获取 TTS 模块
 
@@ -134,7 +136,7 @@ npm install
 npm run harness:web
 ```
 
-浏览器打开 `http://127.0.0.1:4173`。视频通过 Gate 2 后，Harness 会从冻结的 `tts-script.json` 生成配音、字幕和 Timeline，并在 TTS 人工质检处暂停。
+浏览器打开 `http://127.0.0.1:4173`。视频通过 Gate 2 后，Harness 会从冻结的 `tts-script.json` 生成配音、字幕和 Timeline。`unified-v1`／`storyboard-v1` 机器质检通过后继续制作 Remotion，在 Gate 3 统一审核实际画面与试听；旧契约在独立 TTS 人工质检处暂停。
 
 默认语音参数为：
 

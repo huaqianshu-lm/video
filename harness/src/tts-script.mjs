@@ -39,10 +39,13 @@ function runCanonicalBuilder({ videoId, narrationText, inputPath, outputPath, wo
   ensureFile(tool.python, "TTS Python 执行器");
   ensureFile(tool.builder, "标准 TTS Script 生成器");
 
-  const temporaryRoot = inputPath ? null : fs.mkdtempSync(path.join(os.tmpdir(), "video-harness-tts-script-"));
-  const sourcePath = inputPath || path.join(temporaryRoot, "narration-script.md");
+  const originalText = inputPath ? fs.readFileSync(inputPath, "utf8") : narrationText;
+  const builderText = originalText.replace(/^(##\s+Scene\s+\d+)\s*[：:]\s*/gm, "$1｜");
+  const useOriginalInput = inputPath && builderText === originalText;
+  const temporaryRoot = useOriginalInput ? null : fs.mkdtempSync(path.join(os.tmpdir(), "video-harness-tts-script-"));
+  const sourcePath = useOriginalInput ? inputPath : path.join(temporaryRoot, "narration-script.md");
   const targetPath = outputPath || path.join(temporaryRoot, "tts-script.json");
-  if (!inputPath) fs.writeFileSync(sourcePath, narrationText, "utf8");
+  if (!useOriginalInput) fs.writeFileSync(sourcePath, builderText, "utf8");
 
   try {
     execFileSync(tool.python, [

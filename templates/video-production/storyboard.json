@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "videoSlug": "example-video",
+  "workflow": "narrated-tutorial-v1",
+  "productionContract": "storyboard-v1",
+  "style": "current",
+  "seriesSelection": null,
+  "scenes": [
+    {
+      "id": "01",
+      "objective": "说明任务状态如何变化",
+      "narrationRef": "01",
+      "sourceRefs": [
+        {
+          "path": "videos/example-video/source.md",
+          "excerpt": "任务从等待进入制作，校验通过后完成。"
+        }
+      ],
+      "focus": "任务状态",
+      "layout": "同一任务主体居中，当前状态就地变化",
+      "elements": [
+        {
+          "id": "task",
+          "text": "任务",
+          "sourceRef": 0,
+          "enter": "场景开始",
+          "exit": "本幕结束",
+          "retain": ""
+        }
+      ],
+      "events": [
+        {
+          "id": "task-start",
+          "before": "任务等待",
+          "action": "领取任务并开始制作",
+          "after": "任务制作中",
+          "trigger": {
+            "sceneId": "01",
+            "anchor": "进入制作",
+            "occurrence": 1
+          }
+        }
+      ],
+      "holds": "状态变化后保留阅读时间",
+      "handoff": "任务完成结果承接下一幕",
+      "assets": [],
+      "implementation": "复用现有状态变化组件；暂无缺失素材"
+    }
+  ]
+}

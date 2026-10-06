@@ -2,6 +2,8 @@
 
 Harness 是对话、CLI、Web UI 和批量视频生产的唯一调度器。Agent 领取任务并制作声明的产物；Harness 负责前置检查、持久化任务、真实产物校验、状态推进、返工和人工审核。讨论及只读查询不领取任务。
 
+`storyboard-v1` 使用 [Storyboard 生产契约](STORYBOARD-PRODUCTION-CONTRACT.md) 的版本化阶段、合并任务、分镜审核与冻结；下文旧原型要求仅适用于 legacy-v1／unified-v1。默认值切换以 ROADMAP.md 为准。
+
 ## 版本与迁移
 
 `project.json.productionContract` 为 `unified-v1` 时采用以下统一任务及审核契约。缺少该字段或为 `legacy-v1` 时继续支持既有阶段与独立 TTS 试听确认。不得通过刷新、批处理或读取自动迁移旧项目；completed 永久只读。未知契约必须报错，不得隐式回退。新建项目默认采用统一契约；14 个内部阶段及文件路径保持不变。

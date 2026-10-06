@@ -7,6 +7,9 @@ description: Create or revise reusable narrated or visual video production mater
 
 Use this skill when the task creates or revises a video's Source, Content Analysis, Video Narrative, Scene Script, Narration Script, Visual Script, or Visual Prototype.
 
+
+`storyboard-v1` 先读取 `docs/STORYBOARD-PRODUCTION-CONTRACT.md`，以其阶段、任务和审核边界覆盖本文的旧原型要求；旧契约继续遵守本文。新契约保留纯口播、真实 Timeline、人工 Gate 和共享交付约束。
+
 ## Before working
 
 - For new Agent videos, follow `docs/AGENT-SERIES-COVER.md`: list actual series names, IDs and cover availability for the user to choose; include new-series and no-series options. Never infer the choice from a filename. After confirmation, freeze it with `series select`; show the cover and handoff in the prototype. Do not alter completed members.

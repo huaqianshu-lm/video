@@ -1,3 +1,5 @@
+import { usesStoryboardProduction } from "./production-contract.mjs";
+import { storyboardReview } from "./storyboard.mjs";
 import {
   retiredStageDefinition,
   stagesForWorkflowProjectView,
@@ -108,16 +110,18 @@ export function buildNextAction(project) {
     : [];
   const blockingIssues = issues.filter((issue) => isBlockingPreExecutionIssue(project, stage, issue));
   if (stage === "gate-2" && item.status === "waiting" && issues.some((item) => item.severity !== "warning")) {
-    return { currentStage: stage, status: item.status, action: "fix-validation-issues", message: "视觉资料或自检无效，修复后才能人工确认 Gate 2。", requiresUser: false, commands: [commandFor(project, "validate", stage)], issues, returnToStages: workflowReturnToStages(project, stage), recommendedReturnTo: "visual-script" };
+    return { currentStage: stage, status: item.status, action: "fix-validation-issues", message: "视觉资料或自检无效，修复后才能人工确认 Gate 2。", requiresUser: false, commands: [commandFor(project, "validate", stage)], issues, returnToStages: workflowReturnToStages(project, stage), recommendedReturnTo: usesStoryboardProduction(project) ? "narration-script" : "visual-script" };
   }
   if (item.status === "waiting" && workflowIsGateStage(project, stage)) {
+    const reviewVersion = stage === "gate-2" && usesStoryboardProduction(project) ? storyboardReview(project).reviewVersion : null;
     return {
       currentStage: stage,
       status: item.status,
       action: "approve-or-reject-gate",
       message: `等待人工确认 ${stage}。通过后继续，驳回时必须指定回退阶段和原因。`,
       requiresUser: true,
-      commands: [commandFor(project, "approve", stage)],
+      commands: [commandFor(project, "approve", stage) + (reviewVersion ? ` --review-version ${reviewVersion}` : "")],
+      ...(reviewVersion ? { reviewVersion, reviewCommand: commandFor(project, "storyboard-review") } : {}),
       issues,
       manualChecks: productionManualChecks(project, definition),
       returnToStages: workflowReturnToStages(project, stage),

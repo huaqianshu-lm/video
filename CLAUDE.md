@@ -12,6 +12,8 @@ Harness 只服务于视频生产，不扩展为处理代码、数据或其他任
 
 所有视频生产入口（包括对话）必须由 Harness 调度；Agent 是领取任务并制作产物的执行者，不自行推进阶段。统一任务、策划合并、试听审核及交付迁移的权威契约见 `docs/HARNESS-PRODUCTION-CONTRACT.md`；旧项目保留显式兼容，completed 永久只读。
 
+`storyboard-v1` 的新流程以 `docs/STORYBOARD-PRODUCTION-CONTRACT.md` 为权威来源：Storyboard 整合场景与视觉设计，Gate 2 审核口播与分镜方案，Gate 3 审核实际画面与试听。下文动态原型、七层资料和原型观看证据只适用于 `legacy-v1`／`unified-v1`；新契约不要求 HTML 原型或旧 visual-self-review.json。迁移期间新建默认保持 unified-v1，旧项目不自动迁移。
+
 当前唯一生产 Workflow 为 `narrated-tutorial-v1`：保留带口播教程的 14 个生产阶段、人工 Gate、TTS、字幕和 narrated Timeline。历史项目缺少 `workflow` 或使用兼容值 `default` 时，运行时解释为该 Workflow，不批量改写历史状态。
 
 `product-promo-v1` 已退役，不允许新建、制作、批处理、打包或渲染。已完成宣传片只允许读取资料、展示历史记录及使用已有输入包进行本地预览；`src/components/promo/`、`src/lib/promoTypes.ts` 和 `src/lib/promoTiming.ts` 仅保留为历史视频预览依赖。不得修改历史视频及其状态或产物。

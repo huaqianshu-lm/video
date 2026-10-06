@@ -1,3 +1,4 @@
+import { usesStoryboardProduction } from "./production-contract.mjs";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
@@ -8,7 +9,7 @@ export function visualSelfReviewPath(project) {
 }
 
 export function validateVisualSelfReview(project, stage) {
-  if (project.state?.currentStage === "completed") return [];
+  if (project.state?.currentStage === "completed" || usesStoryboardProduction(project)) return [];
   const index = workflowStageIndex(project, stage);
   if (index < workflowStageIndex(project, "gate-2") || index > workflowStageIndex(project, "gate-3")) return [];
   const relativePath = visualSelfReviewPath(project);

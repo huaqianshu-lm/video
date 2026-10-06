@@ -1,5 +1,8 @@
 # Video 项目生产流程说明
 
+> 版本边界：`storyboard-v1` 按 [Storyboard 生产契约](STORYBOARD-PRODUCTION-CONTRACT.md) 整合 Scene／Visual Script，Gate 2 审核口播与分镜，无 HTML 原型或旧动态自检要求；本文原型制作及观看要求只适用于旧契约。新契约保留视觉质量规则，实际动态检查在 Gate 3 完成。
+
+
 > 本文档用于说明 `video` 项目的职责、每条视频的标准生产流程，以及它与独立 `tts` 项目的边界。
 
 ---

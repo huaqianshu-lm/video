@@ -9,6 +9,9 @@ import {saveSeries, saveSeriesCover} from './series-assets.mjs';
 import {renderDeliveryCli} from './render-delivery.mjs';
 import { claimDialogueTask, completeDialogueTask, failAgentTask, getAgentJob, resumeDialogueTask, createAgentJob, runAgentJob } from './agent-jobs.mjs';
 import { usesUnifiedProduction } from './production-contract.mjs';
+import { formatStoryboardReview } from './storyboard.mjs';
+import { buildStoryboardReview } from './storyboard-review.mjs';
+import { prepareStoryboardMigration, startStoryboardMigration, storyboardMigrationPlanView } from './storyboard-migration.mjs';
 import { workflowStageDefinition } from './workflows/registry.mjs';
 import { createAgentExecutorFromEnv } from './agent-executor.mjs';
 import { initializeProject, loadProject, writeJson, reopenGate3ForSeriesCover } from "./storage.mjs";
@@ -59,7 +62,7 @@ import {
 
 function usage() {
   console.log(`Usage:
-  node harness/src/cli.mjs init <slug> [--workflow <id>] [--workflow-version <version>]
+  node harness/src/cli.mjs init <slug> [--workflow <id>] [--workflow-version <version>] [--production-contract <version>]
   node harness/src/cli.mjs series list [--json]
   node harness/src/cli.mjs series select <slug> <series-id|none>
   node harness/src/cli.mjs series create <id> --title <title> --style <style>
@@ -81,7 +84,10 @@ function usage() {
   node harness/src/cli.mjs render-input validate-path <directory> [--json]
   node harness/src/cli.mjs render-input entry --manifest <file> --output <file> [--json]
   node harness/src/cli.mjs render-input entry-all --output <file> [--json]
-  node harness/src/cli.mjs approve <slug> <gate>
+  node harness/src/cli.mjs storyboard-review <slug> [--json]
+  node harness/src/cli.mjs storyboard-migration <slug> prepare
+  node harness/src/cli.mjs storyboard-migration <slug> start --migration-version <hash>
+  node harness/src/cli.mjs approve <slug> <gate> [--review-version <hash>]
   node harness/src/cli.mjs reject <slug> <gate> --return-to <stage> --reason <text>
   node harness/src/cli.mjs retry <slug> [stage]
   node harness/src/cli.mjs resume <slug>
@@ -453,9 +459,11 @@ export async function main(args, {deliveryDependencies = {}} = {}) {
 
   if (command === "init") {
     validateSlug(slug);
+    const contractIndex = options.indexOf("--production-contract");
     const workflowIndex = options.indexOf("--workflow");
     const workflowVersionIndex = options.indexOf("--workflow-version");
     const files = initializeProject(slug, {
+      ...(contractIndex >= 0 ? { productionContract: options[contractIndex + 1] } : {}),
       ...(workflowIndex >= 0 ? { workflow: options[workflowIndex + 1] } : {}),
       ...(workflowVersionIndex >= 0 ? { workflowVersion: Number(options[workflowVersionIndex + 1]) } : {}),
     });
@@ -607,9 +615,25 @@ export async function main(args, {deliveryDependencies = {}} = {}) {
     return 1;
   }
 
-  if (["validate", "run", "resume", "retry", "approve", "reject", "next", "report", "context", "plan"].includes(command)) {
+  if (command === "storyboard-migration") {
+    validateSlug(slug);
+    if (options[0] === "prepare") console.log(JSON.stringify(storyboardMigrationPlanView(prepareStoryboardMigration(slug)), null, 2));
+    else if (options[0] === "start") {
+      const versionIndex = options.indexOf("--migration-version");
+      console.log(JSON.stringify(startStoryboardMigration(slug, versionIndex < 0 ? null : options[versionIndex + 1]), null, 2));
+    } else throw new Error("storyboard-migration requires prepare or start");
+    return 0;
+  }
+
+  if (["storyboard-review", "validate", "run", "resume", "retry", "approve", "reject", "next", "report", "context", "plan"].includes(command)) {
     validateSlug(slug);
     const project = loadProject(slug, { refresh: !["context", "plan"].includes(command) });
+
+    if (command === "storyboard-review") {
+      const review = buildStoryboardReview(project);
+      console.log(options.includes("--json") ? JSON.stringify(review, null, 2) : formatStoryboardReview(review));
+      return review.ready ? 0 : 1;
+    }
 
     if (command === "context") {
       console.log(JSON.stringify(buildTaskPacket(project), null, 2));
@@ -678,7 +702,8 @@ export async function main(args, {deliveryDependencies = {}} = {}) {
     }
 
     if (command === "approve") {
-      console.log(JSON.stringify(approveGate(project, options[0]), null, 2));
+      const versionIndex = options.indexOf("--review-version");
+      console.log(JSON.stringify(approveGate(project, options[0], { reviewVersion: versionIndex < 0 ? null : options[versionIndex + 1] }), null, 2));
       return 0;
     }
 

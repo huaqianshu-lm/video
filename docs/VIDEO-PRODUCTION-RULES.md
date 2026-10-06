@@ -1,5 +1,8 @@
 # VIDEO-PRODUCTION-RULES.md
 
+> 版本边界：`storyboard-v1` 按 [Storyboard 生产契约](STORYBOARD-PRODUCTION-CONTRACT.md) 整合 Scene／Visual Script，Gate 2 审核口播与分镜，无 HTML 原型或旧动态自检要求；本文原型制作及观看要求只适用于旧契约。新契约保留视觉质量规则，实际动态检查在 Gate 3 完成。
+
+
 > 适用于所有基于文章 / 文档进行再创作的视频项目。  
 > 本文件只定义视频项目内部长期稳定的公共规则，不包含 TTS、字幕生成等外部项目的具体实现方法。
 

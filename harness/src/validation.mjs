@@ -1,3 +1,5 @@
+import { usesStoryboardProduction } from "./production-contract.mjs";
+import { storyboardReview, frozenStoryboardIssues } from "./storyboard.mjs";
 import crypto from "node:crypto";
 import { validateVisualSelfReview } from "./visual-self-review.mjs";
 import fs from "node:fs";
@@ -69,6 +71,7 @@ function hasVerifiedRemoteOutput(project, stage) {
 }
 
 function readTextArtifact(project, relativePath) {
+  if (!relativePath) return null;
   const filePath = absolutePath(project, relativePath);
   if (!fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) {
     return null;
@@ -177,7 +180,7 @@ function validateStageStructure(project, stage) {
       ],
     }));
   }
-  if (workflowStageIndex(project, stage) >= workflowStageIndex(project, "scene-script")) {
+  if (workflowStageIndex(project, "scene-script") >= 0 && workflowStageIndex(project, stage) >= workflowStageIndex(project, "scene-script")) {
     issues.push(...validateMarkdownStructure(project, stage, sceneScriptPath, {
       label: "Scene Script",
       minimumHeadings: 1,
@@ -193,7 +196,7 @@ function validateStageStructure(project, stage) {
       { label: "videoValue", patterns: [/videoValue/i] },
     ]));
   }
-  if (workflowStageIndex(project, stage) >= workflowStageIndex(project, "visual-script")) {
+  if (workflowStageIndex(project, "visual-script") >= 0 && workflowStageIndex(project, stage) >= workflowStageIndex(project, "visual-script")) {
     issues.push(...validateMarkdownStructure(project, stage, visualScriptPath, {
       label: "Visual Script",
       minimumHeadings: 2,
@@ -207,7 +210,7 @@ function validateStageStructure(project, stage) {
       { label: "Visual Type", patterns: [/Visual Type|视觉类型|视觉焦点/i] },
     ]));
   }
-  if (workflowStageIndex(project, stage) >= workflowStageIndex(project, "visual-prototype")) {
+  if (workflowStageIndex(project, "visual-prototype") >= 0 && workflowStageIndex(project, stage) >= workflowStageIndex(project, "visual-prototype")) {
     const prototype = readTextArtifact(project, prototypePath);
     if (prototype !== null) {
       if (!/<section\b[^>]*class=["'][^"']*\bscene\b/i.test(prototype)) {
@@ -419,7 +422,7 @@ function validateSeriesStyle(project, stage) {
     return issues;
   }
 
-  if (workflowStageIndex(project, stage) < workflowStageIndex(project, "visual-prototype")) return issues;
+  if (usesStoryboardProduction(project) || workflowStageIndex(project, stage) < workflowStageIndex(project, "visual-prototype")) return issues;
   const prototypePath = artifactPathFor(project, "visual-prototype", 0);
   const prototype = readTextArtifact(project, prototypePath);
   if (prototype !== null) {
@@ -485,6 +488,10 @@ function validateTts(project, stage, { strict = true } = {}) {
   const narrationPath = artifactPathFor(project, "narration-script", 0);
   const narration = readTextArtifact(project, narrationPath);
   if (narration !== null) {
+    if (usesStoryboardProduction(project)) issues.push(...compareSceneIds(stage, [
+      { label: "冻结口播", ids: sceneIdsFromMarkdown(narration) },
+      { label: "TTS Script", ids: sceneIdsFromJson(value) },
+    ]));
     if (value.source?.narrationFingerprint && value.source.narrationFingerprint !== fingerprint(narration)) {
       issues.push(issue(stage, "tts-script-stale", "TTS Script 不是根据当前冻结的 Narration Script 生成", relativePath));
     }
@@ -558,8 +565,10 @@ export function validateStageContent(project, stage, options = {}) {
   if (project.config.seriesSelection || project.config.seriesSelectionRequired) issues.push(...videoCoverAssetIssues(project).map(message => issue(stage, 'video-cover-invalid', message)));
   issues.push(...validateSeriesStyle(project, stage));
   issues.push(...validateStageStructure(project, stage));
-  if (index >= workflowStageIndex(project, "scene-script")) issues.push(...validateSceneAlignment(project, stage));
+  if (!usesStoryboardProduction(project) && index >= workflowStageIndex(project, "scene-script")) issues.push(...validateSceneAlignment(project, stage));
   if (index >= workflowStageIndex(project, "narration-script")) issues.push(...validateNarration(project, stage, { strict }));
+  if (usesStoryboardProduction(project) && index >= workflowStageIndex(project, "storyboard")) issues.push(...storyboardReview(project).issues.map(item => ({ ...item, stage })));
+  if (usesStoryboardProduction(project) && index >= workflowStageIndex(project, "tts")) issues.push(...frozenStoryboardIssues(project).map(item => ({ ...item, stage })));
   if (index >= workflowStageIndex(project, "tts")) issues.push(...validateTts(project, stage, { strict }));
   if (index >= workflowStageIndex(project, "subtitle-timeline")) issues.push(...validateTimeline(project, stage));
   if (index >= workflowStageIndex(project, "remotion")) issues.push(...validateRemotionAlignment(project));

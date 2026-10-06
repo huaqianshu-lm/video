@@ -1,5 +1,7 @@
+import { storyboardReview, storyboardTimingEvents } from "./storyboard.mjs";
+import { buildStoryboardReview } from "./storyboard-review.mjs";
 import { visualSelfReviewPath } from "./visual-self-review.mjs";
-import { productionContract, productionManualChecks, taskStages, usesUnifiedProduction } from "./production-contract.mjs";
+import { productionContract, productionManualChecks, taskStages, usesUnifiedProduction, usesStoryboardProduction } from "./production-contract.mjs";
 import {
   requireWorkflowDefinition,
   retiredStageDefinition,
@@ -261,13 +263,39 @@ export function buildTaskPacket(project) {
   }
   if (stages.length > 1) {
     const parts = stages.map((stage) => buildSingleTaskPacket({ ...project, state: { ...project.state, currentStage: stage } }));
-    packet.task.objective = "一次完成内容分析、视频叙事和场景脚本策划；保持三份文件职责，全部校验通过后完成内部审查。";
+    const convergence = stages.includes("storyboard");
+    packet.task.objective = convergence ? "先拟定分镜，再编写纯口播，与 Storyboard 一起收敛；两份产物全部校验通过后请求 Gate 2。" : usesStoryboardProduction(project) ? "一次完成内容分析与视频叙事，全部校验后内部审查。" : "一次完成内容分析、视频叙事和场景脚本策划；保持三份文件职责，全部校验通过后完成内部审查。";
     packet.task.outputArtifacts = parts.flatMap((part) => part.task.outputArtifacts);
+    packet.task.inputStages = [...new Set(parts.flatMap(part => part.task.inputStages))].filter(stage => !stages.includes(stage));
+    packet.task.inputArtifacts = artifactEntries(project, packet.task.inputStages);
+    packet.context.readPaths = [...new Set([...uniquePaths(packet.task.inputArtifacts), ...packet.context.referencePaths])];
     packet.context.writePaths = uniquePaths(packet.task.outputArtifacts);
     packet.task.validation = [...new Set(parts.flatMap((part) => part.task.validation))];
-    packet.task.nextStage = "narration-script";
+    packet.task.nextStage = convergence ? "gate-2" : "narration-script";
     packet.task.commands.validateAll = stages.map((stage) => commandFor("validate", project.state.slug, stage));
-    packet.context.constraints[0] = "本任务合并 task.stages 声明的策划阶段；只制作这些阶段，不能提前制作口播或视觉资料。";
+    packet.context.constraints[0] = "本任务合并 task.stages 声明的阶段；只制作这些阶段，不提前执行下游。";
+  }
+  if (usesStoryboardProduction(project)) {
+    packet.context.referencePaths = packet.context.referencePaths.filter(file => !file.includes("visual-script") && !file.includes("visual-prototype"));
+    packet.context.referencePaths.push(packet.context.style.path, "docs/STORYBOARD-PRODUCTION-CONTRACT.md", "templates/video-production/storyboard.json", "templates/video-production/storyboard.schema.json");
+    packet.context.readPaths = [...new Set([...packet.context.readPaths.filter(file => !file.includes("visual-script") && !file.includes("visual-prototype")), ...packet.context.referencePaths])];
+    packet.context.constraints = packet.context.constraints.filter(text => !/原型|schemaVersion 2/.test(text));
+    packet.context.constraints.push("Storyboard 是唯一场景／视觉方案；口播只写 narration-script.md，分镜以 narrationRef 引用，不制作旧 Scene／Visual Script 或 HTML 原型。", "分镜写明视觉焦点、变化链、稳定事件 ID、唯一口播语义锚点、文字依据、停留和衔接；不写正式估算秒数。实际画面与试听在 Gate 3 检查。");
+    if (stages.includes("storyboard")) {
+      const outputPath = `${project.config.sourceDirectory}/storyboard-assets/*`;
+      packet.task.outputArtifacts.push({ stage: "storyboard", path: outputPath, status: "optional", exists: false });
+      packet.context.writePaths.push(outputPath);
+    }
+    if (packet.task.stage === "gate-2") {
+      packet.context.storyboardReview = buildStoryboardReview(project);
+      packet.task.commands.review = commandFor("storyboard-review", project.state.slug);
+      packet.task.commands.approve += ` --review-version ${packet.context.storyboardReview.reviewVersion}`;
+    }
+    if (packet.task.stage === "remotion") {
+      packet.context.storyboardReview = storyboardReview(project);
+      try { packet.context.storyboardTimingEvents = storyboardTimingEvents(project, packet.context.timingPlan); } catch (error) { packet.context.storyboardTimingError = error.message; }
+      packet.context.constraints.push("逐 Scene／Event 对齐冻结分镜；alignment 使用 schemaVersion 3、storyboardFingerprint、reviewVersion，事件通过命名 visualBindings 绑定实际 Cue／Segment 和时间。不得以估算秒数替代真实 Timeline。");
+    }
   }
   if (usesUnifiedProduction(project) && packet.task.executor === "agent" && !["source", "tts"].includes(packet.task.stage)) {
     packet.task.commands.claim = `node harness/src/cli.mjs production-task claim ${project.state.slug}`;

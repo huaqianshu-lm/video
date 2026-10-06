@@ -7,6 +7,9 @@ description: Operate or modify the local Harness Web UI, persistent jobs, batch 
 
 Use this skill for Harness Web UI, batch jobs, Agent executors, asset packaging, Smoke Render, complete Render, or GitHub Actions delivery.
 
+
+`storyboard-v1` 先读取 `docs/STORYBOARD-PRODUCTION-CONTRACT.md`，以其阶段、任务和审核边界覆盖本文的旧原型要求；旧契约继续遵守本文。新契约保留纯口播、真实 Timeline、人工 Gate 和共享交付约束。
+
 ## Core behavior
 
 - Reuse the Harness stage contract and persistent project state; do not duplicate stage or Gate logic in the browser.

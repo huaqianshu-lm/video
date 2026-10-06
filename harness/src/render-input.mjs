@@ -13,6 +13,8 @@ import { ARCHIVED_NAMESPACE, ARCHIVED_WORKFLOW_ID } from "./workflows/archived.m
 
 import {readVideoCover, videoCoverAssetIssues} from './video-cover.mjs';
 import {validateCover} from './series-assets.mjs';
+import { productionContract, usesStoryboardProduction } from "./production-contract.mjs";
+import { storyboardReview, frozenStoryboardIssues, storyboardLocalFile } from "./storyboard.mjs";
 
 const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const IDENTIFIER_PATTERN = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
@@ -274,6 +276,8 @@ function validateManifestShape(manifest, { archivedPreview = false } = {}) {
   }
   try {
     requireWorkflowDefinition(manifest, { archivedPreview });
+    productionContract(manifest);
+    if (usesStoryboardProduction(manifest) && (manifest.productionBaseline?.kind !== "storyboard-baseline" || !/^[a-f0-9]{64}$/.test(manifest.productionBaseline.reviewVersion ?? ""))) issues.push("Storyboard 输入包缺少冻结审核基线");
   } catch (error) {
     issues.push(`render-input.json 的 Workflow 无效：${error instanceof Error ? error.message : String(error)}`);
   }
@@ -659,6 +663,14 @@ export function validateRenderInputDirectory(directory, { expectedSlug = null, l
     });
     issues.push(...remoteIssues.map((issue) => `远程渲染输入：${issue}`));
   }
+  if (manifest.productionContract === "storyboard-v1") {
+    try {
+      const board = JSON.parse(fs.readFileSync(path.join(packageRoot, manifest.payload.sourceDirectory, "storyboard.json"), "utf8"));
+      const review = storyboardReview({ config: { slug, workspaceRoot: packageRoot, sourceDirectory: manifest.payload.sourceDirectory, style: board.style, seriesSelection: board.seriesSelection } });
+      issues.push(...review.issues.map(issue => issue.message));
+      if (review.reviewVersion !== manifest.productionBaseline?.reviewVersion || review.storyboardFingerprint !== manifest.productionBaseline?.storyboardFingerprint) issues.push("Storyboard 输入包与冻结审核版本不一致");
+    } catch (error) { issues.push(`Storyboard 输入校验失败：${error.message}`); }
+  }
   return [...new Set(issues)];
 }
 
@@ -686,6 +698,7 @@ function buildManifest({ slug, compositionId, entry, packageRoot, project }) {
     videoSlug: slug,
     workflow: definition.id,
     workflowVersion: definition.version,
+    ...(usesStoryboardProduction(project) ? { productionContract: "storyboard-v1", productionBaseline: JSON.parse(fs.readFileSync(path.join(project.files.directory, "prototype-baseline.json"), "utf8")) } : {}),
     compositionId,
     createdAt: new Date().toISOString(),
     entry: {
@@ -728,6 +741,13 @@ function manifestEntry(manifest) {
 }
 
 function manifestMatchesWorkspaceSources(manifest, workspaceRoot, slug, projectOrWorkflow = null) {
+  if (manifest.productionContract === "storyboard-v1") {
+    try {
+      const board = JSON.parse(fs.readFileSync(path.join(workspaceRoot, `videos/${slug}/storyboard.json`), "utf8"));
+      const config = projectOrWorkflow?.config ?? { slug, workspaceRoot, sourceDirectory: `videos/${slug}`, style: board.style, seriesSelection: board.seriesSelection, productionContract: manifest.productionContract };
+      if (!usesStoryboardProduction({ config }) || storyboardReview({ config }).reviewVersion !== manifest.productionBaseline?.reviewVersion) return false;
+    } catch { return false; }
+  } else if (projectOrWorkflow && usesStoryboardProduction(projectOrWorkflow)) return false;
   const workflowInput = projectOrWorkflow ?? {
     config: {
       slug,
@@ -820,6 +840,10 @@ export function prepareRenderInput(project, {
   configExport = "videoConfig",
 } = {}) {
   assertProjectMutable(project, "准备视频输入包");
+  if (usesStoryboardProduction(project)) {
+    const issues = frozenStoryboardIssues(project);
+    if (issues.length) fail(issues.map(issue => issue.message).join("；"), "storyboard-baseline-stale");
+  }
   const workspaceRoot = requireWorkspaceRoot(project);
   const slug = requireSlug(project?.config?.slug ?? project?.state?.slug);
   if (typeof compositionId !== "string" || !compositionId.trim()) fail("compositionId is required", "render-input-composition-invalid");
@@ -859,7 +883,7 @@ export function prepareRenderInput(project, {
     const existingManifest = existingIssues.length === 0
       ? readManifest(path.join(destination, "render-input.json"))
       : null;
-    if (existingIssues.length === 0 && manifestMatchesSources(existingManifest, { sources, entry, compositionId })) return {
+    if (existingIssues.length === 0 && (!usesStoryboardProduction(project) || existingManifest.productionBaseline?.reviewVersion === storyboardReview(project).reviewVersion) && manifestMatchesSources(existingManifest, { sources, entry, compositionId })) return {
       status: "current",
       directory: destination,
       archivePath: fs.existsSync(renderInputArchivePath(workspaceRoot, slug)) ? renderInputArchivePath(workspaceRoot, slug) : null,
@@ -876,6 +900,12 @@ export function prepareRenderInput(project, {
     copyTree(sources.remotion, path.join(temporaryDirectory, paths.remotionDirectory));
     fs.mkdirSync(path.dirname(path.join(temporaryDirectory, paths.assetArchive)), { recursive: true });
     fs.copyFileSync(sources.assetArchive, path.join(temporaryDirectory, paths.assetArchive));
+    if (usesStoryboardProduction(project)) for (const dependency of storyboardReview(project).dependencies) {
+      if (dependency.path.startsWith(`${paths.sourceDirectory}/`)) continue;
+      const target = path.join(temporaryDirectory, dependency.path);
+      fs.mkdirSync(path.dirname(target), { recursive: true });
+      fs.copyFileSync(storyboardLocalFile(project, dependency.path), target);
+    }
     const manifest = buildManifest({ slug, compositionId, entry, packageRoot: temporaryDirectory, project });
     fs.writeFileSync(path.join(temporaryDirectory, "render-input.json"), `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
     assertRenderInputDirectory(temporaryDirectory, { expectedSlug: slug });

@@ -3,6 +3,8 @@ import {
   RETIRED_STAGE_DEFINITIONS,
 } from "../stages.mjs";
 import { NARRATED_TUTORIAL_WORKFLOW } from "./narrated-tutorial-v1.mjs";
+import { usesStoryboardProduction } from "../production-contract.mjs";
+import { STORYBOARD_STAGES, STORYBOARD_STAGE_DEFINITIONS } from "./storyboard-stages.mjs";
 import { ARCHIVED_WORKFLOW, ARCHIVED_WORKFLOW_ID, retiredWorkflowError } from "./archived.mjs";
 
 export const LEGACY_WORKFLOW_ID = "default";
@@ -88,7 +90,10 @@ export function requireWorkflowDefinition(input, { archivedPreview = false } = {
 }
 
 export function workflowForProject(project) {
-  return requireWorkflowDefinition(project);
+  const definition = requireWorkflowDefinition(project);
+  return definition.id === DEFAULT_WORKFLOW_ID && usesStoryboardProduction(project)
+    ? { ...definition, stages: STORYBOARD_STAGES, stageDefinitions: STORYBOARD_STAGE_DEFINITIONS }
+    : definition;
 }
 
 export function workflowIdForProject(project) {

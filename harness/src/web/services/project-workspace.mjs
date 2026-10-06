@@ -6,6 +6,8 @@ import { listProjectFiles } from "../../project-files.mjs";
 import { loadProject } from "../../storage.mjs";
 import { findActiveBatchForProject, getBatchForView } from "../../batches.mjs";
 import { listAgentJobs } from "../../agent-jobs.mjs";
+import { usesStoryboardProduction } from "../../production-contract.mjs";
+import { buildStoryboardReview } from "../../storyboard-review.mjs";
 
 export async function getProjectWorkspace(slug, { remoteJobMonitor = null } = {}) {
   let project = getVideoProject(slug);
@@ -25,9 +27,12 @@ export async function getProjectWorkspace(slug, { remoteJobMonitor = null } = {}
     alignment: null,
     remotionTasks: listRemotionTasks({ slug }).map(remotionTaskForView),
     continuousBatch: null,
+    storyboardReview: null,
   };
 
   if (project.initialized) {
+    const productionProject = loadProject(slug, { refresh: false });
+    if (usesStoryboardProduction(productionProject)) workspace.storyboardReview = buildStoryboardReview(productionProject);
     try {
       workspace.alignment = buildAlignmentView(loadProject(slug, { refresh: false }));
     } catch {

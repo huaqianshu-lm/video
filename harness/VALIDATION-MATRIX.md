@@ -114,3 +114,12 @@ Smoke Render 只能针对未完成视频或独立副本，并通过 GitHub Actio
 既有依赖旧审核流程的 Fixture 显式使用 `legacy-v1`；统一契约另有 25 项专项回归。模拟音频、视觉审核证据和外部响应只验证契约，不代表真实音视频质量或人工确认。
 
 运行 `npm run test:production --prefix harness` 检查统一任务／审核及共享交付，运行 `npm test --prefix harness` 检查全部模块。入口隔离与证据位置见 `README.md`；本轮完整结果保存到本地 `local/harness-unified-production/verification.json`。AC-7 和上述强制中断窗口未全部验收，整体迁移仍未完成。
+
+
+## Storyboard 版本化生产（迁移中）
+
+`storyboard-production.test.mjs` 使用隔离项目覆盖两份合并策划、口播／分镜共同收敛、Schema 与资料／锚点／安全路径、版本绑定批准、冻结与失效、CLI／HTTP 相同审核包、批量 Gate 2、模拟 TTS 输入与真实 Manifest 时间映射、逐 Event 对齐、独立输入包和 Gate 3 合并试听。模拟音频和 null 组件只用于契约测试，不代表实际内容、画面或声音已通过审核。
+
+旧动态原型／visual-self-review 回归继续适用于 legacy-v1／unified-v1。Storyboard 的 Gate 2 不验证动态观看证据；Gate 3 的实际质量及人工决定仍须用户验收。默认切换、旧项目迁移的实际使用、实际 Web 手动检查、真实视频及跨视频交付待验证；以 ROADMAP 和本地收敛记录为准。
+
+显式迁移回归覆盖原样保留旧资料与任务、严格复用纯口播、重建 stage order、Gate 2 批准失效、活动任务／下游／完成态阻断，以及状态／产物／配置交接中断后同一日志恢复。

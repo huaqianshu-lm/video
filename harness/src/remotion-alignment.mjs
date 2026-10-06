@@ -1,3 +1,5 @@
+import { usesStoryboardProduction } from "./production-contract.mjs";
+import { storyboardBaseline, storyboardReview, storyboardTimingEvents } from "./storyboard.mjs";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
@@ -40,6 +42,7 @@ function prototypeSceneIds(text) {
 }
 
 export function buildPrototypeBaseline(project) {
+  if (usesStoryboardProduction(project)) return storyboardBaseline(project);
   const visualScriptPath = workflowStageDefinition(project, "visual-script")?.artifacts?.[0]
     ?.replaceAll("{slug}", project.config.slug);
   const prototypeStage = "visual-prototype";
@@ -66,15 +69,16 @@ export function buildPrototypeBaseline(project) {
   };
 }
 
-export function freezePrototypeBaseline(project) {
+export function freezePrototypeBaseline(project, { reviewVersion = null } = {}) {
   assertProjectMutable(project, "冻结 Visual Prototype 基线");
   assertProjectSlugMutable(project.config.slug, "冻结 Visual Prototype 基线");
   const baseline = buildPrototypeBaseline(project);
+  if (usesStoryboardProduction(project) && baseline.reviewVersion !== reviewVersion) throw Object.assign(new Error("冻结前审核资料已变化，请重新查看分镜审核包。"), { code: "storyboard-review-stale" });
   const remotionDirectory = path.join(project.config.workspaceRoot, project.config.remotionDirectory);
   const hasExistingImplementation = fs.existsSync(path.join(remotionDirectory, "video.config.ts"))
     && fs.existsSync(remotionDirectory)
     && fs.readdirSync(remotionDirectory).some((entry) => entry.endsWith("Video.tsx"));
-  baseline.alignmentRequired = !hasExistingImplementation;
+  baseline.alignmentRequired = usesStoryboardProduction(project) || !hasExistingImplementation;
   writeJson(prototypeBaselinePath(project), baseline);
   return baseline;
 }
@@ -339,7 +343,7 @@ export function validateRemotionAlignment(project) {
   const baseline = getPrototypeBaseline(project);
   const relativePath = remotionAlignmentPath(project);
   if (!baseline) {
-    return [];
+    return usesStoryboardProduction(project) ? [alignmentIssue("storyboard-baseline-missing", "缺少 Gate 2 冻结分镜基线")] : [];
   }
 
   let current;
@@ -350,8 +354,8 @@ export function validateRemotionAlignment(project) {
   }
   const issues = [];
   const strictVisualTiming = baseline.alignmentRequired !== false;
-  if (current.visualScript.fingerprint !== baseline.visualScript?.fingerprint
-    || current.visualPrototype.fingerprint !== baseline.visualPrototype?.fingerprint) {
+  if (usesStoryboardProduction(project) ? current.reviewVersion !== baseline.reviewVersion : (current.visualScript.fingerprint !== baseline.visualScript?.fingerprint
+    || current.visualPrototype.fingerprint !== baseline.visualPrototype?.fingerprint)) {
     issues.push(alignmentIssue("prototype-baseline-stale", "Gate 2 后 Visual Script 或 Visual Prototype 已变化，必须重新确认 Gate 2。"));
   }
 
@@ -365,11 +369,11 @@ export function validateRemotionAlignment(project) {
     issues.push(alignmentIssue("invalid-remotion-alignment-json", `无法解析 Remotion 对齐清单：${alignment.parseError}`, relativePath));
     return issues;
   }
-  if (alignment.schemaVersion !== REMOTION_ALIGNMENT_SCHEMA_VERSION || alignment.slug !== project.config.slug) {
+  if (alignment.schemaVersion !== (usesStoryboardProduction(project) ? 3 : REMOTION_ALIGNMENT_SCHEMA_VERSION) || alignment.slug !== project.config.slug) {
     issues.push(alignmentIssue("invalid-remotion-alignment-schema", "Remotion 对齐清单的 schemaVersion 或 slug 无效。", relativePath));
   }
-  if (alignment.prototypeFingerprint !== baseline.visualPrototype.fingerprint
-    || alignment.visualScriptFingerprint !== baseline.visualScript.fingerprint) {
+  if (usesStoryboardProduction(project) ? (alignment.storyboardFingerprint !== baseline.storyboardFingerprint || alignment.reviewVersion !== baseline.reviewVersion) : (alignment.prototypeFingerprint !== baseline.visualPrototype.fingerprint
+    || alignment.visualScriptFingerprint !== baseline.visualScript.fingerprint)) {
     issues.push(alignmentIssue("remotion-alignment-fingerprint-mismatch", "Remotion 对齐清单未引用当前 Gate 2 冻结指纹。", relativePath));
   }
 
@@ -401,6 +405,27 @@ export function validateRemotionAlignment(project) {
   issues.push(...validateTemporaryRenderEntry(project));
 
   const scenes = Array.isArray(alignment.scenes) ? alignment.scenes : [];
+  if (usesStoryboardProduction(project) && timingPlan) {
+    try {
+      const expectedEvents = storyboardTimingEvents(project, timingPlan);
+      for (const expected of expectedEvents) {
+        const scene = scenes.find(item => item.sceneId === expected.sceneId);
+        const mappings = scene?.storyboardEvents;
+        if (!Array.isArray(mappings) || mappings.map(item => item?.id).join(",") !== expected.events.map(item => item.id).join(",")) {
+          issues.push(alignmentIssue("storyboard-event-mismatch", `Scene ${expected.sceneId} 未逐项覆盖冻结 Event ID。`, relativePath));
+          continue;
+        }
+        for (const event of expected.events) {
+          const mapping = mappings.find(item => item.id === event.id);
+          const binding = scene.visualBindings?.find(item => item.id === mapping.bindingId);
+          if (mapping.cueId !== event.cueId || mapping.segmentId !== event.segmentId || mapping.atFrame !== event.atFrame || !binding || binding.atFrame !== event.atFrame || binding.source?.type !== "cue" || binding.source.id !== event.cueId || (binding.source.offsetFrames ?? 0) !== 0) issues.push(alignmentIssue("storyboard-event-binding-invalid", `Event ${event.id} 未绑定真实锚点 Cue 的命名 visualBinding。`, relativePath));
+        }
+        const boardScene = storyboardReview(project).scenes.find(item => item.id === expected.sceneId);
+        if (JSON.stringify(scene.screenText) !== JSON.stringify(boardScene.elements.filter(item => item.text).map(item => item.text))) issues.push(alignmentIssue("storyboard-screen-text-mismatch", `Scene ${expected.sceneId} 屏幕文字与冻结分镜不一致。`, relativePath));
+        if (scene.visualElements?.map(item => item.id).join(",") !== boardScene.elements.map(item => item.id).join(",")) issues.push(alignmentIssue("storyboard-element-mismatch", `Scene ${expected.sceneId} 元素未对应分镜稳定 ID。`, relativePath));
+      }
+    } catch (error) { issues.push(alignmentIssue("storyboard-timing-invalid", error.message, relativePath)); }
+  }
   const actualIds = scenes.map((scene) => String(scene.sceneId ?? "").padStart(2, "0"));
   if (actualIds.join(",") !== baseline.sceneIds.join(",")) {
     issues.push(alignmentIssue("remotion-alignment-scene-mismatch", "Remotion 对齐清单未按顺序覆盖全部 Scene。", relativePath));

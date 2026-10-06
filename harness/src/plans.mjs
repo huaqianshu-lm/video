@@ -1,5 +1,6 @@
 import {
   requireWorkflowDefinition,
+  workflowForProject,
   workflowStageDefinitions,
   workflowStages,
 } from "./workflows/registry.mjs";
@@ -12,7 +13,7 @@ function commandFor(command, slug, stage = null) {
 
 export function buildProjectPlan(project, targetOverride = null) {
   const { config, state } = project;
-  const workflow = requireWorkflowDefinition(config);
+  const workflow = workflowForProject(project);
   const stagesForWorkflow = workflowStages(project);
   const definitionsForWorkflow = workflowStageDefinitions(project);
 

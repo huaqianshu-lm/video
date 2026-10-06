@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "test": "node scripts/test.mjs",
-    "test:production": "node scripts/test.mjs unified-production.test.mjs batch-delivery.test.mjs render-delivery.test.mjs web-server.test.mjs",
+    "test:production": "node scripts/test.mjs tts-script.test.mjs storyboard-production.test.mjs unified-production.test.mjs batch-delivery.test.mjs render-delivery.test.mjs web-server.test.mjs",
     "web": "node src/web-entry.mjs"
   }
 }
