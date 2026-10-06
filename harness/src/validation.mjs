@@ -310,9 +310,10 @@ function validateSceneAlignment(project, stage) {
   const visualScriptPath = artifactPathFor(project, "visual-script", 0);
   const prototypePath = artifactPathFor(project, "visual-prototype", 0);
   const sceneScript = readTextArtifact(project, sceneScriptPath);
-  const narration = readTextArtifact(project, narrationPath);
-  const visualScript = readTextArtifact(project, visualScriptPath);
-  const prototype = readTextArtifact(project, prototypePath);
+  const inScope = candidate => workflowStageIndex(project, stage) >= workflowStageIndex(project, candidate);
+  const narration = inScope("narration-script") ? readTextArtifact(project, narrationPath) : null;
+  const visualScript = inScope("visual-script") ? readTextArtifact(project, visualScriptPath) : null;
+  const prototype = inScope("visual-prototype") ? readTextArtifact(project, prototypePath) : null;
   const entries = [];
   if (sceneScript !== null) entries.push({ label: "Scene Script", ids: sceneIdsFromMarkdown(sceneScript) });
   if (narration !== null) entries.push({ label: "Narration Script", ids: sceneIdsFromMarkdown(narration) });

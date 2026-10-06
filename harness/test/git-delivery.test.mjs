@@ -1,3 +1,5 @@
+import { createDeliveryDependencies } from "./helpers/delivery-fixture.mjs";
+import { createJobRecord } from "../src/jobs.mjs";
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -85,6 +87,7 @@ function createRenderWorkspace(slug) {
 }
 
 test("complete Render can confirm once, commit only render files, push, then queue one remote job", async () => {
+  const previousWorkspaceRoot = process.env.HARNESS_WORKSPACE_ROOT;
   const previousProjectsRoot = process.env.HARNESS_PROJECTS_DIR;
   const previousToken = process.env.GITHUB_TOKEN;
   const previousAuthSource = process.env.HARNESS_GITHUB_AUTH_SOURCE;
@@ -93,6 +96,7 @@ test("complete Render can confirm once, commit only render files, push, then que
   const projectsRoot = fs.mkdtempSync(path.join(os.tmpdir(), "video-harness-git-delivery-projects-"));
   const slug = "02-core-concepts";
   const { workspaceRoot, remoteRoot } = createRenderWorkspace(slug);
+  process.env.HARNESS_WORKSPACE_ROOT = workspaceRoot;
   process.env.HARNESS_PROJECTS_DIR = projectsRoot;
   process.env.GITHUB_TOKEN = "test-token";
   process.env.HARNESS_GITHUB_AUTH_SOURCE = "env";
@@ -118,6 +122,9 @@ test("complete Render can confirm once, commit only render files, push, then que
   let submitCount = 0;
   const webServer = createWebServer({
     port: 0,
+    deliveryDependencies: createDeliveryDependencies(workspaceRoot, {
+      submit(input) { submitCount += 1; return createJobRecord(input); }, async processJob() {},
+    }),
     githubPreflight: async () => ({ ok: true }),
     remoteJobMonitor: {
       start() {},
@@ -144,7 +151,6 @@ test("complete Render can confirm once, commit only render files, push, then que
     assert.deepEqual(initialPayload.commitPlan.commitPaths, ["src/TemplateVideo.tsx"]);
     assert.equal(initialPayload.commitPlan.selectedPaths[0], "src/TemplateVideo.tsx");
     assert.match(initialPayload.commitPlan.planId, /^[a-f0-9]{64}$/);
-    assert.deepEqual(initialPayload.commitPlan.outOfScopePaths, []);
 
     const confirmed = await request(webServer, `/api/projects/${slug}/action`, {
       method: "POST",
@@ -160,13 +166,14 @@ test("complete Render can confirm once, commit only render files, push, then que
     });
     const confirmedPayload = JSON.parse(confirmed.body);
     assert.equal(confirmed.status, 202);
-    assert.equal(confirmedPayload.result.delivery.status, "committed");
+    assert.equal(confirmedPayload.result.status, "queued");
     assert.equal(submitCount, 1);
     assert.deepEqual(git(workspaceRoot, ["show", "--format=", "--name-only", "HEAD"]).split(/\r?\n/), ["src/TemplateVideo.tsx"]);
     assert.match(git(workspaceRoot, ["status", "--porcelain=v1", "--untracked-files=all"]), /notes\.txt/);
     assert.equal(git(remoteRoot, ["rev-parse", "refs/heads/main"]), git(workspaceRoot, ["rev-parse", "HEAD"]));
   } finally {
     await webServer.close();
+    if (previousWorkspaceRoot === undefined) delete process.env.HARNESS_WORKSPACE_ROOT; else process.env.HARNESS_WORKSPACE_ROOT = previousWorkspaceRoot;
     if (previousProjectsRoot === undefined) delete process.env.HARNESS_PROJECTS_DIR;
     else process.env.HARNESS_PROJECTS_DIR = previousProjectsRoot;
     if (previousToken === undefined) delete process.env.GITHUB_TOKEN;

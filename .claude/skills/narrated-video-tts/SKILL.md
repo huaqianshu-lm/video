@@ -13,7 +13,7 @@ Use this skill when a video has spoken narration or when working on TTS, audio, 
 2. Derive `tts-script.json` from pure `narration-script.md` with `scripts/build_tts_script.py`.
 3. Validate Scene and Segment IDs, text coverage, empty text, and absence of production instructions.
 4. Generate audio, subtitles, and Timeline from that validated TTS Script and the actual generated audio.
-5. Complete automatic checks and human TTS quality review before Remotion work.
+5. Read `docs/HARNESS-PRODUCTION-CONTRACT.md` and the project's persisted productionContract. For unified-v1, finish automatic checks before Remotion and combine human listening with Gate 3 preview review; Harness binds approval to current audio/Timeline fingerprints. For legacy-v1 or a missing field, retain the standalone human TTS quality review before Remotion. Never infer migration from the entrypoint.
 
 ## Invariants
 

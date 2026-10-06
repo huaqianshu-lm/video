@@ -4,8 +4,10 @@ import fs from "node:fs";
 import path from "node:path";
 import { buildTaskPacket } from "./context.mjs";
 import { assertProjectMutable, assertProjectSlugMutable, isCompletedProject, loadProject, projectsRoot, readJson, writeJson } from "./storage.mjs";
-import { validateStage } from "./runner.mjs";
-import { fingerprintStageArtifacts } from "./fingerprints.mjs";
+import { validateStage, runStage } from "./runner.mjs";
+import { fingerprintStageArtifacts, fingerprintTaskInputs } from "./fingerprints.mjs";
+import { usesUnifiedProduction } from "./production-contract.mjs";
+import { acquireProductionTask, activeProductionTask, assertProductionTaskOwner, releaseProductionTask } from "./production-lock.mjs";
 import { prepareRenderInputEntry } from "./render-input.mjs";
 
 const TASK_STATUSES = new Set(["ready", "in-progress", "blocked", "completed", "failed"]);
@@ -111,16 +113,22 @@ export function getRemotionTask(id) {
 export function ensureRemotionTask({ slug, batchId }) {
   assertProjectSlugMutable(slug, "创建 Remotion 任务");
   const project = loadProject(slug, { refresh: true });
-  const existing = listRemotionTasks({ slug, batchId })
+  const existing = listRemotionTasks({ slug })
     .find((task) => TASK_STATUSES.has(task.status) && task.status !== "failed" && task.status !== "completed");
   // A repeat request only displays the already running task; it starts no new work.
-  if (existing?.status === "in-progress" && stageAvailability(existing).allowed) return existing;
+  if (existing?.status === "in-progress" && stageAvailability(existing).allowed) {
+    acquireProductionTask(project, { id: existing.id, stage: "remotion", mode: "background-remotion" });
+    return existing;
+  }
   assertRemotionTaskStageReady({ slug }, "创建 Remotion 任务");
-  if (existing) return existing;
+  if (existing) {
+    acquireProductionTask(project, { id: existing.id, stage: "remotion", mode: "background-remotion" });
+    return existing;
+  }
 
   const packet = buildTaskPacket(project);
   const now = new Date().toISOString();
-  return saveTask({
+  const task = {
     schemaVersion: 1,
     id: crypto.randomUUID(),
     kind: "remotion-production-task",
@@ -140,13 +148,17 @@ export function ensureRemotionTask({ slug, batchId }) {
     manualChecks: packet.task.manualChecks,
     context: packet.context,
     commands: packet.task.commands,
-  });
+  };
+  acquireProductionTask(project, { id: task.id, stage: "remotion", mode: "background-remotion" });
+  try { return saveTask(task); } catch (error) { if (activeProductionTask(project)?.id === task.id) releaseProductionTask(project, task.id); throw error; }
 }
 
 export function startRemotionTask(id) {
   const task = getRemotionTask(id);
   if (!task) throw new Error(`Remotion task not found: ${id}`);
   assertProjectSlugMutable(task.slug, "启动 Remotion 任务");
+  const project = loadProject(task.slug, { refresh: true });
+  assertProductionTaskOwner(project, id);
   assertRemotionTaskStageReady(task, "启动 Remotion 任务");
   if (!["ready", "blocked"].includes(task.status)) {
     if (task.status === "in-progress") return task;
@@ -155,6 +167,14 @@ export function startRemotionTask(id) {
   task.status = "in-progress";
   task.startedAt ??= new Date().toISOString();
   task.error = null;
+  acquireProductionTask(project, { id, stage: "remotion", mode: "background-remotion" });
+  if (usesUnifiedProduction(project)) {
+    acquireProductionTask(project, { id, stage: "remotion", mode: "background-remotion" });
+    task.outputFingerprint ??= fingerprintStageArtifacts(project, "remotion");
+    const inputFingerprint = fingerprintTaskInputs(project, ["remotion"]);
+    if (task.inputFingerprint && task.inputFingerprint !== inputFingerprint) throw new Error("上游输入已变化，原 Remotion 任务不能继续，请安排返工。");
+    task.inputFingerprint = inputFingerprint;
+  }
   return saveTask(task);
 }
 
@@ -168,6 +188,8 @@ function blockedTask(id, error) {
     message: error instanceof Error ? error.message : String(error?.message ?? error),
   };
   task.completedAt = null;
+  const project = loadProject(task.slug, { refresh: false });
+  if (activeProductionTask(project)?.id === id) releaseProductionTask(project, id);
   return saveTask(task);
 }
 
@@ -187,6 +209,8 @@ function failRemotionTask(id, error) {
     ...(error?.stderr ? { stderr: error.stderr } : {}),
   };
   task.completedAt = new Date().toISOString();
+  const project = loadProject(task.slug, { refresh: false });
+  if (activeProductionTask(project)?.id === id) releaseProductionTask(project, id);
   return saveTask(task);
 }
 
@@ -243,6 +267,12 @@ export function completeRemotionTask(id) {
   }
 
   const project = loadProject(task.slug, { refresh: true });
+  assertProductionTaskOwner(project, id);
+  if (usesUnifiedProduction(project) && (task.status !== "in-progress"
+    || task.inputFingerprint !== fingerprintTaskInputs(project, ["remotion"])
+    || task.outputFingerprint === fingerprintStageArtifacts(project, "remotion"))) {
+    throw Object.assign(new Error("Remotion 必须由已领取任务制作新产物，且输入在制作期间保持不变。"), { code: "remotion-production-result-invalid" });
+  }
   let renderInput;
   try {
     renderInput = prepareRenderInputEntry(project);
@@ -295,6 +325,12 @@ export function completeRemotionTask(id) {
     entryPath: "src/RenderInputRoot.tsx",
   };
   saveTask(task);
+  if (usesUnifiedProduction(project)) {
+    project.taskOwner = id;
+    runStage(project, "remotion", { executors: { remotion: { run: () => ({ outputs: task.outputArtifacts }) } } });
+    runStage(project, "gate-3");
+  }
+  if (activeProductionTask(project)?.id === id) releaseProductionTask(project, id);
   return { task, issues: [], completed: true, renderInput: task.renderInput };
 }
 

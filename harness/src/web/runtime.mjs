@@ -13,12 +13,13 @@ export function createRuntime({
   agentExecutorFactory = (stage) => stage === "subtitle-timeline" ? createTtsExecutorFromEnv() : createAgentExecutorFromEnv(),
   remotionExecutorFactory = () => createRemotionExecutorFromEnv(),
   githubPreflight = (options) => assertGitHubActionsReady(options),
+  deliveryDependencies = {},
 } = {}) {
-  const runtime = { remoteJobMonitor, githubPreflight };
+  const runtime = { remoteJobMonitor, githubPreflight, deliveryDependencies };
   const resumeBatchForRemoteJob = async (job) => {
     const batchIds = job?.batchId ? [job.batchId] : findBatchesForRemoteJob(job);
     for (const batchId of [...new Set(batchIds)]) {
-      await runBatch(batchId, { queueAgentJob: runtime.queueAgentJob, remoteMonitor: remoteJobMonitor });
+      await runBatch(batchId, { deliveryDependencies: runtime.deliveryDependencies, queueAgentJob: runtime.queueAgentJob, remoteMonitor: remoteJobMonitor });
     }
   };
   remoteJobMonitor?.setJobSettledHandler?.(resumeBatchForRemoteJob);
@@ -31,7 +32,7 @@ export function createRuntime({
         executor = { async run() { throw error; } };
       }
       const finished = await runAgentJob(id, { executor });
-      if (finished.batchId) await runBatch(finished.batchId, { queueAgentJob: runtime.queueAgentJob, remoteMonitor: remoteJobMonitor });
+      if (finished.batchId) await runBatch(finished.batchId, { deliveryDependencies: runtime.deliveryDependencies, queueAgentJob: runtime.queueAgentJob, remoteMonitor: remoteJobMonitor });
     })().catch(() => {});
   };
   runtime.queueRemotionTask = (id) => {
@@ -47,10 +48,10 @@ export function createRuntime({
       if (!result.completed) return;
       const project = loadProject(result.task.slug, { refresh: true });
       if (project.state.currentStage === "remotion" && project.state.stages.remotion.status === "ready") {
-        await runStage(project, "remotion", { adapters: {} });
+        await runStage(project, "remotion", { executors: { remotion: { run: () => result.execution ?? { outputs: [] } } } });
         await runStage(loadProject(result.task.slug, { refresh: true }), "gate-3", { adapters: {} });
       }
-      if (result.task.batchId) await runBatch(result.task.batchId, { remoteMonitor: remoteJobMonitor });
+      if (result.task.batchId) await runBatch(result.task.batchId, { deliveryDependencies: runtime.deliveryDependencies, remoteMonitor: remoteJobMonitor });
     })().catch(() => {});
   };
   return runtime;

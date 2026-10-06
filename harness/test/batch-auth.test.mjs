@@ -20,7 +20,7 @@ function makeRenderReadyProject(slug) {
   writeJson(project.files.state, project.state);
 }
 
-test("pauses a render batch for authentication repair and retries it after resume", async () => {
+test("blocks unauthorised batch dispatch before any executor or authentication side effect", async () => {
   const projectsRoot = fs.mkdtempSync(path.join(os.tmpdir(), "video-harness-batch-auth-projects-"));
   const batchesRoot = fs.mkdtempSync(path.join(os.tmpdir(), "video-harness-batch-auth-batches-"));
   const previousProjectsRoot = process.env.HARNESS_PROJECTS_DIR;
@@ -35,20 +35,13 @@ test("pauses a render batch for authentication repair and retries it after resum
     const authError = new Error("GitHub API 返回 HTTP 401");
     authError.code = "github-auth-invalid";
     authError.issues = [{ code: "github-preflight-authentication", message: "认证失败" }];
-    const blocked = await runBatch(batch.id, {
+    let calls = 0;
+    await assert.rejects(() => runBatch(batch.id, {
       remoteMonitor: { async poll() {} },
-      remoteExecutor: { async run() { throw authError; } },
-    });
-    assert.equal(blocked.status, "waiting");
-    assert.equal(blocked.items[0].status, "waiting-config");
-    assert.equal(blocked.items[0].error.code, "github-auth-invalid");
+      remoteExecutor: { async run() { calls += 1; throw authError; } },
+    }), { code: "batch-render-delivery-confirmation-required" });
+    assert.equal(calls, 0);
 
-    const resumed = await runBatch(batch.id, {
-      remoteMonitor: { async poll() {} },
-      remoteExecutor: { async run() { return { deferred: true, job: { id: "batch-auth-job" } }; } },
-    });
-    assert.equal(resumed.items[0].status, "waiting-remote");
-    assert.equal(resumed.items[0].remoteJobId, "batch-auth-job");
   } finally {
     if (previousProjectsRoot === undefined) delete process.env.HARNESS_PROJECTS_DIR;
     else process.env.HARNESS_PROJECTS_DIR = previousProjectsRoot;

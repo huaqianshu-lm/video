@@ -7,13 +7,15 @@
 
 ## 当前阶段
 
-- 宣传片生产能力本地退役完成：生产目录仅提供口播教程；专项定义／校验／测试和三份本地方案已删除，历史宣传片仅保留只读元数据与 5 个预览依赖。303 项适用回归分批通过，TypeScript／隔离 Studio 入口／差异检查通过；24 条已完成视频及依赖共 2,111 个文件无修改、新增或删除。验收见 `local/workflow-retirement/acceptance.md`；本次未提交推送、调用真实 TTS 或远程 Render，下一次真实教程仍按既有基线与 Gate 验证。
-- `13-prompting` 验证样片按用户指示仅对本片一次性确认口播稿、TTS、字幕／时间轴、Remotion 与 Gate 2／3；原型阶段按本片直接 Remotion 样片确认，未制作 HTML 原型。人工试听和正常速度全片复看仍在原始检查记录中标记 pending。输入包已获批发布并绑定，SHA-256 为 `bbf10788a977dbdf9553e26569ab762626c083eda99e7c5e595728f77fad3278`；定向提交 `af81d3c` 已推送，完整 Render Run `37313750923` 成功并产出非空 Artifact `11347616083`（11,721,283 字节）。Gate 4 机器校验因缺少 Codex 风格令牌导入失败一项，成片尚未完成用户验收；通用验证流程未改变。
+- Harness 统一生产在 `feat/harness-unified-production` 分支迁移中：全量自动回归 330/330、类型与语法检查通过；实际 CLI／HTTP 使用隔离项目验证。真实画面、试听、人工 Gate、远端交付及跨视频验收尚未完成，未提交推送或执行真实 TTS／渲染。方案见 `drafts/HARNESS-UNIFIED-PRODUCTION-PLAN.md`，契约见 `docs/HARNESS-PRODUCTION-CONTRACT.md`。
+- `13-prompting` 已获用户本片一次性 Gate 4 验收并进入 completed，永久只读；正常速度试听和 Codex 风格令牌机器检查的例外不能用于后续视频。Run 与一次性接受记录见本地资料，通用验证流程未改变。
 - `12-slash-commands` 已通过 Gate 4 并进入 `completed`，后续永久只读。用户已检查成片并确认无问题；Run `37254126010` 成功，head_sha 与推送提交 `151e9c11080e9c0afa1bd6ebe025a72ac0617db2` 一致，Artifact `11322455206` 为 5,389,975 bytes 且未过期。渲染使用 Composition ID `12-slash-commands`、输入包 SHA-256 `1e3e0396de194e817d04a8411c2536d12189fae81a100b70588f57bda6349189`；交付代码只包含 `harness/src/render-delivery.mjs` 和 `harness/src/render-input.mjs`。 `11-agents-md` 完整 Render Run `37202648340` 成功，Artifact 非空且有效，head_sha 与交付提交 `1d5550b` 一致；用户确认成片无问题、封面存在，Gate 4 已通过，Harness 为 `completed`，后续永久只读。 Agent 系列封面已通过 `11-agents-md` 原型、Gate 3 与最终成片人工验收；目录 Studio 一致性与封面精确帧数尚未单独实测，剩余项见 drafts 验证清单。
 - 通用反 PPT 视觉原型和 Gate 2 自检能力已合入 `main` 并通过专项验证；实际画面仍须由人工在 Gate 2／Gate 3 检查。`project-structure` 原型尚未实际观看，Gate 2 未通过。
 - Agent 单条固定 `render-delivery prepare／start／resume` 已用 `11-agents-md` 走通真实发布绑定、确认后提交推送、派发、同一 Job 恢复及 Gate 4；12个渲染必需文件已提交推送。中断分支未全部在实片触发；Web UI／批量不在本次范围。
 
 ## 历史状态记录（旧状态，仅供追溯）
+
+- 宣传片生产能力本地退役完成：生产目录仅提供口播教程；专项定义／校验／测试和三份本地方案已删除，历史宣传片仅保留只读元数据与 5 个预览依赖。303 项适用回归分批通过，TypeScript／隔离 Studio 入口／差异检查通过；24 条已完成视频及依赖共 2,111 个文件无修改、新增或删除。验收见 `local/workflow-retirement/acceptance.md`；退役内容已提交并推送到 main（e2306fc），未调用真实 TTS 或远程 Render，下一次真实教程仍按既有基线与 Gate 验证。
 
 - `product-promo-v1` 多工作流架构提案与工程计划已归档到本地忽略的 `drafts/`；Phase 0 规范基线和 Phase 1 兼容测试已在当前 main 工作目录完成，不使用旧 `product-promo-workflow` 工作树开发。
 - 仓库规则已按“核心 `CLAUDE.md`、专项 Skill、稳定 `docs/`、本地 `drafts/` 与 `notes/`”完成分层；四个项目内 Skill、通用视频模板和受跟踪 MVP 能力清单已创建并通过适用验证。仓库资料与代码分离的四阶段计划已保存到 `drafts/REPOSITORY-CLEANUP-FOUR-PHASE-PLAN.md`，第二阶段 Git 索引清理、第三阶段历史重写和现有远端分支强制更新已完成，第四阶段本地验证已完成，独立私有输入源已配置，`vscode` Smoke Render、完整 Render 和 Gate 4 人工验收均已完成。
@@ -184,18 +186,17 @@
 
 ## 进行中
 
+- 统一流程收敛仍有 partial：AC-3 尚未验证强制杀进程的全部落盘窗口（现有回归覆盖已保存检查点与重启／原 ID 恢复）；AC-4、AC-6、AC-7 的真实画面、正常速度试听、人工 Gate、宿主远端交付及跨视频验收未完成。原验收标准不变，恢复方式为未完成／新视频从实际入口逐步验收；覆盖见 `harness/VALIDATION-MATRIX.md`，证据见 `local/harness-unified-production/acceptance.md`。
 - 封面验收 AC-2～AC-5 的实际选择／包装／Studio／Runner 路径未验证；AC-1 已从真实 CLI 列出两个系列。下一条新视频按 drafts 验证清单的 CV-1～CV-5 完成，不能仅凭静态检查宣告迁移结束。
 - 动态防遮挡检查已写入制作规则 10.3，并扩充 VC-4／VC-5、两项制作 Skill 和模板；Gate 2／Gate 3 须提供实际观看证据，未新增自动遮挡识别能力。
 - 官方动效组件代码已接入并通过类型与入口编译检查，入口为 `npm run preview:motion`，契约见 `docs/MOTION-COMPONENTS.md`。用户截图发现输入轨迹在展开阶段残留：已纠正错误的全片保留区间，Remotion／HTML 输入路径与节点在 8 秒退出；规则 9.2 明确保留必须对应后续具体用途及退出边界。此次修正实际画面、样片整体、新视频跨视频验证及 Harness 自动可见性识别仍待完成，不能仅凭代码检查报告固化完成。
 - Agent 单条隔离交付工作区未自动生成 `src/RenderInputRoot.tsx` 时，`render-delivery resume` 会在 Gate 4 校验失败；本条通过当前输入包重新生成入口后恢复并验收成功。固定入口的自动生成／前置检查尚待补齐，下一条视频前应修正并验证，不能依赖手工恢复作为永久方案。
-- 用户已确认将反 PPT 动态视觉方法用于后续视频；当前通用规则、模板、任务包和原型校验仅用于口播教程 Workflow。质量仍须经过人工 Gate，已完成视频保持只读。
-- 旧批次仅作历史记录，当前状态以项目 `state.json` 和已核实的远端 Job 为准。
 
 ## 下一步
 
-- `13-prompting` 已完成 Run `37313750923` 和 Gate 4 用户验收，Harness 状态进入 `completed` 并永久只读。Gate 4 机器校验曾报告 Codex 风格令牌缺失；用户仅为本片一次性接受，记录见 `videos/13-prompting/one-time-user-acceptance.json`，通用校验流程未修改。
-- Codex 风格令牌检查问题仍需在另一条未完成视频中按正常 Gate 流程处理并验证；不得复用本片例外，也不得修改已完成的 `13-prompting`。
-- 单条真实验收后再考虑 Web UI／批量接入固定流程，当前暂不处理这些入口。
+- 后续功能或流程变更遵守 `docs/HARNESS-PRODUCTION-CONTRACT.md` 的回归要求，运行 `npm run test:production --prefix harness`；改动其他模块时运行全量回归，新增恢复窗口同步补测试。
+- 使用另一条未完成或新视频，从对话与 Web 实际入口验证 Gate 2／3 和交付准备；真实 TTS、发布／渲染和人工审核按原授权边界执行，不能修改完成态视频。
+- 固定交付的隔离 Studio 入口生成与 Codex 风格令牌检查仍须按正常流程修复及跨视频验证，不复用 `13-prompting` 的一次性例外。
 
 ## 阻塞
 
@@ -223,6 +224,7 @@
 
 ## 最近验证（最近 10 条）
 
+- 2026-10-06：统一生产全量自动回归 330/330、43 个 JS／MJS／CJS 语法、`npm run check` 和 `git diff --check` 通过。覆盖实际 CLI／本机 HTTP、双进程互斥、原任务恢复、三份策划校验、旧试听兼容、音频审核失效、单条／批量 TTS Job、共享交付与授权；修复重试持锁、旧任务误改状态、最终检查点恢复及 TTS 绕过任务校验。真实视频资料／状态哈希前后一致；外部服务模拟、本地临时 Git 交付，未调用真实 TTS、远端渲染或项目提交推送。证据见 `local/harness-unified-production/verification.json`。
 - 2026-10-06：宣传片生产能力退役的宿主 Harness 回归 297 项通过，旧真实资料读取测试修正后与新增退役回归 6/6 通过，合计 303 项分批通过；`npm run check`、实际教程／历史宣传片输入包的隔离 Studio 入口编译、`git diff --check` 通过。完成态保护快照 24 条视频、2,111 个文件哈希和集合均不变；验证记录见 `local/workflow-retirement/verification.json`。未调用真实 TTS、远程渲染或 Git 交付。
 - 2026-10-05：`13-prompting` Run `37313750923` 成功，Artifact `11347616083`（11,721,283 字节、未过期）；用户观看成片并确认无问题，Gate 4 获本片一次性人工接受，Harness 进入 `completed`。Gate 4 机器校验曾报 Codex 风格令牌缺失，失败事实已留档；通用校验未改，未再次渲染。
 - 2026-10-05：`12-slash-commands` Run `37254126010` 以提交 `151e9c11080e9c0afa1bd6ebe025a72ac0617db2` 成功，Artifact `11322455206`（5,389,975 bytes，未过期）；用户检查成片并通过 Gate 4，Harness 进入 `completed`。隔离工作区首次 Gate 4 校验因缺 `src/RenderInputRoot.tsx` 失败；用已校验输入包生成该忽略入口后验证通过，并将精确 Run、Artifact、输入包绑定同步到主工作区后完成验收。
@@ -232,92 +234,3 @@
 - 2026-10-04：`10-cloud` Run `37178358672` 成功，Artifact `11294510749` 未过期；经历史 Artifact 接管恢复 Render 成功，用户确认 Gate 4 后进入 `completed`。该视频保持永久只读。
 - 2026-10-04：`jobs <slug> --refresh` 指定视频刷新与原 `dispatchId` 不重复派发回归通过；目标视频 Job 状态推进到 Gate 4，其他视频 Job 未变更。
 - 2026-10-04：`10-cloud` Remotion、Timeline 和独立输入包校验通过，Gate 3 获人工确认；随后本地 Render Job 达到超时，远端 Run 状态和 Artifact 尚待核实。
-- 2026-10-03：轻量动态原型／视觉自检专项已验证，核心流程 88/88、入口与自检 28/28、Remotion 任务保护 9/9、Web Gate／幂等／过期任务保护 6/6；`npm run check`、JS 语法和差异检查通过。`project-structure` 从实际 CLI 完成视觉脚本与九幕原型，实际画面未观看，Gate 2 正确阻断。全量及广泛真实项目回归曾因长期无新增输出中止，未记为全量通过。
-
-## 历史验证（旧记录）
-
-- 2026-09-02：Remotion 音画同步最小 Fixture 3/3 通过；任务包包含统一 Scene／Segment／Cue 帧计划，音频／Timeline 时长偏差会被阻断；Harness 全量 127/127、`npm run check`、前后端语法和 `git diff --check` 通过，未生成正式视频。
-- 2026-09-02：Smoke Render 一键交付专项通过；未确认时不提交、不推送、不创建远程任务，确认后只提交渲染文件并验证远程分支指向新提交；Harness 全量 124/124、`npm run check`、前后端语法和 `git diff --check` 通过，未访问真实远程仓库。
-- 2026-09-02：Gate 3 Remotion 重试上下文专项通过；新增旧任务刷新回归，Harness 全量 125/125、`npm run check`、前后端语法和 `git diff --check` 均通过，未执行真实 Remotion Agent或渲染。
-- 2026-09-02：Gate 3 驳回自动进入 Remotion 修改专项通过；Web Server 15/15、Harness 全量 108/108、`npm run check`、前后端语法和 `git diff --check` 均通过，未执行渲染。
-- 2026-09-01：修复 WebUI 原文件导入表单初始化时未加载系列选项的问题；后端系列接口正常时，首页现在会同步填充所属系列下拉框并更新上传状态。
-- 2026-09-01：复核 Visual Prototype 的 Scene 标题规则；基线 `01-what-is-codex` 校验返回 `issues: []`，`03-install` 被报告为 Scene 04 缺少标题且存在 Scene 专属标题布局偏离，Harness 核心 47/47、类型检查和差异检查通过；完整 Web Server 回归受当前沙箱禁止监听 `127.0.0.1` 影响未通过。
-- 2026-09-01：原文件导入 Web 专项验证通过；上传 Markdown 后自动创建初始化项目、保存 `source.md` 并出现在项目列表，重复 slug 返回 409，非文本扩展名返回明确错误；Web Server 14/14、Harness 全量 115/115、`npm run check`、前后端语法和差异检查通过。
-- 2026-09-01：默认 Codex Agent 适配器专项验证通过；确认任务包解析、动态 `--cd`、`--approve-for-me`、父 Codex 会话标记清理、Harness 全量 114/114、`npm run check` 和差异检查通过，未触发真实 Agent。
-- 2026-09-01：连续 Gate 2 Web 专项验证通过；单次入口依次调度 `content-analysis`、`video-narrative`、`scene-script`、`narration-script`、`visual-script`、`visual-prototype`，Gate 1 记录完成并停在 `waiting-gate`；重复入口复用同一批次，Harness 全量 112/112、类型检查、语法和差异检查通过。
-- 2026-09-01：`project-init` 资源包从 `public/local-assets/project-init` 生成并逐文件比对通过，远程输入预检为 0 个问题；Harness 全量 111/111、`npm run check`、前后端语法和 `git diff --check` 通过，未触发远程渲染。
-- 2026-08-31：在环境残留 `GITHUB_REF_NAME=feat/video-harness-v0.5` 时，普通 Web UI 启动仍解析到当前分支 `feat/harness-batch-to-prototype-gate3`；GitHub 配置与 Web Server 回归 17/17、`npm run check`、差异检查和实时 GitHub 诊断通过，新任务持久化 ref 与当前分支一致。
-- 2026-08-31：远端分支与本地提交差异为 `0/0`；远端树包含 `assets/02-core-concepts-assets.zip`、Composition 代码及三份 Manifest；Web UI GitHub 诊断 `ok: true`，实际 ref 为 `feat/harness-batch-to-prototype-gate3`，项目 API 返回 `smoke-render / ready`。
-- 2026-08-31：GitHub 配置专项 5/5、`npm run check`、`validate 02-core-concepts remotion`、资产 ZIP 完整性和目标差异检查通过；Harness 全量运行至第 88 项全部通过后长时间无新增输出并被中止，未记为全量通过。
-- 2026-08-31：远程任务运行中禁用重复提交入口并展示任务说明；Web Server 11/11、Harness 全量 98/98、`npm run check`、前后端语法和 `git diff --check` 均通过，未触发新的远程任务或修改视频产物。
-- 2026-08-31：已完成历史 Remotion 任务不再遮蔽当前阶段操作；当前 `127.0.0.1:4173` 已加载新判断，Web Server 10/10、Harness 全量 97/97、`npm run check`、`node --check harness/web/app.js` 和 `git diff --check` 均通过。
-- 2026-08-31：系列关联保护专项和 Harness 全量回归通过；`npm test --prefix harness` 96/96、`npm run check`、`node --check harness/web/app.js`、`node --check harness/src/server.mjs` 和 `git diff --check` 均通过。
-- 2026-08-31：Web UI Remotion 状态同步回归通过；Harness 全量 95/95、Web Server 10/10、`npm run check`、`node --check harness/web/app.js` 和 `git diff --check` 均通过，未修改视频内容或触发渲染。
-- 2026-08-31：Remotion Agent 兼容参数与幂等重试通过适配器／恢复 4 项、Web Server 10 项回归，`npm run check`、前端语法和 `git diff --check` 通过；Harness Web Server 已在 `127.0.0.1:4173` 重启，未触发 Agent 或修改视频产物。
-- 2026-08-31：`02-core-concepts` Remotion 任务 `b872dce9-0180-4182-a613-63c3b772399f` 完成；`validate 02-core-concepts remotion` 返回 `issues: []`，`npm run check` 和差异空白检查通过，Harness 项目进入 `gate-3 / waiting`。
-- 2026-08-31：本地 API `POST /api/projects/02-core-concepts/action` 实测返回 202，任务状态可见为 `in-progress`；前端脚本可从当前 Web Server 取到事件委托、版本标记和 Remotion 状态轮询；`node --check harness/web/app.js`、`npm run check`、`git diff --check` 通过。
-- 2026-08-30：修复 Gate 3 驳回后旧 Remotion 产物直接重新进入 Gate 3 的问题；回退记录旧指纹并强制可恢复 Remotion 任务，产物未变化时保持阻塞；新增回归通过，`npm run check` 通过。
-
-- 2026-08-30：修复 Web UI Remotion 按钮无响应链路；启动时恢复遗留 `in-progress` 任务，未配置执行器时保留可重试 `blocked` 状态，前端读取任务终态并提示原因；Remotion 任务恢复回归 2/2、Harness 目标回归 43/43、脚本语法和类型检查通过，未执行渲染。
-
-- 2026-08-30：新增 `harness/src/tts-harness-adapter.mjs`，用模拟三段 TTS CLI 完成桥接契约测试；Harness 88 项中 79 项通过，9 项 Web Server 测试仅因当前沙箱禁止监听 `127.0.0.1` 未运行，`npm run check` 和 `git diff --check` 通过，未调用真实 TTS。
-
-- 2026-08-30：复现 `02-core-concepts` Web UI 执行 `subtitle-timeline`；API 成功创建持久化 Job，但因运行进程未配置 TTS 执行器而立即失败；前端反馈修复后通过 `node --check harness/web/app.js`、Harness 全量 87/87、`npm run check` 和 `git diff --check`。
-
-- 2026-08-30：`02-core-concepts` Gate 2 重新通过；Visual Script 与 Visual Prototype 均识别为 8 个 Scene，Prototype baseline 已冻结，Harness 状态进入 `tts / ready`；Harness 全量 87/87、`npm run check`、`git diff --check` 通过。
-
-- 2026-08-30：修复 Agent 阶段启动前把自身待生成产物误判为阻塞的问题；`02-core-concepts` 的下一步已恢复为 `run-stage`，Agent 无产物退出仍严格失败，Harness 86/86、TypeScript 和 `git diff --check` 通过。
-- 2026-08-30：Agent Job 成功、未配置、零产物失败、重试和 Web API 后台排队回归通过；Gate 2 指纹冻结、Remotion 对齐清单、原型变更失效和历史兼容回归通过；Harness 全量测试、TypeScript、前端语法和差异检查通过。
-- 2026-08-30：正确分支完整 Render Run `33290995317` 结论为 `success`；Artifact `01-what-is-codex` 存在、大小14,485,652 bytes、未过期，Harness `render` 已为 `succeeded` 并进入 Gate 4。
-- 2026-08-30：`01-what-is-codex` Gate 3 审批已写入 Harness，报告显示 `gate-3 / succeeded`、`smoke-render / ready`；系列封面文件确认为1920×1080 PNG。远程渲染前置检查发现目标视频与封面仍未提交，目标资产 ZIP 尚不存在。
-- 2026-08-30：系列封面自动裁切通过 `npm run check`、前端脚本语法和 Harness 全量80/80回归；覆盖严格16:9、`1672×941` 近似比例居中裁切、超过1%拒绝、上传 API 和 Gate 3 回退，实际封面与现有 TTS／字幕／Timeline 文件均未修改。
-- 2026-08-30：`01-what-is-codex` Scene 01 的 2×2 入口网格与中心圆改动通过 `npm run check`、`git diff --check` 和 Harness Remotion 零问题校验；Visual Prototype 与 Remotion 布局保持一致，Harness 继续为 `gate-3 / waiting`。
-- 2026-08-26：`01-what-is-codex` 的 55 个 MP3／Timing、136 条字幕 Cue 和 296.664 秒 Timeline 通过自动质检；语音为 `zh-CN-XiaoxiaoNeural`、语速为 `+25%`，Manifest ID、音频时长和字幕规则无问题，用户已在 Web UI 确认 TTS 质检，Harness 保持 `remotion / ready`。
-- 2026-08-25：批次状态投影回归通过；四个真实视频在 `to-tts` 和旧 `to-gate-3` 批次中均返回统一的 `remotion / ready` 项目状态，Harness 全量测试 61/61、`npm run check`、前端语法和 `git diff --check` 通过。
-- 2026-08-25：单视频 TTS 质检确认核心流程、Web Server 接口和前端语法检查通过；项目审查记录写入，等待中的 TTS 批次恢复，Harness 全量回归 60/60。
-- 2026-08-25：四个视频的 TTS、字幕／Timeline 自动质检重新通过；音频 Segment 全部存在、Manifest 时长与 MP3 差异为 0、字幕 Cue 无时间范围或顺序错误，TTS 质检仍等待实际听感确认。
-- 2026-08-25：17 条未初始化视频的 Scene 字段缺失回归通过；每条视频全阶段 `missing-scene-field` 均为 0，`npm run check` 和 `git diff --check` 通过。
-- 2026-08-25：`claude-md-guide` 的 Visual Prototype 结构回归通过；`missing-prototype-scenes` 已清零，未修改原型画面内容。
-- 2026-08-24：11 个已有原型视频接管回归通过；全部为 Gate 2 `waiting`、前 7 个阶段 `succeeded`、Gate 2 未写入 review，且 `videos/` 与 `src/videos/` 无 Git 变更。
-- 2026-08-25：7 个历史视频完成状态接管回归通过；`claude-code-first-run` 的 15/15 阶段均为 `succeeded`、项目 `currentStage` 为 `completed`，历史标记已写入且未伪造远程 Run／Artifact。
-- 2026-08-24：Gate 驳回回退阶段改动通过 Harness 核心 23/23、Web Server 5/5、`npm run check`、前端语法检查和 `git diff --check`；后续浏览器点击回归已完成。
-- 2026-08-25：四类批量目标、TTS／Smoke Render 质检暂停、跨批次 Gate 前置条件、失败重试和旧批次兼容回归通过；Web Server 测试需在允许 localhost 监听的环境复跑。
-- 2026-08-25：四个视频的 TTS／字幕／Timeline 真实产物回传并通过 Harness 校验；`jetbrains` 34 个音频 Segment、`desktop` 9 个、`web-and-cloud` 10 个、`project-init` 10 个，全部显式使用 `+25%`，批次进入 `waiting-tts-qc`。
-- 2026-08-24：Harness 全量回归 53/53、`npm run check`、前端语法检查和 `git diff --check` 通过；浏览器点击 E2E 验证批量选择、创建和逐视频跳过，现有视频目录未变化。
-- 2026-08-24：`jetbrains` Gate 2 通过后的自动派生回归完成；`tts-script.json` 包含 9 个 Scene，TTS 输入校验 0 个问题，Harness 下一步为可执行 `tts`，尚未调用外部 TTS。
-- 2026-08-24：`jetbrains` 已通过 Harness 的 Source 至 Visual Prototype 阶段校验，Web UI 读取状态为已初始化、7/15 阶段完成、当前 `gate-2`，视频资料未修改。
-- 2026-08-24：用户确认 `claude-code-coding-plan`、`claude-code-third-party-models` 和 `claude-code-api-config` 已完成全部生产流程及 Gate 4 最终验收。
-- 2026-08-24：用户完成人工 Web UI 回归；GitHub 配置诊断、全局远程任务列表、`vscode`／`claude-code-first-run` 项目详情页均正常，未触发重复远程任务，视频目录无改动。
-- 2026-08-24：Harness 0.6 完整回归 48/48 通过；包含远程任务生命周期、超时、临时 API 错误恢复、GitHub 诊断、Gate 审查记录、Web API／Web Server 和 53 个视频项目只读回归，视频目录无改动。
-- 2026-08-23：远程 dispatch 生命周期、失败后重试、重复提交防护、跨分支历史 Artifact 显式认领和 Web UI 操作路由回归通过；Harness 核心 34 项、Web Server 4 项、`npm run check`、`git diff --check` 通过，未触发远程任务，视频目录无改动。
-- 2026-08-23：历史 Render 自动找回和 Web UI 详情即时同步回归通过；Harness 核心测试 28 项、Web Server 3 项通过，未触发远程任务，视频目录无改动。
-- 2026-08-23：远程任务自动恢复回归通过；模拟首次 401 后发现成功 Run／有效 Artifact，Harness 自动推进到 `gate-4`，未重复 dispatch；`npm test --prefix harness` 核心 30 项、Web UI 数据回归、Web 服务回归、`npm run check` 和 `git diff --check` 均通过，视频目录无改动。
-- 2026-08-23：Harness 远程 render／Gate 4 回归通过；全量 Harness 测试 29 项、`npm run check`、`git diff --check` 通过，当前真实 `vscode` 报告从阻塞校验变为可执行 `render`，视频目录无改动。
-- 2026-08-23：Harness 0.5 通过真实 GitHub Actions 后台监控完成 `vscode` Smoke Render；Run `32632006287` 为 `success`，Artifact `vscode-smoke-test` 存在、大小 1,425,085 bytes 且未过期；Harness 任务推进到 `render`，未下载 Artifact，未修改视频目录。
-- 2026-08-23：Web UI 人工回归通过；53 个项目的模块内容、项目状态、详情、资料和 Visual Prototype 预览均能正常显示。
-- 2026-08-23：`vscode` 和 `claude-code-first-run` 最终 MP4 通过用户人工验收，内容、声音、字幕和清洁输出无问题，Gate 4 完成。
-- 2026-08-23：Harness 0.5 全量回归通过 30 项测试；53 个视频项目只读检查、Web 服务/API、配置预检、远程任务恢复和 Artifact 验证均通过，视频目录无改动。
-
-- 2026-08-21：`vscode` 完整 Render Run `32496527485` 和 `claude-code-first-run` 完整 Render Run `32496531865` 均为 `success`；Artifact 分别为 12,153,238 和 14,683,118 bytes，均未过期。
-- 2026-08-21：`vscode` Scene 01 右上角定位标识改动通过 `npm run check` 和 `git diff --check`；本机 Chromium 仍无法完成实际画面复核，Gate 3 保持未通过。
-- 2026-08-21：`vscode` 8 个模拟工作区场景改动通过 `npm run check` 和 `git diff --check`；本机 Chromium 仍因 `SIGTRAP` 无法完成实际画面复核，Gate 3 保持未通过。
-- 2026-08-21：`vscode` 的 TTS／字幕／Timeline／Remotion 确定性回归通过；9 个 Scene、9 个 Segment、117 条字幕 Cue、262.464 秒 Timeline、资源路径和连续 30fps Scene 边界均有效，Composition 已注册。
-- 2026-08-21：视觉原型预览区域已由固定 620px iframe 调整为 820px 容器并填满显示；`npm run check`、`git diff --check` 和 Harness 23/23 回归测试通过，运行中的 Web UI 已返回新 CSS。
-- 2026-08-21：当前 Web UI 服务已提供项目卡片新布局；序号回归仍通过，live API 返回 53 条项目，序号连续且唯一为 01–53，视频目录前后哈希一致。
-- 2026-08-21：集成后的 Web UI 健康接口返回正常，项目列表发现 53 条视频项目；`claude-code-how-it-works` 详情包含 15 个阶段，只有 `claude-code-api-config` 存在 Harness 状态记录。
-- 2026-08-20：Harness 对 `claude-code-first-run`、`claude-code-coding-plan` 和 `claude-code-third-party-models` 的只读结构与产物回归全部通过；必要产物齐全、Scene／Segment／字幕／Timeline 对齐，三条目标视频目录前后哈希一致。
-- 2026-08-20：Harness 对 `claude-code-how-it-works` 的只读结构与产物回归通过；Source 至 Remotion 所需产物全部存在，12 个 Scene、27 个 TTS／音频 Segment、107 条字幕 Cue、12 个时间轴 Scene 和 228.168 秒 Timeline 对齐，目标视频目录前后哈希一致。
-- 2026-08-20：`claude-code-how-it-works` 完整 Render Run `32360625092` 成功；Artifact MP4 为 1920×1080、30fps、H.264＋AAC、228.224 秒，完整性检查和开头／中段／结尾代表帧核验通过，用户确认最终视频无问题。
-- 2026-08-20：Harness 真实 GitHub Actions 适配器已成功触发 `smoke-test-video.yml` 和 `render-video.yml`，受控输入为 `claude-code-how-it-works`，Run 与 Artifact 均可被识别并返回。
-- 2026-08-20：GitHub Smoke Render Run `32358631515` 成功；三张代表帧为 1920×1080，首 10 秒短片为 H.264＋AAC、30fps、48kHz 双声道、10.048 秒，画面文字、场景结构和清洁输出核验通过。
-- 2026-08-20：`claude-code-how-it-works` 12 个 Scene 的字幕 Cue 驱动视觉节奏回归通过；视觉事件映射无越界、顺序无回退，Scene 边界为连续 `0-481-930-1517-2105-2519-3047-3644-4235-4819-5535-6047-6845` 帧；`npm run check` 与 `git diff --check` 通过。
-- 2026-08-20：`claude-code-how-it-works` 专用动态场景接入后的 `npm run check`、差异检查和连续帧边界回归检查通过；12 个 Scene、总计 6845 帧、区间无空档；本机 Chromium 仍因 `SIGTRAP` 无法完成实际画面复核。
-- 2026-08-20：`claude-code-how-it-works` 遮挡修复后的 TypeScript 检查、差异检查和字幕 Manifest 校验通过；目标场景启用紧凑安全布局，12 个 Scene、107 条 Cue、空字幕 0、句末标点 0；本机 Chromium 仍因 `SIGTRAP` 无法完成实际画面复核。
-- 2026-08-20：`claude-code-how-it-works` 通过 TTS／Manifest／Remotion 确定性校验；12 个 Scene、27 个 Segment、27 个 MP3、27 个 Timing、107 条 Cue、ID 全对齐，字幕末尾标点为 0，Timeline 为 228.168 秒，`npm run check` 通过；本机 Chromium 因 `SIGTRAP` 未完成画面检查。
-- 2026-08-20：`videos/remotion-video/` 七层文件齐全；`source.md` 与指定 `53-remotion-video.md` 通过字节一致性检查，12 个 Scene 在 Scene Script／Narration／Visual Script／Prototype 中对齐，必需字段、纯口播边界、画面文字归属、原型 HTML／JavaScript、控件／进度结构和范围保护检查通过，未发现 TTS、音频、字幕或 Timeline 文件。
-- 2026-08-20：`videos/glossary/` 七层文件齐全；`source.md` 与指定 `52-glossary.md` 通过字节一致性检查，12 个 Scene 在 Scene Script／Narration／Visual Script／Prototype 中对齐，必需字段、纯口播边界、画面文字归属、原型 HTML／JavaScript、控件／进度结构和范围保护检查通过，未发现 TTS、音频、字幕或 Timeline 文件。
-- 2026-08-20：`videos/troubleshooting/` 七层文件齐全；`source.md` 与指定 `51-troubleshooting.md` 通过字节一致性检查，12 个 Scene 在 Scene Script／Narration／Visual Script／Prototype 中对齐，必需字段、纯口播边界、画面文字归属、原型 HTML／JavaScript、控件／进度结构和范围保护检查通过，未发现 TTS、音频、字幕或 Timeline 文件。
-- 2026-08-20：`videos/anti-patterns/` 七层文件齐全；`source.md` 与指定 `50-anti-patterns.md` 通过字节一致性检查，11 个 Scene 在 Scene Script／Narration／Visual Script／Prototype 中对齐，必需字段、纯口播边界、画面文字归属、原型 HTML／JavaScript 和范围保护检查通过，未发现 TTS、音频、字幕或 Timeline 文件。
-- 2026-08-20：`videos/best-practices/` 七层文件齐全；`source.md` 与指定 `49-best-practices.md` 通过字节一致性检查，11 个 Scene 在 Scene Script／Narration／Visual Script／Prototype 中对齐，必需字段、纯口播边界、画面文字归属、原型 HTML／JavaScript 和范围保护检查通过，未发现 TTS、音频、字幕或 Timeline 文件。
-- 2026-08-20：`videos/capstone-project/` 七层文件齐全；`source.md` 与指定 `48-capstone-project.md` 通过字节一致性检查，12 个 Scene 在 Scene Script／Narration／Visual Script／Prototype 中对齐，必需字段、纯口播边界、画面文字归属、原型 HTML／JavaScript 和范围保护检查通过，未发现 TTS、音频、字幕或 Timeline 文件。
-- 2026-08-20：`videos/voice/` 七层文件齐全；`source.md` 与指定 `47-voice.md` 通过字节一致性检查，12 个 Scene 在 Scene Script／Narration／Visual Script／Prototype 中对齐，必需字段、纯口播边界、画面文字归属、原型 HTML／JavaScript、控件／进度结构和范围保护检查通过，未发现 TTS、音频、字幕或 Timeline 文件。

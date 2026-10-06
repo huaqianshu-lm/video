@@ -10,6 +10,8 @@
 
 Harness 只服务于视频生产，不扩展为处理代码、数据或其他任务的通用 Harness。一次性的视频内容和具体视频产物属于本地工作资料，不属于仓库长期能力。
 
+所有视频生产入口（包括对话）必须由 Harness 调度；Agent 是领取任务并制作产物的执行者，不自行推进阶段。统一任务、策划合并、试听审核及交付迁移的权威契约见 `docs/HARNESS-PRODUCTION-CONTRACT.md`；旧项目保留显式兼容，completed 永久只读。
+
 当前唯一生产 Workflow 为 `narrated-tutorial-v1`：保留带口播教程的 14 个生产阶段、人工 Gate、TTS、字幕和 narrated Timeline。历史项目缺少 `workflow` 或使用兼容值 `default` 时，运行时解释为该 Workflow，不批量改写历史状态。
 
 `product-promo-v1` 已退役，不允许新建、制作、批处理、打包或渲染。已完成宣传片只允许读取资料、展示历史记录及使用已有输入包进行本地预览；`src/components/promo/`、`src/lib/promoTypes.ts` 和 `src/lib/promoTiming.ts` 仅保留为历史视频预览依赖。不得修改历史视频及其状态或产物。
@@ -73,9 +75,9 @@ Workflow 的判断以 Harness 服务端 Registry 和项目 `project.json.workflo
 - 画面中的标题、标签、按钮、状态、终端输出和卡片文案必须能追溯到当前视频资料，不得复制参考视频的业务语义或固定文案。
 - 每条系列视频的最后一个视觉事件必须包含有资料依据的下一集预告；系列封面、风格和成员关系按需读取对应 Skill。
 - 远程渲染前必须验证代码、配置和资源包的提交状态；不得使用 `git add .`。完整渲染交付入口必须先展示精确文件清单并获得用户明确确认，之后才可为本次交付定向 commit／push；Smoke Render 仅作为新系列或渲染环境变化时手动运行的独立检查，不推进生产阶段。
-- Agent／CLI 复用已有成功 Render 时，整理交付清单前必须在实际交付工作区运行 `harness/src/render-preflight.mjs` 并保存通过报告；认证、代码基线及独立输入包发布步骤以 `docs/RENDER-DELIVERY-BASELINE.md` 为权威来源。该检查尚未自动接入 Web UI／批量，不代替既有 Gate 和交付校验。
+- 所有入口复用已有成功 Render 时，整理交付清单前必须在实际交付工作区运行 `harness/src/render-preflight.mjs` 并保存通过报告；认证、代码基线及独立输入包发布步骤以 `docs/RENDER-DELIVERY-BASELINE.md` 为权威来源。统一服务已接入对话／CLI、Web UI 和批量；实际入口与跨视频验收状态见 ROADMAP.md。该检查不代替人工 Gate 和交付授权。
 - 具体视频的远程渲染输入必须通过被 Git 忽略的 `local/render-input/<video-slug>/` 整理，并以独立输入包 URL 和 SHA-256 交给 GitHub Actions；不得把 `videos/`、`src/videos/` 或视频资源重新加入能力代码仓库。
-- Agent／CLI 单条完整渲染统一使用 `render-delivery prepare／start／resume`，按 `docs/RENDER-DELIVERY-BASELINE.md` 复用固定方法配置、执行完整准备与确认后的交付，并恢复同一 Job；不得绕过该入口临时拼接发布、推送和派发步骤。
+- 所有完整渲染入口复用 `render-delivery prepare／start／resume` 服务；批量合并精确文件计划一次提交，每条视频独立输入包和 Job。按 `docs/RENDER-DELIVERY-BASELINE.md` 复用固定方法配置，准备阶段不提交、推送或派发；用户明确确认后执行交付，中断恢复同一 Job。
 - 口播教程使用 `videos/<slug>/`、`src/videos/<slug>/` 和 `assets/<slug>-assets.zip` 的 legacy-flat 路径。历史退役视频的命名空间保持只读，不能作为新生产入口。
 - 本地 Studio 预览具体视频时，必须从独立输入包生成被忽略的 `src/RenderInputRoot.tsx` 临时入口；该入口支持注册单条视频或本地扫描后批量注册全部可匹配视频。受跟踪的 `src/Root.tsx` 只保留通用 Composition，不重新硬编码具体视频。
 
@@ -87,7 +89,7 @@ Workflow 的判断以 Harness 服务端 Registry 和项目 `project.json.workflo
 
 ## 成功验证的固化与后续复用（强制）
 
-- Agent／CLI 复用已有成功 Render 时，整理交付清单前必须在实际交付工作区运行 `harness/src/render-preflight.mjs` 并保存通过报告；认证、代码基线及独立输入包发布步骤以 `docs/RENDER-DELIVERY-BASELINE.md` 为权威来源。该检查尚未自动接入 Web UI／批量，不代替既有 Gate 和交付校验。
+- 所有入口复用已有成功 Render 时，整理交付清单前必须执行统一服务的实际工作区预检并保存报告；权威步骤见 `docs/RENDER-DELIVERY-BASELINE.md`，实际入口及跨视频验收状态见 ROADMAP.md。机器检查不代替人工 Gate 和交付授权。
 
 - 用户对试点视频或问题修复的验证，是对后续可复用流程的验收。不得把“本条视频成功”直接等同于“整个流程已修复”或“以后不会再出现”。必须记录成功所需的实际入口、执行环境与权限、认证来源、代码提交、Workflow／输入契约及 Run／Artifact 等证据；不得记录凭据值，具体视频证据保存在本地资料中，不回写已完成视频。
 - 成功依赖宿主权限、临时工作区、远端补丁、手动操作或替代入口时，必须明确这些条件如何被下一条视频继承。通用修复必须进入能力代码和对应实际入口，操作要求必须进入权威规则；临时方案不能作为未声明的永久依赖。本地开发分支未包含已发布修复时，必须完成整合，或明确使用已验证的隔离交付路径并登记未完成的整合工作。
@@ -100,7 +102,7 @@ Workflow 的判断以 Harness 服务端 Registry 和项目 `project.json.workflo
 1. 确认任务涉及的 Skill 和参考文档。
 2. 新建或更新本地视频的 Source、Content Analysis、Video Narrative 和 Scene Script，完成 Gate 1 内部审查。
 3. 更新 Narration Script、Visual Script 和 Visual Prototype，完成视觉收敛自检后进入 Gate 2。
-4. narrated 视频在 Gate 2 后派生并校验 `tts-script.json`，再生成音频、字幕和 Timeline，并完成 TTS 质检。
+4. narrated 视频在 Gate 2 后派生并校验 `tts-script.json`，再生成音频、字幕和 Timeline，完成机器质检；统一契约在 Gate 3 合并人工试听，旧契约保留独立试听确认。
 5. 按冻结原型和 Timeline Manifest 实现 Remotion，完成 Gate 3。
 6. Gate 3 通过后完成远程交付预检，直接进入完整渲染；渲染成功后进入 Gate 4 人工验收。Smoke Render 只在新系列或渲染环境变化时作为独立检查手动运行。
 7. 每次完成开发、修复、文档补齐或重要调研后，更新 `ROADMAP.md`；重要阶段变化使用 `record-project-event` Skill 记录。

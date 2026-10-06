@@ -1,3 +1,8 @@
+import { createDeliveryDependencies } from "./helpers/delivery-fixture.mjs";
+import { checkpointRenderDelivery } from "../src/render-delivery.mjs";
+import { runRenderDelivery, readRenderDeliverySession } from "../src/render-delivery.mjs";
+import { createJobRecord } from "../src/jobs.mjs";
+import { createBatch, runBatch } from "../src/batches.mjs";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
@@ -93,18 +98,18 @@ async function fixture(slugs = ["batch-video"]) {
   const projectsRoot = fs.mkdtempSync(path.join(os.tmpdir(), "video-harness-batch-delivery-projects-"));
   const projects = [];
   for (const slug of slugs) projects.push(await prepareProject(workspaceRoot, projectsRoot, slug));
-  return { workspaceRoot, projectsRoot, projects };
+  return { workspaceRoot, projectsRoot, projects, deliveryDependencies: createDeliveryDependencies(workspaceRoot) };
 }
 
 test("prepares an independent batch delivery plan with exact paths and bindings", async () => {
-  const { workspaceRoot, projectsRoot, projects } = await fixture(["desktop", "jetbrains"]);
+  const { workspaceRoot, projectsRoot, projects, deliveryDependencies } = await fixture(["desktop", "jetbrains"]);
   try {
     fs.appendFileSync(path.join(workspaceRoot, "src/TemplateVideo.tsx"), "// render change\n");
     const result = await prepareBatchRenderDelivery({
       id: "batch-render-plan",
       type: "to-render",
       items: projects.map((project) => ({ slug: project.config.slug, status: "queued" })),
-    }, { githubPreflight: async () => {} });
+    }, { environment: deliveryDependencies.environment, deliveryDependencies });
 
     assert.equal(result.status, "needs-confirmation");
     assert.equal(result.videos.length, 2);
@@ -120,8 +125,8 @@ test("prepares an independent batch delivery plan with exact paths and bindings"
   }
 });
 
-test("blocks batch delivery when one video's binding has the wrong slug and checksum", async () => {
-  const { workspaceRoot, projectsRoot, projects } = await fixture(["desktop", "jetbrains"]);
+test("fresh preparation replaces a stale binding with the newly validated package", async () => {
+  const { workspaceRoot, projectsRoot, projects, deliveryDependencies } = await fixture(["desktop", "jetbrains"]);
   try {
     const bindingPath = path.join(workspaceRoot, "local", "render-input", "jetbrains.delivery.json");
     const binding = JSON.parse(fs.readFileSync(bindingPath, "utf8"));
@@ -132,20 +137,13 @@ test("blocks batch delivery when one video's binding has the wrong slug and chec
       id: "batch-invalid-binding",
       type: "to-render",
       items: projects.map((project) => ({ slug: project.config.slug, status: "queued" })),
-    }, { githubPreflight: async () => {} });
+    }, { environment: deliveryDependencies.environment, deliveryDependencies });
 
-    assert.equal(result.status, "blocked");
-    const jetbrains = result.videos.find((video) => video.slug === "jetbrains");
-    assert.ok(jetbrains.issues.some((issue) => /videoSlug|archiveSha256|ZIP/.test(issue)));
-    assert.throws(
-      () => commitPreparedBatchRenderDelivery({
-        id: "batch-invalid-binding",
-        type: "to-render",
-        items: projects.map((project) => ({ slug: project.config.slug, status: "queued" })),
-        renderDelivery: result,
-      }, { deliveryPlanId: result.git?.planId, selectedPaths: result.git?.selectedPaths }),
-      (error) => error.code === "batch-render-delivery-preflight-blocked",
-    );
+    assert.equal(result.status, "needs-confirmation", JSON.stringify(result.issues));
+    const repaired = JSON.parse(fs.readFileSync(bindingPath, "utf8"));
+    assert.equal(repaired.videoSlug, "jetbrains");
+    assert.notEqual(repaired.archiveSha256, "0".repeat(64));
+
   } finally {
     fs.rmSync(workspaceRoot, { recursive: true, force: true });
     fs.rmSync(projectsRoot, { recursive: true, force: true });
@@ -153,7 +151,7 @@ test("blocks batch delivery when one video's binding has the wrong slug and chec
 });
 
 test("blocks batch delivery before Gate 3 is approved", async () => {
-  const { workspaceRoot, projectsRoot, projects } = await fixture(["desktop"]);
+  const { workspaceRoot, projectsRoot, projects, deliveryDependencies } = await fixture(["desktop"]);
   try {
     const project = projects[0];
     project.state.currentStage = "gate-3";
@@ -165,7 +163,7 @@ test("blocks batch delivery before Gate 3 is approved", async () => {
       id: "batch-gate3-blocked",
       type: "to-render",
       items: [{ slug: "desktop", status: "skipped", message: "Gate 3 尚未通过" }],
-    }, { githubPreflight: async () => {} });
+    }, { environment: deliveryDependencies.environment, deliveryDependencies });
     assert.equal(result.status, "blocked");
     assert.ok(result.issues.some((issue) => /Gate 3|skipped/.test(issue)));
   } finally {
@@ -175,14 +173,14 @@ test("blocks batch delivery before Gate 3 is approved", async () => {
 });
 
 test("blocks batch delivery when concrete video code is outside the Git render scope", async () => {
-  const { workspaceRoot, projectsRoot, projects } = await fixture(["desktop"]);
+  const { workspaceRoot, projectsRoot, projects, deliveryDependencies } = await fixture(["desktop"]);
   try {
     fs.appendFileSync(path.join(workspaceRoot, "src/videos/desktop/video.config.ts"), "// forbidden render scope change\n");
     const result = await prepareBatchRenderDelivery({
       id: "batch-out-of-scope",
       type: "to-render",
       items: [{ slug: projects[0].config.slug, status: "queued" }],
-    }, { githubPreflight: async () => {} });
+    }, { environment: deliveryDependencies.environment, deliveryDependencies });
 
     assert.equal(result.status, "blocked");
     assert.ok(result.issues.some((issue) => /渲染提交范围|渲染相关文件/.test(issue)));
@@ -193,13 +191,14 @@ test("blocks batch delivery when concrete video code is outside the Git render s
 });
 
 test("rechecks every binding before dispatch and does not accept a changed package", async () => {
-  const { workspaceRoot, projectsRoot, projects } = await fixture(["desktop", "jetbrains"]);
+  const { workspaceRoot, projectsRoot, projects, deliveryDependencies } = await fixture(["desktop", "jetbrains"]);
   try {
     const result = await prepareBatchRenderDelivery({
       id: "batch-dispatch-recheck",
       type: "to-render",
       items: projects.map((project) => ({ slug: project.config.slug, status: "queued" })),
-    }, { githubPreflight: async () => {} });
+    }, { environment: deliveryDependencies.environment, deliveryDependencies });
+    for (const project of projects) checkpointRenderDelivery(project, { confirmedPlan: result.git.planId, commit: git(workspaceRoot, ["rev-parse", "HEAD"]), phase: "pushed" });
     const batch = {
       id: "batch-dispatch-recheck",
       type: "to-render",
@@ -216,7 +215,7 @@ test("rechecks every binding before dispatch and does not accept a changed packa
     fs.writeFileSync(bindingPath, `${JSON.stringify(binding, null, 2)}\n`, "utf8");
 
     await assert.rejects(
-      () => assertCommittedBatchRenderDelivery(batch, { githubPreflight: async () => {} }),
+      () => assertCommittedBatchRenderDelivery(batch, { environment: deliveryDependencies.environment, deliveryDependencies }),
       (error) => error.code === "batch-render-dispatch-preflight-invalid"
         && error.issues.some((issue) => /jetbrains.*输入包或交付绑定已变化/.test(issue)),
     );
@@ -227,7 +226,7 @@ test("rechecks every binding before dispatch and does not accept a changed packa
 });
 
 test("commits and pushes only the batch render file list", async () => {
-  const { workspaceRoot, projectsRoot, projects } = await fixture(["desktop", "jetbrains"]);
+  const { workspaceRoot, projectsRoot, projects, deliveryDependencies } = await fixture(["desktop", "jetbrains"]);
   const remoteRoot = fs.mkdtempSync(path.join(os.tmpdir(), "video-harness-batch-delivery-remote-"));
   try {
     execFileSync("git", ["init", "--bare", remoteRoot], { encoding: "utf8" });
@@ -239,7 +238,7 @@ test("commits and pushes only the batch render file list", async () => {
       id: "batch-commit-push",
       type: "to-render",
       items: projects.map((project) => ({ slug: project.config.slug, status: "queued" })),
-    }, { githubPreflight: async () => {} });
+    }, { environment: deliveryDependencies.environment, deliveryDependencies });
 
     const committed = commitAndPushBatchRenderDelivery(projects, {
       deliveryPlanId: plan.git.planId,
@@ -259,13 +258,14 @@ test("commits and pushes only the batch render file list", async () => {
 });
 
 test("rechecks GitHub Actions readiness before dispatch", async () => {
-  const { workspaceRoot, projectsRoot, projects } = await fixture(["desktop"]);
+  const { workspaceRoot, projectsRoot, projects, deliveryDependencies } = await fixture(["desktop"]);
   try {
     const result = await prepareBatchRenderDelivery({
       id: "batch-github-recheck",
       type: "to-render",
       items: [{ slug: "desktop", status: "queued" }],
-    }, { githubPreflight: async () => {} });
+    }, { environment: deliveryDependencies.environment, deliveryDependencies });
+    for (const project of projects) checkpointRenderDelivery(project, { confirmedPlan: result.git.planId, commit: git(workspaceRoot, ["rev-parse", "HEAD"]), phase: "pushed" });
     const batch = {
       id: "batch-github-recheck",
       type: "to-render",
@@ -278,7 +278,8 @@ test("rechecks GitHub Actions readiness before dispatch", async () => {
     };
     await assert.rejects(
       () => assertCommittedBatchRenderDelivery(batch, {
-        githubPreflight: async () => { throw new Error("GitHub 权限已失效"); },
+        environment: deliveryDependencies.environment,
+        deliveryDependencies: { ...deliveryDependencies, async checkPreparation() { throw new Error("GitHub 权限已失效"); } },
       }),
       (error) => error.code === "batch-render-dispatch-preflight-invalid"
         && error.issues.includes("GitHub 权限已失效"),
@@ -287,4 +288,48 @@ test("rechecks GitHub Actions readiness before dispatch", async () => {
     fs.rmSync(workspaceRoot, { recursive: true, force: true });
     fs.rmSync(projectsRoot, { recursive: true, force: true });
   }
+});
+
+test("shared batch service commits the union once and requires independent render authorization", async t => {
+  const f = await fixture(["desktop", "jetbrains"]);
+  t.after(() => { fs.rmSync(f.workspaceRoot, { recursive: true, force: true }); fs.rmSync(f.projectsRoot, { recursive: true, force: true }); });
+  const remote = fs.mkdtempSync(path.join(os.tmpdir(), "unified-batch-remote-"));
+  t.after(() => fs.rmSync(remote, { recursive: true, force: true }));
+  execFileSync("git", ["init", "--bare", remote], { stdio: "pipe" });
+  git(f.workspaceRoot, ["remote", "add", "origin", remote]); git(f.workspaceRoot, ["push", "origin", "main"]);
+  fs.appendFileSync(path.join(f.workspaceRoot, "src/TemplateVideo.tsx"), "// common render correction\n");
+  const batch = { id: "unified-batch", type: "to-render", items: f.projects.map(project => ({ slug: project.config.slug, status: "queued" })) };
+  const prepared = await prepareBatchRenderDelivery(batch, { environment: f.deliveryDependencies.environment, deliveryDependencies: f.deliveryDependencies });
+  assert.equal(prepared.status, "needs-confirmation", JSON.stringify(prepared.issues));
+  batch.renderDelivery = prepared;
+  await assert.rejects(() => commitPreparedBatchRenderDelivery(batch, { deliveryPlanId: "stale-plan", selectedPaths: prepared.git.selectedPaths, deliveryDependencies: f.deliveryDependencies }), /清单|计划/);
+  const committed = await commitPreparedBatchRenderDelivery(batch, { deliveryPlanId: prepared.git.planId, selectedPaths: prepared.git.selectedPaths, environment: f.deliveryDependencies.environment, deliveryDependencies: f.deliveryDependencies });
+  assert.equal(git(f.workspaceRoot, ["rev-list", "--count", "HEAD"]), "2");
+  for (const project of f.projects) {
+    const session = readRenderDeliverySession(project);
+    assert.equal(session.commit, committed.commit); assert.equal(session.dispatchAuthorized, false);
+    await assert.rejects(() => runRenderDelivery("resume", project.config.slug, {}, f.deliveryDependencies), { code: "batch-render-dispatch-confirmation-required" });
+  }
+  assert.notEqual(prepared.videos[0].renderInputSha256, prepared.videos[1].renderInputSha256);
+  let submissions = 0;
+  const dependencies = { ...f.deliveryDependencies, monitor: {
+    submit(input) { submissions += 1; return createJobRecord(input); },
+    async processJob() {},
+  } };
+  for (const project of f.projects) {
+    checkpointRenderDelivery(project, { dispatchAuthorized: true });
+    const first = await runRenderDelivery("resume", project.config.slug, {}, dependencies);
+    const second = await runRenderDelivery("resume", project.config.slug, {}, dependencies);
+    assert.equal(first.job.id, second.job.id);
+  }
+  assert.equal(submissions, 2);
+});
+
+test("render batch refuses direct dispatch before shared delivery preparation", async t => {
+  const f = await fixture();
+  const batches = fs.mkdtempSync(path.join(os.tmpdir(), "unified-batch-records-"));
+  const previous = process.env.HARNESS_BATCHES_DIR; process.env.HARNESS_BATCHES_DIR = batches;
+  t.after(() => { if (previous === undefined) delete process.env.HARNESS_BATCHES_DIR; else process.env.HARNESS_BATCHES_DIR = previous; fs.rmSync(batches, { recursive: true, force: true }); fs.rmSync(f.workspaceRoot, { recursive: true, force: true }); fs.rmSync(f.projectsRoot, { recursive: true, force: true }); });
+  const batch = createBatch({ type: "to-render", slugs: [f.projects[0].config.slug] });
+  await assert.rejects(() => runBatch(batch.id, { remoteExecutor: { run() { assert.fail("no dispatch authorization"); } } }), { code: "batch-render-delivery-confirmation-required" });
 });

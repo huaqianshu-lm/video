@@ -32,7 +32,7 @@ test("persists an Agent Job and advances only after the executor output validate
   roots("video-agent-job-");
   const slug = "agent-job-video";
   write(process.env.HARNESS_WORKSPACE_ROOT, `videos/${slug}/source.md`, "# Source\n\n测试内容。");
-  initializeProject(slug);
+  initializeProject(slug, { productionContract: "legacy-v1" });
 
   const job = createAgentJob({ slug, stage: "source" });
   let calls = 0;
@@ -57,7 +57,7 @@ test("keeps an unconfigured Agent Job failed and retryable", async () => {
   roots("video-agent-job-unconfigured-");
   const slug = "unconfigured-agent-video";
   write(process.env.HARNESS_WORKSPACE_ROOT, `videos/${slug}/source.md`, "# Source\n\n测试内容。");
-  initializeProject(slug);
+  initializeProject(slug, { productionContract: "legacy-v1" });
 
   const job = createAgentJob({ slug, stage: "source" });
   const failed = await runAgentJob(job.id);
@@ -71,7 +71,7 @@ test("allows an Agent stage to run before its own output artifact exists", () =>
   roots("video-agent-job-preflight-");
   const slug = "agent-preflight-video";
   write(process.env.HARNESS_WORKSPACE_ROOT, `videos/${slug}/source.md`, "# Source\n\n测试内容。");
-  initializeProject(slug);
+  initializeProject(slug, { productionContract: "legacy-v1" });
 
   const project = loadProject(slug, { refresh: false });
   runStage(project, "source");
@@ -85,7 +85,7 @@ test("allows an Agent stage to run before its own output artifact exists", () =>
 test("fails an Agent Job when the process exits successfully without required output", async () => {
   roots("video-agent-job-invalid-output-");
   const slug = "invalid-agent-output-video";
-  initializeProject(slug);
+  initializeProject(slug, { productionContract: "legacy-v1" });
 
   const job = createAgentJob({ slug, stage: "source" });
   const failed = await runAgentJob(job.id, { executor: { async run() { return { stdout: "no output" }; } } });
@@ -115,7 +115,7 @@ function createAlignmentFixture() {
   write(workspace, `public/local-assets/${slug}/audio/scene-01/01-01.mp3`, "fixture-audio");
   write(workspace, `public/local-assets/${slug}/subtitles/captions.vtt`, "WEBVTT\n");
   write(workspace, `public/local-assets/${slug}/subtitles/captions.srt`, "1\n00:00:00,000 --> 00:00:01,000\nFixture\n");
-  initializeProject(slug, { prototypeBaseline: null });
+  initializeProject(slug, { prototypeBaseline: null, productionContract: "legacy-v1" });
   const project = loadProject(slug, { refresh: false });
   for (const stage of ["source", "content-analysis", "video-narrative", "scene-script", "narration-script", "visual-script", "visual-prototype"]) runStage(project, stage);
   writeVisualReviewFixture(workspace, slug);

@@ -1,4 +1,6 @@
 import { writeVisualReviewFixture } from "./helpers/visual-review-fixture.mjs";
+import { createDeliveryDependencies } from "./helpers/delivery-fixture.mjs";
+import { planningDocuments } from "./helpers/planning-fixture.mjs";
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -9,6 +11,25 @@ import { createWebServer as createLegacyWebServer } from "../src/web/legacy-serv
 import { fingerprintStageArtifacts } from "../src/fingerprints.mjs";
 import { createJobRecord } from "../src/jobs.mjs";
 import { initializeProject, loadProject, writeJson } from "../src/storage.mjs";
+
+// HTTP regressions must not initialize or alter real videos with these historical slugs.
+const defaultFixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), "harness-web-default-fixtures-"));
+const originalRoots = { HARNESS_WORKSPACE_ROOT: process.env.HARNESS_WORKSPACE_ROOT, HARNESS_PROJECTS_DIR: process.env.HARNESS_PROJECTS_DIR };
+test.before(() => {
+  process.env.HARNESS_WORKSPACE_ROOT = path.join(defaultFixtureRoot, "workspace");
+  process.env.HARNESS_PROJECTS_DIR = path.join(defaultFixtureRoot, "projects");
+  for (const slug of ["01-synthetic-video", "claude-code-what-is", "claude-code-api-config", "02-core-concepts"]) {
+    const directory = path.join(process.env.HARNESS_WORKSPACE_ROOT, "videos", slug);
+    fs.mkdirSync(directory, { recursive: true });
+    for (const [name, content] of Object.entries({ "source.md": ["01-synthetic-video", "claude-code-what-is"].includes(slug) ? "# 01 · Synthetic Claude Code source\n" : "# Synthetic source\n", ...planningDocuments })) fs.writeFileSync(path.join(directory, name), content);
+    fs.writeFileSync(path.join(directory, "visual-prototype.html"), "<!doctype html><html><body>Synthetic preview</body></html>");
+  }
+  initializeProject("claude-code-api-config", { prototypeBaseline: null });
+});
+test.after(() => {
+  for (const [key, value] of Object.entries(originalRoots)) if (value === undefined) delete process.env[key]; else process.env[key] = value;
+  fs.rmSync(defaultFixtureRoot, { recursive: true, force: true });
+});
 
 async function request(server, pathname, options = {}) {
   const address = server.server.address();
@@ -133,7 +154,7 @@ test("serves the Web UI shell and health endpoint on localhost", async () => {
     const detailPayload = JSON.parse(detail.body);
     assert.equal(detailPayload.project.slug, "claude-code-what-is");
     assert.equal(detailPayload.project.sequence, 1);
-    assert.equal(detailPayload.project.stages.length, 15);
+    assert.equal(detailPayload.project.stages.length, 14);
 
     const workspace = await request(webServer, "/api/projects/claude-code-what-is/workspace");
     assert.equal(workspace.status, 200);
@@ -169,7 +190,7 @@ test("serves the Web UI shell and health endpoint on localhost", async () => {
       body: JSON.stringify({ action: "next" }),
     });
     assert.equal(nextAction.status, 200);
-    assert.equal(JSON.parse(nextAction.body).result.action, "complete");
+    assert.equal(JSON.parse(nextAction.body).result.action, "initialize");
 
     const unknownAction = await request(webServer, "/api/projects/claude-code-what-is/action", {
       method: "POST",
@@ -402,7 +423,7 @@ test("automatically queues a Remotion modification after Gate 3 rejection", asyn
   fs.writeFileSync(path.join(materials, "visual-script.md"), "# Visual Script\n## Scene 01\nState changes");
   fs.writeFileSync(path.join(materials, "visual-prototype.html"), "<section class=\"scene\">Current subject</section>");
   writeVisualReviewFixture(process.env.HARNESS_WORKSPACE_ROOT, slug);
-  initializeProject(slug);
+  initializeProject(slug, { productionContract: "legacy-v1" });
   const project = loadProject(slug, { refresh: false });
   for (const stage of [
     "source",
@@ -503,7 +524,7 @@ test("queues a persisted Agent Job from the Web UI action and exposes its result
   const webServer = createWebServer({
     port: 0,
     remoteJobMonitor: { start() {}, stop() {}, async poll() {} },
-    agentExecutorFactory: () => ({ async run() { return { executor: "web-test-agent", stdout: "done" }; } }),
+    agentExecutorFactory: () => ({ async run() { for (const name of Object.keys(planningDocuments)) fs.appendFileSync(path.join(process.env.HARNESS_WORKSPACE_ROOT, "videos/claude-code-what-is", name), "\n<!-- produced by fixture agent -->\n"); return { executor: "web-test-agent", stdout: "done" }; } }),
   });
   await webServer.listen();
 
@@ -515,10 +536,14 @@ test("queues a persisted Agent Job from the Web UI action and exposes its result
     });
     assert.equal(initialized.status, 200);
 
+    const registered = await request(webServer, "/api/projects/claude-code-what-is/action", {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "run", stage: "source" }),
+    });
+    assert.equal(registered.status, 200);
     const queued = await request(webServer, "/api/projects/claude-code-what-is/action", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "run", stage: "source" }),
+      body: JSON.stringify({ action: "run", stage: "content-analysis" }),
     });
     assert.equal(queued.status, 202);
     const jobId = JSON.parse(queued.body).job.id;
@@ -570,8 +595,12 @@ test("runs one continuous Gate 2 batch through persisted Agent Jobs and stops fo
     port: 0,
     remoteJobMonitor: { start() {}, stop() {}, async poll() {} },
     agentExecutorFactory: (stage) => ({
-      async run() {
+      async run({ project }) {
         stages.push(stage);
+        const outputs = stage === "content-analysis" ? ["content-analysis.md", "video-narrative.md", "scene-script.md"] : [`${stage}.md`];
+        if (stage === "visual-prototype") outputs[0] = "visual-prototype.html";
+        for (const name of outputs) fs.appendFileSync(path.join(project.config.workspaceRoot, "videos/claude-code-what-is", name), "\n<!-- generated by fixture agent -->\n");
+        if (stage === "visual-prototype") writeVisualReviewFixture(project.config.workspaceRoot, project.config.slug);
         if (stage === "content-analysis") await new Promise((resolve) => setTimeout(resolve, 50));
         return { executor: "web-continuous-test-agent", stdout: `${stage} done` };
       },
@@ -615,7 +644,7 @@ test("runs one continuous Gate 2 batch through persisted Agent Jobs and stops fo
     assert.equal(batch.items[0].status, "waiting-gate", JSON.stringify(batch));
     assert.equal(batch.items[0].phase, "gate-2");
     assert.equal(batch.items[0].internalReviews[0].gate, "gate-1");
-    assert.deepEqual(stages, ["content-analysis", "video-narrative", "scene-script", "narration-script", "visual-script", "visual-prototype"]);
+    assert.deepEqual(stages, ["content-analysis", "narration-script", "visual-script", "visual-prototype"]);
 
     const rejected = await request(webServer, "/api/projects/claude-code-what-is/action", {
       method: "POST",
@@ -987,6 +1016,7 @@ test("blocks a new remote job when the render asset archive is incomplete", asyn
   let submitCount = 0;
   const webServer = createWebServer({
     port: 0,
+    deliveryDependencies: { ...createDeliveryDependencies(workspaceRoot), async checkPreparation() { return { ok: true, checks: [], baseline: { localCommit: "a".repeat(40), remoteCommit: "a".repeat(40) } }; } },
     remoteJobMonitor: {
       start() {},
       stop() {},

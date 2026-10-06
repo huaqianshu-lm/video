@@ -1,19 +1,18 @@
 const ACTIONS = new Set([
   "initialize", "legacy-validate", "validate", "next", "report", "context", "plan", "run", "retry", "resume",
-  "approve", "reject", "approve-tts-qc", "run-to-gate-2", "prepare-remote-render", "bind-render-input", "remote-run", "find-historical", "adopt-historical",
+  "approve", "reject", "approve-tts-qc", "run-to-gate-2", "prepare-remote-render", "resume-render-delivery", "bind-render-input", "remote-run", "find-historical", "adopt-historical",
 ]);
 
 import { artifactManifestFor } from "../../artifacts.mjs";
+import { usesUnifiedProduction } from "../../production-contract.mjs";
 import { approveTtsQcForProject, createBatch, findActiveBatchForProject, getBatchForView, stopBatchesAfterGateRejection, runBatch } from "../../batches.mjs";
 import { buildTaskPacket } from "../../context.mjs";
-import { buildGitRenderCommitPlan, commitAndPushRenderDelivery, validateGitRenderDelivery } from "../../git-delivery.mjs";
-import { assertGitHubActionsReady } from "../../diagnostics.mjs";
+import { runRenderDelivery } from "../../render-delivery.mjs";
 import { requireGitHubActionsConfig } from "../../github-config.mjs";
 import { buildProjectPlan } from "../../plans.mjs";
 import { getVideoProject } from "../../project-view.mjs";
 import { buildNextAction, buildProjectReport } from "../../reports.mjs";
 import { ensureRemotionTask, listRemotionTasks } from "../../remotion-tasks.mjs";
-import { assertRemoteRenderDeliveryInputs, assertRenderStageReady, prepareRemoteRenderInputs, validateRemoteRenderPackage } from "../../remote-executor.mjs";
 import { bindRenderInputDelivery } from "../../render-input.mjs";
 import { assertProjectMutable, initializeProject, loadProject } from "../../storage.mjs";
 import { workflowStageDefinition } from "../../workflows/registry.mjs";
@@ -35,6 +34,7 @@ export function normalizeProjectAction(input = {}) {
     confirmDelivery: input.confirmDelivery === true,
     deliveryPlanId: typeof input.deliveryPlanId === "string" ? input.deliveryPlanId : null,
     selectedPaths: Array.isArray(input.selectedPaths) ? input.selectedPaths : null,
+    approveGate3: input.approveGate3 === true,
     renderInputUrl: typeof input.renderInputUrl === "string" ? input.renderInputUrl : null,
     renderInputSha256: typeof input.renderInputSha256 === "string" ? input.renderInputSha256 : null,
     ...(typeof input.workflow === "string" ? { workflow: input.workflow } : {}),
@@ -111,11 +111,15 @@ export function createProjectActionService(runtime) {
       }
       if (action.action === "run-to-gate-2") {
         const active = findActiveBatchForProject("to-gate-2", action.slug); const batch = active ?? createBatch({ type: "to-gate-2", slugs: [action.slug] });
-        void runBatch(batch.id, { queueAgentJob: runtime.queueAgentJob, remoteMonitor: runtime.remoteJobMonitor }).catch(() => {});
+        void runBatch(batch.id, { deliveryDependencies: runtime.deliveryDependencies, queueAgentJob: runtime.queueAgentJob, remoteMonitor: runtime.remoteJobMonitor }).catch(() => {});
         return { status: 202, result: { action: action.action, status: active ? "already-running" : "queued" }, batch: getBatchForView(batch.id) };
       }
       if (action.action === "remote-run") return this.remoteRun(action);
       if (action.action === "prepare-remote-render") return this.prepareRemote(action);
+      if (action.action === "resume-render-delivery") {
+        const delivery = await runRenderDelivery("resume", action.slug, {}, runtime.deliveryDependencies);
+        return { status: 200, result: { action: action.action, ...delivery }, job: delivery.job, project: getVideoProject(action.slug) };
+      }
       if (action.action === "bind-render-input") {
         if (action.stage && action.stage !== "render") { const error = new Error("bind-render-input only supports render"); error.code = "invalid-render-stage"; throw error; }
         const project = loadProject(action.slug, { refresh: false });
@@ -133,9 +137,10 @@ export function createProjectActionService(runtime) {
         case "plan": if (!input.until) { const error = new Error("plan requires until"); error.code = "plan-target-required"; throw error; } result = buildProjectPlan(project, input.until); break;
         case "run": {
           const stage = action.stage ?? project.state.currentStage;
+          if (usesUnifiedProduction(project) && ["source", "tts"].includes(stage)) { result = runStage(project, stage); break; }
           if (workflowStageDefinition(project, stage)?.executor === "agent") {
             if (stage === "remotion") {
-              const needsBuild = validateStage(project, "remotion").length > 0 || project.state.stages.remotion.invalidatedBy === "gate-3-rejected";
+              const needsBuild = usesUnifiedProduction(project) || validateStage(project, "remotion").length > 0 || project.state.stages.remotion.invalidatedBy === "gate-3-rejected";
               if (!needsBuild) { const stageResult = runStage(project, "remotion", { adapters: {} }); const gateResult = runStage(loadProject(action.slug, { refresh: true }), "gate-3", { adapters: {} }); result = { action: action.action, status: "succeeded", stageResult, gateResult }; break; }
               const task = ensureRemotionTask({ slug: action.slug, batchId: null }); runtime.queueRemotionTask(task.id); status = 202; result = { action: action.action, status: "queued", taskId: task.id }; return { status, result, task, project: getVideoProject(action.slug) };
             }
@@ -165,28 +170,15 @@ export function createProjectActionService(runtime) {
       assertProjectMutable(project, "提交远程渲染任务");
       const active = findActiveJob(action.slug, action.stage);
       if (active) return { status: 200, result: { action: action.action, status: "already-running" }, job: active };
-      assertRenderStageReady(project);
-      prepareRemoteRenderInputs(project); const inputIssues = validateRemoteRenderPackage(project);
-      if (inputIssues.length) { const error = new Error(`远程渲染输入预检失败：${inputIssues.join("；")}`); error.code = "remote-render-inputs-invalid"; error.issues = inputIssues; throw error; }
-      const preflight = typeof runtime?.githubPreflight === "function" ? runtime.githubPreflight : assertGitHubActionsReady;
-      await preflight({ project, checkRenderInput: false });
-      const deliveryIssues = validateGitRenderDelivery(project);
-      if (deliveryIssues.length && !(action.commitAndPush && action.confirmDelivery)) {
-        return { status: 200, result: { action: action.action, status: "needs-confirmation" }, error: `远程渲染交付预检失败：${deliveryIssues.join("；")}`, code: "git-render-commit-confirmation-required", issues: deliveryIssues, commitPlan: buildGitRenderCommitPlan(project), project: getVideoProject(action.slug) };
-      }
-      let delivery = null;
-      if (deliveryIssues.length) {
-        delivery = commitAndPushRenderDelivery(project, {
-          deliveryPlanId: action.deliveryPlanId,
-          selectedPaths: action.selectedPaths,
-        });
-        assertRemoteRenderDeliveryInputs(loadProject(action.slug, { refresh: true }));
-      } else assertRemoteRenderDeliveryInputs(project);
-      const job = runtime.remoteJobMonitor.submit({ slug: action.slug, stage: action.stage }); return { status: 202, result: { action: action.action, status: "queued", delivery }, job };
+      if (!(action.commitAndPush && action.confirmDelivery)) return this.prepareRemote(action);
+      if (action.approveGate3 && project.state.currentStage === "gate-3") approveGate(project, "gate-3");
+      const delivery = await runRenderDelivery("start", action.slug, { confirmPlan: action.deliveryPlanId }, runtime.deliveryDependencies);
+      return { status: 202, result: { action: action.action, ...delivery }, job: delivery.job, project: getVideoProject(action.slug) };
     },
     async prepareRemote(action) {
       const stage = action.stage; if (stage !== "render") { const error = new Error("prepare-remote-render only supports render"); error.code = "invalid-remote-stage"; throw error; }
-      const project = loadProject(action.slug, { refresh: true }); assertRenderStageReady(project, "准备远程渲染资源"); const preparation = prepareRemoteRenderInputs(project); try { assertRemoteRenderDeliveryInputs(project); return { status: 200, result: { action: action.action, status: "ready", preparation }, project: getVideoProject(action.slug) }; } catch (error) { if (error.code === "remote-render-delivery-invalid") return { status: 200, result: { action: action.action, status: "blocked" }, error: error.message, code: error.code, issues: error.issues ?? [], project: getVideoProject(action.slug) }; throw error; }
+      const delivery = await runRenderDelivery("prepare", action.slug, {}, runtime.deliveryDependencies);
+      return { status: 200, result: { action: action.action, ...delivery, status: "needs-confirmation" }, commitPlan: { planId: delivery.planId, commitPaths: delivery.files, selectedPaths: delivery.files }, project: getVideoProject(action.slug) };
     },
   };
 }

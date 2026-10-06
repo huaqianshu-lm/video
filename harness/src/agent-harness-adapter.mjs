@@ -30,7 +30,7 @@ export function buildAgentPrompt(payload) {
   return [
     "你是当前项目的视频生产 Agent。",
     "先读取并遵守 ~/.claude/CLAUDE.md、项目 CLAUDE.md 和 ROADMAP.md，再执行下面的 Harness 阶段任务包。",
-    "先读取 context.readPaths（包括其中声明的原型基线）；只修改任务包声明的 context.writePaths；只处理当前阶段，不跳过前置阶段或提前执行下游阶段。",
+    "先读取 context.readPaths（包括其中声明的原型基线）；只修改任务包声明的 context.writePaths；只处理 task.stages 声明的任务阶段（缺少时为当前阶段），不提前执行其他阶段。",
     "完成输出后运行任务包中列出的校验命令。不要自行通过人工 Gate。",
     "完成后直接退出，由 Harness 重新读取并校验真实产物；只有校验通过才会推进阶段。",
     "",

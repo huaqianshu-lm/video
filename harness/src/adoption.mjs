@@ -151,7 +151,7 @@ export function adoptExistingProjectToGate2(slug) {
     throw new Error(`Cannot adopt ${slug} to Gate 2${details ? `：${details}` : ""}`);
   }
 
-  initializeProject(slug, { prototypeBaseline: null });
+  initializeProject(slug, { prototypeBaseline: null, productionContract: "legacy-v1" });
   const project = loadProject(slug, { refresh: false });
   return completeGate2Adoption(project, "existing-artifacts");
 }
@@ -162,7 +162,7 @@ export function markHistoricalProjectCompleted(slug, reason = "user-confirmed-hi
   if (existingFiles.length > 0 && existingFiles.length < 3) {
     throw new Error(`Harness project has incomplete state files: ${slug}`);
   }
-  if (existingFiles.length === 0) initializeProject(slug);
+  if (existingFiles.length === 0) initializeProject(slug, { productionContract: "legacy-v1" });
 
   const project = loadProject(slug, { refresh: false });
   assertProjectMutable(project, "标记视频为已完成");

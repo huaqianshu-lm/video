@@ -1,8 +1,8 @@
-import { assertGitHubActionsReady } from "./diagnostics.mjs";
 import { buildBatchGitRenderCommitPlan, commitAndPushBatchRenderDelivery, validateGitRenderDelivery } from "./git-delivery.mjs";
 import { loadProject } from "./storage.mjs";
 import { readRenderInputDelivery, validateRenderInputDelivery } from "./render-input.mjs";
-import { prepareRemoteRenderInputs, validateRemoteRenderInputs, validateRemoteRenderPackage } from "./remote-executor.mjs";
+import { validateRemoteRenderInputs, validateRemoteRenderPackage } from "./remote-executor.mjs";
+import { runRenderDelivery, readRenderMethod, renderMethodEnvironment, readRenderDeliverySession, checkpointRenderDelivery, checkVerifiedRenderPreparation } from "./render-delivery.mjs";
 
 const UNCOMMITTED_RENDER_ISSUE = /^渲染相关文件存在未提交修改：/;
 
@@ -50,8 +50,8 @@ function videoRecord(batchId, project, preparation, gitPlan, issues, confirmatio
 
 export async function prepareBatchRenderDelivery(batch, {
   environment = process.env,
-  githubPreflight = (options) => assertGitHubActionsReady(options),
-  prepareInputs = prepareRemoteRenderInputs,
+  prepareInputs = null,
+  deliveryDependencies = {},
 } = {}) {
   if (batch?.type !== "to-render") {
     const error = new Error("批量交付预检只支持 to-render 批次");
@@ -74,7 +74,10 @@ export async function prepareBatchRenderDelivery(batch, {
     let preparation = null;
     let gitPlan = null;
     try {
-      preparation = await prepareInputs(project);
+      const method = readRenderMethod(project);
+      environment = renderMethodEnvironment(method, environment);
+      preparation = await runRenderDelivery("prepare", item.slug, {}, { ...deliveryDependencies, environment,
+        ...(prepareInputs ? { prepareInputs } : {}) });
     } catch (error) {
       issues.push(errorMessage(error));
     }
@@ -82,13 +85,7 @@ export async function prepareBatchRenderDelivery(batch, {
     issues.push(...validateRemoteRenderPackage(project));
     issues.push(...validateRemoteRenderInputs(project));
     issues.push(...validateRenderInputDelivery(project));
-    try {
-      await githubPreflight({ project, stage: "render", checkRenderInput: false });
-    } catch (error) {
-      issues.push(errorMessage(error));
-    }
-
-    const gitIssues = validateGitRenderDelivery(project);
+    const gitIssues = validateGitRenderDelivery(project, { environment });
     for (const issue of gitIssues) {
       if (UNCOMMITTED_RENDER_ISSUE.test(issue)) confirmationIssues.push(issue);
       else issues.push(issue);
@@ -135,10 +132,11 @@ export async function prepareBatchRenderDelivery(batch, {
   };
 }
 
-export function commitPreparedBatchRenderDelivery(batch, {
+export async function commitPreparedBatchRenderDelivery(batch, {
   environment = process.env,
   deliveryPlanId = null,
   selectedPaths = null,
+  deliveryDependencies = {},
 } = {}) {
   const delivery = batch?.renderDelivery;
   if (!delivery || delivery.kind !== "batch-render-delivery") {
@@ -166,15 +164,46 @@ export function commitPreparedBatchRenderDelivery(batch, {
     error.issues = inputIssues;
     throw error;
   }
-  const result = commitAndPushBatchRenderDelivery(projects, { environment, deliveryPlanId, selectedPaths });
+  if (deliveryPlanId !== delivery.git.planId || JSON.stringify([...(selectedPaths ?? [])].sort()) !== JSON.stringify([...delivery.git.selectedPaths].sort())) {
+    throw Object.assign(new Error("必须确认当前批量计划与完整精确文件清单。"), { code: "batch-render-delivery-plan-stale" });
+  }
+  const sessions = projects.map(project => readRenderDeliverySession(project));
+  if (sessions.some((session, index) => !session || session.method.ref !== delivery.git.ref || session.workspace !== projects[index].config.workspaceRoot || session.jobId)) throw new Error("批量交付记录缺失、工作区／分支不一致或已有 Job，请先恢复原交付。");
+  environment = renderMethodEnvironment(sessions[0].method, environment);
+  const recordedCommits = unique(sessions.map(session => session.commit).filter(Boolean));
+  if (recordedCommits.length > 1) throw new Error("批量断点提交不一致，停止恢复。");
+  if (!recordedCommits.length) {
+    for (let index = 0; index < projects.length; index += 1) {
+      const project = projects[index];
+      const { report } = await checkVerifiedRenderPreparation(project, sessions[index].method, { ...deliveryDependencies, environment });
+      if (report.baseline.localCommit !== delivery.git.headCommit || report.baseline.remoteCommit !== delivery.git.headCommit) throw new Error("本地或实际远端已变化，请重新准备并确认批量清单。");
+    }
+    for (let index = 0; index < projects.length; index += 1) {
+      const originalPlanId = delivery.git.videoPlans.find(video => video.videoSlug === projects[index].config.slug)?.planId;
+      if (sessions[index].plan.planId !== originalPlanId && sessions[index].confirmedPlan !== deliveryPlanId) throw new Error("单条交付清单已改变，请重新准备批量计划。");
+      checkpointRenderDelivery(projects[index], { plan: delivery.git, confirmedPlan: deliveryPlanId, phase: "committing", batchId: batch.id, dispatchAuthorized: false });
+    }
+  } else {
+    if (sessions.some(session => session.confirmedPlan !== deliveryPlanId)) throw new Error("断点没有本次批量清单授权，停止恢复。");
+    for (const project of projects) checkpointRenderDelivery(project, { commit: recordedCommits[0], phase: "pushing" });
+  }
+  let result;
+  if (recordedCommits.length) {
+    const recovered = await runRenderDelivery("resume", projects[0].config.slug, { commitOnly: true }, { ...deliveryDependencies, environment });
+    result = { status: "committed", commit: recovered.commit, ...delivery.git };
+  } else {
+    result = commitAndPushBatchRenderDelivery(projects, { environment, deliveryPlanId, selectedPaths,
+      onCommit: commit => { for (const project of projects) checkpointRenderDelivery(project, { commit, phase: "pushing" }); } });
+  }
+  for (const project of projects) checkpointRenderDelivery(project, { commit: result.commit, phase: "pushed" });
   return { ...result, deliveryBinding: projects.map((project) => readRenderInputDelivery(project.config.workspaceRoot, project.config.slug)) };
 }
 
 export async function assertCommittedBatchRenderDelivery(
   batch,
   {
-    environment = process.env,
-    githubPreflight = (options) => assertGitHubActionsReady(options),
+    deliveryDependencies = {},
+    environment = deliveryDependencies.environment ?? process.env,
   } = {},
 ) {
   const delivery = batch?.renderDelivery;
@@ -193,7 +222,11 @@ export async function assertCommittedBatchRenderDelivery(
   ]));
   for (const project of projects) {
     try {
-      await githubPreflight({ project, stage: "render", checkRenderInput: false });
+      const session = readRenderDeliverySession(project);
+      if (!session?.confirmedPlan || session.commit !== delivery.commit.sha) throw new Error("缺少已确认的统一交付断点。");
+      environment = renderMethodEnvironment(session.method, environment);
+      const {report} = await checkVerifiedRenderPreparation(project, session.method, {...deliveryDependencies, environment});
+      if (report.baseline.localCommit !== session.commit || report.baseline.remoteCommit !== session.commit) throw new Error("本地或实际远端不是本次确认提交。");
     } catch (error) {
       issues.push(errorMessage(error));
     }

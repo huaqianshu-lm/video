@@ -58,11 +58,12 @@ export function createWebServer({
   remoteJobMonitor = createRemoteJobMonitor(),
   diagnose,
   githubPreflight,
+  deliveryDependencies = {},
   agentExecutorFactory = (stage) => stage === "subtitle-timeline" ? createTtsExecutorFromEnv() : createAgentExecutorFromEnv(),
   remotionExecutorFactory = () => createRemotionExecutorFromEnv(),
 } = {}) {
   recoverRemoteJobs();
-  const runtime = createRuntime({ remoteJobMonitor, agentExecutorFactory, remotionExecutorFactory, githubPreflight });
+  const runtime = createRuntime({ remoteJobMonitor, agentExecutorFactory, remotionExecutorFactory, githubPreflight, deliveryDependencies });
   const handlers = [
     createProjectRoutes({ runtime, remoteJobMonitor }),
     createBatchRoutes({ runtime }),

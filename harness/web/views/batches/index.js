@@ -21,7 +21,7 @@ function renderDelivery(batch) {
   const files = delivery.git?.selectedPaths ?? [];
   const bindings = (delivery.videos ?? []).map((video) => `<li><strong>${escapeHtml(video.slug)}</strong> · Composition：${escapeHtml(video.compositionId ?? "—")} · URL：${escapeHtml(video.renderInputUrl ?? "缺失")} · ZIP SHA-256：${escapeHtml(video.renderInputSha256 ?? "缺失")} · fingerprint：${escapeHtml(video.packageFingerprint ?? "缺失")} · 绑定文件 SHA-256：${escapeHtml(video.deliveryBindingSha256 ?? "缺失")} · 分支：${escapeHtml(video.branch ?? "—")} · dispatch ref：${escapeHtml(video.dispatchRef ?? "—")} · commit：${escapeHtml(video.commitSha ?? "尚未提交")} · Job：${escapeHtml(video.remoteJobId ?? "尚未派发")} · Run：${escapeHtml(video.runId ?? "尚未确认")} ${video.runUrl ? `（${escapeHtml(video.runUrl)}）` : ""}</li>`).join("");
   let action = `<button class="button button-secondary" type="button" data-batch-action="prepare-render-delivery" data-batch-id="${escapeHtml(batch.id)}">重新预检交付</button>`;
-  if (delivery.status === "needs-confirmation") action = `<button class="button button-primary" type="button" data-batch-action="commit-render-delivery" data-batch-id="${escapeHtml(batch.id)}">确认文件清单并 commit / push</button>`;
+  if (delivery.status === "needs-confirmation") action = `<button class="button button-primary" type="button" data-batch-action="commit-render-delivery" data-batch-id="${escapeHtml(batch.id)}">确认文件清单并 commit / push</button><button class="button button-secondary" type="button" data-batch-action="resume-render-delivery" data-batch-id="${escapeHtml(batch.id)}">恢复已授权交付</button>`;
   if (delivery.status === "committed") action = `<button class="button button-primary" type="button" data-batch-action="dispatch-render" data-batch-id="${escapeHtml(batch.id)}">确认并开始真实 Render</button>`;
   return `<section class="batch-render-delivery"><div class="batch-render-delivery-heading"><strong>正式渲染交付：${escapeHtml(delivery.status)}</strong>${action}</div>${issueList.length ? `<ul class="batch-render-delivery-issues">${issueList.map((issue) => `<li>${escapeHtml(issue)}</li>`).join("")}</ul>` : ""}<details><summary>查看逐视频绑定和精确提交文件</summary><p>逐视频绑定：</p><ul>${bindings || "<li>暂无绑定记录</li>"}</ul><p>本次精确提交文件：</p><ul>${files.map((file) => `<li data-batch-delivery-path="${escapeHtml(file)}"><code>${escapeHtml(file)}</code></li>`).join("") || "<li>本次没有需要提交的文件</li>"}</ul></details></section>`;
 }
@@ -93,12 +93,11 @@ export function createBatchView({ elements, api, refreshButton, onRefreshProject
         const confirm = globalThis.window?.confirm;
         const delivery = batch?.renderDelivery;
         if (typeof confirm !== "function" || !delivery?.git?.planId) throw new Error("当前页面无法完成批量交付确认，请重新打开 WebUI");
-        if (!confirm("请确认页面展示的逐视频输入绑定和精确 Git 文件清单。")) return;
-        if (!confirm("请单独授权为这批视频执行定向 commit。")) return;
-        if (!confirm("请单独授权把这次定向提交 push 到目标分支。")) return;
+        if (!confirm(`确认本次批量交付 ${delivery.git.planId}：\n\n${delivery.git.selectedPaths.join("\n") || "（无待提交文件）"}\n\n确认页面展示的逐视频输入绑定，并授权定向 commit、push 和真实完整 Render。`)) return;
         body.confirmDelivery = true;
         body.confirmCommit = true;
         body.confirmPush = true;
+        body.confirmRender = true;
         body.deliveryPlanId = delivery.git.planId;
         body.selectedPaths = delivery.git.selectedPaths;
       }

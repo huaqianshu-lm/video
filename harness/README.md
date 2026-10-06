@@ -211,9 +211,14 @@ Harness 0.2 已完成以下验证：
 
 ```bash
 npm test --prefix harness
+npm run test:production --prefix harness
+# 只运行某个模块
+npm test --prefix harness -- unified-production.test.mjs
 ```
 
-测试使用 Node 原生测试运行器和系统临时目录，不调用真实 TTS、GitHub Actions 或本机 MP4 渲染。
+测试入口 `scripts/test.mjs` 为每个测试文件隔离工作区、项目状态及任务目录，使用 Node 原生测试运行器。全量包括真实视频资料与状态的前后哈希只读检查；其他生产测试只修改系统临时目录。外网 fetch 被阻断，凭据和外部服务使用模拟值，本地 Git 交付只推送临时本地仓库，不调用真实 TTS、GitHub Actions 或本机 MP4 渲染。HTTP 测试需要本机回环监听权限。命令结束打印每个模块的结果及临时 `summary.json` 证据路径；单文件超过 240 秒会失败并停止测试进程组。
+
+`test:production` 集中检查统一任务、审核和单条／批量交付契约；修改入口或共享编排后运行全量回归。具体覆盖见 `VALIDATION-MATRIX.md`。这些检查不代替实际画面、试听、人工 Gate 或跨视频验收。
 
 ## Web UI
 
@@ -306,7 +311,7 @@ node harness/src/cli.mjs render-input entry-all --output src/RenderInputRoot.tsx
 
 远程渲染输入包位于被忽略的 `local/render-input/<video-slug>/`，压缩包位于同目录下的 `<video-slug>.zip`。准备输入包不会 commit 或 push：
 
-Agent／CLI 单条完整渲染使用固定交付入口，自动检查成功方法、准备包、发布和绑定，展示当前精确文件清单。首次传入已验证方法的参数，随后复用本地忽略的 `local/render-method.json`。执行 `start` 前必须取得用户对展示清单的明确确认；发生中断后使用 `resume`。详细步骤见 [单条渲染方法手册](../docs/RENDER-DELIVERY-BASELINE.md)。Web UI／批量尚未接入此入口。
+Agent／CLI 单条完整渲染使用固定交付入口，自动检查成功方法、准备包、发布和绑定，展示当前精确文件清单。首次传入已验证方法的参数，随后复用本地忽略的 `local/render-method.json`。执行 `start` 前必须取得用户对展示清单的明确确认；发生中断后使用 `resume`。详细步骤见 [单条渲染方法手册](../docs/RENDER-DELIVERY-BASELINE.md)。Web UI／批量复用同一服务，实际人工与跨视频验收状态见 ROADMAP.md。
 
 ```bash
 node harness/src/cli.mjs render-delivery prepare <video-slug> \
@@ -402,3 +407,26 @@ macOS 的 Agent 沙箱可能无法读取系统钥匙串或访问 GitHub；沙箱
 原型任务可以写入当前资料目录下的 `visual-self-review.json` 与 `visual-review/` 证据。没有实际观看画面时必须记录未通过。Gate 2 在进入审批和点击通过时校验当前资料指纹、Workflow、Visual Script／Workflow 必检项及非空安全证据路径；legacy 不降级这些错误。未完成项目的 TTS、资产准备、Timeline、Remotion 与 Gate 3 继续检查，已有远程渲染结果的回收不追溯新增视觉审批。完成项目保持只读。
 
 自检失败时修复记录；若实际画面需要重设计，使用 `reject <slug> gate-2 --return-to visual-script --reason "具体视觉问题"`，阻断的 ready／failed Gate 2 也支持该回退。所有正常审批仍须人工执行。
+
+## Harness 统一生产（迁移中）
+
+所有入口遵守 `docs/HARNESS-PRODUCTION-CONTRACT.md`。新建项目默认 `productionContract: unified-v1`；旧项目缺少字段时按 legacy-v1 执行，不刷新迁移，不修改 completed。
+
+对话 Agent 使用：
+
+```bash
+node harness/src/cli.mjs context <slug>
+node harness/src/cli.mjs production-task claim <slug>
+node harness/src/cli.mjs production-task show <task-id>
+node harness/src/cli.mjs production-task complete <task-id> --summary "实际制作内容"
+node harness/src/cli.mjs production-task fail <task-id> --reason "失败原因"
+node harness/src/cli.mjs production-task resume <task-id>
+```
+
+Source 登记与冻结 TTS 输入校验使用 `run`，无需 Agent 制作任务。策划合并成一个任务、三份文件和三个内部阶段；口播与视觉原型仍在 Gate 2 审核。统一契约的 TTS 机器检查完成后可制作 Remotion，在 Gate 3 试听并审核音画；旧契约保留独立 TTS 试听。
+
+同一项目只能有一个已领取任务；Web UI 重启不会撤销对话任务。提交结果必须通过真实产物、变化和输入版本校验，过期或原样回传不能推进。
+
+单条交付 `render-delivery prepare／start／resume`；批量交付 `batch delivery prepare／start／resume <batch-id>`，start 须传当前 `--confirm-plan <plan-id>`。Web UI 复用服务，准备不 commit／push／dispatch。批量只提交一次，各视频独立发布绑定与恢复 Job。既有成功基线配置及机器检查见 `docs/RENDER-DELIVERY-BASELINE.md`。
+
+统一任务与交付已有自动回归，实际 CLI 和本机 HTTP 入口使用隔离资料验证；覆盖与未完成项见 `VALIDATION-MATRIX.md`。实际画面、试听、人工 Gate、真实远端交付和跨视频验收尚未完成，整体迁移状态见 ROADMAP.md。

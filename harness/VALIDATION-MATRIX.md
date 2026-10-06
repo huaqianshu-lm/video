@@ -6,7 +6,7 @@
 
 Agent 封面契约见 `docs/AGENT-SERIES-COVER.md`：新 CLI 项目必须明确选择系列或 none；检查本地快照／图片哈希、输入 Manifest 与资源 ZIP 封面一致性。旧无快照输入保持兼容。带封面的单条 Gate 3 入口必须匹配当前 Manifest 的完整生成契约，防止漏封面或总时长偏移错误。11-agents-md 已验证实际选择、TTS 包装、输入包和 Studio 入口，相关 Alignment／Render Input 回归22/22通过；正式画面、Runner 和最终渲染仍待人工及真实交付验证。
 
-独立 Agent／CLI 准备入口 `src/render-preflight.mjs` 的回归位于 `test/render-preflight.test.mjs`：覆盖真实 Git 祖先关系、旧代码阻断、钥匙串不可读、网络／401 区分、两个仓库写权限、成功 Workflow 归属、API／fetch 快照变化、origin 不匹配及凭据不外泄。仅准备检查；Web UI／批量尚未自动调用，不能代替阶段矩阵或完整 Render 验证。
+共享交付服务使用 `src/render-preflight.mjs`；专项回归位于 `test/render-preflight.test.mjs`：覆盖真实 Git 祖先关系、旧代码阻断、钥匙串不可读、网络／401 区分、两个仓库写权限、成功 Workflow 归属、API／fetch 快照变化、origin 不匹配及凭据不外泄。Web UI／批量已接入共享准备服务，Fixture 回归使用注入的认证与基线检查；实际宿主认证和完整 Render 仍须单独验收。
 
 Agent 单条固定交付入口 `cli.mjs render-delivery` 的回归位于 `test/render-delivery.test.mjs`：从实际 CLI 分派调用准备、发布／绑定、清单确认、真实 Fixture Git 定向提交／推送和既有 Monitor／GitHub 适配器；网络与凭据使用 Fixture，验证正常 Gate 4 停留、过期计划／绑定阻断、发布后绑定失败恢复、提交后推送失败恢复、派发响应中断的 dispatchId 恢复、已知 Run 超时对账、Artifact 过期阻断、显式远端失败重试及 completed 只读。不能据此声称执行了新的真实远端渲染。
 
@@ -98,3 +98,19 @@ Smoke Render 只能针对未完成视频或独立副本，并通过 GitHub Actio
 ## 退役 Workflow 兼容
 
 宣传片生产能力已移除；已完成宣传片保持永久只读，仅保留历史资料展示和已有输入包预览。生产目录仅返回口播教程；新建、任务和输入包生产入口必须返回 `workflow-retired`。只读兼容元数据不含执行器。已有输入包预览仍校验文件集合、路径、大小和 SHA-256，不重新生成历史产物。
+
+## 统一生产迁移验收（自动回归已覆盖，实际验收待完成）
+
+| ID | 条件与期望 | 当前状态 |
+|---|---|---|
+| AC-1 | 对话与 Web 使用相同 task packet、next 和阻塞；Gate 3 显示试听清单 | `unified-production` 覆盖实际 CLI、现代／兼容 HTTP 与共享服务；`web-server` 覆盖连续制作到 Gate 2 |
+| AC-2 | 对话 claim／submit 使用持久化 Job；无产物、未变化、过期输入拒绝推进 | `unified-production` 覆盖三份产物校验、原样／过期回传阻断及单条／批量 TTS 持久化 |
+| AC-3 | 同项目排斥重复执行；服务器重启保留对话任务，失败恢复原 ID | `unified-production` 覆盖两个 CLI 进程竞争、跨入口互斥、原 ID 重试及已保存阶段检查点恢复；强制杀进程的全部落盘窗口尚未验证 |
+| AC-4 | 一次策划三份产物；Gate 1 内部检查；新项目 Gate 3 合并试听，旧契约保留独立试听 | `unified-production`、`harness`、`web-modules` 覆盖统一及旧契约；实际动态画面、正常速度试听和人工 Gate 待验收 |
+| AC-5 | 上游变化导致正确返工与审核失效；completed 所有资料／状态／任务保持只读 | `unified-production` 覆盖音频审核失效、锁／任务／旧对象只读；`completed-readonly` 与 `web-regression` 校验保护及真实资料／状态哈希 |
+| AC-6 | CLI、Web、批量共享交付服务；未授权或清单变化阻断，批量一次提交、逐视频恢复 | `render-delivery`、`batch-delivery`、`git-delivery`、`web-server` 覆盖准备、授权、清单变化、失败恢复及批量独立 Job；外部服务模拟，Git 使用临时本地远端 |
+| AC-7 | 对话及 Web 实际路径、未完成视频从输入到 Gate 4 验收 | 待用户人工审核、授权渲染与跨视频验证 |
+
+既有依赖旧审核流程的 Fixture 显式使用 `legacy-v1`；统一契约另有 25 项专项回归。模拟音频、视觉审核证据和外部响应只验证契约，不代表真实音视频质量或人工确认。
+
+运行 `npm run test:production --prefix harness` 检查统一任务／审核及共享交付，运行 `npm test --prefix harness` 检查全部模块。入口隔离与证据位置见 `README.md`；本轮完整结果保存到本地 `local/harness-unified-production/verification.json`。AC-7 和上述强制中断窗口未全部验收，整体迁移仍未完成。

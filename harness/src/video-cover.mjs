@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import {assertProductionTaskOwner} from './production-lock.mjs';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
 import {getSeries, listSeries, seriesAssetPath, validateCover} from './series-assets.mjs';
@@ -43,6 +44,7 @@ export function videoCoverAssetIssues(project) {
 export function selectVideoSeries(slug, seriesId) {
   const project = loadProject(slug, {refresh: false});
   assertProjectMutable(project, '设置视频系列与封面');
+  assertProductionTaskOwner(project);
   const stages = workflowStages(project);
   const visualStage = stages.includes('visual-script') ? 'visual-script' : 'motion-script';
   if (stages.indexOf(project.state.currentStage) >= stages.indexOf(visualStage)) throw new Error('系列与封面须在视觉设计开始前选择；后续变更需要重新审核方案');

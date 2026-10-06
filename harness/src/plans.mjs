@@ -39,7 +39,7 @@ export function buildProjectPlan(project, targetOverride = null) {
       inScope,
       commands: {
         validate: commandFor("validate", state.slug, stage),
-        execute: commandFor("run", state.slug, stage),
+        execute: stage === "render" ? commandFor("render-delivery prepare", state.slug) : commandFor("run", state.slug, stage),
       },
     };
   });

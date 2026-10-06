@@ -4,6 +4,8 @@ import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { createProjectRoutes } from "./routes/projects.mjs";
+import { createBatchRoutes } from "./routes/batches.mjs";
 import { getProjectFile, getProjectPrototype, listProjectFiles } from "../project-files.mjs";
 import { getVideoProject, listVideoProjects } from "../project-view.mjs";
 import { findActiveJob, listAllJobs, listJobs } from "../jobs.mjs";
@@ -362,7 +364,7 @@ async function serveBatchApi(response, request, pathname, runtime) {
       return true;
     }
     if (body.action === "commit-render-delivery") {
-      commitBatchRenderDelivery(id, {
+      await commitBatchRenderDelivery(id, {
         confirmDelivery: body.confirmDelivery === true,
         confirmCommit: body.confirmCommit === true,
         confirmPush: body.confirmPush === true,
@@ -905,6 +907,7 @@ export function createWebServer({
   remoteJobMonitor = createRemoteJobMonitor(),
   diagnose = diagnoseGitHubActions,
   githubPreflight,
+  deliveryDependencies = {},
   agentExecutorFactory = (stage) => stage === "subtitle-timeline"
     ? createTtsExecutorFromEnv()
     : createAgentExecutorFromEnv(),
@@ -912,10 +915,15 @@ export function createWebServer({
 } = {}) {
   recoverInterruptedAgentJobs();
   recoverInterruptedRemotionTasks();
-  const runtime = createRuntime({ remoteJobMonitor, agentExecutorFactory, remotionExecutorFactory, githubPreflight });
+  const runtime = createRuntime({ remoteJobMonitor, agentExecutorFactory, remotionExecutorFactory, githubPreflight, deliveryDependencies });
   const { queueAgentJob, queueRemotionTask } = runtime;
+  const productionRoutes = [createProjectRoutes({ runtime, remoteJobMonitor }), createBatchRoutes({ runtime })];
   const server = http.createServer((request, response) => {
-    handleRequest(request, response, host, runtime, diagnose).catch((error) => {
+    (async () => {
+      const url = new URL(request.url ?? "/", `http://${host}`);
+      for (const route of productionRoutes) if (await route({ request, response, pathname: url.pathname, search: url.search })) return;
+      await handleRequest(request, response, host, runtime, diagnose);
+    })().catch((error) => {
       if (response.headersSent) {
         response.destroy(error);
         return;

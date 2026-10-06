@@ -1,4 +1,5 @@
 import { visualSelfReviewPath } from "./visual-self-review.mjs";
+import { productionContract, productionManualChecks, taskStages, usesUnifiedProduction } from "./production-contract.mjs";
 import {
   requireWorkflowDefinition,
   retiredStageDefinition,
@@ -35,7 +36,7 @@ function uniquePaths(entries) {
   return [...new Set(entries.map(({ path: artifactPath }) => artifactPath))];
 }
 
-export function buildTaskPacket(project) {
+function buildSingleTaskPacket(project) {
   const { config, state } = project;
   const workflow = requireWorkflowDefinition(config);
   const styleId = resolveStyleId(config, state.slug);
@@ -241,4 +242,36 @@ export function buildTaskPacket(project) {
       ...(remotionRebuildRequest ? { rebuildRequest: remotionRebuildRequest } : {}),
     },
   };
+}
+
+export function buildTaskPacket(project) {
+  const packet = buildSingleTaskPacket(project);
+  packet.project.productionContract = productionContract(project);
+  if (!packet.task) return packet;
+  packet.task.manualChecks = productionManualChecks(project, workflowStageDefinition(project, packet.task.stage));
+  const stages = taskStages(project);
+  packet.task.stages = stages;
+  if (packet.task.stage === "render") packet.task.commands.execute = `node harness/src/cli.mjs render-delivery prepare ${project.state.slug}`;
+  if (usesUnifiedProduction(project) && packet.task.stage === "subtitle-timeline") {
+    for (const directory of ["audio", "subtitles"]) {
+      const outputPath = `${project.config.remotionDirectory}/generated/${directory}/**/*`;
+      packet.task.outputArtifacts.push({ stage: "subtitle-timeline", path: outputPath, status: "unverified", exists: false });
+      packet.context.writePaths.push(outputPath);
+    }
+  }
+  if (stages.length > 1) {
+    const parts = stages.map((stage) => buildSingleTaskPacket({ ...project, state: { ...project.state, currentStage: stage } }));
+    packet.task.objective = "一次完成内容分析、视频叙事和场景脚本策划；保持三份文件职责，全部校验通过后完成内部审查。";
+    packet.task.outputArtifacts = parts.flatMap((part) => part.task.outputArtifacts);
+    packet.context.writePaths = uniquePaths(packet.task.outputArtifacts);
+    packet.task.validation = [...new Set(parts.flatMap((part) => part.task.validation))];
+    packet.task.nextStage = "narration-script";
+    packet.task.commands.validateAll = stages.map((stage) => commandFor("validate", project.state.slug, stage));
+    packet.context.constraints[0] = "本任务合并 task.stages 声明的策划阶段；只制作这些阶段，不能提前制作口播或视觉资料。";
+  }
+  if (usesUnifiedProduction(project) && packet.task.executor === "agent" && !["source", "tts"].includes(packet.task.stage)) {
+    packet.task.commands.claim = `node harness/src/cli.mjs production-task claim ${project.state.slug}`;
+    packet.task.commands.complete = 'node harness/src/cli.mjs production-task complete <task-id> --summary "<制作说明>"';
+  }
+  return packet;
 }

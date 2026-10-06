@@ -111,7 +111,7 @@ content-analysis.md
 - 可视觉化内容
 - 可以弱化或删除的信息
 
-完成后先人工确认。
+完成后由 Harness 内部校验，继续任务链；不逐份请求人工确认。人工审核统一在 Gate 2／Gate 3／Gate 4，旧项目保留其独立 TTS 试听契约。
 
 ---
 
@@ -131,7 +131,7 @@ video-narrative.md
 
 应该按照观众的认知过程重新组织叙事。
 
-完成后先人工确认。
+完成后由 Harness 内部校验，继续任务链；不逐份请求人工确认。人工审核统一在 Gate 2／Gate 3／Gate 4，旧项目保留其独立 TTS 试听契约。
 
 ---
 
@@ -157,7 +157,7 @@ scene-script.md
 - 屏幕重点
 - Video Value
 
-完成后先人工确认。
+完成后由 Harness 内部校验，继续任务链；不逐份请求人工确认。人工审核统一在 Gate 2／Gate 3／Gate 4，旧项目保留其独立 TTS 试听契约。
 
 ---
 
@@ -181,7 +181,7 @@ narration-script.md
 - 转折
 - 结论
 
-完成后先人工确认。
+完成后由 Harness 内部校验，继续任务链；不逐份请求人工确认。人工审核统一在 Gate 2／Gate 3／Gate 4，旧项目保留其独立 TTS 试听契约。
 
 ---
 
@@ -209,7 +209,7 @@ Visual Script 主要定义：
 
 > 声音负责解释，视觉负责演示和证明。
 
-完成后先人工确认。
+完成后由 Harness 内部校验，继续任务链；不逐份请求人工确认。人工审核统一在 Gate 2／Gate 3／Gate 4，旧项目保留其独立 TTS 试听契约。
 
 ---
 
@@ -246,43 +246,25 @@ Gate 2 通过时由 Harness 冻结 Visual Script、Visual Prototype 指纹和 Sc
 
 ---
 
-# 3. 不要一次生成全部文档
+# 3. 由 Harness 合并任务并停在人工 Gate
 
-不要给 Claude Code 一条指令：
-
-> “根据这篇文章，把所有视频文档和视频全部做出来。”
-
-推荐：
+所有入口遵守 [Harness 统一生产契约](HARNESS-PRODUCTION-CONTRACT.md)。新项目的 Content Analysis、Video Narrative、Scene Script 合并为一次策划任务，三份文件及内部阶段仍保留；资料全部通过内部检查后，继续口播、视觉脚本和原型，停在 Gate 2。
 
 ```text
-Content Analysis
+Source 登记
 ↓
-人工确认
+策划任务：Content Analysis + Video Narrative + Scene Script
+↓ Gate 1 内部检查
+Narration Script → Visual Script → Visual Prototype → 视觉收敛自检
+↓ Gate 2 人工确认
+TTS 输入校验 → 真实音频／字幕／Timeline → 机器质检
 ↓
-Video Narrative
-↓
-人工确认
-↓
-Scene Script
-↓
-人工确认
-↓
-Narration Script
-↓
-人工确认
-↓
-Visual Script
-↓
-人工确认
-↓
-Visual Prototype
-↓
-人工确认
-↓
-Remotion
+Remotion → Gate 3 人工试听及音画审核
+↓ 精确交付清单授权
+完整 Render → Gate 4 人工验收
 ```
 
-这样可以避免前面一个判断错误，一直传递到后面的所有阶段。
+缺少 productionContract 或为 legacy-v1 的旧项目保留独立 TTS 试听确认，不通过刷新自动迁移。对话 Agent 领取 Harness 任务并回传结果；不能自行修改状态或越过 Gate。
 
 ---
 

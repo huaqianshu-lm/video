@@ -13,7 +13,7 @@ Use this skill for Harness Web UI, batch jobs, Agent executors, asset packaging,
 - Keep the Web UI on `127.0.0.1`; the browser must never receive the GitHub token.
 - Agent, TTS, Remotion, and remote jobs must be persistent, resumable, idempotent, and revalidated from real output after the process exits.
 - Missing executors, failed processes, and invalid outputs remain retryable failures or waiting tasks; never create placeholder output.
-- Gate 2, TTS quality review, Gate 3, and Gate 4 remain human checkpoints in the production workflow.
+- Read `docs/HARNESS-PRODUCTION-CONTRACT.md`: unified-v1 has human Gate 2, Gate 3 (including listening), Gate 4; legacy-v1 or a missing field retains standalone TTS quality review. All entrypoints, including conversation, use Harness tasks and persistent records.
 - Smoke Render is a standalone manual environment check for a new series or a rendering-environment change. It does not advance a Harness stage, create a Harness production Job, or write a video review.
 - Resolve the server-side Workflow Profile before deciding stages, artifacts, asset checks, or remote inputs; the browser must not copy the Workflow graph or business rules.
 - `narrated-tutorial-v1` keeps its MP3／VTT／SRT and narrated Manifest contract.
@@ -25,7 +25,7 @@ For Agent series covers, apply `docs/AGENT-SERIES-COVER.md`; the independent inp
 
 Before operating this path, apply the mandatory successful-validation reuse requirements in the project `CLAUDE.md`. Carry forward the previous verified execution environment and code baseline; record unimplemented machine checks and incomplete cross-video validation explicitly rather than claiming that an operational workaround is a permanent fix.
 
-For Agent/CLI single-video delivery, read `docs/RENDER-DELIVERY-BASELINE.md` and use `cli.mjs render-delivery prepare／start／resume` as the fixed entry. Reuse the verified local method configuration; preparation automatically checks the successful baseline and publishes/binds the input before presenting the exact commit list. Call start only after the user explicitly confirms that list, with its current plan ID. Resume the persisted delivery instead of rebuilding or redispatching. The old CLI `remote-run` and `run <slug> render` are disabled; Web UI and batch integration remain outside this migration.
+For every delivery entry, read `docs/RENDER-DELIVERY-BASELINE.md`. Conversation/CLI uses `render-delivery prepare／start／resume`; Web actions and batch delivery reuse that service. Reuse the verified local method configuration; preparation checks the successful baseline and publishes/binds the input before presenting the exact commit list. Preparation never commits, pushes or dispatches. Start only after explicit confirmation of the current plan ID. Batch delivery confirms one union of files and commits once, with individual video inputs and Jobs. Resume persisted delivery instead of rebuilding or redispatching. Old CLI `remote-run` and `run <slug> render` remain disabled. See ROADMAP.md for pending actual entrypoint and cross-video verification.
 
 ### Agent execution environment
 

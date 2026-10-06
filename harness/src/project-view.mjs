@@ -228,6 +228,7 @@ function buildInitializedView(slug) {
     renderInputDirectory: project.config.renderInputDirectory,
     workflow: project.config.workflow,
     workflowVersion: project.config.workflowVersion,
+    productionContract: project.config.productionContract ?? "legacy-v1",
     timelineMode: workflowForProject(project).timelineMode,
     audioMode: workflowForProject(project).audioMode,
     batchSupported: workflowForProject(project).batchSupported !== false,

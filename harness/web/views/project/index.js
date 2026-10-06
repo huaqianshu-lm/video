@@ -47,18 +47,20 @@ export function createProjectView({ elements, api, polling, onBack, onRefreshDas
     const beforeGate2 = gate2Index >= 0 && currentIndex >= 0 && currentIndex < gate2Index;
     if (project.batchSupported !== false && ["run-stage", "fix-validation-issues"].includes(project.next.action) && beforeGate2 && !item) buttons.push(`<button class="button button-primary" type="button" data-action="run-to-gate-2">连续生成至 Gate 2</button>`);
     const ttsStage = project.stages.find((stage) => stage.stage === "subtitle-timeline");
-    if (project.audioMode === "tts" && ttsStage?.review?.decision !== "approved" && ttsStage?.status === "succeeded") buttons.push(`<button class="button button-primary" type="button" data-action="approve-tts-qc">确认 TTS 质检</button>`);
+    if (project.productionContract !== "unified-v1" && project.audioMode === "tts" && ttsStage?.review?.decision !== "approved" && ttsStage?.status === "succeeded") buttons.push(`<button class="button button-primary" type="button" data-action="approve-tts-qc">确认 TTS 质检</button>`);
     if (project.next.action === "run-stage" && task?.status === "ready") buttons.push(`<button class="button button-primary" type="button" data-remotion-task-action="run" data-task-id="${escapeHtml(task.id)}">执行 Agent</button>`);
     else if (project.next.action === "run-stage" && (!task || task.status === "completed") && project.currentStage !== "render") buttons.push(`<button class="button button-primary" type="button" data-action="run">执行当前阶段</button>`);
     if (project.next.action === "run-stage" && project.currentStage === "render") buttons.push(activeJob?.stage === project.currentStage ? (() => { disabledReason = "remote-task-running-reason"; return `<button class="button button-primary" type="button" aria-describedby="${disabledReason}" disabled>远程任务执行中</button>`; })() : `<button class="button button-primary" type="button" data-action="remote-run">提交完整渲染</button>`);
     if (project.next.action === "fix-validation-issues" && project.currentStage === "render" && project.next.preparation?.action === "prepare-remote-render") buttons.push(`<button class="button button-primary" type="button" data-action="prepare-remote-render">准备远程渲染资源</button>`);
     if (project.currentStage === "render") {
+      buttons.push(`<button class="button button-secondary" type="button" data-action="resume-render-delivery">恢复当前交付</button>`);
       buttons.push(`<button class="button button-secondary" type="button" data-action="bind-render-input">绑定已发布输入包</button>`);
       buttons.push(`<button class="button button-secondary" type="button" data-action="find-historical">查找历史 Artifact</button>`);
     }
     if (project.next.action === "retry-stage") buttons.push(`<button class="button button-primary" type="button" data-action="retry">重试当前阶段</button>`);
     if (project.next.action === "resume-from-invalidated-stage") buttons.push(`<button class="button button-primary" type="button" data-action="resume">恢复项目</button>`);
     if (project.next.action === "approve-or-reject-gate") { buttons.push(`<button class="button button-primary" type="button" data-action="approve">通过 ${escapeHtml(project.currentStage)}</button><button class="button button-secondary" type="button" data-action="reject">驳回 Gate</button>`); }
+    if (project.currentStage === "gate-3" && project.next.action === "approve-or-reject-gate") buttons.push(`<button class="button button-primary" type="button" data-action="prepare-preview-delivery">确认音画预览并准备交付</button>`);
     if (disabledReason) buttons.push(`<span id="${disabledReason}" class="visually-hidden">远程任务正在执行${activeJob.id ? `，任务 ID：${escapeHtml(activeJob.id)}` : ""}，完成前不能重复提交。</span>`);
     return buttons.join("");
   }
@@ -117,18 +119,22 @@ export function createProjectView({ elements, api, polling, onBack, onRefreshDas
         return;
       }
     }
-    const body = { action, stage: ["validate", "run", "retry", "remote-run", "prepare-remote-render", "find-historical"].includes(action) ? currentProject.currentStage : undefined, gate: ["approve", "reject"].includes(action) ? currentProject.currentStage : undefined, ...extra };
+    const previewDelivery = action === "prepare-preview-delivery";
+    const body = { action: previewDelivery ? "prepare-remote-render" : action, stage: previewDelivery ? "render" : (["validate", "run", "retry", "remote-run", "prepare-remote-render", "find-historical"].includes(action) ? currentProject.currentStage : undefined), gate: ["approve", "reject"].includes(action) ? currentProject.currentStage : undefined, ...extra };
     const button = [...elements.container.querySelectorAll("[data-action]")].find((item) => item.dataset.action === action); if (button) { button.disabled = true; button.textContent = "提交中……"; }
     feedback("正在提交当前阶段请求……");
     try {
       let result = await api.runProjectAction(currentProject.slug, body);
-      if (action === "remote-run" && result.result?.status === "needs-confirmation") {
+      if (["remote-run", "prepare-remote-render", "prepare-preview-delivery"].includes(action) && result.result?.status === "needs-confirmation") {
         const plan = result.commitPlan ?? { branch: "当前分支", commitPaths: [], selectedPaths: [], planId: "" };
         const selectedPaths = Array.isArray(plan.selectedPaths) ? plan.selectedPaths : (plan.commitPaths ?? []);
         const paths = selectedPaths.length ? selectedPaths.join("\n") : "（没有可定向提交的文件）";
-        if (!window.confirm(`完整渲染提交前需要定向 commit/push。\n\n分支：${plan.branch}\n本次计划：${plan.planId || "未生成"}\n将提交的文件：\n${paths}\n\n确认后会自动 commit、push。`)) { feedback("已取消提交和推送，未创建远程任务。"); return; }
+        if (!window.confirm(`${previewDelivery ? "确认已正常速度试听并检查音画预览，通过 Gate 3。\n\n" : ""}完整渲染交付确认。\n\n本次计划：${plan.planId || "未生成"}\n精确文件清单：\n${paths}\n\n确认后会定向 commit、push 并派发完整 Render。`)) { feedback("已取消交付，未提交、推送或创建渲染任务。"); return; }
         result = await api.runProjectAction(currentProject.slug, {
           ...body,
+          action: "remote-run",
+          stage: "render",
+          approveGate3: previewDelivery,
           commitAndPush: true,
           confirmDelivery: true,
           deliveryPlanId: plan.planId,

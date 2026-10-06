@@ -1,10 +1,10 @@
 # 远程渲染成功基线的复用
 
-本手册是 Agent／CLI 渲染准备检查和独立输入包发布步骤的权威来源。成功基线包含实际执行环境、认证来源、完整 Render Run 和该 Run 的代码提交。具体视频的 Run、报告和输入包绑定记录保存在本地忽略目录；凭据不得写入记录。
+本手册是所有渲染入口的准备检查和独立输入包发布步骤的权威来源。成功基线包含实际执行环境、认证来源、完整 Render Run 和该 Run 的代码提交。具体视频的 Run、报告和输入包绑定记录保存在本地忽略目录；凭据不得写入记录。
 
-## Agent 单条视频固定入口
+## 所有入口的固定交付服务
 
-统一入口为 `node harness/src/cli.mjs render-delivery <prepare|start|resume> <slug>`。本次只收口 Agent／CLI 单条视频，Web UI 与批量入口不在迁移范围。生产者为当前视频资料／独立输入包与 Git 交付计划，消费者为现有 Render Monitor 和 GitHub Actions；不改变 Workflow、输入包 schema、人工 Gate 或 Actions 配置。旧 `remote-run` CLI 入口停用并指向新入口；低层输入包命令保留作诊断，不能替代完整交付。
+统一入口为 `node harness/src/cli.mjs render-delivery <prepare|start|resume> <slug>`。Web UI 的准备／提交／恢复操作复用同一服务；批量使用 `batch delivery prepare／start／resume`，合并精确文件计划只提交一次，每条视频保留自己的输入包、交付记录和 Job。实际入口与跨视频验收仍在迁移中，见 ROADMAP.md。生产者为当前视频资料／独立输入包与 Git 交付计划，消费者为现有 Render Monitor 和 GitHub Actions；不改变 Workflow、输入包 schema、人工 Gate 或 Actions 配置。旧 `remote-run` CLI 入口停用并指向新入口；低层输入包命令保留作诊断，不能替代完整交付。
 
 - `prepare`：读取本地固定方法配置，强制 gh 系统凭据来源与成功基线预检，准备／校验当前输入包，发布独立私有 Release 并绑定，保存精确交付清单供用户确认。首次指定 `--repository`、`--input-repository`、`--ref`、`--baseline-run`；检查通过后保存在忽略的 `local/render-method.json`，以后复用。多组件可用 `--component-file`／`--component-export` 明确入口。
 - `start --confirm-plan <planId>`：仅在用户明确确认展示过的精确清单后调用；重新检查代码、输入包和文件清单，定向 commit／push 后创建持久化 Job 并发起完整 Render。没有确认或计划变化时停止。原工作区与远端分叉时先按本手册准备独立交付工作区，不自动合并或推送无关提交。
@@ -80,4 +80,12 @@ node harness/src/cli.mjs render-input bind <slug> \
 
 准备检查会更新 Git 引用，不修改视频状态、人工 Gate、工作区内容，不 commit／push／派发。`ok=true` 只表示认证、权限和代码基线通过，仍需现有资源／Manifest 校验、绑定记录校验、精确文件清单确认、定向提交推送、完整 Render 和 Gate 4。
 
-Agent 单条入口已串联本手册的准备检查、独立 Release 发布／绑定、清单确认、定向提交推送、派发和同一 Job 恢复；下述底层命令供诊断和人工恢复参考，不作为日常替代入口。Web UI／批量派发仍使用原路径，未纳入本次迁移。新的入口以 Fixture 全路径测试验证，真实认证／权限／成功代码基线另行预检；下一条实际视频仍需完成真实 Render 和 Gate 4，不能把 Fixture 当作实际成片。
+Agent 单条入口已串联本手册的准备检查、独立 Release 发布／绑定、清单确认、定向提交推送、派发和同一 Job 恢复；下述底层命令供诊断和人工恢复参考，不作为日常替代入口。Web UI／批量已接入共享预检、发布绑定与逐视频交付断点；批量提交后的推送恢复和每条视频派发复用统一服务。新增路径的回归及实际入口验收尚未完成，不把代码接入视为固化完成。先前单条入口已有 Fixture 验证；本轮扩展入口待回归，真实认证／权限／成功代码基线仍须另行预检；下一条实际视频仍需完成真实 Render 和 Gate 4，不能把 Fixture 当作实际成片。
+
+## 对话、Web UI 与批量操作
+
+- 对话 Agent 使用单条 CLI；制作资料须先 `production-task claim`，返回制作结果后由 Harness 推进，不能自行改状态。
+- Web UI 支持准备、确认及恢复交付；Gate 3 等待时可先准备清单，在一次明确提交中分别记录音画审核与文件清单授权。任何一个条件失效都阻断派发。
+- 批量：`batch delivery prepare <id>` 展示逐视频绑定及合并文件计划；`batch delivery start <id> --confirm-plan <id>` 明确授权定向提交、推送和真实 Render；`batch delivery resume <id>` 恢复保存的授权、提交及各视频 Job。未经授权的清单不能通过 resume 执行。
+- Web UI 批量一次确认可分别授权文件清单、commit、push 与真实 Render；后端分别保存事实。已有仅 commit／push 授权时，仍需显式 Render 授权，不能从提交成功推断渲染许可。
+- 单条与批量共用忽略的 local/render-method.json；若派发分支或实际工作区与成功基线不一致，先核实并纠正。开发分支不能自动冒用 main 基线。

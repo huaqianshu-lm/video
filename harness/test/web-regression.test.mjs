@@ -66,7 +66,7 @@ function snapshotTree(root) {
 }
 
 test("Web UI data readers pass read-only regression for real video projects", () => {
-  const roots = realVideoSlugs.flatMap(videoRoots);
+  const roots = [...realVideoSlugs.flatMap(videoRoots), path.join(repositoryRoot, "harness", "projects")];
   const before = roots.map(snapshotTree);
   const projects = listVideoProjects();
   const listedSlugs = projects.map((project) => project.slug);

@@ -15,7 +15,7 @@
 - [x] 配置驱动的通用视频实现。
 - [x] Visual Prototype → Remotion 的人工确认流程。
 - [x] 逐句字幕、音频驱动时间轴和 Timeline Manifest 契约。
-- [x] Gate 1、Gate 2、TTS 质检、Gate 3 和 Gate 4 人工检查点；Smoke Render 作为独立手动环境检查保留。
+- [x] Gate 1 内部检查与 Gate 2／3／4 人工检查；旧契约保留独立 TTS 试听，统一契约试听合并到 Gate 3，依据 `harness/test/unified-production.test.mjs`；实际试听仍需人工确认。Smoke Render 作为独立手动环境检查保留。
 - [x] Gate 2 后从纯口播派生并校验 `tts-script.json`。
 - [x] TTS、Remotion 和完整 Render 的生产执行器边界；Smoke Render 使用独立 GitHub Actions 工作流，不推进 Harness。
 - [x] Harness 四类批量任务、持久化 Job、失败重试和断点恢复。
@@ -27,7 +27,7 @@
 - [x] Agent 单条固定交付入口 `render-delivery prepare／start／resume`：复用方法配置、发布绑定、确认精确清单、定向提交推送及原 Job 恢复；`harness/test/render-delivery.test.mjs` 14/14，相关回归 86/86、兼容 89/89；真实成功基线预检通过。
 - [x] 已知 Render Run 的本地超时对账：先检查远端实际结果，显式恢复同一 Job；过期 Artifact 不能推进 Gate 4，依据单条交付与 Job 回归。
 - [ ] 固定入口在下一条新视频上的真实完整 Render／Gate 4 验收；Fixture 不代替实际成片。
-- [ ] 固定交付入口接入 Web UI／批量（本次范围之外）。
+- [ ] Harness 统一生产迁移验收：对话任务、策划合并、Gate 3 试听及 Web／批量共享交付已有自动回归；实际画面、试听、人工 Gate、完整远端交付及跨视频验收待完成，见 `harness/VALIDATION-MATRIX.md`。
 - [x] 系列风格、系列封面和 45 帧正文起点规则。
 - [ ] Agent 系列选择与封面交付完整验证：CLI、快照、统一 Studio／Runner 片头及 ZIP 检查已实现；下一条新视频仍需选择／包装／Gate 2／Gate 3／真实 Render 验证，详见 `AGENT-SERIES-COVER.md`。
 - [x] Workflow Registry：`narrated-tutorial-v1` 的阶段、版本、Gate、路径和交付契约统一解析。

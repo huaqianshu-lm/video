@@ -7,6 +7,10 @@ import {seriesChoices, selectVideoSeries} from './video-cover.mjs';
 import {getStyleDefinition} from './styles.mjs';
 import {saveSeries, saveSeriesCover} from './series-assets.mjs';
 import {renderDeliveryCli} from './render-delivery.mjs';
+import { claimDialogueTask, completeDialogueTask, failAgentTask, getAgentJob, resumeDialogueTask, createAgentJob, runAgentJob } from './agent-jobs.mjs';
+import { usesUnifiedProduction } from './production-contract.mjs';
+import { workflowStageDefinition } from './workflows/registry.mjs';
+import { createAgentExecutorFromEnv } from './agent-executor.mjs';
 import { initializeProject, loadProject, writeJson, reopenGate3ForSeriesCover } from "./storage.mjs";
 import { workflowCatalog, workflowStages } from "./workflows/registry.mjs";
 import { approveGate, rejectGate, resumeProject, retryStage, runStage, validateStage } from "./runner.mjs";
@@ -40,6 +44,9 @@ import {
   listBatchesForView,
   retryFailedBatchItems,
   runBatch,
+  prepareBatchRenderDelivery,
+  commitBatchRenderDelivery,
+  resumeBatchRenderDelivery,
 } from "./batches.mjs";
 import {
   completeRemotionTask,
@@ -81,6 +88,7 @@ function usage() {
   node harness/src/cli.mjs next <slug> [--json]
   node harness/src/cli.mjs report <slug> [--json]
   node harness/src/cli.mjs context <slug>
+  node harness/src/cli.mjs production-task <claim|show|resume|complete|fail> <slug|task-id> [--summary <text>] [--reason <text>]
   node harness/src/cli.mjs plan <slug> --until <stage> [--json]
   node harness/src/cli.mjs batch types [--json]
   node harness/src/cli.mjs batch create <to-gate-2|to-tts|to-remotion|to-render> <slug>... [--json]
@@ -255,6 +263,21 @@ function configuredExecutors() {
 }
 
 export async function main(args, {deliveryDependencies = {}} = {}) {
+  if (args[0] === "production-task") {
+    const [, action, value, ...rest] = args;
+    const option = name => { const index = rest.indexOf(name); return index >= 0 ? rest[index + 1] : null; };
+    let result;
+    if (action === "claim") { validateSlug(value); result = claimDialogueTask(value); }
+    else if (action === "show") { result = getAgentJob(value); if (!result) throw new Error("任务不存在。"); }
+    else if (action === "resume") result = resumeDialogueTask(value);
+    else if (action === "complete") result = completeDialogueTask(value, option("--summary"));
+    else if (action === "fail") {
+      if (getAgentJob(value)?.mode !== "dialogue") throw new Error("只能结束对话任务。");
+      result = failAgentTask(value, option("--reason"));
+    } else throw new Error("production-task 仅支持 claim／show／resume／complete／fail。");
+    console.log(JSON.stringify(result, null, 2));
+    return 0;
+  }
   const [command, slug, ...options] = args;
   if (command === 'series') {
     const value = flag => options.includes(flag) ? options[options.indexOf(flag) + 1] : null;
@@ -316,6 +339,24 @@ export async function main(args, {deliveryDependencies = {}} = {}) {
   if (command === "batch") {
     const batchCommand = slug;
     const asJson = options.includes("--json");
+    if (batchCommand === "delivery") {
+      const [action, batchId, ...rest] = options;
+      if (!batchId) throw new Error("batch delivery 需要 prepare／start／resume 和 batch-id。");
+      const batch = getBatch(batchId);
+      if (!batch || batch.type !== "to-render") throw new Error("统一批量交付仅支持 to-render 批次。");
+      if (action === "prepare") await prepareBatchRenderDelivery(batchId, { deliveryDependencies });
+      else if (action === "start") {
+        const index = rest.indexOf("--confirm-plan");
+        const planId = index >= 0 ? rest[index + 1] : null;
+        if (!planId) throw new Error("须明确确认展示的精确清单，再传 --confirm-plan <planId>。");
+        await commitBatchRenderDelivery(batchId, { confirmDelivery: true, confirmCommit: true, confirmPush: true, deliveryPlanId: planId, selectedPaths: batch.renderDelivery?.git?.selectedPaths, deliveryDependencies });
+        await runBatch(batchId, { deliveryDependencies, confirmRender: true });
+      } else if (action === "resume") {
+        await resumeBatchRenderDelivery(batchId, { deliveryDependencies });
+      } else throw new Error("batch delivery 仅支持 prepare／start／resume。");
+      console.log(JSON.stringify(getBatchForView(batchId), null, 2));
+      return 0;
+    }
     if (batchCommand === "types") {
       const definitions = batchDefinitions();
       if (asJson) console.log(JSON.stringify(definitions, null, 2));
@@ -608,6 +649,13 @@ export async function main(args, {deliveryDependencies = {}} = {}) {
     if (command === "run") {
       const stage = options[0] ?? project.state.currentStage;
       if (stage === 'render') throw new Error('单条完整渲染请使用 render-delivery prepare／start／resume，不能跳过交付确认。');
+      if (usesUnifiedProduction(project) && workflowStageDefinition(project, stage)?.executor === "agent" && !["source", "tts", "remotion"].includes(stage)) {
+        const job = createAgentJob({ slug, stage, mode: "cli" });
+        const executor = stage === "subtitle-timeline" ? configuredExecutors()[stage] : createAgentExecutorFromEnv();
+        const result = await runAgentJob(job.id, { executor });
+        console.log(JSON.stringify(result, null, 2));
+        return result.status === "succeeded" ? 0 : 1;
+      }
       const adapters = {};
       const ttsExecutor = stage === "subtitle-timeline" ? configuredExecutors()["subtitle-timeline"] : null;
       const remotionExecutor = stage === "remotion" ? createRemotionExecutorFromEnv() : null;

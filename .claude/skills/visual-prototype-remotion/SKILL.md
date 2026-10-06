@@ -33,6 +33,7 @@ For Agent series covers, read `docs/AGENT-SERIES-COVER.md`. The generated single
 3. Implement reusable components first and keep video-specific content in the local video configuration.
 4. Produce a fresh `remotion-alignment.json`：narrated 视频还要映射 Audio Segment 和 Subtitle Cue。
 5. Compare the rendered preview against the frozen prototype and alignment file at Gate 3.
+6. Under the unified production contract, Gate 3 also requires normal-speed listening to the current audio and checking pronunciation, pauses, rate and subtitle synchronization. Use Harness's explicit approval or rejection; machine validation never substitutes for listening or viewing. Conversation Remotion work must first claim a production-task and submit its actual outputs.
 
 ## Invariants
 

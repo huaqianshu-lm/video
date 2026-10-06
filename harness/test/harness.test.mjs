@@ -1,3 +1,4 @@
+import { createFixture } from "./helpers/production-fixture.mjs";
 import { writeVisualReviewFixture } from "./helpers/visual-review-fixture.mjs";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
@@ -37,81 +38,15 @@ import { getSeriesDefinitionForSlug, getStyleDefinition, resolveStyleId } from "
 
 const repositoryRoot = path.resolve(new URL("../..", import.meta.url).pathname);
 
-function createFixture({ prototypeBaseline = null } = {}) {
-  const workspaceRoot = fs.mkdtempSync(path.join(os.tmpdir(), "video-harness-workspace-"));
-  const projectsRoot = fs.mkdtempSync(path.join(os.tmpdir(), "video-harness-projects-"));
-  const slug = "fixture-video";
-  const files = [
-    `videos/${slug}/source.md`,
-    `videos/${slug}/content-analysis.md`,
-    `videos/${slug}/video-narrative.md`,
-    `videos/${slug}/scene-script.md`,
-    `videos/${slug}/narration-script.md`,
-    `videos/${slug}/visual-script.md`,
-    `videos/${slug}/visual-prototype.html`,
-    `videos/${slug}/tts-script.json`,
-    `src/videos/${slug}/generated/audio-manifest.json`,
-    `src/videos/${slug}/generated/subtitle-manifest.json`,
-    `src/videos/${slug}/generated/timeline-manifest.json`,
-    `src/videos/${slug}/video.config.ts`,
-    `src/videos/${slug}/FixtureVideo.tsx`,
-  ];
 
-  for (const relativePath of files) {
-    const absolutePath = path.join(workspaceRoot, relativePath);
-    fs.mkdirSync(path.dirname(absolutePath), { recursive: true });
-    let content = "fixture\n";
-    if (relativePath.endsWith("content-analysis.md")) content = "# Content Analysis\n\n## 核心命题\n验证 Harness。\n\n## 关键关系\n输入、校验和输出。\n\n## 可视觉化内容\n展示阶段状态。\n";
-    if (relativePath.endsWith("video-narrative.md")) content = "# Video Narrative\n\n## 叙事目标\n解释流程。\n\n## 叙事原则\n先展示，再验证。\n\n## 整体叙事结构\n从输入到输出。\n";
-    if (relativePath.endsWith("scene-script.md")) content = "# Scene Script\n\n## Scene 01｜测试\n\n### 目的\n验证 Harness。\n\n### narrativeRole\n建立流程。\n\n### narrationIntent\n解释测试。\n\n### visualIntent\n展示测试状态。\n\n### visualType\n流程。\n\n### keyOnScreenText\nHarness。\n\n### videoValue\n让流程可检查。\n";
-    if (relativePath.endsWith("narration-script.md")) content = "# Narration Script\n\n## Scene 01｜测试\n\n这是测试口播。\n";
-    if (relativePath.endsWith("visual-script.md")) content = "# Visual Script\n\n## 全局视觉原则\n保持清晰。\n\n## Scene 01｜测试\n\n### 视觉目标\n展示测试状态。\n\n### 画面结构\n一个状态卡片。\n\n### 动画\n淡入。\n\n### 屏幕文字\nHarness。\n\n### Visual Type\n流程。\n";
-    if (relativePath.endsWith("visual-prototype.html")) content = "<!doctype html><main><button>上一幕</button><button>下一幕</button><button>自动播放</button><div id=\"progress\"></div><section class=\"scene\">Scene 01</section></main>\n";
-    if (relativePath.endsWith("FixtureVideo.tsx")) content = "export const FixtureVideo = () => null;\n";
-    if (relativePath.endsWith("video.config.ts")) content = "const fps = 30; const subtitleManifest = {}; const timelineManifest = {}; export const videoConfig = { slug: 'fixture-video', format: 'horizontal', width: 1920, height: 1080, fps, scenes: [] };\n";
-    if (relativePath.endsWith("tts-script.json")) content = JSON.stringify({
-      schemaVersion: "1.0",
-      scenes: [{ sceneId: "01", segments: [{ id: "01-01", text: "这是测试口播。" }] }],
-    });
-    if (relativePath.endsWith("audio-manifest.json")) content = JSON.stringify({
-      videoId: slug,
-      scenes: [{ sceneId: "01", segments: [{ id: "01-01", file: "audio/scene-01/01-01.mp3", duration: 1 }] }],
-    });
-    if (relativePath.endsWith("subtitle-manifest.json")) content = JSON.stringify({
-      videoId: slug,
-      scenes: [{ sceneId: "01", segments: [{ segmentId: "01-01", cues: [{ start: 0, end: 0.9, text: "这是测试口播" }] }] }],
-    });
-    if (relativePath.endsWith("timeline-manifest.json")) content = JSON.stringify({
-      videoId: slug,
-      duration: 1,
-      scenes: [{
-        sceneId: "01",
-        offset: 0,
-        duration: 1,
-        end: 1,
-        segments: [{ segmentId: "01-01", offset: 0, duration: 1, end: 1 }],
-      }],
-    });
-    fs.writeFileSync(absolutePath, `${content}\n`, "utf8");
+// Resume tests start from a persisted remote checkpoint. New dispatch requires shared delivery authorization.
+function seedWaitingRemote(batch, monitor) {
+  for (const item of batch.items) {
+    const job = monitor.submit({ slug: item.slug, stage: "render", batchId: batch.id });
+    item.status = "waiting-remote"; item.phase = "render"; item.remoteJobId = job.id;
   }
-
-  const fixtureAssets = {
-    [`public/local-assets/${slug}/audio/scene-01/01-01.mp3`]: "fixture-audio",
-    [`public/local-assets/${slug}/subtitles/captions.vtt`]: "WEBVTT\n",
-    [`public/local-assets/${slug}/subtitles/captions.srt`]: "1\n00:00:00,000 --> 00:00:01,000\nFixture\n",
-  };
-  for (const [relativePath, content] of Object.entries(fixtureAssets)) {
-    const absolutePath = path.join(workspaceRoot, relativePath);
-    fs.mkdirSync(path.dirname(absolutePath), { recursive: true });
-    fs.writeFileSync(absolutePath, content, "utf8");
-  }
-
-  process.env.HARNESS_PROJECTS_DIR = projectsRoot;
-  process.env.HARNESS_WORKSPACE_ROOT = workspaceRoot;
-  process.env.HARNESS_TTS_PROJECT_DIR = path.resolve(repositoryRoot, "..", "tts");
-  writeVisualReviewFixture(workspaceRoot, slug);
-  initializeProject(slug, { prototypeBaseline });
-  return { slug, projectsRoot };
+  batch.status = "waiting";
+  writeJson(path.join(process.env.HARNESS_BATCHES_DIR, `${batch.id}.json`), batch);
 }
 
 function loadFixture(slug) {
@@ -962,12 +897,9 @@ test("splits TTS, Remotion, and render batches at their human checkpoints", asyn
   approveGate(loadFixture(slug), "gate-3");
   const renderBatch = createBatch({ type: "to-render", slugs: [slug] });
   const render = createMockAdapter();
-  const renderResult = await runBatch(renderBatch.id, { adapters: { render } });
-  assert.equal(renderResult.items[0].status, "waiting-gate");
-  assert.equal(renderResult.items[0].phase, "gate-4");
-  assert.equal(loadFixture(slug).state.currentStage, "gate-4");
-  assert.equal(loadFixture(slug).state.stages["gate-4"].status, "waiting");
-  assert.deepEqual(render.calls, [{ stage: "render", slug }]);
+  await assert.rejects(() => runBatch(renderBatch.id, { adapters: { render } }), { code: "batch-render-delivery-confirmation-required" });
+  assert.equal(loadFixture(slug).state.currentStage, "render");
+  assert.deepEqual(render.calls, []);
 });
 
 test("routes batch TTS and Remotion work through the configured single-video executors", async () => {
@@ -1042,6 +974,7 @@ test("keeps a batch remote job waiting and does not submit it twice", async () =
   } };
   const remoteExecutor = createRemoteRenderExecutor({ monitor, validateInputs() {}, preflight: async () => {} });
   const batch = createBatch({ type: "to-render", slugs: [slug] });
+  seedWaitingRemote(batch, monitor);
   const first = await runBatch(batch.id, { remoteMonitor: monitor, remoteExecutor });
   assert.equal(first.items[0].status, "waiting-remote");
   assert.equal(submissions, 1);
@@ -1080,6 +1013,7 @@ test("automatically resumes a batch when its remote job reaches a terminal state
   createRuntime({ remoteJobMonitor: monitor });
   const remoteExecutor = createRemoteRenderExecutor({ monitor, validateInputs() {}, preflight: async () => {} });
   const batch = createBatch({ type: "to-render", slugs: [slug] });
+  seedWaitingRemote(batch, monitor);
   const first = await runBatch(batch.id, { remoteMonitor: monitor, remoteExecutor });
   assert.equal(first.items[0].status, "waiting-remote");
   assert.equal(submissions, 1);
@@ -1114,6 +1048,7 @@ test("automatically records a failed remote job in its batch", async () => {
   createRuntime({ remoteJobMonitor: monitor });
   const remoteExecutor = createRemoteRenderExecutor({ monitor, validateInputs() {}, preflight: async () => {} });
   const batch = createBatch({ type: "to-render", slugs: [slug] });
+  seedWaitingRemote(batch, monitor);
   const waiting = await runBatch(batch.id, { remoteMonitor: monitor, remoteExecutor });
   updateJob(slug, waiting.items[0].remoteJobId, {
     status: "failed",
@@ -1146,6 +1081,7 @@ test("recovers a legacy waiting batch job without a persisted batchId", async ()
   createRuntime({ remoteJobMonitor: monitor });
   const remoteExecutor = createRemoteRenderExecutor({ monitor, validateInputs() {}, preflight: async () => {} });
   const batch = createBatch({ type: "to-render", slugs: [slug] });
+  seedWaitingRemote(batch, monitor);
   const waiting = await runBatch(batch.id, { remoteMonitor: monitor, remoteExecutor });
   updateJob(slug, waiting.items[0].remoteJobId, { status: "succeeded", completedAt: new Date().toISOString() });
   completeAdapterStage(loadFixture(slug), "render", {});

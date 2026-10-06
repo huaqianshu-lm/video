@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node --test test/*.test.mjs",
+    "test": "node scripts/test.mjs",
+    "test:production": "node scripts/test.mjs unified-production.test.mjs batch-delivery.test.mjs render-delivery.test.mjs web-server.test.mjs",
     "web": "node src/web-entry.mjs"
   }
 }

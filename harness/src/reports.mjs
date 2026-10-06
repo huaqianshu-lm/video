@@ -7,6 +7,8 @@ import {
   workflowStageDefinition,
 } from "./workflows/registry.mjs";
 import { validateStage } from "./runner.mjs";
+import { activeProductionTask } from "./production-lock.mjs";
+import { productionManualChecks } from "./production-contract.mjs";
 import { hasAssetSource } from "./asset-bundler.mjs";
 import { validateRemoteRenderPackage } from "./remote-executor.mjs";
 import { isGitWorkspace, validateGitRenderDelivery } from "./git-delivery.mjs";
@@ -66,6 +68,13 @@ export function buildNextAction(project) {
 
   const stage = project.state.currentStage;
   const item = project.state.stages[stage];
+  const activeTask = activeProductionTask(project);
+  if (activeTask) return {
+    currentStage: stage, status: item.status, action: "wait", requiresUser: false,
+    taskId: activeTask.id, mode: activeTask.mode,
+    message: `任务 ${activeTask.id} 已由 ${activeTask.mode} 领取，请恢复同一任务。`,
+    commands: activeTask.mode === "dialogue" ? [`node harness/src/cli.mjs production-task resume ${activeTask.id}`] : [], issues: [],
+  };
   const definition = workflowStageDefinition(project, stage);
   if (!definition) {
     const retiredDefinition = retiredStageDefinition(stage);
@@ -110,7 +119,7 @@ export function buildNextAction(project) {
       requiresUser: true,
       commands: [commandFor(project, "approve", stage)],
       issues,
-      manualChecks: definition.manualChecks,
+      manualChecks: productionManualChecks(project, definition),
       returnToStages: workflowReturnToStages(project, stage),
       recommendedReturnTo: definition.fallbackStage,
     };
@@ -164,7 +173,7 @@ export function buildNextAction(project) {
       action: "run-stage",
       message: `可以执行 ${stage}。`,
       requiresUser: false,
-      commands: [commandFor(project, executeCommandFor(stage), stage)],
+      commands: [stage === "render" ? commandFor(project, "render-delivery prepare") : commandFor(project, executeCommandFor(stage), stage)],
       issues: [],
     };
   }

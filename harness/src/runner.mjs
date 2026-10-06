@@ -1,4 +1,6 @@
 import { validateVisualSelfReview } from "./visual-self-review.mjs";
+import { usesUnifiedProduction } from "./production-contract.mjs";
+import { assertProductionTaskOwner } from "./production-lock.mjs";
 import {
   workflowAdapterStages,
   workflowIsGateStage,
@@ -58,6 +60,7 @@ function setStageAvailable(item, status) {
 
 function completeStage(project, stage, outputs = []) {
   assertProjectMutable(project, `完成 ${stage} 阶段`);
+  assertProductionTaskOwner(project);
   const definition = workflowStageDefinition(project, stage);
   const item = project.state.stages[stage];
   item.status = "succeeded";
@@ -82,6 +85,7 @@ function completeStage(project, stage, outputs = []) {
 
 export function markAdapterStageFailed(project, stage, error) {
   assertProjectMutable(project, `记录 ${stage} 阶段失败`);
+  assertProductionTaskOwner(project);
   const failure = {
     code: "adapter-failed",
     stage,
@@ -106,6 +110,7 @@ function failAdapterStage(project, stage, error) {
 
 function markExecutorStageFailed(project, stage, error) {
   assertProjectMutable(project, `记录 ${stage} 阶段失败`);
+  assertProductionTaskOwner(project);
   const failure = {
     code: error?.code ?? "executor-failed",
     stage,
@@ -121,7 +126,11 @@ function markExecutorStageFailed(project, stage, error) {
   return failure;
 }
 
-function completeExecutorStage(project, stage, result) {
+export function completeExecutorStage(project, stage, result) {
+  assertProjectMutable(project, `提交 ${stage} 制作结果`);
+  assertProductionTaskOwner(project);
+  requireCurrentStage(project, stage);
+  if (project.state.stages[stage].status !== "running") throw new Error(`${stage} is not running`);
   const issues = validateStage(project, stage);
   if (issues.length > 0) {
     const error = new Error(`${issues.length} artifact validation issue(s) in ${stage}`);
@@ -148,8 +157,9 @@ export function validateStage(project, requestedStage, options = {}) {
   return validateProjectStage(project, stage, { ...defaultOptions, ...options });
 }
 
-export function runStage(project, requestedStage, { adapters = {}, executors = {}, deferAdapters = false } = {}) {
+export function beginExecutorStage(project, requestedStage) {
   assertProjectMutable(project, "执行阶段");
+  assertProductionTaskOwner(project);
   const stage = requireCurrentStage(project, requestedStage);
   requireReady(project, stage);
   requirePreviousSucceeded(project, stage);
@@ -164,6 +174,16 @@ export function runStage(project, requestedStage, { adapters = {}, executors = {
   item.attempts += 1;
   item.updatedAt = new Date().toISOString();
   saveState(project);
+  return stage;
+}
+
+export function runStage(project, requestedStage, { adapters = {}, executors = {}, deferAdapters = false } = {}) {
+  const requested = requestedStage ?? project.state.currentStage;
+  if (usesUnifiedProduction(project) && !["source", "tts"].includes(requested) && workflowStageDefinition(project, requested)?.executor === "agent" && !executors[requested]) {
+    throw Object.assign(new Error("统一契约的 Agent 阶段必须领取生产任务，不能仅校验已有文件推进。"), { code: "production-task-required" });
+  }
+  const stage = beginExecutorStage(project, requestedStage);
+  const item = project.state.stages[stage];
 
   if (workflowIsGateStage(project, stage)) {
     item.review = null;
@@ -282,6 +302,7 @@ export function runStage(project, requestedStage, { adapters = {}, executors = {
 
 export function approveGate(project, gate) {
   assertProjectMutable(project, `确认 ${gate}`);
+  assertProductionTaskOwner(project);
   requireKnownStage(project, gate);
   if (!workflowIsGateStage(project, gate)) {
     throw new Error(`${gate} is not a Gate stage`);
@@ -290,7 +311,7 @@ export function approveGate(project, gate) {
     throw new Error(`Gate ${gate} is not waiting for approval`);
   }
 
-  const gateIssues = (gate === "gate-2" ? validateStage(project, gate) : []).filter((item) => item.severity !== "warning");
+  const gateIssues = (gate === "gate-2" || usesUnifiedProduction(project) ? validateStage(project, gate) : []).filter((item) => item.severity !== "warning");
   if (gateIssues.length > 0) throw new Error(`Gate 审批阻断：${gateIssues.map((item) => item.message).join("；")}`);
 
   let ttsScript = null;
@@ -309,6 +330,16 @@ export function approveGate(project, gate) {
     decision: "approved",
     reviewedAt: new Date().toISOString(),
   };
+  if (gate === "gate-3" && usesUnifiedProduction(project)) {
+    const issues = validateStage(project, "subtitle-timeline").filter((item) => item.severity !== "warning");
+    if (issues.length) throw new Error(`音频审核阻断：${issues.map((item) => item.message).join("；")}`);
+    project.state.stages["subtitle-timeline"].review = {
+      kind: "tts-qc", decision: "approved", gate: "gate-3",
+      reviewedAt: project.state.stages[gate].review.reviewedAt,
+      outputFingerprint: fingerprintStageArtifacts(project, "subtitle-timeline"),
+      ttsFingerprint: fingerprintStageArtifacts(project, "tts"),
+    };
+  }
   completeStage(project, gate);
   return {
     stage: gate,
@@ -320,6 +351,7 @@ export function approveGate(project, gate) {
 
 export function rejectGate(project, gate, returnTo, reason) {
   assertProjectMutable(project, `驳回 ${gate}`);
+  assertProductionTaskOwner(project);
   requireKnownStage(project, gate);
   requireKnownStage(project, returnTo);
   if (!workflowIsGateStage(project, gate)) {
@@ -372,6 +404,7 @@ export function rejectGate(project, gate, returnTo, reason) {
 
 export function retryStage(project, requestedStage) {
   assertProjectMutable(project, "重试阶段");
+  assertProductionTaskOwner(project);
   const stage = requestedStage ?? project.state.currentStage;
   requireKnownStage(project, stage);
   const item = project.state.stages[stage];

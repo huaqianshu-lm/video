@@ -16,8 +16,11 @@ Use this skill when the task creates or revises a video's Source, Content Analys
 
 ## Required boundaries
 
+- All production, including conversation work, is scheduled by Harness. Read `docs/HARNESS-PRODUCTION-CONTRACT.md`; use the returned task packet and persistent task ID. Discussion does not claim a task. For unified projects, claim with `production-task claim`, submit with `complete --summary`, and recover the same task with `resume`. Never independently edit Harness state or approve a human Gate.
+
 - Keep the seven production layers separate and preserve their upstream/downstream responsibilities.
 - Complete Content Analysis, Video Narrative, and Scene Script together before the Gate 1 internal review.
+- Under `unified-v1`, produce these three documents in one planning task. Preserve their separate files and responsibilities; Harness validates all outputs before advancing. Do not request approval for each document; request Gate 2 after the narration and actual visual prototype are ready.
 - Complete Narration Script, Visual Script, and Visual Prototype together before Gate 2.
 - A Scene in `narration-script.md` contains spoken text only. Do not put visual instructions, production notes, gate checklists, or source-document references in the spoken body.
 - Write narration as a self-contained video for viewers who have not seen the source material.

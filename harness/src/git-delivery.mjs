@@ -27,6 +27,15 @@ const RENDER_ALLOWED_FILES = new Set([
   "src/lib/motion.ts",
   "harness/src/cli.mjs",
   "harness/src/render-delivery.mjs",
+  "harness/src/production-contract.mjs",
+  "harness/src/production-lock.mjs",
+  "harness/src/batch-delivery.mjs",
+  "harness/src/remotion-tasks.mjs",
+  "harness/src/single-runner.mjs",
+  "harness/src/agent-harness-adapter.mjs",
+  "harness/src/web/server.mjs",
+  "harness/src/web/runtime.mjs",
+  "harness/src/web/routes/batches.mjs",
   "harness/src/video-cover.mjs",
   "harness/src/render-preflight.mjs",
   "harness/src/render-input.mjs",
@@ -67,9 +76,10 @@ const RENDER_ALLOWED_FILES = new Set([
   "remotion.config.ts",
 ]);
 
-function gitCommand(workspaceRoot, args, { trim = true } = {}) {
+function gitCommand(workspaceRoot, args, { trim = true, environment = process.env } = {}) {
   const output = execFileSync("git", ["-C", workspaceRoot, ...args], {
     encoding: "utf8",
+    env: environment,
     stdio: ["ignore", "pipe", "pipe"],
   });
   return trim ? output.trim() : output;
@@ -497,7 +507,7 @@ export function commitAndPushRenderDelivery(
     if (!commit) throw commitError("定向提交完成后无法解析本地提交", "git-render-commit-missing");
     if (onCommit) onCommit(commit);
     execFileSync("git", ["-C", workspaceRoot, "push", "origin", `HEAD:${plan.branch}`], { env: environment, stdio: ["ignore", "pipe", "pipe"] });
-    const remote = gitCommand(workspaceRoot, ["ls-remote", "--heads", "origin", plan.branch]).split(/\s+/)[0] ?? "";
+    const remote = gitCommand(workspaceRoot, ["ls-remote", "--heads", "origin", plan.branch], { environment }).split(/\s+/)[0] ?? "";
     if (remote !== commit) {
       throw commitError(`推送完成后远程分支 ${plan.branch} 未指向本次提交`, "git-render-commit-remote-mismatch");
     }
@@ -515,6 +525,7 @@ export function commitAndPushBatchRenderDelivery(
     commitMessage = "chore: prepare batch complete render delivery",
     deliveryPlanId = null,
     selectedPaths = null,
+    onCommit = null,
   } = {},
 ) {
   const plan = buildBatchGitRenderCommitPlan(projects, { environment });
@@ -539,18 +550,20 @@ export function commitAndPushBatchRenderDelivery(
     throw commitError("批量渲染交付计划已变化，请重新执行预检并确认新的文件清单", "git-render-batch-plan-stale");
   }
   if (plan.commitPaths.length === 0) {
+    if (onCommit) onCommit(localGitCommit(plan.workspaceRoot));
     return { status: "unchanged", commit: localGitCommit(plan.workspaceRoot), ...plan };
   }
 
   try {
-    execFileSync("git", ["-C", plan.workspaceRoot, "add", "--", ...plan.commitPaths], { stdio: ["ignore", "pipe", "pipe"] });
+    execFileSync("git", ["-C", plan.workspaceRoot, "add", "--", ...plan.commitPaths], { env: environment, stdio: ["ignore", "pipe", "pipe"] });
     execFileSync("git", ["-C", plan.workspaceRoot, "commit", "--only", "-m", commitMessage, "--", ...plan.commitPaths], {
-      stdio: ["ignore", "pipe", "pipe"],
+      env: environment, stdio: ["ignore", "pipe", "pipe"],
     });
     const commit = localGitCommit(plan.workspaceRoot);
     if (!commit) throw commitError("批量定向提交完成后无法解析本地提交", "git-render-batch-commit-missing");
-    execFileSync("git", ["-C", plan.workspaceRoot, "push", "origin", `HEAD:${plan.branch}`], { stdio: ["ignore", "pipe", "pipe"] });
-    const remote = gitCommand(plan.workspaceRoot, ["ls-remote", "--heads", "origin", plan.branch]).split(/\s+/)[0] ?? "";
+    if (onCommit) onCommit(commit);
+    execFileSync("git", ["-C", plan.workspaceRoot, "push", "origin", `HEAD:${plan.branch}`], { env: environment, stdio: ["ignore", "pipe", "pipe"] });
+    const remote = gitCommand(plan.workspaceRoot, ["ls-remote", "--heads", "origin", plan.branch], { environment }).split(/\s+/)[0] ?? "";
     if (remote !== commit) {
       throw commitError(`推送完成后远程分支 ${plan.branch} 未指向本次批量提交`, "git-render-batch-remote-mismatch");
     }

@@ -1,4 +1,6 @@
 import fs from "node:fs";
+import { productionContract, UNIFIED_PRODUCTION_CONTRACT, usesUnifiedProduction } from "./production-contract.mjs";
+import { activeProductionTask, assertProductionTaskOwner } from "./production-lock.mjs";
 import path from "node:path";
 import {
   DEFAULT_WORKFLOW_ID,
@@ -109,8 +111,10 @@ export function initializeProject(slug, {
   prototypeBaseline = "codex-v1",
   workflow = DEFAULT_WORKFLOW_ID,
   workflowVersion = null,
+  productionContract: requestedProductionContract = UNIFIED_PRODUCTION_CONTRACT,
 } = {}) {
   const files = projectFiles(slug);
+  productionContract({ productionContract: requestedProductionContract });
   if (fs.existsSync(files.config) || fs.existsSync(files.state) || fs.existsSync(files.artifacts)) {
     throw new Error(`Harness project already exists: ${slug}`);
   }
@@ -150,6 +154,7 @@ export function initializeProject(slug, {
     slug,
     workflow,
     workflowVersion: persistedWorkflowVersion,
+    productionContract: requestedProductionContract,
     style: resolveStyleId(style ? { style } : {}, slug),
     target: workflowDefinition.stages.at(-1),
     createdAt: now,
@@ -188,6 +193,7 @@ export function applySeriesStyle(slug, style) {
   const needsBaseline = project.config.prototypeBaseline !== "codex-v1";
   if (project.config.style === style && !needsBaseline) return { changed: false, restartedAt: null };
   assertProjectMutable(project, "应用系列风格");
+  assertProductionTaskOwner(project);
 
   const now = new Date().toISOString();
   const stages = workflowStages(project);
@@ -229,6 +235,7 @@ export function loadProject(slug, { refresh = true } = {}) {
     state: readJson(files.state),
     artifacts: readJson(files.artifacts),
   };
+  productionContract(project);
   if (refresh) refreshProject(project);
   return project;
 }
@@ -240,6 +247,7 @@ function saveState(project) {
 
 export function reconcileCurrentRemotionOutput(project) {
   assertProjectMutable(project, "恢复 Remotion 产物状态");
+  if (usesUnifiedProduction(project) || activeProductionTask(project)) return { changed: false };
   const stages = workflowStages(project);
   const remotion = project.state.stages.remotion;
   const gate = project.state.stages["gate-3"];
@@ -301,6 +309,8 @@ export function reconcileCurrentRemotionOutput(project) {
 
 export function refreshProject(project) {
   if (isCompletedProject(project)) return { changed: false, stage: null, readOnly: true };
+  productionContract(project);
+  if (activeProductionTask(project)) return { changed: false, stage: null, taskActive: true };
   const stages = workflowStages(project);
 
   const changedStages = stages.filter((stage) => {
@@ -342,6 +352,7 @@ export function reopenGate3ForSeriesCover(slug) {
   if (!fs.existsSync(files.config) || !fs.existsSync(files.state) || !fs.existsSync(files.artifacts)) return false;
   const project = loadProject(slug, { refresh: false });
   assertProjectMutable(project, "因系列封面重开 Gate 3");
+  assertProductionTaskOwner(project);
   const stages = workflowStages(project);
   const gateIndex = stages.indexOf("gate-3");
   const currentIndex = project.state.currentStage === "completed"

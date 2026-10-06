@@ -15,7 +15,7 @@ function fixture() {
   process.env.HARNESS_WORKSPACE_ROOT = workspaceRoot;
   process.env.HARNESS_PROJECTS_DIR = projectsRoot;
   process.env.HARNESS_TTS_PROJECT_DIR = path.resolve(new URL("../..", import.meta.url).pathname, "..", "tts");
-  initializeProject(slug, { prototypeBaseline: null });
+  initializeProject(slug, { prototypeBaseline: null, productionContract: "legacy-v1" });
   const project = loadProject(slug, { refresh: false });
   const source = {
     "source.md": "# Source\n\n内容。\n",

@@ -12,7 +12,7 @@
 
 ### 2.1 必须保留人工检查
 
-端到端流程不应从源文档无人干预地直接运行到最终视频。内容理解、叙事、口播和视觉判断都可能把早期错误传递到后续阶段，因此采用「自动生成一个阶段，人工确认一个阶段」的方式。
+端到端流程不应从源文档无人干预地直接运行到最终视频。内容理解、叙事、口播和视觉判断都可能把早期错误传递到后续阶段，因此由 Harness 连续制作并在 Gate 2、Gate 3、Gate 4 请求人工确认；不逐份确认策划资料。统一契约把试听合并到 Gate 3，旧项目保留独立 TTS 试听契约，详见 `HARNESS-PRODUCTION-CONTRACT.md`。
 
 自动检查负责可以客观判断的事项，例如文件存在、Manifest 引用、时长、字体、资源数量和类型检查。人工确认负责内容是否准确、口播是否自然、视觉是否清楚、节奏是否合适。
 
@@ -29,35 +29,24 @@ TTS 放在 Narration Script 和 Visual Prototype 确认之后、正式 Remotion 
 ## 3. 推荐流程
 
 ```text
-源文档
+Source 登记
   ↓
-Source
+一次策划任务：Content Analysis／Video Narrative／Scene Script
+  ↓ Gate 1 内部检查
+Narration Script → Visual Script → Visual Prototype／视觉自检
+  ↓ Gate 2 人工确认口播和实际动态原型
+校验 TTS Script → +25% TTS → 音频／字幕／Manifest 机器质检
   ↓
-Content Analysis
-  ↓ 人工确认 A
-Video Narrative
-  ↓ 人工确认 B
-Scene Script
-  ↓ 人工确认 C
-Narration Script
-  ↓ 人工确认 D：冻结口播
-Visual Script
-  ↓ 人工确认 E
-Visual Prototype
-  ↓ 人工确认 F：确认视觉方向
-生成 TTS Script → 调用 TTS → 回传音频／字幕／Manifest → TTS 质检
-                                ↓
-                         Remotion 正式实现
-                                ↓
-                      字幕、音频、动画同步
-                                ↓
-                         Studio／预览检查
-                                ↓ 人工确认 G
-                         GitHub 完整渲染
-                                ↓ 每 20 分钟检查
-                      下载并验证最终 Artifact
-                                ↓ 人工验收 H
+Remotion → 正常速度音画预览及试听
+  ↓ Gate 3 人工确认
+prepare 展示精确交付清单 → 用户明确授权 → start
+  ↓
+GitHub 完整 Render → 同一 Job 恢复与 Artifact 检查
+  ↓ Gate 4 人工验收
+completed 永久只读
 ```
+
+统一流程契约见 `HARNESS-PRODUCTION-CONTRACT.md`。旧项目缺少 productionContract 或为 legacy-v1 时，TTS 后仍停在独立试听确认；不批量迁移旧项目。
 
 独立环境检查（按需）
 
@@ -73,7 +62,7 @@ GitHub Actions 手动触发 Smoke test video
 
 ## 4. 阶段和人工闸门
 
-| 阶段 | 主要产物 | 人工确认内容 | 未通过时回退到 |
+| 阶段 | 主要产物 | 检查内容（人工审核集中于 Gate 2／3／4） | 未通过时回退到 |
 |---|---|---|---|
 | Source | `source.md` | 原文完整、来源明确 | Source |
 | Content Analysis | `content-analysis.md` | 核心命题、知识关系、取舍是否正确 | Content Analysis |
@@ -82,7 +71,7 @@ GitHub Actions 手动触发 Smoke test video
 | Narration Script | `narration-script.md` | 事实、措辞、口语感、术语读法 | Narration Script |
 | Visual Script | `visual-script.md` | 声音与画面是否互补 | Visual Script 或 Scene Script |
 | Visual Prototype | `visual-prototype.html` | 构图、信息密度、视觉事件和统一性 | Visual Script／Prototype |
-| TTS 质检 | 音频、字幕、Manifest | 声音、发音、停顿、语速、字幕文本 | 指定 Segment 或 Narration Script |
+| TTS 质检 | 音频、字幕、Manifest | 先完成机器校验；统一契约在 Gate 3 试听，旧契约独立试听 | 指定 Segment 或 Narration Script |
 | Remotion 预览 | 完整音画预览 | 字幕、音频、动画、溢出和节奏 | 配置／Scene／必要的生产资料 |
 | 完整渲染 | 完整 MP4 Artifact | 远程构建、资源、音轨和最终文件生成 | 渲染环境或 Remotion 实现 |
 | 最终验收 | 完整 MP4 | 完整内容和成片质量 | 依据问题回退到对应阶段 |

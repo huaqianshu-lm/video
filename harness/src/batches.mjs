@@ -14,7 +14,10 @@ import { createTtsExecutorFromEnv } from "./tts-executor.mjs";
 import { runSingleStage } from "./single-runner.mjs";
 import { getJob } from "./jobs.mjs";
 import { REMOTE_JOB_STATUS } from "./remote-status.mjs";
-import { createAgentJob, getAgentJob } from "./agent-jobs.mjs";
+import { createAgentJob, getAgentJob, retryAgentJob, runAgentJob } from "./agent-jobs.mjs";
+import { createAgentExecutorFromEnv } from "./agent-executor.mjs";
+import { usesUnifiedProduction } from "./production-contract.mjs";
+import { runRenderDelivery, readRenderDeliverySession, checkpointRenderDelivery } from "./render-delivery.mjs";
 import { assertCommittedBatchRenderDelivery, commitPreparedBatchRenderDelivery, prepareBatchRenderDelivery as prepareBatchRenderDeliveryPlan } from "./batch-delivery.mjs";
 
 const BATCH_DEFINITIONS = Object.freeze({
@@ -180,7 +183,7 @@ function preflightItem(type, slug) {
   if (definition.requiresGate2Approval && !isApproved(project, "gate-2")) {
     return item(slug, "skipped", "Gate 2 尚未通过，不能进入当前批次。", { preflight: "gate-2-required" });
   }
-  if (definition.requiresTtsQc && !isApproved(project, "subtitle-timeline", "tts-qc")) {
+  if (definition.requiresTtsQc && !usesUnifiedProduction(project) && !isApproved(project, "subtitle-timeline", "tts-qc")) {
     return item(slug, "skipped", "TTS 质检尚未通过，不能进入 Remotion 批次。", { preflight: "tts-qc-required" });
   }
   if (definition.requiresGate3Approval && !isApproved(project, "gate-3")) {
@@ -335,7 +338,7 @@ export async function prepareBatchRenderDelivery(id, options = {}) {
   return saveBatch(batch);
 }
 
-export function commitBatchRenderDelivery(id, options = {}) {
+export async function commitBatchRenderDelivery(id, options = {}) {
   const batch = getBatch(id);
   if (!batch) throw new Error(`Batch not found: ${id}`);
   if (batch.renderDelivery?.status !== "needs-confirmation") {
@@ -348,7 +351,7 @@ export function commitBatchRenderDelivery(id, options = {}) {
     error.code = "batch-render-delivery-confirmation-required";
     throw error;
   }
-  const result = commitPreparedBatchRenderDelivery(batch, options);
+  const result = await commitPreparedBatchRenderDelivery(batch, options);
   batch.renderDelivery = {
     ...batch.renderDelivery,
     status: "committed",
@@ -368,6 +371,20 @@ export function commitBatchRenderDelivery(id, options = {}) {
     })),
   };
   return saveBatch(batch);
+}
+
+export async function resumeBatchRenderDelivery(id, options = {}) {
+  const batch = getBatch(id);
+  if (!batch || batch.type !== "to-render") throw new Error("批量交付记录不存在。");
+  if (batch.renderDelivery?.status === "needs-confirmation") {
+    const plan = batch.renderDelivery.git;
+    const sessions = batch.items.map(item => readRenderDeliverySession(loadProject(item.slug, { refresh: false })));
+    if (sessions.some(session => !session || session.confirmedPlan !== plan.planId || session.batchId !== id)) {
+      throw new Error("精确清单尚未授权，不能恢复提交；须先明确确认并 start。");
+    }
+    await commitBatchRenderDelivery(id, { ...options, confirmDelivery: true, confirmCommit: true, confirmPush: true, deliveryPlanId: plan.planId, selectedPaths: plan.selectedPaths });
+  }
+  return runBatch(id, options);
 }
 
 export function listBatchesForView() {
@@ -476,7 +493,7 @@ async function resolveWaitingAgentItem(batch, batchItem) {
   }
 
   if (job.status === "succeeded") {
-    if (job.stage === "scene-script" && !(batchItem.internalReviews ?? []).some((review) => review.gate === "gate-1")) {
+    if ((job.stages ?? [job.stage]).includes("scene-script") && !(batchItem.internalReviews ?? []).some((review) => review.gate === "gate-1")) {
       recordGate1Review(batch, batchItem);
     }
     updateItem(batch, batchItem, {
@@ -548,6 +565,10 @@ async function resolveWaitingRemoteItem(batch, batchItem) {
 
 function waitForBatchCheckpoint(batch, batchItem, definition, stage) {
   if (definition.pauseAfterStage !== stage) return false;
+  if (definition.waitingStatus === "waiting-tts-qc" && usesUnifiedProduction(loadProject(batchItem.slug, { refresh: false }))) {
+    updateItem(batch, batchItem, { status: "succeeded", phase: stage, message: "TTS 机器检查已完成；试听合并到 Gate 3，继续 Remotion 制作。", completedAt: new Date().toISOString() });
+    return true;
+  }
   updateItem(batch, batchItem, {
     status: definition.waitingStatus,
     phase: stage,
@@ -592,12 +613,12 @@ async function executeItem(batch, batchItem, definition, options) {
       }
 
       const shouldQueueAgentJob = definition.type === "to-gate-2"
-        && typeof options.queueAgentJob === "function"
+        && (typeof options.queueAgentJob === "function" || usesUnifiedProduction(project))
         && currentStage !== "source"
         && currentStage !== "remotion"
         && workflowStageDefinition(project, currentStage)?.executor === "agent";
       if (shouldQueueAgentJob) {
-        const job = createAgentJob({ slug: batchItem.slug, stage: currentStage, batchId: batch.id });
+        const job = createAgentJob({ slug: batchItem.slug, stage: currentStage, batchId: batch.id, mode: typeof options.queueAgentJob === "function" ? "background" : "cli" });
         updateItem(batch, batchItem, {
           status: "waiting-agent-job",
           phase: currentStage,
@@ -606,13 +627,19 @@ async function executeItem(batch, batchItem, definition, options) {
             ? `Agent 正在执行 ${currentStage}，等待产物校验。`
             : `Agent Job 已创建，等待执行 ${currentStage}。`,
         });
-        options.queueAgentJob(job.id);
+        if (typeof options.queueAgentJob === "function") options.queueAgentJob(job.id);
+        else {
+          const finished = await runAgentJob(job.id, { executor: createAgentExecutorFromEnv() });
+          if (finished.status !== "succeeded") throw Object.assign(new Error(finished.error?.message ?? "策划制作失败。"), finished.error);
+          await resolveWaitingAgentItem(batch, batchItem);
+          continue;
+        }
         return;
       }
 
       if (currentStage === "remotion" && definition.requiresRemotionTask) {
         const issues = validateStage(project, "remotion");
-        if (issues.length > 0 && !options.executors?.remotion) {
+        if ((usesUnifiedProduction(project) || issues.length > 0) && !options.executors?.remotion) {
           const task = ensureRemotionTask({ slug: batchItem.slug, batchId: batch.id });
           updateItem(batch, batchItem, {
             status: "waiting-remotion-task",
@@ -624,11 +651,17 @@ async function executeItem(batch, batchItem, definition, options) {
         }
       }
 
-      const result = usesInjectedLegacyAdapter(currentStage, options)
+      const result = currentStage === "render" && batch.renderDelivery?.status === "committed"
+        ? await (async () => {
+          const delivery = await runRenderDelivery("resume", batchItem.slug, { batchId: batch.id }, options.deliveryDependencies ?? {});
+          return { ...delivery, deferred: delivery.job?.status !== "succeeded", job: delivery.job };
+        })()
+        : usesInjectedLegacyAdapter(currentStage, options)
         ? await (options.stageRunner ?? runStage)(project, currentStage, { adapters: options.adapters ?? {} })
         : await runSingleStage(project, currentStage, {
           adapters: options.adapters ?? {},
           ttsExecutor: options.executors?.["subtitle-timeline"],
+          agentJobId: agentJobState(batchItem)?.stage === currentStage ? batchItem.agentJobId : null,
           remotionExecutor: options.executors?.remotion,
           remotionTaskId: batchItem.remotionTaskId,
           remotionTaskBatchId: batch.id,
@@ -660,7 +693,7 @@ async function executeItem(batch, batchItem, definition, options) {
         return;
       }
 
-      updateItem(batch, batchItem, { phase: currentStage, message: `已完成 ${currentStage}。` });
+      updateItem(batch, batchItem, { phase: currentStage, ...(result?.agentJobId ? { agentJobId: result.agentJobId } : {}), message: `已完成 ${currentStage}。` });
 
       if (waitForBatchCheckpoint(batch, batchItem, definition, currentStage)) return;
       if (result?.status === "waiting") {
@@ -688,6 +721,7 @@ async function executeItem(batch, batchItem, definition, options) {
     }
     updateItem(batch, batchItem, {
       status: "failed",
+      ...(error?.agentJobId ? { agentJobId: error.agentJobId } : {}),
       error: { code: error?.code ?? "batch-item-failed", message: error instanceof Error ? error.message : String(error), phase: batchItem.phase },
       message: "该视频执行失败，其他视频继续。",
       completedAt: new Date().toISOString(),
@@ -703,6 +737,16 @@ export async function runBatch(id, options = {}) {
     return batch;
   }
   const definition = validateType(batch.type);
+  if (definition.type === "to-render" && batch.items.some(item => ["queued", "running", "waiting-config"].includes(item.status))) {
+    if (batch.renderDelivery?.status !== "committed") throw Object.assign(new Error("批量渲染必须先 prepare，明确确认精确清单并 start；不能绕过统一交付服务。"), { code: "batch-render-delivery-confirmation-required" });
+    await assertCommittedBatchRenderDelivery(batch, { environment: options.environment, deliveryDependencies: options.deliveryDependencies });
+    if (options.confirmRender === true) {
+      for (const item of batch.items) {
+        const project = loadProject(item.slug, { refresh: false });
+        checkpointRenderDelivery(project, { dispatchAuthorized: true });
+      }
+    }
+  }
   if (definition.type === "to-render" && options.requireRenderDeliveryConfirmation === true) {
     if (options.confirmRender !== true) {
       const error = new Error("真实批量渲染需要单独确认");
@@ -711,7 +755,7 @@ export async function runBatch(id, options = {}) {
     }
     await assertCommittedBatchRenderDelivery(batch, {
       environment: options.environment,
-      githubPreflight: options.githubPreflight,
+      deliveryDependencies: options.deliveryDependencies,
     });
   }
   for (const batchItem of batch.items ?? []) assertProjectSlugMutable(batchItem.slug, "执行视频批次");
@@ -811,6 +855,7 @@ export function stopBatchesAfterGateRejection({ slug, gate, returnTo, reason }) 
 function approveProjectReview(slug, stage, kind) {
   const project = loadProject(slug, { refresh: true });
   assertProjectSlugMutable(project, "记录视频质检");
+  if (kind === "tts-qc" && usesUnifiedProduction(project)) throw new Error("统一契约的试听确认已合并到 Gate 3，请审核音画预览并通过 Gate 3。");
   if (project.state.stages[stage]?.status !== "succeeded") {
     throw new Error(`${slug} 的 ${stage} 尚未完成，不能确认质检`);
   }
@@ -865,7 +910,9 @@ export function retryFailedBatchItems(id) {
     const project = loadProject(target.slug, { refresh: true });
     assertProjectSlugMutable(project, "重试视频批次项目");
     const failedStage = project.state.currentStage;
-    if (project.state.stages[failedStage]?.status === "failed") retryStage(project, failedStage);
+    const agentJob = agentJobState(target);
+    if (agentJob?.status === "failed") retryAgentJob(agentJob.id);
+    else if (project.state.stages[failedStage]?.status === "failed") retryStage(project, failedStage);
     if (target.remotionTaskId) {
       const task = getRemotionTask(target.remotionTaskId);
       if (["failed", "blocked"].includes(task?.status)) retryRemotionTask(target.remotionTaskId);

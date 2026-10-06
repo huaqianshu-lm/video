@@ -2,6 +2,7 @@ const batchPattern = /^\/api\/batches(?:\/([a-f0-9-]+)(?:\/action)?)?$/;
 
 import { batchDefinitions, commitBatchRenderDelivery, createBatch, getBatch, getBatchForView, listBatchesForView, approveTtsQc, prepareBatchRenderDelivery, retryFailedBatchItems, runBatch } from "../../batches.mjs";
 import { readJsonBody, sendError, sendJson } from "../http.mjs";
+import { resumeBatchRenderDelivery } from "../../batches.mjs";
 
 export function createBatchRoutes({ runtime } = {}) {
   return async function handleBatches({ request, response, pathname }) {
@@ -13,10 +14,10 @@ export function createBatchRoutes({ runtime } = {}) {
         const body = await readJsonBody(request);
         const batch = createBatch({ type: body.type, slugs: body.slugs });
         if (batch.type === "to-render") {
-          await prepareBatchRenderDelivery(batch.id, { githubPreflight: runtime.githubPreflight });
+          await prepareBatchRenderDelivery(batch.id, { githubPreflight: runtime.githubPreflight, deliveryDependencies: runtime.deliveryDependencies });
           sendJson(response, 200, { batch: getBatchForView(batch.id) });
         } else {
-          void runBatch(batch.id, { queueAgentJob: runtime.queueAgentJob, remoteMonitor: runtime.remoteJobMonitor }).catch(() => {});
+          void runBatch(batch.id, { deliveryDependencies: runtime.deliveryDependencies, queueAgentJob: runtime.queueAgentJob, remoteMonitor: runtime.remoteJobMonitor }).catch(() => {});
           sendJson(response, 202, { batch: getBatchForView(batch.id) });
         }
       } catch (error) { sendError(response, 400, { message: error.message, code: error.code, issues: error.issues ?? [] }); }
@@ -30,18 +31,25 @@ export function createBatchRoutes({ runtime } = {}) {
         const batch = getBatch(route.id);
         if (!batch) { sendError(response, 404, { message: "Batch not found", code: "batch-not-found" }); return true; }
         if (body.action === "prepare-render-delivery") {
-          await prepareBatchRenderDelivery(route.id, { githubPreflight: runtime.githubPreflight });
+          await prepareBatchRenderDelivery(route.id, { githubPreflight: runtime.githubPreflight, deliveryDependencies: runtime.deliveryDependencies });
+          sendJson(response, 200, { batch: getBatchForView(route.id) });
+          return true;
+        }
+        if (body.action === "resume-render-delivery") {
+          await resumeBatchRenderDelivery(route.id, { deliveryDependencies: runtime.deliveryDependencies });
           sendJson(response, 200, { batch: getBatchForView(route.id) });
           return true;
         }
         if (body.action === "commit-render-delivery") {
-          commitBatchRenderDelivery(route.id, {
+          await commitBatchRenderDelivery(route.id, {
             confirmDelivery: body.confirmDelivery === true,
             confirmCommit: body.confirmCommit === true,
             confirmPush: body.confirmPush === true,
             deliveryPlanId: body.deliveryPlanId,
             selectedPaths: body.selectedPaths,
+            deliveryDependencies: runtime.deliveryDependencies,
           });
+          if (body.confirmRender === true) await runBatch(route.id, { confirmRender: true, deliveryDependencies: runtime.deliveryDependencies, queueAgentJob: runtime.queueAgentJob, remoteMonitor: runtime.remoteJobMonitor });
           sendJson(response, 200, { batch: getBatchForView(route.id) });
           return true;
         }
@@ -62,7 +70,7 @@ export function createBatchRoutes({ runtime } = {}) {
         if (body.action === "approve-tts-qc") approveTtsQc(route.id, body.slug);
         if (body.action === "retry-failed") retryFailedBatchItems(route.id);
         if (!["run", "resume", "approve-tts-qc", "retry-failed"].includes(body.action)) { sendError(response, 400, { message: `Unknown batch action: ${body.action ?? "missing"}`, code: "unknown-batch-action" }); return true; }
-        void runBatch(route.id, { queueAgentJob: runtime.queueAgentJob, remoteMonitor: runtime.remoteJobMonitor }).catch(() => {});
+        void runBatch(route.id, { deliveryDependencies: runtime.deliveryDependencies, queueAgentJob: runtime.queueAgentJob, remoteMonitor: runtime.remoteJobMonitor }).catch(() => {});
         sendJson(response, 202, { batch: getBatchForView(route.id) });
       } catch (error) { sendError(response, 400, { message: error.message, code: error.code, issues: error.issues ?? [] }); }
       return true;

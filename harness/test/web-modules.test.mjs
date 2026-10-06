@@ -1272,7 +1272,7 @@ test("real batch view preserves batch failure and empty states without reading R
   });
 });
 
-test("real batch view shows exact render delivery bindings and requires separate confirmations", async () => {
+test("real batch view shows exact render delivery bindings and confirms the exact file list and rendering together", async () => {
   await withBrowserGlobals(async () => {
     const batchList = new FakeElement({
       onInnerHTML: (html, element) => {
@@ -1323,6 +1323,7 @@ test("real batch view shows exact render delivery bindings and requires separate
         confirmDelivery: true,
         confirmCommit: true,
         confirmPush: true,
+        confirmRender: true,
         deliveryPlanId: "plan-1",
         selectedPaths: ["src/TemplateVideo.tsx"],
       },
@@ -1845,6 +1846,6 @@ test("project action service normalizes only the action input contract", () => {
   assert.deepEqual(normalizeProjectAction({ slug: "demo", action: "approve", commitAndPush: 1 }), {
     slug: "demo", action: "approve", stage: null, gate: null, returnTo: null, reason: null, runId: null,
     commitAndPush: false, confirmDelivery: false, deliveryPlanId: null, selectedPaths: null,
-    renderInputUrl: null, renderInputSha256: null,
+    approveGate3: false, renderInputUrl: null, renderInputSha256: null,
   });
 });
