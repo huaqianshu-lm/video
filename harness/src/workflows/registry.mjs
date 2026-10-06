@@ -3,14 +3,13 @@ import {
   RETIRED_STAGE_DEFINITIONS,
 } from "../stages.mjs";
 import { NARRATED_TUTORIAL_WORKFLOW } from "./narrated-tutorial-v1.mjs";
-import { PRODUCT_PROMO_WORKFLOW } from "./product-promo-v1.mjs";
+import { ARCHIVED_WORKFLOW, ARCHIVED_WORKFLOW_ID, retiredWorkflowError } from "./archived.mjs";
 
 export const LEGACY_WORKFLOW_ID = "default";
 export const DEFAULT_WORKFLOW_ID = "narrated-tutorial-v1";
 
 const definitions = Object.freeze({
   [DEFAULT_WORKFLOW_ID]: NARRATED_TUTORIAL_WORKFLOW,
-  [PRODUCT_PROMO_WORKFLOW.id]: PRODUCT_PROMO_WORKFLOW,
 });
 
 function workflowConfig(input) {
@@ -35,10 +34,19 @@ export function getWorkflowDefinition(workflow) {
   return definitions[normalizeWorkflowId(workflow)] ?? null;
 }
 
-export function requireWorkflowDefinition(input) {
+export function requireWorkflowDefinition(input, { archivedPreview = false } = {}) {
   const config = workflowConfig(input);
   const rawWorkflow = config.workflow;
   const normalizedWorkflow = normalizeWorkflowId(rawWorkflow);
+  if (normalizedWorkflow === ARCHIVED_WORKFLOW_ID) {
+    if (input?.state?.currentStage === "completed" || archivedPreview) {
+      if (Number(config.workflowVersion) !== ARCHIVED_WORKFLOW.version) {
+        throw workflowError("unsupported-workflow-version", "历史 Workflow 版本不受支持。");
+      }
+      return ARCHIVED_WORKFLOW;
+    }
+    throw retiredWorkflowError();
+  }
   const definition = definitions[normalizedWorkflow];
   if (!definition) {
     throw workflowError(

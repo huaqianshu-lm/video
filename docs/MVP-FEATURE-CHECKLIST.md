@@ -30,12 +30,9 @@
 - [ ] 固定交付入口接入 Web UI／批量（本次范围之外）。
 - [x] 系列风格、系列封面和 45 帧正文起点规则。
 - [ ] Agent 系列选择与封面交付完整验证：CLI、快照、统一 Studio／Runner 片头及 ZIP 检查已实现；下一条新视频仍需选择／包装／Gate 2／Gate 3／真实 Render 验证，详见 `AGENT-SERIES-COVER.md`。
-- [x] Workflow Registry：`narrated-tutorial-v1` 与 `product-promo-v1` 的阶段、版本、Gate、路径和交付契约统一解析。
+- [x] Workflow Registry：`narrated-tutorial-v1` 的阶段、版本、Gate、路径和交付契约统一解析。
+- [x] 宣传片生产能力退役：目录仅提供口播教程，退役入口阻断，历史完成态与已有输入包只读预览保留；`workflow-retirement.test.mjs` 5/5、既有 Harness 298 项分批通过，验收证据见本地 `local/workflow-retirement/acceptance.md`。
 - [x] 新 Workflow 的 namespaced 本地目录、全局 slug 冲突校验和 legacy narrated 路径兼容。
-- [x] `product-promo-v1` 的 Promo Brief、Scene／Visual Script、Asset Manifest、Visual Timeline 和 Remotion Alignment 确定性校验。
-- [x] 无 TTS 宣传片的独立 Render Input、GitHub Actions 路径恢复和可选音乐／音效契约。
-- [x] 可复用的宣传片 16:9 外壳、左上无 Scene 编号的简短内容文字、Beat 驱动 Scene／Transition 和可选音频 Remotion 组件；旧标题模式只供历史视频兼容。
-- [x] 首条真实产品宣传片的 Gate 2、Gate 3、完整 Render 和 Gate 4 验收；以 `huaqianshu-site-promo` 的真实端到端验证为依据。
 - [x] 完成当前用户确认范围内的最终视频导出闭环；Artifact 已通过远程校验并完成 Gate 4 人工验收。
 
 - [x] 轻量动态原型播放／暂停／重播／切幕，以及 Gate 2 当前版本视觉自检机器阻断；依据 `dynamic-prototype.test.mjs` 与 `visual-self-review.test.mjs`，真实新视频的 Gate 2／Gate 3 验证仍进行中。

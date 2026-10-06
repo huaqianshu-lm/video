@@ -10,12 +10,11 @@
 
 Harness 只服务于视频生产，不扩展为处理代码、数据或其他任务的通用 Harness。一次性的视频内容和具体视频产物属于本地工作资料，不属于仓库长期能力。
 
-首期 Workflow Profile 只有两条：
+当前唯一生产 Workflow 为 `narrated-tutorial-v1`：保留带口播教程的 14 个生产阶段、人工 Gate、TTS、字幕和 narrated Timeline。历史项目缺少 `workflow` 或使用兼容值 `default` 时，运行时解释为该 Workflow，不批量改写历史状态。
 
-- `narrated-tutorial-v1`：现有带口播教程流程，保留当前 14 个生产阶段、人工 Gate、TTS、字幕和 narrated Timeline。历史项目缺少 `workflow` 或仍使用兼容值 `default` 时，运行时解释为该 Workflow；首期不批量改写历史状态。
-- `product-promo-v1`：视觉节奏驱动的产品宣传流程，使用 Asset Manifest 和 Visual Timeline，不生成口播、TTS、字幕或 narrated Timeline。该 Profile 必须使用独立的 `product-promo` 资料目录命名空间，真实试点通过 Gate 4 后才能标记为稳定。
+`product-promo-v1` 已退役，不允许新建、制作、批处理、打包或渲染。已完成宣传片只允许读取资料、展示历史记录及使用已有输入包进行本地预览；`src/components/promo/`、`src/lib/promoTypes.ts` 和 `src/lib/promoTiming.ts` 仅保留为历史视频预览依赖。不得修改历史视频及其状态或产物。
 
-Workflow 的判断以 Harness 服务端 Registry 和项目 `project.json.workflow` 为事实来源，不能仅根据目录名、Style 或时间轴模式推断。新 Workflow 的具体资料、Remotion 配置和资源仍属于本地忽略内容；只有通用能力进入仓库。
+Workflow 的判断以 Harness 服务端 Registry 和项目 `project.json.workflow` 为事实来源，不根据目录或 Style 推断。生产目录只提供口播教程；退役 Workflow 的只读兼容不提供生产执行器。
 
 ## 规则分层与按需加载
 
@@ -66,10 +65,9 @@ Workflow 的判断以 Harness 服务端 Registry 和项目 `project.json.workflo
 - `narration-script.md` 的 Scene 正文只能是实际口播；Gate 2 后必须先生成并校验独立的 `tts-script.json`，音频、字幕和 Timeline 只能从它生成。
 - narrated 视频默认显式使用 TTS `+25%` 语速；字幕展示文本去掉句末标点，但不能修改朗读文本、音频或时间轴。
 - Remotion 必须使用已校验的 Timeline Manifest 作为 narrated 视频的时间基准，并保持 Scene、Audio、Subtitle 和视觉事件的映射一致。
-- `product-promo-v1` 不使用 narrated Timeline；Remotion 配置必须从当前视频的 `visual-timeline.json` 精确相对路径导入，并由唯一的 `TotalDurationFrames` 导出直接返回该对象的 `durationInFrames`，再以它作为唯一时间基准，并按 Asset Manifest 校验本地素材。两类 Workflow 的校验契约不得互相放宽或串线。
 - Visual Prototype 先于正式 Remotion 实现；原型和 Remotion 必须使用统一的可复用外壳、字幕区、导航区和进度区。画布左上只保留有资料依据的简短内容文字，不显示 Scene／场景编号或固定大标题；内容标题仅在确有视觉任务时融入主体，不得形成逐页标题加卡片的结构。历史原型和已完成视频保持只读。
 - 新视频的每个 Scene 要有明确的视觉焦点和可观察的状态／关系变化，旧主体应在新主体出现时让位或有意保留；允许为阅读和理解静置，不以持续运动或镜头次数代替视觉质量。Visual Script、Prototype 和 Remotion 必须表达同一条变化链，并在 Gate 2／Gate 3 看实际画面确认。
-- 两类 Workflow 在进入 Gate 2 前都必须完成 `docs/VIDEO-PRODUCTION-RULES.md` 定义的视觉收敛自检；TypeScript、结构、文件存在、Harness 状态或指纹校验通过，不能替代对实际 Prototype／预览画面的质量检查。自检不通过时必须回到 Visual Script，宣传片和教程片按各自 Workflow 的视觉约束重新设计。
+- 口播教程在进入 Gate 2 前必须完成 `docs/VIDEO-PRODUCTION-RULES.md` 定义的视觉收敛自检；TypeScript、结构、文件存在、Harness 状态或指纹校验通过，不能替代对实际 Prototype／预览画面的质量检查。自检不通过时必须回到 Visual Script，按教程视觉约束重新设计。
 - Gate 2 的视觉自检必须产出当前视频资料目录下的 `visual-self-review.json`，并由 Harness 校验 schema、Workflow、Visual Script／Prototype 指纹、证据路径以及所有 MUST 检查项；缺失、过期或失败时阻断 Gate 2 的就绪和下游阶段。该机器校验只能验证契约完整性，不能自动通过人工 Gate 2；Harness 尚未实现前必须明确标记为“机器校验待实现”。
 - 进入 Gate 3 前必须对照冻结的 Visual Script、Visual Prototype 和 `remotion-alignment.json`；最终输出必须通过清洁画面检查。
 - 画面中的标题、标签、按钮、状态、终端输出和卡片文案必须能追溯到当前视频资料，不得复制参考视频的业务语义或固定文案。
@@ -78,7 +76,7 @@ Workflow 的判断以 Harness 服务端 Registry 和项目 `project.json.workflo
 - Agent／CLI 复用已有成功 Render 时，整理交付清单前必须在实际交付工作区运行 `harness/src/render-preflight.mjs` 并保存通过报告；认证、代码基线及独立输入包发布步骤以 `docs/RENDER-DELIVERY-BASELINE.md` 为权威来源。该检查尚未自动接入 Web UI／批量，不代替既有 Gate 和交付校验。
 - 具体视频的远程渲染输入必须通过被 Git 忽略的 `local/render-input/<video-slug>/` 整理，并以独立输入包 URL 和 SHA-256 交给 GitHub Actions；不得把 `videos/`、`src/videos/` 或视频资源重新加入能力代码仓库。
 - Agent／CLI 单条完整渲染统一使用 `render-delivery prepare／start／resume`，按 `docs/RENDER-DELIVERY-BASELINE.md` 复用固定方法配置、执行完整准备与确认后的交付，并恢复同一 Job；不得绕过该入口临时拼接发布、推送和派发步骤。
-- 现有 narrated 项目继续使用 `videos/<slug>/`、`src/videos/<slug>/` 和 `assets/<slug>-assets.zip` 的 legacy-flat 路径；新 Workflow 必须使用 `videos/<pathNamespace>/<slug>/`、`src/videos/<pathNamespace>/<slug>/` 和 `assets/<pathNamespace>/<slug>-assets.zip`。目录只提供物理隔离和安全校验，不能替代项目 Workflow 事实来源。
+- 口播教程使用 `videos/<slug>/`、`src/videos/<slug>/` 和 `assets/<slug>-assets.zip` 的 legacy-flat 路径。历史退役视频的命名空间保持只读，不能作为新生产入口。
 - 本地 Studio 预览具体视频时，必须从独立输入包生成被忽略的 `src/RenderInputRoot.tsx` 临时入口；该入口支持注册单条视频或本地扫描后批量注册全部可匹配视频。受跟踪的 `src/Root.tsx` 只保留通用 Composition，不重新硬编码具体视频。
 
 ## 流程变更与迁移完成标准
@@ -107,7 +105,6 @@ Workflow 的判断以 Harness 服务端 Registry 和项目 `project.json.workflo
 6. Gate 3 通过后完成远程交付预检，直接进入完整渲染；渲染成功后进入 Gate 4 人工验收。Smoke Render 只在新系列或渲染环境变化时作为独立检查手动运行。
 7. 每次完成开发、修复、文档补齐或重要调研后，更新 `ROADMAP.md`；重要阶段变化使用 `record-project-event` Skill 记录。
 
-`product-promo-v1` 在 Gate 2 后转入 Asset Preparation 和 Visual Timeline，不进入 TTS 或 TTS 质检；其余公共的人工 Gate、Remotion、独立输入包和远程交付边界继续适用。
 
 详细流程按需查阅：
 

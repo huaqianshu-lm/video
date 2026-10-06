@@ -3,7 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
 import { assertProjectMutable, assertProjectSlugMutable } from "./storage.mjs";
-import { workflowForProject, workflowPaths, workflowStageDefinition } from "./workflows/registry.mjs";
+import { workflowPaths } from "./workflows/registry.mjs";
 
 import {videoCoverAssetIssues} from './video-cover.mjs';
 
@@ -96,36 +96,6 @@ export function assetSourceIssues(project) {
   }
   const files = listFiles(sourceRoot);
   const issues = videoCoverAssetIssues(project);
-  if (workflowForProject(project).audioMode === "optional-music") {
-    const manifestRelativePath = workflowStageDefinition(project, "asset-preparation")?.artifacts?.[0]
-      ?.replaceAll("{slug}", requireProjectSlug(project));
-    const manifestPath = manifestRelativePath ? path.join(workspaceRootFor(project), manifestRelativePath) : null;
-    if (!manifestPath || !fs.existsSync(manifestPath) || !fs.statSync(manifestPath).isFile()) {
-      return [`缺少 ${manifestRelativePath ?? "宣传片 Asset Manifest"}`];
-    }
-    let manifest;
-    try {
-      manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
-    } catch (error) {
-      return [`${manifestRelativePath} 无法解析：${error instanceof Error ? error.message : String(error)}`];
-    }
-    if (manifest?.schemaVersion !== 1 || manifest.slug !== project.config.slug || !Array.isArray(manifest.assets) || manifest.assets.length === 0) {
-      issues.push("宣传片 Asset Manifest 必须包含 schemaVersion=1、正确 slug 和非空 assets");
-    }
-    const declared = new Set();
-    for (const asset of manifest.assets ?? []) {
-      const relativePath = typeof asset?.path === "string" ? asset.path.replaceAll("\\", "/") : "";
-      if (!relativePath || relativePath.startsWith("/") || relativePath.split("/").includes("..") || path.posix.normalize(relativePath) !== relativePath) {
-        issues.push(`宣传片 Asset Manifest 存在不安全素材路径：${relativePath || "缺失"}`);
-        continue;
-      }
-      if (declared.has(relativePath)) issues.push(`宣传片 Asset Manifest 素材路径重复：${relativePath}`);
-      declared.add(relativePath);
-      if (!files.includes(relativePath)) issues.push(`宣传片 Asset Manifest 声明的素材不存在：${relativePath}`);
-    }
-    for (const file of files) if (!declared.has(file)) issues.push(`本地素材未登记到宣传片 Asset Manifest：${file}`);
-    return issues;
-  }
   if (!files.includes("subtitles/captions.vtt")) issues.push("资源目录缺少 subtitles/captions.vtt");
   if (!files.includes("subtitles/captions.srt")) issues.push("资源目录缺少 subtitles/captions.srt");
   if (!files.some((file) => file.startsWith("audio/") && file.endsWith(".mp3"))) {

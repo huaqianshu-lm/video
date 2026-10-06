@@ -3,7 +3,7 @@ import path from 'node:path';
 import {createHash} from 'node:crypto';
 import {getSeries, listSeries, seriesAssetPath, validateCover} from './series-assets.mjs';
 import {assertProjectMutable, loadProject, writeJson} from './storage.mjs';
-import {workflowForProject, workflowPaths, workflowStages} from './workflows/registry.mjs';
+import {workflowPaths, workflowStages} from './workflows/registry.mjs';
 import {getStyleDefinition} from './styles.mjs';
 
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
@@ -63,7 +63,6 @@ export function selectVideoSeries(slug, seriesId) {
     if (!getStyleDefinition(series.style)) throw new Error('系列风格无效');
     const conflict = listSeries().find(item => item.id !== seriesId && item.videos.includes(slug));
     if (conflict) throw new Error(`视频已关联其他系列：${conflict.title}`);
-    if (workflowForProject(project).timelineMode === 'visual-beats') throw new Error('宣传片系列封面必须纳入 Visual Timeline，暂不支持独立片头');
     const file = series.cover && seriesAssetPath(series.id, path.basename(series.cover));
     if (!file) throw new Error('所选系列尚无可用封面，请先提供并确认封面图片');
     if (fs.lstatSync(file).isSymbolicLink()) throw new Error('封面不允许符号链接');

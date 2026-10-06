@@ -168,7 +168,7 @@ test("keeps the legacy default workflow at the exact 14-stage snapshot", () => {
 });
 
 test("resolves the formal narrated Workflow through one Registry and fails closed for unknown versions", () => {
-  assert.deepEqual(Object.keys(allWorkflowDefinitions()), [FORMAL_WORKFLOW_ID, "product-promo-v1"]);
+  assert.deepEqual(Object.keys(allWorkflowDefinitions()), [FORMAL_WORKFLOW_ID]);
   assert.equal(getWorkflowDefinition(FORMAL_WORKFLOW_ID).id, "narrated-tutorial-v1");
   assert.equal(getWorkflowDefinition(LEGACY_WORKFLOW_ID).id, "narrated-tutorial-v1");
   assert.equal(getWorkflowDefinition(undefined).id, "narrated-tutorial-v1");

@@ -50,7 +50,7 @@ const d = 'M100 400 C350 100 700 100 900 400';
 </svg>
 ```
 
-`startFrame` 等帧值与组件的 `useCurrentFrame()` 属于同一坐标系；若在 Sequence 内使用，要从全片事件帧减去该 Sequence 起始帧。持久空间优先在共同父级维护。正式 narrated 视频使用 Cue／Segment／Timeline，宣传片使用 Visual Timeline；组件不自行猜测音频或读取具体视频文件。
+`startFrame` 等帧值与组件的 `useCurrentFrame()` 属于同一坐标系；若在 Sequence 内使用，要从全片事件帧减去该 Sequence 起始帧。持久空间优先在共同父级维护。正式 narrated 视频使用 Cue／Segment／Timeline；组件不自行猜测音频或读取具体视频文件。
 
 同一句字幕包含多个动作时，命名 `visualBindings.source` 可携带 `offsetFrames`，从该 Cue 起始帧精确推进到真实 TTS WordBoundary。该值须由当前音频的词边界生成，并保留词边界证据；不得按字数、设计秒数或固定间隔猜测。`createVisualTiming` 与 Harness 对齐校验共同拒绝负值、非整数和越出来源区间的偏移；省略该字段时仍从来源起始帧开始。
 

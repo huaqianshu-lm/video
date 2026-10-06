@@ -17,6 +17,7 @@ import { artifactManifestFor } from "./artifacts.mjs";
 import { fingerprintStageArtifacts } from "./fingerprints.mjs";
 import { resolveStyleId } from "./styles.mjs";
 import { validateProjectStage } from "./validation.mjs";
+import { ARCHIVED_WORKFLOW, ARCHIVED_WORKFLOW_ID, retiredWorkflowError } from "./workflows/archived.mjs";
 
 const repositoryRoot = path.resolve(new URL("../..", import.meta.url).pathname);
 
@@ -80,11 +81,15 @@ export function assertProjectMutable(projectOrSlug, operation = "修改") {
     ? projectOrSlug
     : projectOrSlug?.config?.slug ?? projectOrSlug?.state?.slug;
   if (isCompletedProject(projectOrSlug)) throw completedProjectError(slug, operation);
+  const config = typeof projectOrSlug === "string"
+    ? (fs.existsSync(projectFiles(slug).config) ? readJson(projectFiles(slug).config) : null)
+    : projectOrSlug?.config;
+  if (config?.workflow === ARCHIVED_WORKFLOW_ID) throw retiredWorkflowError();
   return projectOrSlug;
 }
 
 export function assertProjectSlugMutable(slug, operation = "修改") {
-  if (isCompletedProject(slug)) throw completedProjectError(slug, operation);
+  assertProjectMutable(slug, operation);
   return slug;
 }
 
@@ -119,7 +124,7 @@ export function initializeProject(slug, {
     workflowVersion: requestedWorkflowVersion ?? undefined,
   });
   const workspaceRoot = path.resolve(process.env.HARNESS_WORKSPACE_ROOT ?? repositoryRoot);
-  const conflictingWorkflowPath = Object.values(allWorkflowDefinitions())
+  const conflictingWorkflowPath = [...Object.values(allWorkflowDefinitions()), ARCHIVED_WORKFLOW]
     .filter((definition) => definition.id !== workflowDefinition.id)
     .flatMap((definition) => {
       const candidate = workflowPaths(definition, slug);

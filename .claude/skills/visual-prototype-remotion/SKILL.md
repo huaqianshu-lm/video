@@ -15,7 +15,6 @@ Use this skill when working on a Visual Prototype, Remotion composition, Scene i
 - Keep the 16:9 stage, preview-only controls, subtitle area, and progress metadata separate from the final Composition output.
 - Keep this text quiet and consistent. Place any necessary content heading next to the object or evidence it explains, and follow the Workflow-specific anti-PPT rules in `docs/VIDEO-PRODUCTION-RULES.md`.
 - Preview the key before → action → after events and the handoff between Scenes at normal speed. A static layout or a sequence of entrance animations does not demonstrate the Visual Script's change of state.
-- 两条首期 Workflow 共用这套 Prototype 外壳；`product-promo-v1` 可以把字幕区域作为视觉信息布局区域，但不要求教程式口播字幕，最终 Composition 仍不得包含预览控件、导航、进度或调试文字。
 
 ## Gate 2 visual convergence
 
@@ -23,28 +22,28 @@ Use this skill when working on a Visual Prototype, Remotion composition, Scene i
 - Save the result as `visual-self-review.json`; Gate 2 automation must reject missing, stale, incomplete, or failed review records before exposing the project as ready for human approval. This is a machine precondition, not automatic Gate 2 approval.
 - A passing structural validator is not visual evidence. If the sequence still reads as repeated title／card pages, return to Visual Script and invalidate downstream work instead of proceeding to Remotion.
 - Preserve intentional reading holds. Judge whether each motion explains an action, relationship, or change; do not add idle movement to satisfy a freeze threshold.
-- Keep the shared shell for both Workflow Profiles, but apply the different visual threshold: product promos must lead with action and evidence; narrated tutorials may retain explanatory UI or diagrams when they clearly support the narration.
+- Keep the tutorial shell; tutorials may retain explanatory UI or diagrams when they clearly support the narration.
 
 ## Remotion sequence
 
 For Agent series covers, read `docs/AGENT-SERIES-COVER.md`. The generated single-video and Studio catalog entries own the frozen cover and shift the whole content together; do not add another cover, shift subtitles separately, or change the body-relative Timeline. At Gate 3 inspect the generated entry including its cover.
 
 1. Wait for the confirmed Gate 2 Visual Script and Visual Prototype baseline.
-2. Read the validated timing contract before deciding Scene duration or visual event timing：`narrated-tutorial-v1` 使用 Audio／Subtitle／Timeline Manifest，`product-promo-v1` 使用 Asset Manifest／`visual-timeline.json`，不得为缺失的 narrated 产物生成占位文件。
+2. Read the validated timing contract before deciding Scene duration or visual event timing：`narrated-tutorial-v1` 使用 Audio／Subtitle／Timeline Manifest，不得为缺失的 narrated 产物生成占位文件。
 3. Implement reusable components first and keep video-specific content in the local video configuration.
-4. Produce a fresh `remotion-alignment.json`：narrated 视频还要映射 Audio Segment 和 Subtitle Cue，宣传片至少映射每个 Scene、Beat、Transition、屏幕文字、实现文件和 Visual Timeline 区间。
+4. Produce a fresh `remotion-alignment.json`：narrated 视频还要映射 Audio Segment 和 Subtitle Cue。
 5. Compare the rendered preview against the frozen prototype and alignment file at Gate 3.
 
 ## Invariants
 
-- Use `src/lib/timing.ts` for narrated timing; do not duplicate narrated timing logic inside a video directory. Promo timing must come from the validated Visual Timeline；the config must import the current Timeline by exact relative path and have `TotalDurationFrames` return its `durationInFrames`。
+- Use `src/lib/timing.ts` for narrated timing; do not duplicate narrated timing logic inside a video directory.
 - Apply section 9.1 of `docs/VIDEO-PRODUCTION-RULES.md` for motion semantics and prioritize the applicable components in `src/components/SemanticMotion.tsx`; validate the visible change, not just the component call.
 - Apply section 9.1's three code-execution and path-expression rules before selecting path components; review the meaning of path geometry as well as text avoidance during Prototype and Remotion playback.
 - Apply sections 8.4／8.5 for title entry／handoff／exit, shared world coordinates, persistent subjects and camera continuity; avoid resetting these at Scene boundaries.
 - Apply sections 9.3～9.5 for official animation selection, frame-driven React implementations, action chains and review coverage. Check actual dependencies and API compatibility before choosing spring／paths／transitions; account for transition overlap in the validated Workflow timing, and distinguish proposed capabilities from implemented ones.
-- Apply section 9.2 for element visibility lifetimes in both Workflows; inspect before entry, after exit, seeking and Scene boundaries, including underlying paths, arrows, labels and effects.
+- Apply section 9.2 for element visibility lifetimes in the tutorial workflow; inspect before entry, after exit, seeking and Scene boundaries, including underlying paths, arrows, labels and effects.
 - Apply section 10.3 of `docs/VIDEO-PRODUCTION-RULES.md` at Gate 2 and again at Gate 3 with actual Remotion timing; inspect complete actions and intermediate text states, record evidence, and resolve unreadable overlap before requesting approval or rendering.
-- Missing narrated Scene／Segment／Cue mappings, or missing promo Scene／Beat／Transition／screen-text mappings, block Remotion completion。
+- Missing narrated Scene／Segment／Cue mappings, block Remotion completion。
 - Prototype changes invalidate the old Remotion alignment result.
 - Gate 3 rejection must lead to a new task package and new Remotion output, not a recheck of unchanged output.
 - Remove preview navigation, debug labels, helper text, and unrelated text before Smoke Render and final delivery.

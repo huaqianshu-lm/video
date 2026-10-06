@@ -120,7 +120,7 @@ test("serves the Web UI shell and health endpoint on localhost", async () => {
     const workflows = await request(webServer, "/api/workflows");
     assert.equal(workflows.status, 200);
     const workflowPayload = JSON.parse(workflows.body);
-    assert.ok(workflowPayload.workflows.some((item) => item.id === "product-promo-v1" && item.pathNamespace === "product-promo" && item.batchSupported === false));
+    assert.deepEqual(workflowPayload.workflows.map(item => item.id), ["narrated-tutorial-v1"]);
 
     const projects = await request(webServer, "/api/projects");
     assert.equal(projects.status, 200);

@@ -34,7 +34,7 @@ Use this skill when the task creates or revises a video's Source, Content Analys
 - Preserve human Gate decisions. Do not mark a gate passed because files merely exist or because structural checks passed.
 - Before Gate 2, perform the visual convergence check defined in `docs/VIDEO-PRODUCTION-RULES.md` using actual prototype or preview evidence. Treat structural, type, and file validation as supporting checks only; if the visual check fails, return to Visual Script and do not continue to Remotion.
 - Save that review as the current video's `visual-self-review.json`; Gate 2 automation must verify its schema, workflow, current Visual Script／Prototype fingerprints, evidence files, and all required checks before the project is ready for human approval. This record never replaces the human Gate 2 decision.
-- Apply the shared anti-PPT baseline to both Workflow Profiles, with the profile-specific allowance: product promos are action-first and evidence-led; narrated tutorials may use explanatory UI, code, diagrams, or cards only when they advance the narrated reasoning and are not repeated title-card pages.
+- Apply the tutorial anti-PPT baseline: tutorials may use explanatory UI, code, diagrams, or cards only when they advance the narrated reasoning and are not repeated title-card pages.
 
 ## Output and review
 

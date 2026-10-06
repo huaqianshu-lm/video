@@ -8,6 +8,7 @@ import { getProjectFile, listProjectFiles } from "../src/project-files.mjs";
 import { getVideoProject, listVideoProjects } from "../src/project-view.mjs";
 import { validateProjectStage } from "../src/validation.mjs";
 import { allWorkflowDefinitions, workflowStages } from "../src/workflows/registry.mjs";
+import { ARCHIVED_NAMESPACE } from "../src/workflows/archived.mjs";
 
 const repositoryRoot = path.resolve(new URL("../..", import.meta.url).pathname);
 
@@ -18,9 +19,9 @@ function directorySlugs(directory) {
     .map((entry) => entry.name);
 }
 
-const workflowNamespaces = new Set(Object.values(allWorkflowDefinitions())
+const workflowNamespaces = new Set([ARCHIVED_NAMESPACE, ...Object.values(allWorkflowDefinitions())
   .map((definition) => definition.pathNamespace)
-  .filter(Boolean));
+  .filter(Boolean)]);
 
 const realVideoSlugs = [...new Set([
   ...directorySlugs(path.join(repositoryRoot, "videos")).filter((slug) => !workflowNamespaces.has(slug)),
@@ -84,16 +85,22 @@ test("Web UI data readers pass read-only regression for real video projects", ()
     const project = getVideoProject(slug);
     assert.equal(project.slug, slug);
     assert.ok(project.sequence === null || typeof project.sequence === "number");
-    const config = JSON.parse(fs.readFileSync(path.join(repositoryRoot, "harness", "projects", slug, "project.json"), "utf8"));
-    const state = JSON.parse(fs.readFileSync(path.join(repositoryRoot, "harness", "projects", slug, "state.json"), "utf8"));
-    const expectedStageCount = config.workflowVersion < 2 && state.stages["smoke-render"]
-      ? 15
-      : workflowStages({ config }).length;
-    assert.equal(project.stages.length, expectedStageCount);
+    if (project.initialized) {
+      const config = JSON.parse(fs.readFileSync(path.join(repositoryRoot, "harness", "projects", slug, "project.json"), "utf8"));
+      const state = JSON.parse(fs.readFileSync(path.join(repositoryRoot, "harness", "projects", slug, "state.json"), "utf8"));
+      const expectedStageCount = config.workflowVersion < 2 && state.stages["smoke-render"]
+        ? 15
+        : workflowStages({ config, state }).length;
+      assert.equal(project.stages.length, expectedStageCount);
+    } else {
+      assert.equal(project.status, "uninitialized");
+      assert.equal(project.stages.length, workflowStages({ config: { workflow: "default" } }).length);
+    }
 
     const files = listProjectFiles(slug).filter((file) => file.present);
-    assert.ok(files.some((file) => file.path.endsWith("source.md")));
-    assert.ok(getProjectFile(slug, files[0].path)?.content);
+    if (project.initialized) assert.ok(files.some((file) => file.path.endsWith("source.md")));
+    if (files.length > 0) assert.ok(getProjectFile(slug, files[0].path)?.content);
+    else assert.equal(project.initialized, false);
 
     const legacyProject = {
       config: { slug, workspaceRoot: repositoryRoot, validationPolicy: "legacy" },

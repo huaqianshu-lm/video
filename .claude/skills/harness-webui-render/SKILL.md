@@ -16,7 +16,7 @@ Use this skill for Harness Web UI, batch jobs, Agent executors, asset packaging,
 - Gate 2, TTS quality review, Gate 3, and Gate 4 remain human checkpoints in the production workflow.
 - Smoke Render is a standalone manual environment check for a new series or a rendering-environment change. It does not advance a Harness stage, create a Harness production Job, or write a video review.
 - Resolve the server-side Workflow Profile before deciding stages, artifacts, asset checks, or remote inputs; the browser must not copy the Workflow graph or business rules.
-- `narrated-tutorial-v1` keeps its MP3／VTT／SRT and narrated Manifest contract. `product-promo-v1` uses Asset Manifest／Visual Timeline validation, must not create placeholder narrated artifacts, and must not enter TTS or TTS quality review.
+- `narrated-tutorial-v1` keeps its MP3／VTT／SRT and narrated Manifest contract.
 - New Workflow project materials use the Profile's unique namespaced paths; existing narrated legacy-flat paths remain readable and are not migrated. The persisted `project.json.workflow` and resolved path fields are authoritative.
 
 ## Remote delivery preflight
@@ -39,8 +39,6 @@ Before dispatching a Harness complete Render, and before manually triggering a s
 - For complete Render, require a per-video binding record that fixes the slug, Composition ID, published URL, package fingerprint, and ZIP SHA-256; legacy global URL/SHA environment variables must not bypass this check.
 - Validate the resource ZIP can be fully extracted and has the expected `<video-slug>/` top-level directory.
 - For `narrated-tutorial-v1`, require both `subtitles/captions.vtt` and `subtitles/captions.srt`, then match every ZIP MP3 path and count against the Audio Manifest and the other narrated manifests.
-- For `product-promo-v1`, require the Profile-declared `asset-manifest.json` and `visual-timeline.json`, then match every declared local asset and optional music／SFX reference; do not require or synthesize MP3、VTT、SRT or narrated manifests.
-- For `product-promo-v1`, require Remotion config to import the current `visual-timeline.json` by its exact relative path and have `TotalDurationFrames` return that import's `durationInFrames`; hard-coded or comment-only timing must fail before packaging or dispatch.
 - Confirm all required code, configuration, and resource files are tracked, clean, and present on the dispatch branch.
 - Resolve the branch in this order: explicit `HARNESS_GITHUB_REF`, current Git worktree branch, then `GITHUB_REF_NAME` only as a fallback.
 
@@ -54,10 +52,13 @@ Before dispatching a Harness complete Render, and before manually triggering a s
 - Do not bypass human review or convert a task status into a completed production stage without validated output.
 - Remotion production tasks must generate the ignored `src/RenderInputRoot.tsx` from the current validated per-video package before Gate 3 validation or Studio preview; the tracked `src/Root.tsx` remains generic and is never a concrete-video fallback.
 - A standalone Smoke Render must target an unfinished video or an independent copy, and must not modify a `completed` video's content, state, Job, review, or related artifacts.
-- `product-promo-v1` batch production is explicitly unsupported in the first implementation; its batch entry must return a clear unsupported-Workflow error and must not convert the project into a narrated batch.
 
 ## References
 
 - Read `docs/END-TO-END-VIDEO-PRODUCTION-PLAN.md` for the end-to-end handoff.
 - Read `harness/README.md` for commands and local setup.
 - Read `harness/VALIDATION-MATRIX.md` for the applicable regression coverage.
+
+## Retired workflow
+
+Only `narrated-tutorial-v1` is offered for production. Historical completed promo videos remain read-only, including records and input packages; the retained promo components are preview dependencies only. Never start production or packaging for a retired workflow.

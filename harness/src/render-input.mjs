@@ -9,7 +9,7 @@ import { validateRenderInputUrl } from "./github-config.mjs";
 import { validateRemoteRenderInputs } from "./remote-executor.mjs";
 import { assertProjectMutable, assertProjectSlugMutable, isCompletedProject, loadProject } from "./storage.mjs";
 import { allWorkflowDefinitions, requireWorkflowDefinition, workflowForProject, workflowPaths } from "./workflows/registry.mjs";
-import { promoTimelineSourceIssues } from "./workflows/product-promo-validation.mjs";
+import { ARCHIVED_NAMESPACE, ARCHIVED_WORKFLOW_ID } from "./workflows/archived.mjs";
 
 import {readVideoCover, videoCoverAssetIssues} from './video-cover.mjs';
 import {validateCover} from './series-assets.mjs';
@@ -185,7 +185,6 @@ function selectEntry(remotionDirectory, {
   componentExport = null,
   configFile = "video.config.ts",
   configExport = "videoConfig",
-  requireDurationExport = false,
 } = {}) {
   if (!CONFIG_PATTERN.test(configFile)) fail(`Invalid config file: ${configFile}`);
   if (!IDENTIFIER_PATTERN.test(configExport)) fail(`Invalid config export: ${configExport}`);
@@ -204,12 +203,6 @@ function selectEntry(remotionDirectory, {
   const configPath = path.join(remotionDirectory, configFile);
   requireFile(configPath, "video config");
   const durationExport = inferExportName(configPath, "TotalDurationFrames");
-  if (requireDurationExport && !durationExport) {
-    fail("宣传片 Remotion 配置必须导出 TotalDurationFrames，并从 Visual Timeline 派生时长", "render-input-promo-duration-export-missing");
-  }
-  if (requireDurationExport && durationExport !== "TotalDurationFrames") {
-    fail("宣传片 Remotion 配置必须使用精确的 TotalDurationFrames 导出", "render-input-promo-duration-export-invalid");
-  }
   return {
     componentFile: selectedComponentFile,
     componentExport: selectedComponentExport,
@@ -238,7 +231,7 @@ function readManifest(manifestPath) {
   }
 }
 
-function validateManifestShape(manifest) {
+function validateManifestShape(manifest, { archivedPreview = false } = {}) {
   const issues = [];
   if (!SLUG_PATTERN.test(String(manifest?.videoSlug ?? ""))) {
     issues.push("render-input.json 缺少有效 videoSlug");
@@ -279,16 +272,10 @@ function validateManifestShape(manifest) {
   if (!manifest?.sourceSnapshot || typeof manifest.sourceSnapshot !== "object" || Array.isArray(manifest.sourceSnapshot)) {
     issues.push("render-input.json 缺少源资料快照");
   }
-  let workflow = null;
   try {
-    workflow = requireWorkflowDefinition(manifest);
+    requireWorkflowDefinition(manifest, { archivedPreview });
   } catch (error) {
     issues.push(`render-input.json 的 Workflow 无效：${error instanceof Error ? error.message : String(error)}`);
-  }
-  if (workflow?.timelineMode === "visual-beats"
-    && manifest?.entry
-    && manifest.entry.durationExport !== "TotalDurationFrames") {
-    issues.push("宣传片 render-input.json 必须使用 TotalDurationFrames 作为时长导出");
   }
   return issues;
 }
@@ -516,7 +503,7 @@ export async function bindRenderInputDelivery(project, {
   return { status: "bound", path: deliveryPath, delivery };
 }
 
-export function validateRenderInputDirectory(directory, { expectedSlug = null, listArchiveEntries = archiveEntries } = {}) {
+export function validateRenderInputDirectory(directory, { expectedSlug = null, listArchiveEntries = archiveEntries, archivedPreview = false } = {}) {
   const packageRoot = path.resolve(directory);
   if (!fs.existsSync(packageRoot) || !fs.lstatSync(packageRoot).isDirectory()) return [`输入包目录不存在：${packageRoot}`];
 
@@ -526,7 +513,7 @@ export function validateRenderInputDirectory(directory, { expectedSlug = null, l
   } catch (error) {
     return [error instanceof Error ? error.message : String(error)];
   }
-  const issues = validateManifestShape(manifest);
+  const issues = validateManifestShape(manifest, { archivedPreview });
   if (expectedSlug && manifest.videoSlug !== expectedSlug) issues.push(`输入包 videoSlug 为 ${manifest.videoSlug}，不是 ${expectedSlug}`);
 
   const slug = manifest.videoSlug;
@@ -616,20 +603,8 @@ export function validateRenderInputDirectory(directory, { expectedSlug = null, l
     let packagePaths = null;
     let packageWorkflow = null;
     try {
-      packageWorkflow = requireWorkflowDefinition({
-        config: {
-          slug,
-          workspaceRoot: packageRoot,
-          ...(manifest.workflow ? { workflow: manifest.workflow } : {}),
-          ...(manifest.workflowVersion !== undefined ? { workflowVersion: manifest.workflowVersion } : {}),
-        },
-      });
-      packagePaths = workflowPaths({ config: {
-        slug,
-        workspaceRoot: packageRoot,
-        ...(manifest.workflow ? { workflow: manifest.workflow } : {}),
-        ...(manifest.workflowVersion !== undefined ? { workflowVersion: manifest.workflowVersion } : {}),
-      } }, slug);
+      packageWorkflow = requireWorkflowDefinition(manifest, { archivedPreview });
+      packagePaths = workflowPaths(packageWorkflow, slug);
     } catch (error) {
       issues.push(`输入包 Workflow 无效：${error instanceof Error ? error.message : String(error)}`);
     }
@@ -670,38 +645,9 @@ export function validateRenderInputDirectory(directory, { expectedSlug = null, l
         }
       } catch (error) { issues.push(`封面输入校验失败：${error.message}`); }
     }
-    if (packageWorkflow?.timelineMode === "visual-beats") {
-      if (manifest.entry.durationExport !== "TotalDurationFrames") {
-        issues.push("宣传片输入包必须声明 entry.durationExport=TotalDurationFrames");
-      }
-      try {
-        const configRelativePath = requireSafeRelative(manifest.entry.configPath, "entry.configPath");
-        const configPath = path.join(packageRoot, configRelativePath);
-        if (fs.existsSync(configPath) && fs.lstatSync(configPath).isFile()) {
-          const configSource = fs.readFileSync(configPath, "utf8");
-          if (!/export\s+(?:const|function)\s+TotalDurationFrames\b/.test(configSource)) {
-            issues.push("宣传片输入包的 Remotion 配置必须导出 TotalDurationFrames");
-          }
-          const timelineRelativePath = path.posix.join(packagePaths.sourceDirectory, "visual-timeline.json");
-          issues.push(...promoTimelineSourceIssues({
-            configSource,
-            configPath: manifest.entry.configPath,
-            timelinePath: timelineRelativePath,
-          }));
-        }
-      } catch {
-        // The entry path issue is reported by the package path validation above.
-      }
-      for (const requiredFile of packageWorkflow.delivery?.requiredStaticFiles ?? []) {
-        const requiredPath = path.join(packageRoot, packagePaths.sourceDirectory, requiredFile);
-        if (!fs.existsSync(requiredPath) || !fs.lstatSync(requiredPath).isFile()) {
-          issues.push(`宣传片输入包缺少 ${path.posix.join(packagePaths.sourceDirectory, requiredFile)}`);
-        }
-      }
-    }
   }
 
-  if (SLUG_PATTERN.test(String(slug ?? ""))) {
+  if (SLUG_PATTERN.test(String(slug ?? "")) && !(archivedPreview && manifest.workflow === ARCHIVED_WORKFLOW_ID)) {
     const remoteIssues = validateRemoteRenderInputs({ config: {
       slug,
       workspaceRoot: packageRoot,
@@ -893,13 +839,11 @@ export function prepareRenderInput(project, {
     componentExport,
     configFile,
     configExport,
-    requireDurationExport: workflowForProject(project).timelineMode === "visual-beats",
   });
   const coverIssues = videoCoverAssetIssues(project);
   if (coverIssues.length) fail(coverIssues.join('；'), 'render-input-cover-invalid');
   const selectedCover = readVideoCover(project);
   if (selectedCover?.mode === 'series') {
-    if (workflowForProject(project).timelineMode === 'visual-beats') fail('宣传片不支持独立封面片头');
     entry.cover = selectedCover;
     const configSource = fs.readFileSync(path.join(sources.remotion, entry.configFile), 'utf8');
     const componentSource = fs.readFileSync(path.join(sources.remotion, entry.componentFile), 'utf8');
@@ -1031,12 +975,13 @@ export function discoverStudioEntries(workspaceRoot) {
   const entries = [];
   const skipped = [];
 
-  const namespaces = new Set(Object.values(allWorkflowDefinitions())
+  const namespaces = new Set([ARCHIVED_NAMESPACE, ...Object.values(allWorkflowDefinitions())
     .map((definition) => definition.pathNamespace)
-    .filter(Boolean));
+    .filter(Boolean)]);
   const candidateSlugs = new Set();
   const candidateDirectories = [
     remotionRoot,
+    path.join(remotionRoot, ARCHIVED_NAMESPACE),
     ...Object.values(allWorkflowDefinitions())
       .map((definition) => definition.pathNamespace ? path.join(remotionRoot, definition.pathNamespace) : null)
       .filter(Boolean),
@@ -1059,7 +1004,7 @@ export function discoverStudioEntries(workspaceRoot) {
     let manifest = null;
     let packageIssues = [];
     if (fs.existsSync(packageDirectory)) {
-      packageIssues = validateRenderInputDirectory(packageDirectory, { expectedSlug: slug });
+      packageIssues = validateRenderInputDirectory(packageDirectory, { expectedSlug: slug, archivedPreview: completed && loadProject(slug, { refresh: false }).config.workflow === ARCHIVED_WORKFLOW_ID });
       if (packageIssues.length === 0) {
         try {
           manifest = readManifest(path.join(packageDirectory, "render-input.json"));

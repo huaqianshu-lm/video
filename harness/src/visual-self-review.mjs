@@ -29,7 +29,7 @@ export function validateVisualSelfReview(project, stage) {
   const workflow = workflowForProject(project);
   if (review.schemaVersion !== 1 || review.videoSlug !== project.config.slug || review.workflow !== workflow.id) fail("schema、视频标识或 Workflow 不匹配");
   if (typeof review.reviewedAt !== "string" || !Number.isFinite(Date.parse(review.reviewedAt))) fail("缺少有效 reviewedAt");
-  const prototypeStage = workflow.timelineMode === "visual-beats" ? "motion-prototype" : "visual-prototype";
+  const prototypeStage = "visual-prototype";
   for (const [sourceStage, field] of [["visual-script", "visualScriptFingerprint"], [prototypeStage, "prototypeFingerprint"]]) {
     const sourcePath = workflowStageDefinition(project, sourceStage).artifacts[0].replaceAll("{slug}", project.config.slug);
     try {
@@ -61,7 +61,7 @@ export function validateVisualSelfReview(project, stage) {
       fail(`证据 ${item.id} 不存在、为空或越界`);
     }
   }
-  const profilePrefix = workflow.timelineMode === "visual-beats" ? "PROMO" : "TUTORIAL";
+  const profilePrefix = "TUTORIAL";
   for (const [field, ids] of [["checks", Array.from({ length: 6 }, (_, i) => `VC-${i + 1}`)], ["workflowChecks", Array.from({ length: 4 }, (_, i) => `${profilePrefix}-${i + 1}`)]]) {
     const checks = Array.isArray(review[field]) ? review[field] : [];
     for (const id of ids) {

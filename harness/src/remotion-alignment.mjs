@@ -5,16 +5,12 @@ import { assertProjectMutable, assertProjectSlugMutable, readJson, writeJson } f
 import { buildRemotionTimingPlan } from "./remotion-timing.mjs";
 import { validateVisualBindings } from "./visual-timing.mjs";
 import { renderEntryPointSource, renderInputDirectory, validateCurrentRenderInput } from "./render-input.mjs";
-import { workflowPaths, workflowStageDefinition, workflowForProject } from "./workflows/registry.mjs";
-import { validatePromoRemotion } from "./workflows/product-promo-validation.mjs";
+import { workflowStageDefinition } from "./workflows/registry.mjs";
 
 export const REMOTION_ALIGNMENT_SCHEMA_VERSION = 2;
 
 export function remotionAlignmentPath(project) {
-  const paths = workflowPaths(project);
-  return workflowForProject(project).timelineMode === "visual-beats"
-    ? `${paths.remotionDirectory}/remotion-alignment.json`
-    : `videos/${project.config.slug}/remotion-alignment.json`;
+  return `videos/${project.config.slug}/remotion-alignment.json`;
 }
 
 export function prototypeBaselinePath(project) {
@@ -46,9 +42,7 @@ function prototypeSceneIds(text) {
 export function buildPrototypeBaseline(project) {
   const visualScriptPath = workflowStageDefinition(project, "visual-script")?.artifacts?.[0]
     ?.replaceAll("{slug}", project.config.slug);
-  const prototypeStage = workflowForProject(project).timelineMode === "visual-beats"
-    ? "motion-prototype"
-    : "visual-prototype";
+  const prototypeStage = "visual-prototype";
   const prototypePath = workflowStageDefinition(project, prototypeStage)?.artifacts?.[0]
     ?.replaceAll("{slug}", project.config.slug);
   const visualScript = readWorkspaceText(project, visualScriptPath);
@@ -80,9 +74,7 @@ export function freezePrototypeBaseline(project) {
   const hasExistingImplementation = fs.existsSync(path.join(remotionDirectory, "video.config.ts"))
     && fs.existsSync(remotionDirectory)
     && fs.readdirSync(remotionDirectory).some((entry) => entry.endsWith("Video.tsx"));
-  baseline.alignmentRequired = workflowForProject(project).timelineMode === "visual-beats"
-    ? true
-    : !hasExistingImplementation;
+  baseline.alignmentRequired = !hasExistingImplementation;
   writeJson(prototypeBaselinePath(project), baseline);
   return baseline;
 }
@@ -344,12 +336,6 @@ function validateSceneTiming(scene, expected, relativePath, issues) {
 }
 
 export function validateRemotionAlignment(project) {
-  if (workflowForProject(project).timelineMode === "visual-beats") {
-    return [
-      ...validatePromoRemotion(project, "remotion"),
-      ...validateTemporaryRenderEntry(project),
-    ];
-  }
   const baseline = getPrototypeBaseline(project);
   const relativePath = remotionAlignmentPath(project);
   if (!baseline) {

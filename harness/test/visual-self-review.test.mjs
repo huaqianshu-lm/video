@@ -24,19 +24,19 @@ function fixture(workflow = "narrated-tutorial-v1") {
   fs.mkdirSync(directory, {recursive: true});
   fs.writeFileSync(path.join(directory, "source.md"), "# Sample\nInput for a contract test.");
   fs.writeFileSync(path.join(directory, "visual-script.md"), "# Visual Script\n## Scene 01\nCurrent subject changes.");
-  const prototype = workflow === "product-promo-v1" ? "motion-prototype.html" : "visual-prototype.html";
+  const prototype = "visual-prototype.html";
   fs.writeFileSync(path.join(directory, prototype), '<section class="scene" data-scene="01">Subject</section>');
   fs.writeFileSync(path.join(directory, "evidence.md"), "Human viewed opening, middle and closing at normal speed; observed before/action/after.");
   const hash = name => crypto.createHash("sha256").update(fs.readFileSync(path.join(directory, name))).digest("hex");
-  const prefix = workflow === "product-promo-v1" ? "PROMO" : "TUTORIAL";
+  const prefix = "TUTORIAL";
   const review = {schemaVersion: 1, videoSlug: "sample", workflow, reviewedAt: "2026-10-03", visualScriptFingerprint: hash("visual-script.md"), prototypeFingerprint: hash(prototype), evidence: [{id: "viewed", kind: "human-review", path: "evidence.md"}], checks: Array.from({length: 6}, (_, i) => ({id: `VC-${i + 1}`, status: "passed", evidenceIds: ["viewed"], note: "Observed"})), workflowChecks: Array.from({length: 4}, (_, i) => ({id: `${prefix}-${i + 1}`, status: "passed", evidenceIds: ["viewed"], note: "Observed"}))};
   const save = () => fs.writeFileSync(path.join(directory, "visual-self-review.json"), JSON.stringify(review));
   save();
   return {project, directory, review, save};
 }
 
-test("accepts current review for each Workflow and rejects the other profile's checks", () => {
-  for (const workflow of ["narrated-tutorial-v1", "product-promo-v1"]) {
+test("accepts current tutorial review and rejects incorrect profile checks", () => {
+  for (const workflow of ["narrated-tutorial-v1"]) {
     const {project, review, save} = fixture(workflow);
     assert.deepEqual(validateVisualSelfReview(project, "gate-2"), []);
     review.workflowChecks[0].id = "WRONG-1"; save();

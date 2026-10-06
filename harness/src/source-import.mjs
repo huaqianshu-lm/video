@@ -5,6 +5,8 @@ import { getSeries, listSeries, saveSeries } from "./series-assets.mjs";
 import { getStyleDefinition } from "./styles.mjs";
 import { allWorkflowDefinitions, getWorkflowDefinition, requireWorkflowDefinition, workflowPaths } from "./workflows/registry.mjs";
 
+import { ARCHIVED_WORKFLOW } from "./workflows/archived.mjs";
+
 const repositoryRoot = path.resolve(new URL("../..", import.meta.url).pathname);
 export const MAX_SOURCE_BYTES = 10 * 1024 * 1024;
 export const SOURCE_EXTENSIONS = Object.freeze([".md", ".markdown", ".txt"]);
@@ -107,7 +109,7 @@ export function importSourceProject({ slug, filename, content, seriesId = null, 
   const sourceDirectory = path.join(workspace, paths.sourceDirectory);
   const remotionDirectory = path.join(workspace, paths.remotionDirectory);
   const harnessDirectory = projectDirectory(normalizedSlug);
-  const conflictingWorkflowDirectory = Object.values(allWorkflowDefinitions())
+  const conflictingWorkflowDirectory = [...Object.values(allWorkflowDefinitions()), ARCHIVED_WORKFLOW]
     .filter((definition) => definition.id !== workflowDefinition.id)
     .flatMap((definition) => {
       const candidate = workflowPaths(definition, normalizedSlug);

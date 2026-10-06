@@ -12,6 +12,7 @@ import {
   workflowPaths,
   workflowStages,
 } from "./workflows/registry.mjs";
+import { ARCHIVED_NAMESPACE, ARCHIVED_WORKFLOW_ID, retiredWorkflowError } from "./workflows/archived.mjs";
 import { resolveStyleId } from "./styles.mjs";
 
 const repositoryRoot = path.resolve(new URL("../..", import.meta.url).pathname);
@@ -36,14 +37,15 @@ function directorySlugs(directory) {
 }
 
 function workflowNamespaces() {
-  return new Set(Object.values(allWorkflowDefinitions())
+  return new Set([ARCHIVED_NAMESPACE, ...Object.values(allWorkflowDefinitions())
     .map((definition) => definition.pathNamespace)
-    .filter(Boolean));
+    .filter(Boolean)]);
 }
 
 function sourceCandidates(slug) {
   return [
     path.join(videosRoot(), slug, "source.md"),
+    path.join(videosRoot(), ARCHIVED_NAMESPACE, slug, "source.md"),
     ...Object.values(allWorkflowDefinitions())
       .filter((definition) => definition.pathNamespace)
       .map((definition) => path.join(videosRoot(), definition.pathNamespace, slug, "source.md")),
@@ -143,7 +145,8 @@ function projectWorkflowInput(slug) {
   const configPath = projectFiles(slug).config;
   if (fs.existsSync(configPath)) {
     try {
-      return { config: JSON.parse(fs.readFileSync(configPath, "utf8")) };
+      return { config: JSON.parse(fs.readFileSync(configPath, "utf8")),
+        state: fs.existsSync(projectFiles(slug).state) ? JSON.parse(fs.readFileSync(projectFiles(slug).state, "utf8")) : null };
     } catch {
       return { config: { workflow: "default", workflowVersion: 2, slug } };
     }
@@ -228,6 +231,7 @@ function buildInitializedView(slug) {
     timelineMode: workflowForProject(project).timelineMode,
     audioMode: workflowForProject(project).audioMode,
     batchSupported: workflowForProject(project).batchSupported !== false,
+    readOnly: project.state.currentStage === "completed",
     style: resolveStyleId(project.config, slug),
     next: buildNextAction(project),
     stages,
@@ -237,6 +241,17 @@ function buildInitializedView(slug) {
 export function getVideoProject(slug) {
   if (!allVideoSlugs().includes(slug)) return null;
   const files = projectFiles(slug);
+  const input = projectWorkflowInput(slug);
+  if (input.config.workflow === ARCHIVED_WORKFLOW_ID && input.state?.currentStage !== "completed") {
+    return {
+      ...projectIdentity(slug), initialized: Boolean(input.state), readOnly: true,
+      status: "retired", statusLabel: "生产能力已移除", currentStage: input.state?.currentStage ?? null,
+      workflow: ARCHIVED_WORKFLOW_ID, workflowVersion: input.config.workflowVersion,
+      batchSupported: false, progress: 0, succeededCount: 0, stageCount: 0, stages: [],
+      next: { action: "inspect", readOnly: true, requiresUser: false, commands: [],
+        issues: [], manualChecks: [], message: retiredWorkflowError().message },
+    };
+  }
   if (!fs.existsSync(files.config) || !fs.existsSync(files.state) || !fs.existsSync(files.artifacts)) {
     return buildUninitializedView(slug);
   }

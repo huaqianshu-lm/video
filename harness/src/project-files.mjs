@@ -1,7 +1,9 @@
 import fs from "node:fs";
 import path from "node:path";
+import { ARCHIVED_WORKFLOW_ID } from "./workflows/archived.mjs";
+import { loadProject } from "./storage.mjs";
 import { getVideoProject } from "./project-view.mjs";
-import { workflowForProject, workflowStageDefinitions } from "./workflows/registry.mjs";
+import { workflowStageDefinitions } from "./workflows/registry.mjs";
 
 const repositoryRoot = path.resolve(new URL("../..", import.meta.url).pathname);
 
@@ -73,8 +75,9 @@ function projectConfigForView(projectView, slug) {
 export function listProjectFiles(slug) {
   const projectView = getVideoProject(slug);
   if (!projectView) return null;
+  if (projectView.status === "retired") return [];
   const config = projectConfigForView(projectView, slug);
-  const definitions = workflowStageDefinitions({ config });
+  const definitions = workflowStageDefinitions(projectView.initialized ? loadProject(slug, { refresh: false }) : { config });
   const entries = [];
   const seen = new Set();
   for (const [stage, definition] of Object.entries(definitions)) {
@@ -104,9 +107,7 @@ export function getProjectFile(slug, relativePath) {
 export function getProjectPrototype(slug) {
   const project = getVideoProject(slug);
   if (!project) return null;
-  const stage = workflowForProject({ config: { workflow: project.workflow, workflowVersion: project.workflowVersion } }).timelineMode === "visual-beats"
-    ? "motion-prototype"
-    : "visual-prototype";
+  const stage = project.readOnly && project.workflow === ARCHIVED_WORKFLOW_ID ? "motion-prototype" : "visual-prototype";
   const prototype = listProjectFiles(slug)?.find((item) => item.stage === stage && item.present && item.path.endsWith(".html"));
   return prototype ? getProjectFile(slug, prototype.path) : null;
 }

@@ -12,7 +12,6 @@
 
 独立渲染输入 Manifest 的可选 `entry.cover` 来自这份快照。生成单条入口及 Studio 目录入口时，统一使用通用封面外壳：先展示封面，再将整个正文 Composition（含音频和字幕）放在同一 Sequence 内。总时长等于封面帧数加正文时长，正文 Timeline、字幕 Cue、音频和对齐映射保持正文相对时间。正文组件不得再添加第二份封面或偏移。
 
-`product-promo-v1` 的总时长仍必须直接来自 Visual Timeline；本入口暂不向宣传片添加独立片头，选择带封面的系列返回明确错误，不得偷偷改变其时间契约。未来若支持，封面必须成为 Visual Timeline 内的视觉事件。
 
 ## 消费与检查
 
@@ -24,6 +23,6 @@ Agent 任务包携带系列选择与封面快照。Gate 2 原型须呈现封面�
 - AC-2 [MUST] 未完成教程的选择生成独立快照与图片；none 不添加片头；缺图与非法图片拒绝。
 - AC-3 [MUST] 单条及目录 Studio 入口统一封面外壳，正文整体延后且总时长增加相同帧数；不重复偏移。
 - AC-4 [MUST] 输入包验证快照、Manifest 和资源 ZIP 图片哈希，阻止漏图与不一致。
-- AC-5 [MUST] completed、旧无快照输入和宣传片原有时间契约不被改写。
+- AC-5 [MUST] completed 和旧无快照输入不被改写。
 
 本次涉及 CLI 发起入口、Agent 任务包、资源生产者、输入 Manifest、Studio／Runner 消费者、审核规则与文档；Web UI／批量仍沿用原入口，不迁移历史视频。代码检查不能替代下一条视频的实际 Gate 2／Gate 3 画面审核。
