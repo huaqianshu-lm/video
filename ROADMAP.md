@@ -7,7 +7,7 @@
 
 ## 当前阶段
 
-- Harness 统一生产在 `feat/harness-unified-production` 分支迁移中：全量自动回归 330/330、类型与语法检查通过；实际 CLI／HTTP 使用隔离项目验证。真实画面、试听、人工 Gate、远端交付及跨视频验收尚未完成，未提交推送或执行真实 TTS／渲染。方案见 `drafts/HARNESS-UNIFIED-PRODUCTION-PLAN.md`，契约见 `docs/HARNESS-PRODUCTION-CONTRACT.md`。
+- Harness 统一生产在 `feat/harness-unified-production` 分支迁移中：代码已本地提交 `22eb32d`，尚未推送；全量自动回归 330/330、类型与语法检查通过，实际 CLI／HTTP 使用隔离项目验证。真实画面、试听、人工 Gate、远端交付及跨视频验收尚未完成，也未执行真实 TTS／渲染。方案见 `drafts/HARNESS-UNIFIED-PRODUCTION-PLAN.md`，契约见 `docs/HARNESS-PRODUCTION-CONTRACT.md`。
 - `13-prompting` 已获用户本片一次性 Gate 4 验收并进入 completed，永久只读；正常速度试听和 Codex 风格令牌机器检查的例外不能用于后续视频。Run 与一次性接受记录见本地资料，通用验证流程未改变。
 - `12-slash-commands` 已通过 Gate 4 并进入 `completed`，后续永久只读。用户已检查成片并确认无问题；Run `37254126010` 成功，head_sha 与推送提交 `151e9c11080e9c0afa1bd6ebe025a72ac0617db2` 一致，Artifact `11322455206` 为 5,389,975 bytes 且未过期。渲染使用 Composition ID `12-slash-commands`、输入包 SHA-256 `1e3e0396de194e817d04a8411c2536d12189fae81a100b70588f57bda6349189`；交付代码只包含 `harness/src/render-delivery.mjs` 和 `harness/src/render-input.mjs`。 `11-agents-md` 完整 Render Run `37202648340` 成功，Artifact 非空且有效，head_sha 与交付提交 `1d5550b` 一致；用户确认成片无问题、封面存在，Gate 4 已通过，Harness 为 `completed`，后续永久只读。 Agent 系列封面已通过 `11-agents-md` 原型、Gate 3 与最终成片人工验收；目录 Studio 一致性与封面精确帧数尚未单独实测，剩余项见 drafts 验证清单。
 - 通用反 PPT 视觉原型和 Gate 2 自检能力已合入 `main` 并通过专项验证；实际画面仍须由人工在 Gate 2／Gate 3 检查。`project-structure` 原型尚未实际观看，Gate 2 未通过。
