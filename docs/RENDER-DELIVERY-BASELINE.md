@@ -1,12 +1,24 @@
-# 远程渲染成功基线的复用
+# 渲染交付与成功基线的复用
+
+## 渲染方式
+
+本轮是在现有项目内迭代共享交付能力。当前生产须符合唯一 Storyboard 契约；旧生产资料通过正常返工补齐，旧 Job 的历史读取不构成继续旧流程的许可，completed 永久只读。
+
+单条新交付默认 `local`，可显式选择 `github`；批量只允许 `github`，服务端拒绝本地批量。两种方式共享 `render-delivery prepare／start／resume` 和人工 Gate 3／Gate 4。旧 session／Job 没有 backend 时解释为 github，恢复沿用原方式，不因默认值变更而重新派发。已有任务先恢复，不能换方式绕过原任务。
+
+本地：`render-delivery prepare <slug> --backend local` 校验生产资料及本机环境（当前执行器要求 FFmpeg 9），保存绑定代码／输入／环境的计划，展示输出与日志路径；`start <slug> --confirm-plan <planId>` 确认后创建持久化 Job，由独立 worker 调用 Remotion 无头浏览器和系统 FFmpeg（并发 1）。不需要 GitHub Token、远端基线、输入包发布、commit 或 push。新版滤镜文件参数兼容与内置 AAC 选择由执行器负责。应用不提升宿主权限；启动失败明确报告权限／浏览器或环境问题。输出须通过规格、帧数、音轨和解码检查后才进入 Gate 4；用户人工验收不自动通过。
+
+`resume` 核实同一 worker 及保存结果，不启动第二次渲染；进程已退出且缺少有效结果时明确失败。经用户要求重试，或本地成片被 Gate 4 驳回后，用 `prepare --retry-job <原JobId>` 生成新计划并确认后启动，属于重新渲染，不是帧级续跑。即使重试计划指纹相同，也必须创建新 Job；旧 worker 进程组仍存活时先阻断重试。新成片按视频名称（项目 slug）命名为 `<slug>.mp4`；本地按 Job 隔离保存在忽略的 `out/local-render/<slug>/<jobId>/<slug>.mp4`，GitHub 沿用 `out/<slug>.mp4`。旧 Job 恢复使用记录中的原路径，不重命名历史成片。日志和执行快照保存在 `local/local-render/<slug>/<jobId>/`。机器记录不代替实际音画验收。代码与自动回归已完成，真实入口整片与跨视频验收待完成，具体状态以 ROADMAP.md 为准。
+
+GitHub：`prepare <slug> --backend github` 及所有批量交付继续按下文远程基线／发布／精确清单授权执行，不修改既有 Actions 配置。下文有关 Git、发布、认证和远程 Run 的要求只适用于 github。
 
 本手册是所有渲染入口的准备检查和独立输入包发布步骤的权威来源。成功基线包含实际执行环境、认证来源、完整 Render Run 和该 Run 的代码提交。具体视频的 Run、报告和输入包绑定记录保存在本地忽略目录；凭据不得写入记录。
 
-## 所有入口的固定交付服务
+## GitHub 路径的固定交付服务
 
-统一入口为 `node harness/src/cli.mjs render-delivery <prepare|start|resume> <slug>`。Web UI 的准备／提交／恢复操作复用同一服务；批量使用 `batch delivery prepare／start／resume`，合并精确文件计划只提交一次，每条视频保留自己的输入包、交付记录和 Job。实际入口与跨视频验收仍在迁移中，见 ROADMAP.md。生产者为当前视频资料／独立输入包与 Git 交付计划，消费者为现有 Render Monitor 和 GitHub Actions；不改变 Workflow、输入包 schema、人工 Gate 或 Actions 配置。旧 `remote-run` CLI 入口停用并指向新入口；低层输入包命令保留作诊断，不能替代完整交付。
+统一入口为 `node harness/src/cli.mjs render-delivery <prepare|start|resume> <slug>`。Web UI 的准备／提交／恢复操作复用同一服务；批量使用 `batch delivery prepare／start／resume`，合并精确文件计划只提交一次，每条视频保留自己的输入包、交付记录和 Job。共享入口已实现并有隔离回归，真实交付与跨视频验收待完成，见 ROADMAP.md。生产者为当前视频资料／独立输入包与 Git 交付计划，消费者为现有 Render Monitor 和 GitHub Actions；不改变 Workflow、输入包 schema、人工 Gate 或 Actions 配置。旧 `remote-run` CLI 入口停用并指向新入口；低层输入包命令保留作诊断，不能替代完整交付。
 
-- `prepare`：读取本地固定方法配置，强制 gh 系统凭据来源与成功基线预检，准备／校验当前输入包，发布独立私有 Release 并绑定，保存精确交付清单供用户确认。首次指定 `--repository`、`--input-repository`、`--ref`、`--baseline-run`；检查通过后保存在忽略的 `local/render-method.json`，以后复用。多组件可用 `--component-file`／`--component-export` 明确入口。
+- `prepare`：先持久化本次 github 方式和准备阶段，发布／绑定中断后再次 prepare 保持同一方式；未生成计划时 start／resume 提示先恢复准备。读取本地固定方法配置，强制 gh 系统凭据来源与成功基线预检，准备／校验当前输入包，发布独立私有 Release 并绑定，保存精确交付清单供用户确认。首次指定 `--repository`、`--input-repository`、`--ref`、`--baseline-run`；检查通过后保存在忽略的 `local/render-method.json`，以后复用。多组件可用 `--component-file`／`--component-export` 明确入口。
 - `start --confirm-plan <planId>`：仅在用户明确确认展示过的精确清单后调用；重新检查代码、输入包和文件清单，定向 commit／push 后创建持久化 Job 并发起完整 Render。没有确认或计划变化时停止。原工作区与远端分叉时先按本手册准备独立交付工作区，不自动合并或推送无关提交。
 - `resume`：恢复当前视频已确认的交付与既有 Job，不重新准备包、不重复创建 Release 或渲染。提交成功而推送失败时复用已记录的提交；有 Run ID 时查询该 Run，不能用本地等待超时覆盖远端实际成功。远端成功且有效 Artifact 存在后停在 Gate 4，用户下载与验收。
 
@@ -14,7 +26,7 @@
 
 发布与绑定采用相同固定认证环境；网络／凭据错误保留断点并明确区分，不能解释为 Release 不存在。方法配置不含 Token，既有发布资产不覆盖。完成态视频不执行写操作。机器检查只能核对权限、字节、指纹、Git 与远端结果，不替代人工确认文件清单和 Gate。
 
-验收：AC-1 [MUST] 从实际 CLI 入口走通准备、确认后发起和恢复；AC-2 [MUST] 过期计划／绑定阻断派发；AC-3 [MUST] 发布、推送与派发后的中断能复用断点且不重复副作用；AC-4 [MUST] 超时后核实同一 Run／Artifact 并保持 Gate 4 人工验收；AC-5 [MUST] 不修改已完成视频或无关工作区内容。实现与 Fixture 全路径验证前保持“迁移中”；新的真实生产渲染须另有用户授权。
+验收：AC-1 [MUST] 从实际 CLI 入口走通准备、确认后发起和恢复；AC-2 [MUST] 过期计划／绑定阻断派发；AC-3 [MUST] 发布、推送与派发后的中断能复用断点且不重复副作用；AC-4 [MUST] 超时后核实同一 Run／Artifact 并保持 Gate 4 人工验收；AC-5 [MUST] 不修改已完成视频或无关工作区内容。实现、隔离入口验证与真实交付验收分别登记；未完成实际路径验收时保持“待实际入口验证”；新的真实生产渲染须另有用户授权。
 
 ## 1. 在实际交付工作区检查成功基线
 
@@ -80,7 +92,7 @@ node harness/src/cli.mjs render-input bind <slug> \
 
 准备检查会更新 Git 引用，不修改视频状态、人工 Gate、工作区内容，不 commit／push／派发。`ok=true` 只表示认证、权限和代码基线通过，仍需现有资源／Manifest 校验、绑定记录校验、精确文件清单确认、定向提交推送、完整 Render 和 Gate 4。
 
-Agent 单条入口已串联本手册的准备检查、独立 Release 发布／绑定、清单确认、定向提交推送、派发和同一 Job 恢复；下述底层命令供诊断和人工恢复参考，不作为日常替代入口。Web UI／批量已接入共享预检、发布绑定与逐视频交付断点；批量提交后的推送恢复和每条视频派发复用统一服务。新增路径的回归及实际入口验收尚未完成，不把代码接入视为固化完成。先前单条入口已有 Fixture 验证；本轮扩展入口待回归，真实认证／权限／成功代码基线仍须另行预检；下一条实际视频仍需完成真实 Render 和 Gate 4，不能把 Fixture 当作实际成片。
+Agent 单条入口已串联本手册的准备检查、独立 Release 发布／绑定、清单确认、定向提交推送、派发和同一 Job 恢复；下述底层命令供诊断和人工恢复参考，不作为日常替代入口。Web UI／批量已接入共享预检、发布绑定与逐视频交付断点；批量提交后的推送恢复和每条视频派发复用统一服务。共享单条／Web／批量已有隔离回归，实际整片交付与跨视频验收尚未完成，不把代码接入或 Fixture 验证视为固化完成。每次真实交付的认证／权限／成功代码基线仍须另行预检；下一条实际视频仍需完成真实 Render 和 Gate 4，不能把 Fixture 当作实际成片。
 
 ## 对话、Web UI 与批量操作
 

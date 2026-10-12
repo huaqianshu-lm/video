@@ -3,6 +3,7 @@ const batchPattern = /^\/api\/batches(?:\/([a-f0-9-]+)(?:\/action)?)?$/;
 import { batchDefinitions, commitBatchRenderDelivery, createBatch, getBatch, getBatchForView, listBatchesForView, approveTtsQc, prepareBatchRenderDelivery, retryFailedBatchItems, runBatch } from "../../batches.mjs";
 import { readJsonBody, sendError, sendJson } from "../http.mjs";
 import { resumeBatchRenderDelivery } from "../../batches.mjs";
+import {resolveRenderBackend} from '../../render-backend.mjs';
 
 export function createBatchRoutes({ runtime } = {}) {
   return async function handleBatches({ request, response, pathname }) {
@@ -12,7 +13,8 @@ export function createBatchRoutes({ runtime } = {}) {
     if (!route.id && request.method === "POST") {
       try {
         const body = await readJsonBody(request);
-        const batch = createBatch({ type: body.type, slugs: body.slugs });
+        if (body.type === 'to-render') resolveRenderBackend({backend: body.backend, batchId: 'new-batch'});
+        const batch = createBatch({ type: body.type, slugs: body.slugs, backend: body.backend });
         if (batch.type === "to-render") {
           await prepareBatchRenderDelivery(batch.id, { githubPreflight: runtime.githubPreflight, deliveryDependencies: runtime.deliveryDependencies });
           sendJson(response, 200, { batch: getBatchForView(batch.id) });
@@ -30,6 +32,7 @@ export function createBatchRoutes({ runtime } = {}) {
         const body = await readJsonBody(request);
         const batch = getBatch(route.id);
         if (!batch) { sendError(response, 404, { message: "Batch not found", code: "batch-not-found" }); return true; }
+        if (batch.type === 'to-render') resolveRenderBackend({backend: body.backend, batchId: batch.id});
         if (body.action === "prepare-render-delivery") {
           await prepareBatchRenderDelivery(route.id, { githubPreflight: runtime.githubPreflight, deliveryDependencies: runtime.deliveryDependencies });
           sendJson(response, 200, { batch: getBatchForView(route.id) });

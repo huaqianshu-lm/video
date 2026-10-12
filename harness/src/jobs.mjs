@@ -1,7 +1,7 @@
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
-import { assertProjectSlugMutable, projectDirectory, projectsRoot, readJson, writeJson } from "./storage.mjs";
+import { assertProjectSlugMutable, projectDirectory, projectsRoot, readJson } from "./storage.mjs";
 import { ACTIVE_REMOTE_JOB_STATUSES, REMOTE_JOB_STATUS } from "./remote-status.mjs";
 
 const activeStatuses = new Set([
@@ -23,7 +23,12 @@ function jobPath(slug, id) {
 
 function saveJob(job) {
   assertProjectSlugMutable(job.slug, "写入远程 Job");
-  writeJson(jobPath(job.slug, job.id), job);
+  const file = jobPath(job.slug, job.id);
+  fs.mkdirSync(path.dirname(file), {recursive: true});
+  const temporary = `${file}.${process.pid}.tmp`;
+  fs.writeFileSync(temporary, JSON.stringify(job, null, 2) + '\n');
+  assertProjectSlugMutable(job.slug, "保存 Job");
+  fs.renameSync(temporary, file);
   return job;
 }
 

@@ -14,7 +14,8 @@ function assertMutable(project) {
 export function activeProductionTask(project) {
   if (!project.files?.state) return null;
   const file = lockPath(project);
-  return fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, "utf8")) : null;
+  try { return JSON.parse(fs.readFileSync(file, "utf8")); }
+  catch (error) { if (error.code === "ENOENT") return null; throw error; }
 }
 
 export function assertProductionTaskOwner(project, owner = project.taskOwner ?? null) {
@@ -30,7 +31,7 @@ export function acquireProductionTask(project, { id, stage, mode }) {
   const existing = activeProductionTask(project);
   if (existing?.id === id) return existing;
   assertProductionTaskOwner(project, id);
-  const record = { id, stage, mode, claimedAt: new Date().toISOString() };
+  const record = { id, stage, mode, claimedAt: new Date().toISOString(), ...(mode === 'local-render' ? {processId: process.pid} : {}) };
   try {
     fs.writeFileSync(lockPath(project), `${JSON.stringify(record)}\n`, { flag: "wx" });
   } catch (error) {
@@ -45,5 +46,6 @@ export function releaseProductionTask(project, id) {
   const active = assertProductionTaskOwner(project, id);
   if (!active) return;
   // Archive rather than discard the claim; the ID remains available for recovery.
-  fs.renameSync(lockPath(project), `${lockPath(project)}.${id}.released`);
+  try { fs.renameSync(lockPath(project), `${lockPath(project)}.${id}.released`); }
+  catch (error) { if (error.code !== "ENOENT") throw error; }
 }

@@ -1,13 +1,16 @@
-const projectPattern = /^\/api\/projects\/([a-z0-9]+(?:-[a-z0-9]+)*)(?:\/(workspace|files|file|jobs|agent-jobs|alignment|action|storyboard-review|storyboard-image))?$/;
+const projectPattern = /^\/api\/projects\/([a-z0-9]+(?:-[a-z0-9]+)*)(?:\/(workspace|files|file|jobs|agent-jobs|alignment|action|storyboard-review|storyboard-image|render-output))?$/;
 
 import fs from "node:fs";
+import path from 'node:path';
+import {createHash} from 'node:crypto';
+import {refreshLocalRenderJobs} from '../../local-render.mjs';
 import { storyboardLocalFile } from "../../storyboard.mjs";
 import { buildStoryboardReview } from "../../storyboard-review.mjs";
 import { usesStoryboardProduction } from "../../production-contract.mjs";
 
 import { getProjectFile, getProjectPrototype, listProjectFiles } from "../../project-files.mjs";
 import { getVideoProject, listVideoProjects } from "../../project-view.mjs";
-import { findActiveJob, listJobs } from "../../jobs.mjs";
+import { findActiveJob, listJobs, getJob } from "../../jobs.mjs";
 import { listAgentJobs } from "../../agent-jobs.mjs";
 import { buildAlignmentView } from "../../remotion-alignment.mjs";
 import { loadProject } from "../../storage.mjs";
@@ -31,6 +34,7 @@ export function createProjectRoutes({ runtime, remoteJobMonitor } = {}) {
           content: body,
           seriesId: query.get("seriesId"),
           productionContract: query.get("productionContract") ?? undefined,
+          storyboardSchemaVersion: query.has("storyboardSchemaVersion") ? Number(query.get("storyboardSchemaVersion")) : undefined,
           workflow: query.get("workflow") ?? undefined,
           workflowVersion: query.get("workflowVersion") ? Number(query.get("workflowVersion")) : null,
         });
@@ -47,6 +51,26 @@ export function createProjectRoutes({ runtime, remoteJobMonitor } = {}) {
       return true;
     }
     if (request.method !== "GET" && request.method !== "HEAD") { sendError(response, 405, { message: "Method not allowed", code: "method-not-allowed" }); return true; }
+    if (route.resource === 'render-output') {
+      try {
+        const id = new URLSearchParams(search).get('jobId');
+        if (!/^[a-f0-9-]{36}$/.test(id ?? '')) throw new Error('无有效 Job ID。');
+        const job = getJob(route.slug, id);
+        const output = job?.result?.outputs?.[0];
+        if (job?.backend !== 'local' || job.status !== 'succeeded' || !output?.verified) throw new Error('暂无已验证本地成片。');
+        const project = loadProject(route.slug, {refresh: false});
+        const root = fs.realpathSync(path.join(project.config.workspaceRoot, 'out/local-render', route.slug)) + path.sep;
+        const file = fs.realpathSync(output.path);
+        if (!file.startsWith(root) || fs.statSync(file).size !== output.sizeInBytes || createHash('sha256').update(fs.readFileSync(file)).digest('hex') !== output.sha256) throw new Error('成片缺失或内容变化。');
+        response.writeHead(200, {'Content-Type': 'video/mp4', 'Content-Length': output.sizeInBytes,
+          'Content-Disposition': `attachment; filename="${route.slug}.mp4"`, 'Cache-Control': 'no-store'});
+        if (request.method === 'HEAD') response.end();
+        else fs.createReadStream(file).on('error', error => response.destroy(error)).pipe(response);
+      } catch (error) { sendError(response, 400, {message: error.message, code: 'local-render-output-unavailable'}); }
+      return true;
+    }
+    const view = getVideoProject(route.slug);
+    if (['detail', 'jobs'].includes(route.resource) && view?.initialized && view.currentStage !== 'completed') await refreshLocalRenderJobs(route.slug);
     if (["storyboard-review", "storyboard-image"].includes(route.resource)) {
       try {
         const project = loadProject(route.slug, { refresh: false });

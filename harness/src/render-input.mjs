@@ -14,7 +14,10 @@ import { ARCHIVED_NAMESPACE, ARCHIVED_WORKFLOW_ID } from "./workflows/archived.m
 import {readVideoCover, videoCoverAssetIssues} from './video-cover.mjs';
 import {validateCover} from './series-assets.mjs';
 import { productionContract, usesStoryboardProduction } from "./production-contract.mjs";
-import { storyboardReview, frozenStoryboardIssues, storyboardLocalFile } from "./storyboard.mjs";
+import { storyboardReview, frozenStoryboardIssues, storyboardLocalFile, storyboardTimingEvents } from "./storyboard.mjs";
+import { storyboardSchemaVersion, resolveStoryboardTiming, STORYBOARD_SHARED_REFERENCES } from "./storyboard-design.mjs";
+import { buildRemotionTimingPlanForProject } from "./remotion-timing.mjs";
+import { usesAuthoredStoryboard, validateStoryboardImplementation, runtimeFiles } from "./storyboard-implementation.mjs";
 
 const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const IDENTIFIER_PATTERN = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
@@ -278,6 +281,12 @@ function validateManifestShape(manifest, { archivedPreview = false } = {}) {
     requireWorkflowDefinition(manifest, { archivedPreview });
     productionContract(manifest);
     if (usesStoryboardProduction(manifest) && (manifest.productionBaseline?.kind !== "storyboard-baseline" || !/^[a-f0-9]{64}$/.test(manifest.productionBaseline.reviewVersion ?? ""))) issues.push("Storyboard 输入包缺少冻结审核基线");
+    if (usesStoryboardProduction(manifest)) {
+      const version = storyboardSchemaVersion({config: manifest});
+      if (version !== (manifest.productionBaseline?.storyboardSchemaVersion ?? 1)) issues.push("输入包分镜版本与冻结版本不一致");
+      if (version === 3 && (manifest.productionBaseline?.schemaVersion !== 5 || !Array.isArray(manifest.productionBaseline?.shotIds) || !manifest.productionBaseline?.eventShotMap)) issues.push("现行 Shot 输入包缺少冻结 5 及镜头／事件映射");
+      if (version === 2 && manifest.productionBaseline?.schemaVersion !== 4) issues.push("版本 2 输入包缺少冻结 4 基线");
+    }
   } catch (error) {
     issues.push(`render-input.json 的 Workflow 无效：${error instanceof Error ? error.message : String(error)}`);
   }
@@ -666,9 +675,28 @@ export function validateRenderInputDirectory(directory, { expectedSlug = null, l
   if (manifest.productionContract === "storyboard-v1") {
     try {
       const board = JSON.parse(fs.readFileSync(path.join(packageRoot, manifest.payload.sourceDirectory, "storyboard.json"), "utf8"));
-      const review = storyboardReview({ config: { slug, workspaceRoot: packageRoot, sourceDirectory: manifest.payload.sourceDirectory, style: board.style, seriesSelection: board.seriesSelection } });
+      const project = {config: { slug, workspaceRoot: packageRoot, sourceDirectory: manifest.payload.sourceDirectory, remotionDirectory: manifest.payload.remotionDirectory,
+        productionContract: manifest.productionContract, storyboardSchemaVersion: manifest.storyboardSchemaVersion ?? 1, style: board.style, seriesSelection: board.seriesSelection }};
+      const review = storyboardReview(project);
       issues.push(...review.issues.map(issue => issue.message));
       if (review.reviewVersion !== manifest.productionBaseline?.reviewVersion || review.storyboardFingerprint !== manifest.productionBaseline?.storyboardFingerprint) issues.push("Storyboard 输入包与冻结审核版本不一致");
+      if (manifest.storyboardSchemaVersion === 3) {
+        const shotIds = review.scenes.flatMap(s => (s.shots ?? []).map(shot => shot.id));
+        const eventShotMap = Object.fromEntries(review.scenes.flatMap(s => s.events.map(e => [e.id, e.shotId])));
+        if (JSON.stringify(manifest.productionBaseline.shotIds) !== JSON.stringify(shotIds) || JSON.stringify(manifest.productionBaseline.eventShotMap) !== JSON.stringify(eventShotMap)) issues.push("输入包冻结镜头／事件映射不一致");
+      }
+      if (usesAuthoredStoryboard(project)) {
+        const timing = buildRemotionTimingPlanForProject(project);
+        const plan = {schemaVersion: 1, kind: 'storyboard-execution-plan', videoSlug: slug, reviewVersion: review.reviewVersion, storyboardFingerprint: review.storyboardFingerprint,
+          timingFingerprint: crypto.createHash('sha256').update(JSON.stringify(timing)).digest('hex'), ...resolveStoryboardTiming({scenes: review.scenes}, storyboardTimingEvents(project, timing))};
+        issues.push(...validateStoryboardImplementation(project, {plan, timing}).map(issue => issue.message));
+        if (JSON.stringify(manifest.storyboardRuntimeFiles) !== JSON.stringify(runtimeFiles(project))) issues.push('Storyboard 输入包实现依赖不一致');
+        for (const segment of timing.scenes.flatMap(scene => scene.segments)) {
+          const generatedAudio = fs.readFileSync(path.join(packageRoot, manifest.payload.remotionDirectory, 'generated', segment.audioFile));
+          const packagedAudio = execFileSync('unzip', ['-p', path.join(packageRoot, manifest.payload.assetArchive), `${slug}/${segment.audioFile}`], {stdio: ['ignore', 'pipe', 'pipe'], maxBuffer: Math.max(1024, generatedAudio.length + 1)});
+          if (!generatedAudio.equals(packagedAudio)) issues.push(`Storyboard 实际播放音频与制作音频不一致：${segment.audioFile}`);
+        }
+      }
     } catch (error) { issues.push(`Storyboard 输入校验失败：${error.message}`); }
   }
   return [...new Set(issues)];
@@ -699,6 +727,7 @@ function buildManifest({ slug, compositionId, entry, packageRoot, project }) {
     workflow: definition.id,
     workflowVersion: definition.version,
     ...(usesStoryboardProduction(project) ? { productionContract: "storyboard-v1", productionBaseline: JSON.parse(fs.readFileSync(path.join(project.files.directory, "prototype-baseline.json"), "utf8")) } : {}),
+    ...(usesAuthoredStoryboard(project) ? {storyboardSchemaVersion: storyboardSchemaVersion(project), storyboardRuntimeFiles: runtimeFiles(project)} : {}),
     compositionId,
     createdAt: new Date().toISOString(),
     entry: {
@@ -744,8 +773,9 @@ function manifestMatchesWorkspaceSources(manifest, workspaceRoot, slug, projectO
   if (manifest.productionContract === "storyboard-v1") {
     try {
       const board = JSON.parse(fs.readFileSync(path.join(workspaceRoot, `videos/${slug}/storyboard.json`), "utf8"));
-      const config = projectOrWorkflow?.config ?? { slug, workspaceRoot, sourceDirectory: `videos/${slug}`, style: board.style, seriesSelection: board.seriesSelection, productionContract: manifest.productionContract };
+      const config = projectOrWorkflow?.config ?? { slug, workspaceRoot, sourceDirectory: `videos/${slug}`, style: board.style, seriesSelection: board.seriesSelection, productionContract: manifest.productionContract, storyboardSchemaVersion: manifest.storyboardSchemaVersion ?? 1 };
       if (!usesStoryboardProduction({ config }) || storyboardReview({ config }).reviewVersion !== manifest.productionBaseline?.reviewVersion) return false;
+      if (usesAuthoredStoryboard({config}) && JSON.stringify(runtimeFiles({config})) !== JSON.stringify(manifest.storyboardRuntimeFiles)) return false;
     } catch { return false; }
   } else if (projectOrWorkflow && usesStoryboardProduction(projectOrWorkflow)) return false;
   const workflowInput = projectOrWorkflow ?? {
@@ -844,6 +874,11 @@ export function prepareRenderInput(project, {
     const issues = frozenStoryboardIssues(project);
     if (issues.length) fail(issues.map(issue => issue.message).join("；"), "storyboard-baseline-stale");
   }
+  if (usesAuthoredStoryboard(project)) {
+    const issues = validateStoryboardImplementation(project);
+    if (issues.length) fail(issues.map(issue => issue.message).join('；'), 'storyboard-runtime-invalid');
+
+  }
   const workspaceRoot = requireWorkspaceRoot(project);
   const slug = requireSlug(project?.config?.slug ?? project?.state?.slug);
   if (typeof compositionId !== "string" || !compositionId.trim()) fail("compositionId is required", "render-input-composition-invalid");
@@ -905,6 +940,10 @@ export function prepareRenderInput(project, {
       const target = path.join(temporaryDirectory, dependency.path);
       fs.mkdirSync(path.dirname(target), { recursive: true });
       fs.copyFileSync(storyboardLocalFile(project, dependency.path), target);
+    }
+    if (usesAuthoredStoryboard(project)) for (const file of Object.keys(runtimeFiles(project))) {
+      const target = path.join(temporaryDirectory, file);
+      fs.mkdirSync(path.dirname(target), {recursive: true}); fs.copyFileSync(path.join(workspaceRoot, file), target);
     }
     const manifest = buildManifest({ slug, compositionId, entry, packageRoot: temporaryDirectory, project });
     fs.writeFileSync(path.join(temporaryDirectory, "render-input.json"), `${JSON.stringify(manifest, null, 2)}\n`, "utf8");

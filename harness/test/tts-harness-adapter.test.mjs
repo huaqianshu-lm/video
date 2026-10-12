@@ -5,6 +5,8 @@ import os from "node:os";
 import path from "node:path";
 import { runTtsHarnessAdapter } from "../src/tts-harness-adapter.mjs";
 import { archiveMatchesAssetDirectory } from "../src/asset-bundler.mjs";
+import { validateTtsGenerationRecord } from "../src/tts-generation.mjs";
+import { initializeProject, loadProject } from "../src/storage.mjs";
 
 function write(filePath, content, mode) {
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
@@ -70,11 +72,18 @@ test("bridges the frozen TTS script into generated assets and complete Remotion 
     HARNESS_TTS_PROJECT_DIR: process.env.HARNESS_TTS_PROJECT_DIR,
     HARNESS_TTS_PYTHON: process.env.HARNESS_TTS_PYTHON,
     HARNESS_TTS_CACHE_DIR: process.env.HARNESS_TTS_CACHE_DIR,
+    HARNESS_PROJECTS_DIR: process.env.HARNESS_PROJECTS_DIR,
+    HARNESS_WORKSPACE_ROOT: process.env.HARNESS_WORKSPACE_ROOT,
   };
   process.env.HARNESS_TTS_PROJECT_DIR = ttsProjectDir;
   process.env.HARNESS_TTS_PYTHON = python;
   process.env.HARNESS_TTS_CACHE_DIR = path.join(workspaceRoot, "harness", ".cache", "tts");
+  process.env.HARNESS_PROJECTS_DIR = path.join(workspaceRoot, "harness", "projects");
+  process.env.HARNESS_WORKSPACE_ROOT = workspaceRoot;
   try {
+    initializeProject(slug);
+    const project = loadProject(slug, { refresh: false });
+    await assert.rejects(() => runTtsHarnessAdapter({ ...payload, workspaceRoot: ttsProjectDir }), /工作区与已登记项目不一致/);
     const result = await runTtsHarnessAdapter(payload);
     assert.equal(result.rate, "+25%");
     assert.equal(result.scenes, 1);
@@ -84,9 +93,20 @@ test("bridges the frozen TTS script into generated assets and complete Remotion 
     assert.equal(fs.existsSync(path.join(workspaceRoot, "public/local-assets", slug, "subtitles/captions.vtt")), true);
     assert.equal(fs.existsSync(path.join(workspaceRoot, "public/local-assets", slug, "subtitles/captions.srt")), true);
     assert.equal(result.assetBundle, `assets/${slug}-assets.zip`);
-    assert.equal(archiveMatchesAssetDirectory({ config: { slug, workspaceRoot } }), true);
+    assert.equal(archiveMatchesAssetDirectory(project), true);
     const timeline = JSON.parse(fs.readFileSync(path.join(workspaceRoot, "src/videos", slug, "generated/timeline-manifest.json"), "utf8"));
     assert.equal(timeline.videoId, slug);
+    const task = { id: "adapter-task-1", attempt: 1, inputFingerprint: "frozen-task-input", startedAt: new Date().toISOString() };
+    const first = await runTtsHarnessAdapter({ ...payload, executionTask: task });
+    assert.ok(first.cacheDirectory.endsWith(task.id));
+    assert.equal(validateTtsGenerationRecord({ config: { workspaceRoot } }, { id: task.id, slug, attempts: task.attempt, inputFingerprint: task.inputFingerprint, startedAt: task.startedAt }, first.generationRecord), true);
+    const secondTask = { ...task, id: "adapter-task-2", startedAt: new Date().toISOString() };
+    const second = await runTtsHarnessAdapter({ ...payload, executionTask: secondTask });
+    assert.notEqual(first.cacheDirectory, second.cacheDirectory);
+    assert.equal(first.generationRecord.outputFingerprint, second.generationRecord.outputFingerprint);
+    const failedTask = { ...task, id: "adapter-task-failed" };
+    await assert.rejects(() => runTtsHarnessAdapter({ ...payload, executionTask: failedTask }, { spawnProcess: async () => { throw new Error("service failure"); } }), /service failure/);
+    assert.equal(fs.existsSync(path.join(workspaceRoot, "local/tts-generation", slug, `${failedTask.id}-1.json`)), false);
   } finally {
     for (const [key, value] of Object.entries(previous)) {
       if (value === undefined) delete process.env[key];

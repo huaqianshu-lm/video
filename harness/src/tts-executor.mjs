@@ -4,7 +4,7 @@ import { commandConfigFromEnv, createCommandExecutor } from "./command-executor.
 const TTS_RATE = "+25%";
 const TTS_VOICE = "zh-CN-XiaoxiaoNeural";
 
-function ttsInput(project) {
+function ttsInput(project, executionTask) {
   const slug = project.config.slug;
   return {
     schemaVersion: 1,
@@ -13,6 +13,7 @@ function ttsInput(project) {
     rate: TTS_RATE,
     voice: TTS_VOICE,
     workspaceRoot: project.config.workspaceRoot,
+    ...(executionTask ? { executionTask } : {}),
     input: {
       ttsScript: `videos/${slug}/tts-script.json`,
     },
@@ -40,11 +41,17 @@ export function createTtsExecutor(options = {}) {
   const commandExecutor = createCommandExecutor({
     name: "tts",
     ...options,
-    input: ({ project }) => ttsInput(project),
+    input: ({ project, executionTask }) => ttsInput(project, executionTask),
   });
   return {
-    run(context) {
-      return commandExecutor.run(context);
+    async run(context) {
+      const result = await commandExecutor.run(context);
+      // The adapter emits its structured result on the final stdout line.
+      const lastLine = result.stdout.trim().split("\n").at(-1);
+      let report;
+      try { report = JSON.parse(lastLine); } catch { return result; }
+      if (report?.executor === "tts-harness-adapter" && report.generationRecord) result.generationRecord = report.generationRecord;
+      return result;
     },
   };
 }

@@ -144,7 +144,7 @@ const rawStageDefinitions = [
     requiresAdapter: true,
     remoteOutput: true,
     artifacts: ["out/{slug}.mp4"],
-    objective: "在远程环境生成最终完整 MP4。",
+    objective: "通过共享交付入口生成最终完整 MP4；单条默认本地，批量使用 GitHub。",
     inputStages: ["gate-3"],
     executor: "adapter",
     validation: ["adapter-result", "render-artifact-metadata"],

@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "test": "node scripts/test.mjs",
-    "test:production": "node scripts/test.mjs tts-script.test.mjs storyboard-production.test.mjs unified-production.test.mjs batch-delivery.test.mjs render-delivery.test.mjs web-server.test.mjs",
+    "test:production": "node scripts/test.mjs local-render.test.mjs git-delivery.test.mjs tts-script.test.mjs tts-executor.test.mjs tts-harness-adapter.test.mjs tts-generation.test.mjs storage-atomic.test.mjs storyboard-execution.test.mjs storyboard-runtime.test.mjs current-production.test.mjs storyboard-production.test.mjs unified-production.test.mjs batch-delivery.test.mjs render-delivery.test.mjs web-server.test.mjs",
     "web": "node src/web-entry.mjs"
   }
 }

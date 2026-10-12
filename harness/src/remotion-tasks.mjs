@@ -36,8 +36,10 @@ function stageAvailability(task, { refresh = false } = {}) {
     const project = loadProject(task.slug, { refresh });
     const currentStage = project.state.currentStage;
     const remotionStatus = project.state.stages.remotion?.status ?? "missing";
+    const stale = Boolean(task.id) && (task.productionRevision ?? 0) !== (project.config.productionRevision ?? 0);
     return {
-      allowed: currentStage === "remotion" && remotionStatus === "ready",
+      allowed: !stale && currentStage === "remotion" && remotionStatus === "ready",
+      stale,
       currentStage,
       remotionStatus,
     };
@@ -48,6 +50,7 @@ function stageAvailability(task, { refresh = false } = {}) {
 
 export function assertRemotionTaskStageReady(task, operation = "执行 Remotion 任务") {
   const availability = stageAvailability(task, { refresh: true });
+  if (availability.stale) throw Object.assign(new Error("返工后制作版本已改变，原 Remotion 任务不能继续，请领取新任务。"), { code: "production-input-changed" });
   if (availability.allowed) {
     const project = loadProject(task.slug, { refresh: false });
     const issues = validateVisualSelfReview(project, "remotion");
@@ -82,6 +85,7 @@ export function remotionTaskForView(task) {
 
 function refreshTaskPacket(task) {
   const project = loadProject(task.slug, { refresh: true });
+  if ((task.productionRevision ?? 0) !== (project.config.productionRevision ?? 0)) throw Object.assign(new Error("返工后制作版本改变，必须创建新 Remotion 任务。"), { code: "production-input-changed" });
   const packet = buildTaskPacket(project);
   return {
     ...task,
@@ -114,7 +118,7 @@ export function ensureRemotionTask({ slug, batchId }) {
   assertProjectSlugMutable(slug, "创建 Remotion 任务");
   const project = loadProject(slug, { refresh: true });
   const existing = listRemotionTasks({ slug })
-    .find((task) => TASK_STATUSES.has(task.status) && task.status !== "failed" && task.status !== "completed");
+    .find((task) => (task.productionRevision ?? 0) === (project.config.productionRevision ?? 0) && TASK_STATUSES.has(task.status) && task.status !== "failed" && task.status !== "completed");
   // A repeat request only displays the already running task; it starts no new work.
   if (existing?.status === "in-progress" && stageAvailability(existing).allowed) {
     acquireProductionTask(project, { id: existing.id, stage: "remotion", mode: "background-remotion" });
@@ -132,6 +136,7 @@ export function ensureRemotionTask({ slug, batchId }) {
     schemaVersion: 1,
     id: crypto.randomUUID(),
     kind: "remotion-production-task",
+    productionRevision: project.config.productionRevision ?? 0,
     stage: "remotion",
     slug,
     batchId,
@@ -175,7 +180,8 @@ export function startRemotionTask(id) {
     if (task.inputFingerprint && task.inputFingerprint !== inputFingerprint) throw new Error("上游输入已变化，原 Remotion 任务不能继续，请安排返工。");
     task.inputFingerprint = inputFingerprint;
   }
-  return saveTask(task);
+  saveTask(task);
+  return task;
 }
 
 function blockedTask(id, error) {
@@ -249,6 +255,8 @@ export function recoverInterruptedRemotionTasks() {
   for (const task of listRemotionTasks()) {
     if (task.status !== "in-progress") continue;
     if (isCompletedProject(task.slug)) continue;
+    try { assertProjectSlugMutable(task.slug, "恢复后台 Remotion 任务"); }
+    catch (error) { if (error.code === "production-rework-required") continue; throw error; }
     blockedTask(task.id, {
       code: "server-restarted",
       message: "Web Server 重启导致 Remotion 任务中断，可以安全重试。",

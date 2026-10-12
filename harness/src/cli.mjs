@@ -11,7 +11,7 @@ import { claimDialogueTask, completeDialogueTask, failAgentTask, getAgentJob, re
 import { usesUnifiedProduction } from './production-contract.mjs';
 import { formatStoryboardReview } from './storyboard.mjs';
 import { buildStoryboardReview } from './storyboard-review.mjs';
-import { prepareStoryboardMigration, startStoryboardMigration, storyboardMigrationPlanView } from './storyboard-migration.mjs';
+import { prepareStoryboardRework, startStoryboardRework, storyboardReworkPlanView } from './storyboard-rework.mjs';
 import { workflowStageDefinition } from './workflows/registry.mjs';
 import { createAgentExecutorFromEnv } from './agent-executor.mjs';
 import { initializeProject, loadProject, writeJson, reopenGate3ForSeriesCover } from "./storage.mjs";
@@ -62,7 +62,7 @@ import {
 
 function usage() {
   console.log(`Usage:
-  node harness/src/cli.mjs init <slug> [--workflow <id>] [--workflow-version <version>] [--production-contract <version>]
+  node harness/src/cli.mjs init <slug>
   node harness/src/cli.mjs series list [--json]
   node harness/src/cli.mjs series select <slug> <series-id|none>
   node harness/src/cli.mjs series create <id> --title <title> --style <style>
@@ -75,7 +75,7 @@ function usage() {
   node harness/src/cli.mjs jobs --all [--json]
   node harness/src/cli.mjs validate <slug> [stage]
   node harness/src/cli.mjs run <slug> [stage]
-  node harness/src/cli.mjs render-delivery <prepare|start|resume> <slug> [--confirm-plan <id>] [--json]
+  node harness/src/cli.mjs render-delivery <prepare|start|resume> <slug> [--backend local|github] [--confirm-plan <id>] [--json]
   node harness/src/cli.mjs assets package <slug> [--json]
   node harness/src/cli.mjs render-input prepare <slug> [--composition-id <id>] [--component-file <file>] [--component-export <name>] [--json]
   node harness/src/cli.mjs render-input validate <slug> [--json]
@@ -85,8 +85,7 @@ function usage() {
   node harness/src/cli.mjs render-input entry --manifest <file> --output <file> [--json]
   node harness/src/cli.mjs render-input entry-all --output <file> [--json]
   node harness/src/cli.mjs storyboard-review <slug> [--json]
-  node harness/src/cli.mjs storyboard-migration <slug> prepare
-  node harness/src/cli.mjs storyboard-migration <slug> start --migration-version <hash>
+  node harness/src/cli.mjs storyboard-rework <slug> prepare|start --return-to storyboard|narration-script|remotion --reason <text> [--rework-version <hash>]
   node harness/src/cli.mjs approve <slug> <gate> [--review-version <hash>]
   node harness/src/cli.mjs reject <slug> <gate> --return-to <stage> --reason <text>
   node harness/src/cli.mjs retry <slug> [stage]
@@ -462,10 +461,12 @@ export async function main(args, {deliveryDependencies = {}} = {}) {
     const contractIndex = options.indexOf("--production-contract");
     const workflowIndex = options.indexOf("--workflow");
     const workflowVersionIndex = options.indexOf("--workflow-version");
+    const storyboardVersionIndex = options.indexOf("--storyboard-schema-version");
     const files = initializeProject(slug, {
       ...(contractIndex >= 0 ? { productionContract: options[contractIndex + 1] } : {}),
       ...(workflowIndex >= 0 ? { workflow: options[workflowIndex + 1] } : {}),
       ...(workflowVersionIndex >= 0 ? { workflowVersion: Number(options[workflowVersionIndex + 1]) } : {}),
+      ...(storyboardVersionIndex >= 0 ? { storyboardSchemaVersion: Number(options[storyboardVersionIndex + 1]) } : {}),
     });
     const config = JSON.parse(fs.readFileSync(files.config, 'utf8'));
     writeJson(files.config, {...config, seriesSelectionRequired: true});
@@ -616,15 +617,18 @@ export async function main(args, {deliveryDependencies = {}} = {}) {
   }
 
   if (command === "storyboard-migration") {
-    validateSlug(slug);
-    if (options[0] === "prepare") console.log(JSON.stringify(storyboardMigrationPlanView(prepareStoryboardMigration(slug)), null, 2));
-    else if (options[0] === "start") {
-      const versionIndex = options.indexOf("--migration-version");
-      console.log(JSON.stringify(startStoryboardMigration(slug, versionIndex < 0 ? null : options[versionIndex + 1]), null, 2));
-    } else throw new Error("storyboard-migration requires prepare or start");
-    return 0;
+    throw Object.assign(new Error("旧转换入口已停用，请使用 storyboard-rework 按当前规则正常返工。"), { code: "production-entry-retired" });
   }
 
+  if (command === "storyboard-rework") {
+    validateSlug(slug);
+    const value = flag => { const i = options.indexOf(flag); return i < 0 ? undefined : options[i + 1]; };
+    const args = { returnTo: value("--return-to") ?? "storyboard", reason: value("--reason"), dataVersion: value("--storyboard-schema-version") === undefined ? null : Number(value("--storyboard-schema-version")) };
+    if (options[0] === "prepare") console.log(JSON.stringify(storyboardReworkPlanView(prepareStoryboardRework(slug, args)), null, 2));
+    else if (options[0] === "start") console.log(JSON.stringify(startStoryboardRework(slug, value("--rework-version"), args), null, 2));
+    else throw new Error("storyboard-rework requires prepare or start");
+    return 0;
+  }
   if (["storyboard-review", "validate", "run", "resume", "retry", "approve", "reject", "next", "report", "context", "plan"].includes(command)) {
     validateSlug(slug);
     const project = loadProject(slug, { refresh: !["context", "plan"].includes(command) });

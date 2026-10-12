@@ -1,4 +1,5 @@
-import { storyboardReview, storyboardTimingEvents } from "./storyboard.mjs";
+import { storyboardReview, storyboardTimingEvents, storyboardImplementationTiming } from "./storyboard.mjs";
+import { storyboardSchemaVersion, STORYBOARD_DESIGN_REFERENCES, STORYBOARD_SHARED_REFERENCES } from "./storyboard-design.mjs";
 import { buildStoryboardReview } from "./storyboard-review.mjs";
 import { visualSelfReviewPath } from "./visual-self-review.mjs";
 import { productionContract, productionManualChecks, taskStages, usesUnifiedProduction, usesStoryboardProduction } from "./production-contract.mjs";
@@ -250,6 +251,11 @@ export function buildTaskPacket(project) {
   const packet = buildSingleTaskPacket(project);
   packet.project.productionContract = productionContract(project);
   if (!packet.task) return packet;
+  if (["tts", "subtitle-timeline"].includes(packet.task.stage)) {
+    packet.context.referencePaths.push("docs/TTS-SETUP.md");
+    packet.context.readPaths.push("docs/TTS-SETUP.md");
+    packet.context.constraints.push("首次申请 TTS 宿主／网络执行权限前，按 docs/TTS-SETUP.md 核对真实授权记录，在该次 justification 附记录路径及相关原文、冻结输入、Edge TTS 目的地、+25% 语速、输出范围和缓存选择；不能只写已授权或等拒绝后补证据。已有同范围授权不重复询问，其他项目不继承本项目授权；拒绝后不得绕过工具审批。");
+  }
   packet.task.manualChecks = productionManualChecks(project, workflowStageDefinition(project, packet.task.stage));
   const stages = taskStages(project);
   packet.task.stages = stages;
@@ -264,7 +270,7 @@ export function buildTaskPacket(project) {
   if (stages.length > 1) {
     const parts = stages.map((stage) => buildSingleTaskPacket({ ...project, state: { ...project.state, currentStage: stage } }));
     const convergence = stages.includes("storyboard");
-    packet.task.objective = convergence ? "先拟定分镜，再编写纯口播，与 Storyboard 一起收敛；两份产物全部校验通过后请求 Gate 2。" : usesStoryboardProduction(project) ? "一次完成内容分析与视频叙事，全部校验后内部审查。" : "一次完成内容分析、视频叙事和场景脚本策划；保持三份文件职责，全部校验通过后完成内部审查。";
+    packet.task.objective = convergence ? "先按内容组织 Scene、设计 Shot 观看方式与 Event 变化，再编写纯口播，与 Storyboard 一起收敛；两份产物全部校验通过后请求 Gate 2。" : usesStoryboardProduction(project) ? "一次完成内容分析与视频叙事，全部校验后内部审查。" : "一次完成内容分析、视频叙事和场景脚本策划；保持三份文件职责，全部校验通过后完成内部审查。";
     packet.task.outputArtifacts = parts.flatMap((part) => part.task.outputArtifacts);
     packet.task.inputStages = [...new Set(parts.flatMap(part => part.task.inputStages))].filter(stage => !stages.includes(stage));
     packet.task.inputArtifacts = artifactEntries(project, packet.task.inputStages);
@@ -276,11 +282,31 @@ export function buildTaskPacket(project) {
     packet.context.constraints[0] = "本任务合并 task.stages 声明的阶段；只制作这些阶段，不提前执行下游。";
   }
   if (usesStoryboardProduction(project)) {
+    const dataVersion = storyboardSchemaVersion(project);
     packet.context.referencePaths = packet.context.referencePaths.filter(file => !file.includes("visual-script") && !file.includes("visual-prototype"));
-    packet.context.referencePaths.push(packet.context.style.path, "docs/STORYBOARD-PRODUCTION-CONTRACT.md", "templates/video-production/storyboard.json", "templates/video-production/storyboard.schema.json");
+    packet.context.referencePaths.push(packet.context.style.path, "docs/STORYBOARD-PRODUCTION-CONTRACT.md", "docs/STORYBOARD-EXECUTION-QUALITY.md", "templates/video-production/storyboard-quality-audit.md", "templates/video-production/storyboard.json", "templates/video-production/storyboard.schema.json");
     packet.context.readPaths = [...new Set([...packet.context.readPaths.filter(file => !file.includes("visual-script") && !file.includes("visual-prototype")), ...packet.context.referencePaths])];
     packet.context.constraints = packet.context.constraints.filter(text => !/原型|schemaVersion 2/.test(text));
     packet.context.constraints.push("Storyboard 是唯一场景／视觉方案；口播只写 narration-script.md，分镜以 narrationRef 引用，不制作旧 Scene／Visual Script 或 HTML 原型。", "分镜写明视觉焦点、变化链、稳定事件 ID、唯一口播语义锚点、文字依据、停留和衔接；不写正式估算秒数。实际画面与试听在 Gate 3 检查。");
+    packet.context.constraints.push(`按 storyboard-execution-quality-v2 审计每个 Scene／Shot／Event 的完整对象、生命周期、请求／结果身份、标题让位与跨幕承接；本任务分镜数据版本为 ${dataVersion}，不得自行更换版本。设计／源码检查不能代替 Gate 3 实际观看与正常速度试听，实现入口验证状态以 ROADMAP 为准。`);
+    if (dataVersion >= 2) {
+      packet.context.referencePaths = packet.context.referencePaths.filter(p => !["templates/video-production/storyboard.json", "templates/video-production/storyboard.schema.json"].includes(p));
+      packet.context.readPaths = packet.context.readPaths.filter(p => !["templates/video-production/storyboard.json", "templates/video-production/storyboard.schema.json"].includes(p));
+      packet.context.referencePaths.push("templates/video-production/storyboard-v3.json");
+      packet.context.readPaths.push("templates/video-production/storyboard-v3.json");
+      packet.context.referencePaths.push(...STORYBOARD_DESIGN_REFERENCES);
+      packet.context.readPaths.push(...STORYBOARD_DESIGN_REFERENCES);
+      packet.context.constraints.push("制作与审核读取 VIDEO-PRODUCTION-RULES.md 9.6、9.7、14.4：量化数值只以 9.6 为准；构图留白、字体层级、配色材质、动作呼吸、连续交接及声音画面的审美与感官设计按 14.4 写入现有 SQ evidence／note。Gate 3 在观看 checks／scenes 的 note 与 listening.note 中记录真实帧、实际发现、修正和遗留问题，未观看保持 pending；参数调校配方未经实际观看与适用人工 Gate 不得声称已验证，不新增 JSON 字段或自动审美评分。");
+      packet.context.storyboardSchemaVersion = dataVersion;
+      packet.context.constraints.push("现行分镜按 Scene → Shot → Event 设计观看方式与变化，再选择组件；使用对象类型、父子关系、事件边界和 execution 能力。动作 durationFrames 是动作持续参数，不是口播起点；正式事件时间只能来自真实 Timeline。逐镜头 shotChecks 及每个事件的 SQ-1～SQ-10 设计审计必须绑定当前 designInputVersion，不能自动声称实际画面已观看。");
+      packet.context.constraints.push("Shot 首尾连续覆盖 Scene，后续起点用 anchor／occurrence 绑定真实 Cue 起点；无词级时间时不能猜 Cue 内切点。可见对象不等于新建身份；同镜多个 Event 允许，不规定最少镜头数，不新增画面执行器。alignment 5 记录 Shot 区间及实现文件／符号和转场，观看证据 2 逐 Shot／交界留真实证据，未观看保持 pending。旧格式仅历史读取，继续制作先正常返工。");
+      if (stages.includes("storyboard")) {
+        const auditPath = `${project.config.sourceDirectory}/storyboard-design-audit.json`;
+        if (!packet.task.outputArtifacts.some(item => item.path === auditPath)) packet.task.outputArtifacts.push({ stage: "storyboard", path: auditPath, status: "unverified", exists: false });
+        if (!packet.context.writePaths.includes(auditPath)) packet.context.writePaths.push(auditPath);
+        packet.context.storyboardDesignInputs = storyboardReview(project);
+      }
+    }
     if (stages.includes("storyboard")) {
       const outputPath = `${project.config.sourceDirectory}/storyboard-assets/*`;
       packet.task.outputArtifacts.push({ stage: "storyboard", path: outputPath, status: "optional", exists: false });
@@ -294,7 +320,16 @@ export function buildTaskPacket(project) {
     if (packet.task.stage === "remotion") {
       packet.context.storyboardReview = storyboardReview(project);
       try { packet.context.storyboardTimingEvents = storyboardTimingEvents(project, packet.context.timingPlan); } catch (error) { packet.context.storyboardTimingError = error.message; }
-      packet.context.constraints.push("逐 Scene／Event 对齐冻结分镜；alignment 使用 schemaVersion 3、storyboardFingerprint、reviewVersion，事件通过命名 visualBindings 绑定实际 Cue／Segment 和时间。不得以估算秒数替代真实 Timeline。");
+      if (dataVersion >= 2) {
+        packet.context.referencePaths.push(...STORYBOARD_SHARED_REFERENCES);
+        packet.context.readPaths.push(...STORYBOARD_SHARED_REFERENCES);
+        try { packet.context.storyboardTimingPlan = storyboardImplementationTiming(project, packet.context.timingPlan); }
+        catch (error) { packet.context.storyboardTimingError = error.message; }
+        packet.context.constraints.push("现行分镜由 Agent 按冻结 Scene／Shot／Event和真实 Timeline 编写 React／Remotion 组件及 storyboard-authored-alignment 5，由 Agent 编写当前视频组件。使用 render-input prepare／entry 生成 Studio 预览，实际逐 Shot、镜头交界和 Event 观看及完整试听后填写 remotion-viewing-evidence.json；没有观看不得填写 pass。方案不符返回分镜／Gate 2，实现不符修正当前视频组件。人工 Gate 3 保留。");
+        const evidencePath = `${project.config.sourceDirectory}/remotion-viewing-evidence.json`;
+        packet.context.writePaths.push(evidencePath);
+        packet.task.outputArtifacts.push({stage: "remotion", path: evidencePath, status: "unverified", exists: false});
+      } else packet.context.constraints.push("逐 Scene／Event 对齐冻结分镜；alignment 使用 schemaVersion 3、storyboardFingerprint、reviewVersion，事件通过命名 visualBindings 绑定实际 Cue／Segment 和时间。不得以估算秒数替代真实 Timeline。");
     }
   }
   if (usesUnifiedProduction(project) && packet.task.executor === "agent" && !["source", "tts"].includes(packet.task.stage)) {

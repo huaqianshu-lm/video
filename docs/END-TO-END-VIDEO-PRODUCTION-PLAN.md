@@ -1,27 +1,29 @@
-# 视频端到端生产流程方案
+# 视频端到端生产流程与架构说明
 
-> 版本边界：`storyboard-v1` 按 [Storyboard 生产契约](STORYBOARD-PRODUCTION-CONTRACT.md) 整合 Scene／Visual Script，Gate 2 审核口播与分镜，无 HTML 原型或旧动态自检要求；本文原型制作及观看要求只适用于旧契约。新契约保留视觉质量规则，实际动态检查在 Gate 3 完成。
+> 渲染方式以 [渲染交付契约](RENDER-DELIVERY-BASELINE.md) 为准：单条新交付默认本地，可选 GitHub；批量只用 GitHub，旧远程任务继续恢复原方式。下文远程认证／发布／提交要求只适用于 GitHub，人工 Gate 不变；接入和跨视频验收状态见 ROADMAP.md。
+
+> 当前执行以 [Storyboard 生产契约](STORYBOARD-PRODUCTION-CONTRACT.md)、[当前资料职责流程](VIDEO-PROJECT-WORKFLOW.md) 和 [分镜设计与执行质量](STORYBOARD-EXECUTION-QUALITY.md) 为准。生产仅使用当前 Storyboard 契约；旧原型与逐层确认章节仅为历史架构背景，不能作为生产步骤。旧资料不符合当前要求时正常返工，completed 永久只读。
 
 
-> 状态：日常生产链路已调整为 Gate 3 后直接完整渲染；Smoke Render 仅作为新系列或渲染环境变化时的独立手动环境检查。本文继续作为人工确认闸门、Video 与 TTS 交付契约、远程渲染回路和无音频分支的实施依据。
+> 状态：日常生产链路已调整为 Gate 3 后直接完整渲染；Smoke Render 仅作为新系列或渲染环境变化时的独立手动环境检查。本文保留早期架构背景；当前仅生产带口播教程，实际阶段、任务、审核和交付按上述权威契约执行。
 
 ## 1. 目标
 
 输入一份源文档后，Video 项目按 `narrated-tutorial-v1` 生成资料。口播和视觉方案确认后生成 TTS Script，按 +25% 生成音频、字幕和时间数据，再以真实声音时间轴实现 Remotion；Gate 3 后进入完整渲染和 Gate 4。Smoke Render 按需独立运行。
 
-第一版只打通一条有口播的视频，不建设复杂平台、数据库或通用任务编排系统。连续验证多条视频后，再判断是否需要进一步自动化。
+早期方案先打通一条有口播的视频，不建设复杂平台、数据库或通用任务编排系统。连续验证多条视频后，再判断是否需要进一步自动化。
 
 ## 2. 核心判断
 
 ### 2.1 必须保留人工检查
 
-端到端流程不应从源文档无人干预地直接运行到最终视频。内容理解、叙事、口播和视觉判断都可能把早期错误传递到后续阶段，因此由 Harness 连续制作并在 Gate 2、Gate 3、Gate 4 请求人工确认；不逐份确认策划资料。统一契约把试听合并到 Gate 3，旧项目保留独立 TTS 试听契约，详见 `HARNESS-PRODUCTION-CONTRACT.md`。
+端到端流程不应从源文档无人干预地直接运行到最终视频。内容理解、叙事、口播和视觉判断都可能把早期错误传递到后续阶段，因此由 Harness 连续制作并在 Gate 2、Gate 3、Gate 4 请求人工确认；不逐份确认策划资料。当前契约把实际观看与正常速度试听集中在 Gate 3；旧独立试听仅保留历史读取，详见 `HARNESS-PRODUCTION-CONTRACT.md`。
 
 自动检查负责可以客观判断的事项，例如文件存在、Manifest 引用、时长、字体、资源数量和类型检查。人工确认负责内容是否准确、口播是否自然、视觉是否清楚、节奏是否合适。
 
 ### 2.2 TTS 的位置
 
-TTS 放在 Narration Script 和 Visual Prototype 确认之后、正式 Remotion 时间线实现之前。
+TTS 放在纯口播与 Storyboard 经 Gate 2 同版本确认并冻结之后、正式 Remotion 时间线实现之前。
 
 原因是最终使用的真实音频时长、逐句字幕和 Segment 边界应反向决定 Scene 时长、动画触发点和视频总时长。不能先锁死 Remotion 时间线，再把音频和字幕硬塞进去。
 
@@ -34,22 +36,23 @@ TTS 放在 Narration Script 和 Visual Prototype 确认之后、正式 Remotion 
 ```text
 Source 登记
   ↓
-一次策划任务：Content Analysis／Video Narrative／Scene Script
+一次策划任务：Content Analysis／Video Narrative
   ↓ Gate 1 内部检查
-Narration Script → Visual Script → Visual Prototype／视觉自检
-  ↓ Gate 2 人工确认口播和实际动态原型
+Narration Script 与 Storyboard 联合收敛／设计审计
+  ↓ Gate 2 人工确认口播与分镜方案
 校验 TTS Script → +25% TTS → 音频／字幕／Manifest 机器质检
   ↓
-Remotion → 正常速度音画预览及试听
+Agent 编写的 Remotion → 真实时间下观看与正常速度试听证据
   ↓ Gate 3 人工确认
 prepare 展示精确交付清单 → 用户明确授权 → start
   ↓
-GitHub 完整 Render → 同一 Job 恢复与 Artifact 检查
+共享完整 Render（单条默认本地、可选 GitHub；批量仅 GitHub）
+  ↓ 同一 Job 恢复与对应结果检查
   ↓ Gate 4 人工验收
 completed 永久只读
 ```
 
-统一流程契约见 `HARNESS-PRODUCTION-CONTRACT.md`。旧项目缺少 productionContract 或为 legacy-v1 时，TTS 后仍停在独立试听确认；不批量迁移旧项目。
+统一流程契约见 `HARNESS-PRODUCTION-CONTRACT.md`。旧流程与旧分镜格式仅供历史读取，不能继续制作；未完成视频用正常返工补齐当前规则，不自动改写历史状态，completed 永久只读。
 
 独立环境检查（按需）
 
@@ -70,13 +73,11 @@ GitHub Actions 手动触发 Smoke test video
 | Source | `source.md` | 原文完整、来源明确 | Source |
 | Content Analysis | `content-analysis.md` | 核心命题、知识关系、取舍是否正确 | Content Analysis |
 | Video Narrative | `video-narrative.md` | 讲述顺序和认知路径 | Video Narrative |
-| Scene Script | `scene-script.md` | Scene 认知任务、Video Value、数量 | Scene Script |
 | Narration Script | `narration-script.md` | 事实、措辞、口语感、术语读法 | Narration Script |
-| Visual Script | `visual-script.md` | 声音与画面是否互补 | Visual Script 或 Scene Script |
-| Visual Prototype | `visual-prototype.html` | 构图、信息密度、视觉事件和统一性 | Visual Script／Prototype |
-| TTS 质检 | 音频、字幕、Manifest | 先完成机器校验；统一契约在 Gate 3 试听，旧契约独立试听 | 指定 Segment 或 Narration Script |
+| Storyboard／设计审计 | `storyboard.json`、`storyboard-design-audit.json` | Scene 任务、视觉变化链、声音互补、构图与事件依据；Gate 2 审核方案 | Storyboard／必要的上游资料 |
+| TTS 质检 | 音频、字幕、Manifest | 先完成机器校验；在 Gate 3 正常速度完整试听 | 指定 Segment 或 Narration Script |
 | Remotion 预览 | 完整音画预览 | 字幕、音频、动画、溢出和节奏 | 配置／Scene／必要的生产资料 |
-| 完整渲染 | 完整 MP4 Artifact | 远程构建、资源、音轨和最终文件生成 | 渲染环境或 Remotion 实现 |
+| 完整渲染 | 本地 MP4 或 GitHub Artifact | 对应 backend 的构建、资源、音轨和最终文件生成 | 渲染环境或 Remotion 实现 |
 | 最终验收 | 完整 MP4 | 完整内容和成片质量 | 依据问题回退到对应阶段 |
 
 Smoke Render 不在此表的生产阶段中。它是按需的独立环境检查，检查结果不能替代 Gate 3 或 Gate 4，也不改变视频当前阶段。
@@ -201,8 +202,8 @@ Git 交付确认的 `planId` 同时绑定当前分支、提交、精确文件快
 
 4. 触发 `Render full video`。
 5. 记录 Workflow、`dispatchId`、Run ID、Run API URL、Run 页面 URL、Commit SHA 和启动时间；正常派发优先使用 `return_run_details: true` 返回的准确 Run ID。
-6. 立即检查一次运行状态，之后约每 20 分钟检查一次，直至成功、失败或取消。
-7. 成功后下载最终 Artifact，并使用 `ffprobe` 验证分辨率、帧率、视频编码、音频编码、采样率、声道和总时长。
+6. 通过共享 resume／Render Monitor 查询保存的准确 Run ID，直至成功、失败或可恢复阻塞；后台检查间隔以运行配置为准。
+7. Agent 检查 Run 与 Artifact 的归属、非空大小和有效期；用户下载并实际播放成片，完成最终内容检查。
 8. 将最终 MP4 交给用户进行 Gate 4 验收。
 
 如果是新系列首次渲染，或字体、Runner、依赖和资源链路发生变化，应在独立视频或副本上额外手动触发 `Smoke test video`。手动输入为 `video_slug`、`composition_id`、`dispatch_id`、`render_input_url` 和 `render_input_sha256`；该 Run 只用于环境判断，不推进 Harness，也不写审核记录。
@@ -216,18 +217,20 @@ Git 交付确认的 `planId` 同时绑定当前分支、提交、精确文件快
 | TypeScript／构建错误 | 定位代码，修复并重新运行本地检查，再经授权推送和续跑 |
 | 资源／Manifest 错误 | 检查缺失文件、路径、数量、ID 和时间数据，修复后续跑 |
 | CJK 字体／Linux 环境错误 | 检查字体安装、`fc-match`、Chromium 和 Runner 日志 |
-| GitHub 临时故障 | 先确认与代码无关，再重跑失败任务 |
+| GitHub 临时故障 | 恢复同一 Job 并核实准确 Run；明确失败且获准重渲染时再准备新计划 |
 | 外部服务器只提供模糊状态 | 暂停猜测，提示用户提供错误文本、截图或关键日志 |
 
 修复后应重新通过本地检查再进入完整渲染。只有改动涉及渲染环境、依赖、字体、Runner 或资源链路时，才需要额外运行独立 Smoke Render；内容或 Remotion 修复不自动增加 Smoke 阶段。
 
 连续两轮没有获得新证据或有效进展时，停止盲目重试，说明已知结论、当前阻塞和需要用户补充的信息。请求已经发出但无法确认 Run 时，恢复只能按同一个 `dispatchId` 查找；零匹配保持 `waiting-run`，多匹配进入 `remote-dispatch-ambiguous`，超出有界窗口进入 `remote-dispatch-uncertain`，不得按最新 Run 猜测或重新派发。
 
-每 20 分钟轮询必须围绕已经记录的 Run ID，并依赖一个仍在执行的任务或后续监控机制。单次对话结束后不能假设 Agent 会永久在后台自行轮询。
+后台轮询必须围绕已经记录的 Run ID，并依赖一个仍在执行的任务或后续监控机制。单次对话结束后不能假设 Agent 会永久在后台自行轮询。
 
-## 11. 第一版实施边界
+## 11. 早期实施边界（历史背景）
 
-当前工程支持口播教程的编排和输入包契约。宣传片生产能力已移除；已完成宣传片保持永久只读，仅保留历史资料展示和已有输入包预览。
+本节记载初期取舍，不代表当前功能清单。当前 Web UI、后台 Job、批量任务和本地／GitHub 共享交付已有实现，验证与剩余项见 MVP-FEATURE-CHECKLIST.md 和 ROADMAP.md。
+
+工程生产范围为口播教程的编排和输入包契约。宣传片生产能力已移除；已完成宣传片保持永久只读，仅保留历史资料展示和已有输入包预览。
 
 现有 `narrated-tutorial-v1` 继续保留：
 
@@ -238,7 +241,7 @@ Git 交付确认的 `planId` 同时绑定当前分支、提交、精确文件快
 
 新系列或渲染环境变化时，可另外执行一次 GitHub Actions 独立 Smoke Render 环境检查。
 
-第一版暂不建设：
+早期方案暂不建设：
 
 - 数据库和任务队列。
 - 可视化流程后台。

@@ -10,6 +10,7 @@ import {
   retryRemotionTask,
   runRemotionTask,
   startRemotionTask,
+  assertRemotionTaskStageReady,
 } from "../src/remotion-tasks.mjs";
 import { initializeProject, loadProject, writeJson } from "../src/storage.mjs";
 
@@ -105,6 +106,26 @@ test("blocks stale Remotion task start, retry, and run after the project reaches
     else process.env.HARNESS_PROJECTS_DIR = previousProjectsRoot;
     if (previousTasksRoot === undefined) delete process.env.HARNESS_REMOTION_TASKS_DIR;
     else process.env.HARNESS_REMOTION_TASKS_DIR = previousTasksRoot;
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("production revision rejects old Remotion tasks even when the stage is ready again", () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "video-remotion-revision-"));
+  const previous = process.env.HARNESS_PROJECTS_DIR;
+  process.env.HARNESS_PROJECTS_DIR = path.join(root, "projects");
+  try {
+    initializeProject("revision-fixture");
+    const project = loadProject("revision-fixture", { refresh: false });
+    project.config.productionRevision = 1;
+    project.state.currentStage = "remotion";
+    project.state.stages.remotion.status = "ready";
+    writeJson(project.files.config, project.config); writeJson(project.files.state, project.state);
+    assert.throws(() => assertRemotionTaskStageReady({ id: "old-task", slug: project.config.slug, productionRevision: 0 }), { code: "production-input-changed" });
+    assert.throws(() => assertRemotionTaskStageReady({ id: "legacy-task", slug: project.config.slug }), { code: "production-input-changed" });
+  } finally {
+    if (previous === undefined) delete process.env.HARNESS_PROJECTS_DIR;
+    else process.env.HARNESS_PROJECTS_DIR = previous;
     fs.rmSync(root, { recursive: true, force: true });
   }
 });

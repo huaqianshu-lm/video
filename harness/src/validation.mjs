@@ -59,6 +59,18 @@ function absolutePath(project, relativePath) {
 function hasVerifiedRemoteOutput(project, stage) {
   const definition = workflowStageDefinition(project, stage);
   if (!definition?.remoteOutput) return false;
+  if ((project.state?.stages?.[stage]?.outputs ?? []).some(output => output.kind === 'local-render')) {
+    return (project.state.stages[stage].outputs ?? []).some(output => {
+      if (output.kind !== 'local-render' || output.verified !== true || !path.isAbsolute(output.path ?? '') || !output.sha256) return false;
+      try {
+        const root = fs.realpathSync(path.join(project.config.workspaceRoot, 'out/local-render', project.config.slug)) + path.sep;
+        const file = fs.realpathSync(output.path);
+        if (!file.startsWith(root)) return false;
+        return fs.statSync(file).isFile() && output.sizeInBytes > 0 && fs.statSync(file).size === output.sizeInBytes
+          && crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex') === output.sha256;
+      } catch { return false; }
+    });
+  }
   return (project.state?.stages?.[stage]?.outputs ?? []).some((output) =>
     output.artifactName === project.config.slug
     && (output.artifacts ?? []).some((artifact) =>
@@ -581,6 +593,9 @@ export function validateProjectStage(project, stage, options = {}) {
     ...validateStageContent(project, stage, options),
   ];
   const reviewIssues = validateVisualSelfReview(project, stage);
+  if (stage === 'gate-4' && project.state?.stages?.render?.outputs?.some(output => output.kind === 'local-render') && !hasVerifiedRemoteOutput(project, 'render')) {
+    reviewIssues.push(issue(stage, 'local-render-output-invalid', '本地渲染输出缺失或与已验证文件不一致。'));
+  }
   if (project.config.validationPolicy !== "legacy") return [...issues, ...reviewIssues];
   return [...issues.map((item) => ({ ...item, severity: "warning" })), ...reviewIssues];
 }

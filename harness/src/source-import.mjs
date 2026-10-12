@@ -1,4 +1,4 @@
-import { productionContract as validateProductionContract } from "./production-contract.mjs";
+import { assertCurrentCreation } from "./production-contract.mjs";
 import fs from "node:fs";
 import path from "node:path";
 import { initializeProject, projectDirectory } from "./storage.mjs";
@@ -99,8 +99,9 @@ function selectedSeriesForImport(seriesId, slug) {
   return series;
 }
 
-export function importSourceProject({ slug, filename, content, seriesId = null, workflow = "default", workflowVersion = null, productionContract = undefined }) {
-  validateProductionContract({ productionContract });
+export function importSourceProject({ slug, filename, content, seriesId = null, workflow = "default", workflowVersion = null, productionContract, storyboardSchemaVersion }) {
+  const contractOptions = { ...(productionContract === undefined ? {} : { productionContract }), ...(storyboardSchemaVersion === undefined ? {} : { storyboardSchemaVersion }) };
+  assertCurrentCreation(contractOptions);
   const safeFilename = validateSourceFilename(filename);
   const normalizedSlug = normalizeSourceSlug(slug, safeFilename);
   const selectedSeries = selectedSeriesForImport(seriesId, normalizedSlug);
@@ -139,7 +140,7 @@ export function importSourceProject({ slug, filename, content, seriesId = null, 
       style: selectedSeries?.style ?? null,
       workflow,
       workflowVersion: resolvedVersion,
-      ...(productionContract ? { productionContract } : {}),
+      ...contractOptions,
     });
     initialized = true;
     if (selectedSeries && !selectedSeries.videos.includes(normalizedSlug)) {

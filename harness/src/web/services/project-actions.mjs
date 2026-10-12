@@ -2,10 +2,12 @@ const ACTIONS = new Set([
   "initialize", "legacy-validate", "validate", "next", "report", "context", "plan", "run", "retry", "resume",
   "approve", "reject", "approve-tts-qc", "run-to-gate-2", "prepare-remote-render", "resume-render-delivery", "bind-render-input", "remote-run", "find-historical", "adopt-historical",
   "prepare-storyboard-migration", "start-storyboard-migration",
+  "prepare-storyboard-rework", "start-storyboard-rework",
+  "prepare-render", "start-render",
 ]);
 
 import { artifactManifestFor } from "../../artifacts.mjs";
-import { prepareStoryboardMigration, startStoryboardMigration, storyboardMigrationPlanView } from "../../storyboard-migration.mjs";
+import { prepareStoryboardRework, startStoryboardRework, storyboardReworkPlanView } from "../../storyboard-rework.mjs";
 import { usesUnifiedProduction } from "../../production-contract.mjs";
 import { approveTtsQcForProject, createBatch, findActiveBatchForProject, getBatchForView, stopBatchesAfterGateRejection, runBatch } from "../../batches.mjs";
 import { buildTaskPacket } from "../../context.mjs";
@@ -27,13 +29,17 @@ export function normalizeProjectAction(input = {}) {
   return {
     slug: input.slug,
     ...(typeof input.productionContract === "string" ? { productionContract: input.productionContract } : {}),
+    ...(input.storyboardSchemaVersion === undefined ? {} : { storyboardSchemaVersion: Number(input.storyboardSchemaVersion) }),
     action: input.action,
+    ...(input.backend === undefined ? {} : {backend: input.backend}),
+    ...(typeof input.retryJob === 'string' ? {retryJob: input.retryJob} : {}),
     stage: input.stage ?? null,
     gate: input.gate ?? null,
     returnTo: input.returnTo ?? null,
     reason: input.reason ?? null,
     ...(typeof input.reviewVersion === "string" ? { reviewVersion: input.reviewVersion } : {}),
     ...(typeof input.migrationVersion === "string" ? { migrationVersion: input.migrationVersion } : {}),
+    ...(typeof input.reworkVersion === "string" ? { reworkVersion: input.reworkVersion } : {}),
     runId: input.runId ?? null,
     commitAndPush: input.commitAndPush === true,
     confirmDelivery: input.confirmDelivery === true,
@@ -75,8 +81,11 @@ export function createProjectActionService(runtime) {
         error.code = "unknown-project-action";
         throw error;
       }
-      if (action.action === "start-storyboard-migration") return { status: 200, result: startStoryboardMigration(action.slug, action.migrationVersion), project: getVideoProject(action.slug) };
-      if (action.action === "prepare-storyboard-migration") return { status: 200, result: storyboardMigrationPlanView(prepareStoryboardMigration(action.slug)), project: getVideoProject(action.slug) };
+      if (["start-storyboard-migration", "prepare-storyboard-migration"].includes(action.action)) throw Object.assign(new Error("旧转换入口已停用，请使用 prepare-storyboard-rework 按当前规则正常返工。"), { code: "production-entry-retired" });
+      if (["prepare-storyboard-rework", "start-storyboard-rework"].includes(action.action)) {
+        const options = { returnTo: action.returnTo ?? "storyboard", reason: action.reason, dataVersion: action.storyboardSchemaVersion ?? null };
+        return { status: 200, result: action.action === "prepare-storyboard-rework" ? storyboardReworkPlanView(prepareStoryboardRework(action.slug, options)) : startStoryboardRework(action.slug, action.reworkVersion, options) };
+      }
       const projectView = getVideoProject(action.slug);
       if (!projectView) {
         const error = new Error("Video project not found");
@@ -92,6 +101,7 @@ export function createProjectActionService(runtime) {
             status: "initialized",
             files: initializeProject(action.slug, {
               ...(action.productionContract ? { productionContract: action.productionContract } : {}),
+              ...(action.storyboardSchemaVersion === undefined ? {} : { storyboardSchemaVersion: action.storyboardSchemaVersion }),
               workflow: action.workflow ?? projectView.workflow ?? "default",
               ...(action.workflowVersion === undefined || action.workflowVersion === null ? {} : { workflowVersion: action.workflowVersion }),
             }),
@@ -124,8 +134,17 @@ export function createProjectActionService(runtime) {
       }
       if (action.action === "remote-run") return this.remoteRun(action);
       if (action.action === "prepare-remote-render") return this.prepareRemote(action);
+      if (action.action === 'prepare-render' || action.action === 'start-render') {
+        if (action.action === 'start-render') {
+          if (action.confirmDelivery !== true) throw Object.assign(new Error('启动渲染需要确认当前计划。'), {code: 'render-delivery-confirmation-required'});
+          if (action.approveGate3) approveGate(loadProject(action.slug, {refresh: true}), 'gate-3');
+        }
+        const delivery = await runRenderDelivery(action.action === 'prepare-render' ? 'prepare' : 'start', action.slug,
+          {...(action.backend === undefined ? {} : {backend: action.backend}), confirmPlan: action.deliveryPlanId, retryJob: action.retryJob}, runtime.deliveryDependencies);
+        return {status: delivery.job ? 202 : 200, result: {action: action.action, ...delivery}, job: delivery.job, project: getVideoProject(action.slug)};
+      }
       if (action.action === "resume-render-delivery") {
-        const delivery = await runRenderDelivery("resume", action.slug, {}, runtime.deliveryDependencies);
+        const delivery = await runRenderDelivery("resume", action.slug, {...(action.backend === undefined ? {} : {backend: action.backend})}, runtime.deliveryDependencies);
         return { status: 200, result: { action: action.action, ...delivery }, job: delivery.job, project: getVideoProject(action.slug) };
       }
       if (action.action === "bind-render-input") {
@@ -180,12 +199,12 @@ export function createProjectActionService(runtime) {
       if (active) return { status: 200, result: { action: action.action, status: "already-running" }, job: active };
       if (!(action.commitAndPush && action.confirmDelivery)) return this.prepareRemote(action);
       if (action.approveGate3 && project.state.currentStage === "gate-3") approveGate(project, "gate-3");
-      const delivery = await runRenderDelivery("start", action.slug, { confirmPlan: action.deliveryPlanId }, runtime.deliveryDependencies);
+      const delivery = await runRenderDelivery("start", action.slug, { backend: 'github', confirmPlan: action.deliveryPlanId }, runtime.deliveryDependencies);
       return { status: 202, result: { action: action.action, ...delivery }, job: delivery.job, project: getVideoProject(action.slug) };
     },
     async prepareRemote(action) {
       const stage = action.stage; if (stage !== "render") { const error = new Error("prepare-remote-render only supports render"); error.code = "invalid-remote-stage"; throw error; }
-      const delivery = await runRenderDelivery("prepare", action.slug, {}, runtime.deliveryDependencies);
+      const delivery = await runRenderDelivery("prepare", action.slug, {backend: 'github'}, runtime.deliveryDependencies);
       return { status: 200, result: { action: action.action, ...delivery, status: "needs-confirmation" }, commitPlan: { planId: delivery.planId, commitPaths: delivery.files, selectedPaths: delivery.files }, project: getVideoProject(action.slug) };
     },
   };

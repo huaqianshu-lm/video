@@ -2,7 +2,7 @@ import { validateVisualSelfReview } from "./visual-self-review.mjs";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
-import { assertProjectSlugMutable, isCompletedProject, loadProject, projectsRoot, readJson, writeJson } from "./storage.mjs";
+import { assertProjectMutable, assertProjectSlugMutable, isCompletedProject, loadProject, projectsRoot, readJson, writeJson } from "./storage.mjs";
 import { retryStage, runStage, validateStage } from "./runner.mjs";
 import { buildNextAction } from "./reports.mjs";
 import { workflowForProject, workflowStageDefinition, workflowStageIndex } from "./workflows/registry.mjs";
@@ -18,6 +18,7 @@ import { createAgentJob, getAgentJob, retryAgentJob, runAgentJob } from "./agent
 import { createAgentExecutorFromEnv } from "./agent-executor.mjs";
 import { planningStages, usesUnifiedProduction } from "./production-contract.mjs";
 import { runRenderDelivery, readRenderDeliverySession, checkpointRenderDelivery } from "./render-delivery.mjs";
+import {resolveRenderBackend} from './render-backend.mjs';
 import { assertCommittedBatchRenderDelivery, commitPreparedBatchRenderDelivery, prepareBatchRenderDelivery as prepareBatchRenderDeliveryPlan } from "./batch-delivery.mjs";
 
 const BATCH_DEFINITIONS = Object.freeze({
@@ -56,7 +57,7 @@ const BATCH_DEFINITIONS = Object.freeze({
     type: "to-render",
     label: "批量渲染",
     targetStage: "gate-4",
-    description: "从已通过 Gate 3 的项目直接提交完整渲染，等待 Gate 4 最终确认。",
+    description: "从已通过 Gate 3 的项目提交 GitHub 完整渲染，等待 Gate 4；批量不使用本地渲染。",
     requiresGate2Approval: false,
     requiresTtsQc: false,
     requiresGate3Approval: true,
@@ -101,8 +102,8 @@ function batchPath(id) {
   return path.join(batchesRoot(), `${id}.json`);
 }
 
-function saveBatch(batch) {
-  for (const batchItem of batch.items ?? []) assertProjectSlugMutable(batchItem.slug, "写入视频批次记录");
+function saveBatch(batch, { allowRework = false } = {}) {
+  for (const batchItem of batch.items ?? []) assertProjectMutable(batchItem.slug, "写入视频批次记录", { allowRework });
   batch.updatedAt = new Date().toISOString();
   writeJson(batchPath(batch.id), batch);
   return batch;
@@ -229,13 +230,13 @@ function remoteJobDeliveryPatch(job) {
   };
 }
 
-function refreshBatchStatus(batch) {
+function refreshBatchStatus(batch, options = {}) {
   const hasActive = batch.items.some((entry) => entry.status === "queued" || entry.status === "running");
   const hasWaiting = batch.items.some((entry) => WAITING_ITEM_STATUSES.has(entry.status));
   const hasFailed = batch.items.some((entry) => entry.status === "failed");
   batch.status = hasActive ? "running" : hasFailed ? "completed-with-errors" : hasWaiting ? "waiting" : "completed";
   batch.summary = summarize(batch);
-  saveBatch(batch);
+  saveBatch(batch, options);
   return batch;
 }
 
@@ -243,7 +244,8 @@ export function batchDefinitions() {
   return Object.values(BATCH_DEFINITIONS);
 }
 
-export function createBatch({ type, slugs }) {
+export function createBatch({ type, slugs, backend }) {
+  if (type === 'to-render') resolveRenderBackend({backend, batchId: 'new-batch'});
   const definition = validateType(type);
   if (definition.type !== type || LEGACY_DEFINITIONS[type]) {
     throw new Error(`Batch type ${type} is retired; use one of ${Object.keys(BATCH_DEFINITIONS).join(", ")}`);
@@ -653,7 +655,7 @@ async function executeItem(batch, batchItem, definition, options) {
 
       const result = currentStage === "render" && batch.renderDelivery?.status === "committed"
         ? await (async () => {
-          const delivery = await runRenderDelivery("resume", batchItem.slug, { batchId: batch.id }, options.deliveryDependencies ?? {});
+          const delivery = await runRenderDelivery("resume", batchItem.slug, { backend: 'github', batchId: batch.id }, options.deliveryDependencies ?? {});
           return { ...delivery, deferred: delivery.job?.status !== "succeeded", job: delivery.job };
         })()
         : usesInjectedLegacyAdapter(currentStage, options)
@@ -732,6 +734,8 @@ async function executeItem(batch, batchItem, definition, options) {
 export async function runBatch(id, options = {}) {
   const batch = getBatch(id);
   if (!batch) throw new Error(`Batch not found: ${id}`);
+  for (const item of batch.items ?? []) assertProjectSlugMutable(item.slug, "执行视频批次");
+  if (batch.type === 'to-render') resolveRenderBackend({backend: options.backend, batchId: id});
   if (activeBatchIds.has(id)) {
     pendingBatchRuns.set(id, options);
     return batch;
@@ -828,14 +832,24 @@ function isCurrentBatchItem(batchItem, type) {
   }
 }
 
-export function stopBatchesAfterGateRejection({ slug, gate, returnTo, reason }) {
+export function batchReworkScope(slug) {
+  return listBatches().filter(batch => batch.items.some(item => item.slug === slug && ["queued", "running", ...WAITING_ITEM_STATUSES].includes(item.status))).map(batch => {
+    if (activeBatchIds.has(batch.id)) throw Object.assign(new Error("批次正在推进，请等待当前任务安全停下再返工。"), { code: "storyboard-rework-busy" });
+    for (const item of batch.items) assertProjectMutable(item.slug, "停止受返工影响的批次；completed 成员不允许回写", { allowRework: true });
+    return { path: batchPath(batch.id), batch };
+  });
+}
+
+export function stopBatchesAfterGateRejection({ slug, gate, returnTo, reason, allTypes = false, batchIds = null }) {
   if (isCompletedProject(slug)) return [];
   const stopped = [];
   for (const batch of listBatches()) {
-    if (batch.type !== "to-gate-2") continue;
+    if (batchIds && !batchIds.includes(batch.id)) continue;
+    if (!allTypes && batch.type !== "to-gate-2") continue;
     const batchItem = batch.items.find((entry) => entry.slug === slug
-      && ["queued", "running", "waiting-agent-job", "waiting-gate"].includes(entry.status));
+      && (allTypes ? ["queued", "running", ...WAITING_ITEM_STATUSES] : ["queued", "running", "waiting-agent-job", "waiting-gate"]).includes(entry.status));
     if (!batchItem) continue;
+    for (const item of batch.items) assertProjectMutable(item.slug, "停止受返工影响的批次", { allowRework: true });
 
     const now = new Date().toISOString();
     Object.assign(batchItem, {
@@ -846,7 +860,7 @@ export function stopBatchesAfterGateRejection({ slug, gate, returnTo, reason }) 
       completedAt: now,
       updatedAt: now,
     });
-    refreshBatchStatus(batch);
+    refreshBatchStatus(batch, { allowRework: true });
     stopped.push(batch.id);
   }
   return stopped;

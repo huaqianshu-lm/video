@@ -1,64 +1,29 @@
 ---
 name: visual-prototype-remotion
-description: Design or implement the reusable Visual Prototype and Remotion side of a video, including Timeline alignment, visual events, and Gate 3 review.
+description: 实现分镜画面、真实 Timeline 对齐、观看证据和 Gate 3 审核。
 ---
 
-# Visual Prototype and Remotion
+# 分镜实现与 Remotion
 
-Use this skill when working on a Visual Prototype, Remotion composition, Scene implementation, visual timing, `remotion-alignment.json`, or Gate 3.
+当前生产仅使用 `storyboard-v1` 与现行分镜契约。先读取 `docs/STORYBOARD-PRODUCTION-CONTRACT.md` 和 `docs/STORYBOARD-EXECUTION-QUALITY.md`；不提供旧流程或版本选择。旧资料不符合当前规则时先用 Harness 正常返工，不自动改写历史项目，completed 永久只读。
 
+## 执行顺序
 
-`storyboard-v1` 先读取 `docs/STORYBOARD-PRODUCTION-CONTRACT.md`，以其阶段、任务和审核边界覆盖本文的旧原型要求；旧契约继续遵守本文。新契约保留纯口播、真实 Timeline、人工 Gate 和共享交付约束。
+开始前按 `docs/HARNESS-PRODUCTION-CONTRACT.md`“视频制作与流程变更的边界”核对实际制作入口。不得在实现途中以共享能力为由接入未经确认的强制画面生成机制；无法兑现冻结分镜时报告缺口，不静默改变制作方式或降低设计。
 
-## Prototype baseline
+1. 领取 Harness 任务；读取 Gate 2 冻结的准确版本分镜、纯口播、风格／封面快照，以及已校验的 Audio／Subtitle／Timeline Manifest。不得实现未冻结的设计或使用估算时间。
+2. 使用共享的 `src/lib/timing.ts`，把镜头边界与语义事件绑定到真实 Cue／Segment 时间。锚点缺失或含义不明确、顺序动作重叠，以及无法兑现的实现，都会阻断实现。
+3. 由 Agent 编写当前视频 React／Remotion 组件和配置，按 alignment 5 记录 Scene／Shot／Event、真实时间和实现文件。按内容表达选择合适组件，没有合适组件就编写所需实现，没有固定对象／动作白名单。组件库从实际视频实现逐步积累；实际观看及适用人工 Gate 验证后，才按 `VIDEO-PRODUCTION-RULES.md` 13.3 提取有复用价值的部分，单条专用实现留在当前视频中，不要求每条视频建立通用组件。
+4. 从已校验的单视频输入包生成由 Git 忽略的 Studio 入口。受跟踪的 `src/Root.tsx` 保持通用。Studio、本地渲染器和 GitHub 渲染器必须消费同一冻结输入包。
+5. 实际播放并正常速度完整试听后，提交当前版本的 `remotion-viewing-evidence.json`。逐镜头和相邻交界播放，检查完整动作、文字中间状态、生命周期、边界衔接及字幕／音频同步；生成的待验证证据不等于审核通过。
+6. 校验通过后才能完成任务，再请求人工 Gate 3。Gate 驳回后使用共享返工／任务机制并制作实际新产物，不能只重新检查未改变的产物。
 
-- Start from `templates/video-production/visual-prototype.html` and read `templates/video-production/visual-prototype-baseline.md` before changing the skeleton.
-- Keep `.shell`, `.toolbar`, `.stage`, `.scene`, `.caption`, `.controls`, `.progress`, and `.meta` in the fixed order and roles.
-- Use short source-supported context text without a Scene number at the upper left. Let the visual subject carry the Scene; do not place a large recurring main title there.
-- Keep the 16:9 stage, preview-only controls, subtitle area, and progress metadata separate from the final Composition output.
-- Keep this text quiet and consistent. Place any necessary content heading next to the object or evidence it explains, and follow the Workflow-specific anti-PPT rules in `docs/VIDEO-PRODUCTION-RULES.md`.
-- Preview the key before → action → after events and the handoff between Scenes at normal speed. A static layout or a sequence of entrance animations does not demonstrate the Visual Script's change of state.
+## 必须保持的约束与参考资料
 
-## Gate 2 visual convergence
-
-- Before requesting Gate 2, inspect actual prototype or preview frames against the Visual Script and the visual convergence checklist in `docs/VIDEO-PRODUCTION-RULES.md`.
-- Save the result as `visual-self-review.json`; Gate 2 automation must reject missing, stale, incomplete, or failed review records before exposing the project as ready for human approval. This is a machine precondition, not automatic Gate 2 approval.
-- A passing structural validator is not visual evidence. If the sequence still reads as repeated title／card pages, return to Visual Script and invalidate downstream work instead of proceeding to Remotion.
-- Preserve intentional reading holds. Judge whether each motion explains an action, relationship, or change; do not add idle movement to satisfy a freeze threshold.
-- Keep the tutorial shell; tutorials may retain explanatory UI or diagrams when they clearly support the narration.
-
-## Remotion sequence
-
-For Agent series covers, read `docs/AGENT-SERIES-COVER.md`. The generated single-video and Studio catalog entries own the frozen cover and shift the whole content together; do not add another cover, shift subtitles separately, or change the body-relative Timeline. At Gate 3 inspect the generated entry including its cover.
-
-1. Wait for the confirmed Gate 2 Visual Script and Visual Prototype baseline.
-2. Read the validated timing contract before deciding Scene duration or visual event timing：`narrated-tutorial-v1` 使用 Audio／Subtitle／Timeline Manifest，不得为缺失的 narrated 产物生成占位文件。
-3. Implement reusable components first and keep video-specific content in the local video configuration.
-4. Produce a fresh `remotion-alignment.json`：narrated 视频还要映射 Audio Segment 和 Subtitle Cue。
-5. Compare the rendered preview against the frozen prototype and alignment file at Gate 3.
-6. Under the unified production contract, Gate 3 also requires normal-speed listening to the current audio and checking pronunciation, pauses, rate and subtitle synchronization. Use Harness's explicit approval or rejection; machine validation never substitutes for listening or viewing. Conversation Remotion work must first claim a production-task and submit its actual outputs.
-
-## Invariants
-
-- Use `src/lib/timing.ts` for narrated timing; do not duplicate narrated timing logic inside a video directory.
-- Apply section 9.1 of `docs/VIDEO-PRODUCTION-RULES.md` for motion semantics and prioritize the applicable components in `src/components/SemanticMotion.tsx`; validate the visible change, not just the component call.
-- Apply section 9.1's three code-execution and path-expression rules before selecting path components; review the meaning of path geometry as well as text avoidance during Prototype and Remotion playback.
-- Apply sections 8.4／8.5 for title entry／handoff／exit, shared world coordinates, persistent subjects and camera continuity; avoid resetting these at Scene boundaries.
-- Apply sections 9.3～9.5 for official animation selection, frame-driven React implementations, action chains and review coverage. Check actual dependencies and API compatibility before choosing spring／paths／transitions; account for transition overlap in the validated Workflow timing, and distinguish proposed capabilities from implemented ones.
-- Apply section 9.2 for element visibility lifetimes in the tutorial workflow; inspect before entry, after exit, seeking and Scene boundaries, including underlying paths, arrows, labels and effects.
-- Apply section 10.3 of `docs/VIDEO-PRODUCTION-RULES.md` at Gate 2 and again at Gate 3 with actual Remotion timing; inspect complete actions and intermediate text states, record evidence, and resolve unreadable overlap before requesting approval or rendering.
-- Missing narrated Scene／Segment／Cue mappings, block Remotion completion。
-- Prototype changes invalidate the old Remotion alignment result.
-- Gate 3 rejection must lead to a new task package and new Remotion output, not a recheck of unchanged output.
-- Remove preview navigation, debug labels, helper text, and unrelated text before Smoke Render and final delivery.
-
-## References
-
-- Read `docs/VIDEO-PRODUCTION-RULES.md` for prototype, animation, component, and quality rules.
-- Read `docs/MOTION-COMPONENTS.md` when implementing path motion, spring assembly, shape／state changes, focus, camera continuity or official transitions; use the public APIs and their frame／visibility contracts.
-- Read `docs/VIDEO-PROJECT-WORKFLOW.md` for the handoff from production documents to Remotion.
-- Read `docs/END-TO-END-VIDEO-PRODUCTION-PLAN.md` for timing and remote-render handoffs.
-
-## Lightweight dynamic prototype
-
-Follow the lightweight prototype contract in `docs/VIDEO-PRODUCTION-RULES.md`: estimated playback, stable semantic event IDs, no downstream TTS dependency. Preserve layout, state changes and handoffs in Remotion; bind actual timing after Gate 2. The prototype task may write `visual-self-review.json` and review evidence, but must never claim visual checks passed without actual viewing.
+- 参数标准读取 `VIDEO-PRODUCTION-RULES.md` 第 9.6 节，文字／遮挡检查读取第 14.2 节。机器检查不能代替实际观看，设计检查也不表示动作已被观看。
+- 按同一规则 6.1 兑现具体造型、镜头目的与因果动画；按 8.5 检查背景及前后景透明度覆盖，排查转场漏底闪白／闪黑，并连续播放全部交界。字幕外观显式采用 9.6 A 默认并在变化背景上复查；代表性片段按 9.7 推广后仍须检查其余场景和全片，不以局部样稿替代完成。
+- 按同一规则第 14.4 节复查审美与感官效果，在既有观看／试听 note 中记录真实发现、帧范围和修正；调校配方按第 9.7 节留证，不复制数值或将候选效果标为已验证。
+- 无法实现的画面必须报告具体缺口。扩展可复用动作时读取 `docs/MOTION-COMPONENTS.md`；实现后验证按帧确定性求值与时间映射。
+- 实际观看必须覆盖完整动作和场景衔接，不能只看完成态截图。保留阅读停留、有资料依据的标签及系列预告。
+- 最终画面不包含预览导航、调试标签或无关文字。渲染只通过已确认的共享交付流程执行，并保留 Gate 4。
+- 旧原型和旧对齐记录仅供历史读取，不得用于制作当前视频产物。

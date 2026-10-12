@@ -6,10 +6,11 @@ import { beginExecutorStage, completeExecutorStage, retryStage, runStage, valida
 import { fingerprintStageArtifacts, fingerprintTaskInputs } from "./fingerprints.mjs";
 import { taskStages, planningStages, usesUnifiedProduction } from "./production-contract.mjs";
 import { acquireProductionTask, activeProductionTask, assertProductionTaskOwner, releaseProductionTask } from "./production-lock.mjs";
-import { prepareRenderInputEntry } from "./render-input.mjs";
+import { prepareRenderInputEntry, renderInputDirectory, validateRenderInputDirectory } from "./render-input.mjs";
 import { listRemotionTasks } from "./remotion-tasks.mjs";
 import { assertProjectMutable, assertProjectSlugMutable, isCompletedProject, loadProject, projectsRoot, readJson, writeJson } from "./storage.mjs";
 import { workflowStageDefinition } from "./workflows/registry.mjs";
+import { readTtsGenerationRecord, validateTtsGenerationRecord } from "./tts-generation.mjs";
 
 const ACTIVE_STATUSES = new Set(["queued", "running"]);
 
@@ -21,8 +22,8 @@ function jobPath(id) {
   return path.join(jobsRoot(), `${id}.json`);
 }
 
-function saveJob(job) {
-  assertProjectSlugMutable(job.slug, "写入 Agent Job");
+function saveJob(job, { allowRework = false } = {}) {
+  assertProjectMutable(job.slug, "写入 Agent Job", { allowRework });
   job.updatedAt = new Date().toISOString();
   writeJson(jobPath(job.id), job);
   return job;
@@ -114,6 +115,7 @@ function startJob(job) {
   job.status = "running";
   job.attempts += 1;
   job.startedAt = new Date().toISOString();
+  if (job.stage === "subtitle-timeline") job.task.context.ttsExecutionTask = { id: job.id, attempt: job.attempts, inputFingerprint: job.inputFingerprint, startedAt: job.startedAt };
   job.completedAt = null;
   job.error = null;
   saveJob(job);
@@ -126,16 +128,34 @@ function submitJob(job, execution = {}) {
   project.taskOwner = job.id;
   assertProductionTaskOwner(project, job.id);
   const stages = job.stages ?? [job.stage];
+  if (stages.includes("subtitle-timeline")) execution.generationRecord ??= readTtsGenerationRecord(project.config.workspaceRoot, job);
   const finishedCheckpoint = job.validatedFingerprints && stages.every(stage => project.state.stages[stage]?.status === "succeeded");
   if ((!stages.includes(project.state.currentStage) && !finishedCheckpoint) || fingerprintTaskInputs(project, job.originalStages ?? stages) !== job.inputFingerprint) {
     throw Object.assign(new Error("制作期间输入或项目阶段已改变，原任务结果不能推进；结束任务后刷新安排返工。"), { code: "production-input-changed" });
   }
   if (usesUnifiedProduction(project) || job.mode === "dialogue") {
     for (const stage of stages) {
+      if (stage === "subtitle-timeline" && execution.generationRecord) {
+        validateTtsGenerationRecord(project, job, execution.generationRecord);
+        continue;
+      }
       if (fingerprintStageArtifacts(project, stage) === job.outputFingerprints[stage]) throw Object.assign(new Error(`${stage} 产物没有变化，不能把已有文件作为制作结果。`), { code: "production-output-unchanged" });
     }
   }
-  if (job.stage === "remotion") prepareRenderInputEntry(project);
+  if (job.stage === "remotion") {
+    const directory = renderInputDirectory(project.config.workspaceRoot, job.slug);
+    const manifestPath = path.join(directory, "render-input.json");
+    let entryOptions = {};
+    if (fs.existsSync(manifestPath) && validateRenderInputDirectory(directory, { expectedSlug: job.slug }).length === 0) {
+      const manifest = readJson(manifestPath);
+      entryOptions = {
+        compositionId: manifest.compositionId,
+        componentFile: path.basename(manifest.entry.componentPath),
+        componentExport: manifest.entry.componentExport,
+      };
+    }
+    prepareRenderInputEntry(project, entryOptions);
+  }
   const issues = stages.flatMap((stage) => validateStage(project, stage)).filter((issue) => issue.severity !== "warning");
   if (issues.length) throw Object.assign(new Error(`${issues.length} 制作产物校验问题。`), { code: "validation-failed", issues });
   job.validatedFingerprints ??= Object.fromEntries(stages.map(stage => [stage, fingerprintStageArtifacts(project, stage)]));
@@ -154,7 +174,7 @@ function submitJob(job, execution = {}) {
   }
   job.status = "succeeded";
   job.completedAt = new Date().toISOString();
-  job.result = { outputs: execution.outputs ?? [], summary: execution.summary ?? null, stages, nextStage: project.state.currentStage };
+  job.result = { outputs: execution.outputs ?? [], summary: execution.summary ?? null, stages, nextStage: project.state.currentStage, ...(execution.generationRecord ? { generationRecord: execution.generationRecord } : {}) };
   job.error = null;
   saveJob(job);
   if (activeProductionTask(project)?.id === job.id) releaseProductionTask(project, job.id);
@@ -189,7 +209,9 @@ export function failAgentTask(id, reason) {
   const job = getAgentJob(id);
   if (!job || !["queued", "running"].includes(job.status) || !reason?.trim()) throw new Error("任务不存在、已结束或缺少失败原因。");
   const project = loadProject(job.slug, { refresh: false });
-  assertProjectMutable(project, "记录制作失败");
+  // Explicitly ending a failed/retired task is cleanup, never old production.
+  // Without this exception a historical dialogue lock could never be released.
+  assertProjectMutable(project, "记录制作失败", { allowRework: true });
   assertProductionTaskOwner(project, id);
   if (project.state.currentStage === job.stage && project.state.stages[job.stage].status === "running") {
     project.state.stages[job.stage].status = "failed";
@@ -198,7 +220,7 @@ export function failAgentTask(id, reason) {
   }
   job.status = "failed"; job.completedAt = new Date().toISOString();
   job.error = { code: "production-task-failed", message: reason };
-  saveJob(job);
+  saveJob(job, { allowRework: true });
   if (activeProductionTask(project)?.id === id) releaseProductionTask(project, id);
   return job;
 }
@@ -246,7 +268,7 @@ export async function runAgentJob(id, { executor } = {}) {
   let execution = null;
   try {
     const project = startJob(job);
-    execution = await executor.run({ stage: job.stage, project });
+    execution = await executor.run({ stage: job.stage, project, executionTask: { id: job.id, attempt: job.attempts, inputFingerprint: job.inputFingerprint, startedAt: job.startedAt } });
     submitJob(job, execution);
     job.logs = { stdout: execution?.stdout ?? "", stderr: execution?.stderr ?? "" };
   } catch (error) {
@@ -293,6 +315,8 @@ export function recoverInterruptedAgentJobs() {
     if (!["queued", "running"].includes(job.status)) continue;
     if (["dialogue", "cli"].includes(job.mode)) continue;
     if (isCompletedProject(job.slug)) continue;
+    try { assertProjectSlugMutable(job.slug, "恢复后台制作任务"); }
+    catch (error) { if (error.code === "production-rework-required") continue; throw error; }
     if (job.validatedFingerprints) {
       const project = loadProject(job.slug, { refresh: false });
       if ((job.stages ?? [job.stage]).every(stage => project.state.stages[stage]?.status === "succeeded") && activeProductionTask(project)?.id === job.id) {

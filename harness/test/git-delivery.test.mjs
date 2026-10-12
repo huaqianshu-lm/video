@@ -51,6 +51,9 @@ function createRenderWorkspace(slug) {
   }));
   write(workspaceRoot, "harness/src/cli.mjs", "export {};\n");
   write(workspaceRoot, "harness/src/render-delivery.mjs", "export {};\n");
+  for (const file of ["render-backend", "local-render", "local-render-worker", "local-ffmpeg"]) {
+    write(workspaceRoot, `harness/src/${file}.mjs`, "export {};\n");
+  }
   write(workspaceRoot, "harness/src/video-cover.mjs", "export {};\n");
   write(workspaceRoot, "harness/src/render-preflight.mjs", "export {};\n");
   write(workspaceRoot, "harness/src/render-input.mjs", "export {};\n");

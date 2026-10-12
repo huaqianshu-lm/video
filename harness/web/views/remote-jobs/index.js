@@ -17,7 +17,7 @@ export function createRemoteJobsView({ elements, api, refreshButton, diagnostics
   async function refresh() {
     if (refreshPromise) return refreshPromise;
     refreshPromise = (async () => {
-      try { const jobs = await api.getJobs(); elements.list.className = "jobs-list"; elements.list.innerHTML = jobs.length ? jobs.map(card).join("") : `<div class="loading-state">暂无远程任务。</div>`; }
+      try { const jobs = (await api.getJobs()).filter(job => job.backend !== 'local'); elements.list.className = "jobs-list"; elements.list.innerHTML = jobs.length ? jobs.map(card).join("") : `<div class="loading-state">暂无远程任务。</div>`; }
       catch (error) { elements.list.className = "jobs-list error-state"; elements.list.textContent = `读取远程任务失败：${error.message}`; }
       finally { refreshPromise = null; }
     })();

@@ -1,6 +1,7 @@
 import { validateVisualSelfReview } from "./visual-self-review.mjs";
 import { usesUnifiedProduction, usesStoryboardProduction } from "./production-contract.mjs";
 import { storyboardReview, frozenStoryboardIssues } from "./storyboard.mjs";
+import {storyboardImplementationFingerprint} from './storyboard-implementation.mjs';
 import { assertProductionTaskOwner } from "./production-lock.mjs";
 import {
   workflowAdapterStages,
@@ -68,6 +69,7 @@ function completeStage(project, stage, outputs = []) {
   item.error = null;
   item.invalidatedBy = null;
   item.rebuildBaselineFingerprint = null;
+  if (item.rebuildImplementationFingerprint !== undefined) item.rebuildImplementationFingerprint = null;
   item.outputs = outputs;
   item.remote = null;
   item.outputFingerprint = definition.remoteOutput
@@ -184,6 +186,7 @@ export function beginExecutorStage(project, requestedStage) {
 }
 
 export function runStage(project, requestedStage, { adapters = {}, executors = {}, deferAdapters = false } = {}) {
+  assertProjectMutable(project, "执行阶段");
   const requested = requestedStage ?? project.state.currentStage;
   if (usesUnifiedProduction(project) && !["source", "tts"].includes(requested) && workflowStageDefinition(project, requested)?.executor === "agent" && !executors[requested]) {
     throw Object.assign(new Error("统一契约的 Agent 阶段必须领取生产任务，不能仅校验已有文件推进。"), { code: "production-task-required" });
@@ -326,7 +329,8 @@ export function approveGate(project, gate, { reviewVersion = null } = {}) {
     if (!reviewVersion || reviewVersion !== review.reviewVersion) throw Object.assign(new Error("审核版本缺失或已过期，请重新查看当前分镜审核包。"), { code: "storyboard-review-stale" });
   }
 
-  const gateIssues = (gate === "gate-2" || usesUnifiedProduction(project) ? validateStage(project, gate) : []).filter((item) => item.severity !== "warning");
+  const localGate4 = gate === 'gate-4' && project.state.stages.render?.outputs?.some(output => output.kind === 'local-render');
+  const gateIssues = (gate === "gate-2" || usesUnifiedProduction(project) || localGate4 ? validateStage(project, gate) : []).filter((item) => item.severity !== "warning");
   if (gateIssues.length > 0) throw new Error(`Gate 审批阻断：${gateIssues.map((item) => item.message).join("；")}`);
 
   let ttsScript = null;
@@ -387,6 +391,7 @@ export function rejectGate(project, gate, returnTo, reason) {
   }
 
   const rejection = { code: "gate-rejected", gate, returnTo, message: reason };
+  const rejectedImplementation = gate === 'gate-3' && returnTo === 'remotion' ? storyboardImplementationFingerprint(project) : null;
   const returnStageItem = project.state.stages[returnTo];
   const rebuildBaselineFingerprint = gate === "gate-3" && returnTo === "remotion"
     ? returnStageItem.outputFingerprint
@@ -400,12 +405,14 @@ export function rejectGate(project, gate, returnTo, reason) {
     project.state.stages[stage].review = null;
     project.state.stages[stage].invalidatedBy = null;
     project.state.stages[stage].rebuildBaselineFingerprint = null;
+    if (project.state.stages[stage].rebuildImplementationFingerprint !== undefined) project.state.stages[stage].rebuildImplementationFingerprint = null;
     project.state.stages[stage].outputFingerprint = null;
     project.state.stages[stage].updatedAt = new Date().toISOString();
   }
   if (rebuildBaselineFingerprint !== null || (gate === "gate-3" && returnTo === "remotion")) {
     returnStageItem.invalidatedBy = "gate-3-rejected";
     returnStageItem.rebuildBaselineFingerprint = rebuildBaselineFingerprint;
+    if (rejectedImplementation) returnStageItem.rebuildImplementationFingerprint = rejectedImplementation;
   }
   project.state.stages[gate].review = {
     decision: "rejected",
@@ -440,6 +447,7 @@ export function resumeProject(project) {
   if (project.state.currentStage === "completed") {
     return { stage: "completed", status: "completed", readOnly: true, message: "视频已完成并永久只读，没有可恢复的任务。" };
   }
+  assertProjectMutable(project, "恢复生产");
   const stage = project.state.currentStage;
   const item = project.state.stages[stage];
   if (item.status === "failed") {

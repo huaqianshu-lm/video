@@ -1,0 +1,152 @@
+{
+  "schemaVersion": 2,
+  "videoSlug": "example-video",
+  "workflow": "narrated-tutorial-v1",
+  "productionContract": "storyboard-v1",
+  "style": "current",
+  "seriesSelection": null,
+  "scenes": [
+    {
+      "id": "01",
+      "objective": "说明任务状态如何变化",
+      "narrationRef": "01",
+      "sourceRefs": [
+        {
+          "path": "videos/example-video/source.md",
+          "excerpt": "任务从等待进入制作，校验通过后完成。"
+        }
+      ],
+      "focus": "同一任务的请求与完成结果",
+      "layout": "主体保持，请求在前，完成结果在后",
+      "elements": [
+        {
+          "id": "task-root",
+          "text": "",
+          "type": "group",
+          "role": "subject",
+          "parentId": null,
+          "sourceRef": 0,
+          "purpose": "解释同一任务的请求与结果顺序",
+          "enter": {
+            "type": "scene",
+            "id": "01",
+            "edge": "start"
+          },
+          "exit": {
+            "type": "scene",
+            "id": "01",
+            "edge": "end"
+          },
+          "retain": "",
+          "layout": {
+            "mode": "box",
+            "x": 300,
+            "y": 250,
+            "width": 1320,
+            "height": 520,
+            "layer": 1
+          }
+        },
+        {
+          "id": "task-request",
+          "text": "任务",
+          "type": "rect",
+          "role": "request",
+          "parentId": "task-root",
+          "sourceRef": 0,
+          "purpose": "解释同一任务的请求与结果顺序",
+          "enter": {
+            "type": "event",
+            "id": "task-start",
+            "edge": "start"
+          },
+          "exit": {
+            "type": "event",
+            "id": "task-complete",
+            "edge": "complete"
+          },
+          "retain": "",
+          "layout": {
+            "mode": "box",
+            "x": 100,
+            "y": 120,
+            "width": 340,
+            "height": 200,
+            "layer": 1
+          }
+        },
+        {
+          "id": "task-result",
+          "text": "完成",
+          "type": "rect",
+          "role": "result",
+          "parentId": "task-root",
+          "sourceRef": 0,
+          "purpose": "解释同一任务的请求与结果顺序",
+          "enter": {
+            "type": "event",
+            "id": "task-complete",
+            "edge": "complete"
+          },
+          "exit": {
+            "type": "scene",
+            "id": "01",
+            "edge": "end"
+          },
+          "retain": "",
+          "layout": {
+            "mode": "box",
+            "x": 820,
+            "y": 120,
+            "width": 340,
+            "height": 200,
+            "layer": 1
+          }
+        }
+      ],
+      "events": [
+        {
+          "id": "task-start",
+          "before": "任务等待",
+          "action": "领取任务并开始制作",
+          "after": "任务制作中",
+          "trigger": {
+            "sceneId": "01",
+            "anchor": "进入制作",
+            "occurrence": 1
+          },
+          "execution": {
+            "capability": "show",
+            "elements": [
+              "task-request"
+            ],
+            "durationFrames": 12
+          }
+        },
+        {
+          "id": "task-complete",
+          "before": "请求制作中，结果尚未出现",
+          "action": "制作校验完成后，请求退出并生成独立结果",
+          "after": "完成结果出现，请求不再占据焦点",
+          "trigger": {
+            "sceneId": "01",
+            "anchor": "完成",
+            "occurrence": 1
+          },
+          "execution": {
+            "capability": "create-result",
+            "elements": [
+              "task-request",
+              "task-result"
+            ],
+            "durationFrames": 12
+          }
+        }
+      ],
+      "holds": "状态变化后保留阅读时间",
+      "handoff": "任务完成结果承接下一幕",
+      "assets": [],
+      "implementation": "候选执行样例；共享 renderer 及实际画面验收尚待完成，不是已验收质量基线"
+    }
+  ]
+}

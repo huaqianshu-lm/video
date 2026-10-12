@@ -1,10 +1,20 @@
 # Harness 0.6 阶段校验矩阵
 
+## 当前生产统一迭代专项
+
+2026-10-10：服务端统一新建 storyboard-v1 与现行分镜契约，旧生产及转换入口停用；current-production 11／11、storyboard-production 31／31、历史解析 unified-production 3／3，共 45 项定向回归通过。覆盖实际 CLI／HTTP 创建、导入、审核与返工，单条／批量／后台恢复阻断、受控输出及包一致性、观看证据、冲突恢复和 completed 保护。测试使用隔离输入及模拟音频／编码，不证明实际视觉／试听质量。整套生产／全项目回归未运行。收敛证据见 local/current-production-iteration/acceptance.md。
+
+## 本地渲染接入（自动回归通过，实片待验收）
+
+实施方案：`drafts/LOCAL-RENDER-INTEGRATION-PLAN.md`，验收 ID AC-1～AC-5。`local-render.test.mjs` 新增 34 项，覆盖默认／显式方式、旧记录、批量创建／HTTP／服务强制 GitHub、无 GitHub 凭据、计划及浏览器变化、环境／磁盘不足、实际 CLI／HTTP 的模拟 worker、重复请求、初始化／结果／阶段检查点恢复、强制杀进程、失败显式新 Job 重试、Gate 4 驳回后独立产物、规格／帧数／音轨／空文件／解码失败、下载哈希与路径边界、并发释放锁和 completed 保护。不是所有落盘窗口的强制杀进程穷举。
+
+2026-10-07：最终全量 41 个模块、392/392 单次通过，包括 GitHub 单条 14/14、批量 9/9、Git 交付 10/10、Web 模块 35/35、HTTP 18/18 和真实资料／状态前后哈希只读 1/1；证据 `local/local-render-integration/verification.json`。早期失败／240 秒超时保留，重测试组现串行运行。本地编码器、浏览器和渲染结果为模拟；外网被阻断，远程服务使用模拟响应及临时本地 Git 仓库。自动回归不证明真实音画或宿主浏览器权限，实际入口整片、人工 Gate 4 与另一条视频仍须验证，整体保持接入中。
+
 这份矩阵是 Workflow Registry 中阶段契约的实现清单。它区分自动校验、适配器校验和必须由人工完成的质量判断；0.6 另外覆盖远程任务状态、超时／恢复、环境诊断、全局任务视图和 Gate 4 审查记录。
 
 ## 校验类型
 
-Agent 封面契约见 `docs/AGENT-SERIES-COVER.md`：新 CLI 项目必须明确选择系列或 none；检查本地快照／图片哈希、输入 Manifest 与资源 ZIP 封面一致性。旧无快照输入保持兼容。带封面的单条 Gate 3 入口必须匹配当前 Manifest 的完整生成契约，防止漏封面或总时长偏移错误。11-agents-md 已验证实际选择、TTS 包装、输入包和 Studio 入口，相关 Alignment／Render Input 回归22/22通过；正式画面、Runner 和最终渲染仍待人工及真实交付验证。
+Agent 封面契约见 `docs/AGENT-SERIES-COVER.md`：新 CLI 项目必须明确选择系列或 none；检查本地快照／图片哈希、输入 Manifest 与资源 ZIP 封面一致性。旧无快照输入保持兼容。带封面的单条 Gate 3 入口必须匹配当前 Manifest 的完整生成契约，防止漏封面或总时长偏移错误。11-agents-md 已验证实际选择、TTS 包装、输入包和 Studio 入口，相关 Alignment／Render Input 回归22/22通过；该历史检查记录不代表封面所有入口已验收；当前成片证据与剩余项以 ROADMAP 为准。
 
 共享交付服务使用 `src/render-preflight.mjs`；专项回归位于 `test/render-preflight.test.mjs`：覆盖真实 Git 祖先关系、旧代码阻断、钥匙串不可读、网络／401 区分、两个仓库写权限、成功 Workflow 归属、API／fetch 快照变化、origin 不匹配及凭据不外泄。Web UI／批量已接入共享准备服务，Fixture 回归使用注入的认证与基线检查；实际宿主认证和完整 Render 仍须单独验收。
 
@@ -16,7 +26,23 @@ Agent 单条固定交付入口 `cli.mjs render-delivery` 的回归位于 `test/r
 | 适配器 | 由 TTS、字幕／时间轴、Remotion 或 GitHub Actions 适配器返回结果 |
 | 人工 | Harness 只能阻断并提示，不能替代用户对画面、声音和交付质量的判断 |
 
-## 阶段矩阵
+## 当前阶段矩阵
+
+下表描述当前唯一生产流程；具体校验规则以 Storyboard 生产契约和执行质量契约为准，自动检查不代表质量验收。
+
+| 阶段 | 当前检查重点 | 判断方式 |
+| --- | --- | --- |
+| source | Source 登记与文件存在 | 自动 |
+| content-analysis／video-narrative | 两份合并策划产物、结构与 Gate 1 内部检查 | 自动／内部检查 |
+| narration-script／storyboard | 纯口播、场景一致、当前分镜格式、资料依据与设计审计 | 自动＋设计审计 |
+| gate-2 | 展示版本、口播与分镜同版本冻结、方案质量 | 自动前置＋人工 |
+| tts／subtitle-timeline | 独立 tts-script、显式 +25%、真实音频与字幕／Timeline 一致 | 自动＋适配器 |
+| remotion | 受控实现、alignment 5、冻结与真实时间、输入包一致性 | 自动 |
+| gate-3 | 当前冻结／实现／音频绑定的观看与正常速度试听证据、实际质量 | 自动前置＋人工 |
+| render | 共享交付计划、backend、授权与 Job／结果校验 | 自动＋适配器＋用户确认 |
+| gate-4 | 实际成片交付与最终内容质量 | 人工 |
+
+## 0.4 历史阶段矩阵（不用于当前生产）
 
 | 阶段 | 校验项 | 类型 | 0.4 目标 |
 | --- | --- | --- | --- |
@@ -66,7 +92,7 @@ Smoke Render 只能针对未完成视频或独立副本，并通过 GitHub Actio
 - 输入包实际文件集合必须与 `render-input.json` 的 `files` 集合完全相等；路径只能是安全的 POSIX 相对路径，不能重复、越界、指向目录、符号链接或其他特殊文件。每个文件的大小和 SHA-256 必须匹配，按排序文件内容重算的 `packageFingerprint` 也必须匹配 Manifest。
 - Gate 3 校验、单视频 Studio 和远程 Workflow 使用同一份输入包清单。临时入口缺失、导入旧版本、Composition ID 不一致或输入包与源资料不一致时，必须阻断。
 - 教程输入包使用 `local/render-input/<slug>/` 外层协议；包内的 Source、Remotion 和资源归档路径由 Workflow Registry 解析，不能由 Actions 或 shell 重新拼接成 narrated 路径。
-- 单视频入口只能写当前工作区的 `src/RenderInputRoot.tsx`；`entry-all` 也只按逐视频输入包清单注册 Composition。未完成视频可先更新包，`completed` 视频只能读取已有包，缺包或损坏时跳过并说明。
+- 单视频入口只能写当前工作区的 `src/RenderInputRoot.tsx`；`entry-all` 也只按逐视频输入包清单注册 Composition。符合当前生产规则的未完成视频可先更新包，`completed` 视频只能读取已有包，缺包或损坏时跳过并说明。
 
 ## 0.6 远程任务边界
 
@@ -86,20 +112,23 @@ Smoke Render 只能针对未完成视频或独立副本，并通过 GitHub Actio
 - Gate 2、Gate 3 和 Gate 4 的画面、声音、节奏和最终清洁输出仍必须人工确认。
 - Legacy 只读回归允许历史资料产生警告，但新项目的严格口播和来源边界规则不放宽。
 
-## Agent Job 与原型对齐边界
+## Agent Job 与当前分镜对齐边界
 
 - Web UI 的 Agent 阶段先创建本地持久化 Job，再由 Server 调用配置的命令；浏览器只读取状态和有界日志。
 - 命令进程退出码为 0 仍不代表阶段完成；Harness 必须重新读取当前阶段产物并执行全部确定性校验。
-- Gate 2 冻结前已经存在 Remotion 实现的历史项目按兼容模式处理；新项目必须提供引用当前冻结指纹的 `remotion-alignment.json`。
-- 自动校验只检查契约完整性和指纹有效性，`visual-self-review-contract` 还要检查 Gate 2 自检记录及其证据路径；它不自动判断审美质量，也不自动通过人工 Gate。实际布局、动画和视觉质量仍需在 Gate 2／Gate 3 人工对照。
-
-轻量原型播放与视觉自检回归：`node --test harness/test/dynamic-prototype.test.mjs harness/test/visual-self-review.test.mjs`。覆盖估算事件播放／暂停／重播／切幕、Workflow 分离、版本失效、证据越界、legacy 不降级、Web／单条／批量阻断和失败回退。机器校验不证明实际画面质量。
+- 新生产必须绑定当前 Gate 2 冻结、受控执行计划与 alignment 5；旧格式、旧原型或既有 JSX 不能凭兼容读取继续生产。
+- Gate 2 检查当前设计审计及其绑定，Gate 3 检查真实画面与正常速度试听证据；机器只判断契约和证据是否完整、有效，不自动通过人工 Gate。
+- 旧动态原型播放与 visual-self-review 测试仅为历史能力记录，不能作为当前生产验收入口；当前定向模块与证据见本文开头及当前 Storyboard 章节。
 
 ## 退役 Workflow 兼容
 
 宣传片生产能力已移除；已完成宣传片保持永久只读，仅保留历史资料展示和已有输入包预览。生产目录仅返回口播教程；新建、任务和输入包生产入口必须返回 `workflow-retired`。只读兼容元数据不含执行器。已有输入包预览仍校验文件集合、路径、大小和 SHA-256，不重新生成历史产物。
 
-## 统一生产迁移验收（自动回归已覆盖，实际验收待完成）
+## 历史统一契约验证记录（旧生产入口已停用）
+
+下表与 25 项专项结果记载当时的测试覆盖，三份策划与旧独立试听不属于当前生产。当前 unified-production 模块仅保留 3 项历史解析／准入检查，不能把下表当作当前测试模块清单。
+
+TTS 相同内容重制：`tts-generation` 检查本次任务／执行次数、冻结输入、包含媒体字节的产物指纹、旧记录／改时间／空产物拒绝；`tts-harness-adapter` 检查实际子进程成功后保存记录、新任务缓存隔离以及失败不写记录；`unified-production` 检查共享单条／批量入口接受相同内容的当前生成记录，缺记录仍拒绝，保留人工 Gate。自定义执行器未接入记录时保留原变化检查，旧资料不自动改写。跨视频实际生成验收状态见 ROADMAP。
 
 | ID | 条件与期望 | 当前状态 |
 |---|---|---|
@@ -113,13 +142,21 @@ Smoke Render 只能针对未完成视频或独立副本，并通过 GitHub Actio
 
 既有依赖旧审核流程的 Fixture 显式使用 `legacy-v1`；统一契约另有 25 项专项回归。模拟音频、视觉审核证据和外部响应只验证契约，不代表真实音视频质量或人工确认。
 
-运行 `npm run test:production --prefix harness` 检查统一任务／审核及共享交付，运行 `npm test --prefix harness` 检查全部模块。入口隔离与证据位置见 `README.md`；本轮完整结果保存到本地 `local/harness-unified-production/verification.json`。AC-7 和上述强制中断窗口未全部验收，整体迁移仍未完成。
+默认只执行本次修改涉及的定向测试；下面的整套命令仅在用户明确要求相应范围时运行：`npm run test:production --prefix harness` 检查统一任务／审核及共享交付，`npm test --prefix harness` 检查全部模块。测试范围以 `../docs/HARNESS-PRODUCTION-CONTRACT.md` 为准。入口隔离与证据位置见 `README.md`；该历史批次结果保存到本地 `local/harness-unified-production/verification.json`。AC-7 和上述强制中断窗口未全部验收，统一生产迭代的实际入口完整路径与跨视频验收仍未完成。
 
 
-## Storyboard 版本化生产（迁移中）
+## 当前 Storyboard 生产（实片验收待完成）
+
+2026-10-10：按用户要求删除统一画面执行器及专用 React 输出测试。storyboard-execution.test.mjs 现只验证分镜设计、生命周期、真实时间和审计；动作名称不再受白名单限制。storyboard-production.test.mjs 验证领取任务不写画面、自写 JSX 和递归依赖打包、单条／目录 Studio、旧生成对齐记录阻断、源码／音频变化使证据失效、完整观看前禁止提交 Gate 3，以及批准后返工／批次和 completed 保护。相关隔离检查不代表真实画面、编码或试听验收。
 
 `storyboard-production.test.mjs` 使用隔离项目覆盖两份合并策划、口播／分镜共同收敛、Schema 与资料／锚点／安全路径、版本绑定批准、冻结与失效、CLI／HTTP 相同审核包、批量 Gate 2、模拟 TTS 输入与真实 Manifest 时间映射、逐 Event 对齐、独立输入包和 Gate 3 合并试听。模拟音频和 null 组件只用于契约测试，不代表实际内容、画面或声音已通过审核。
 
-旧动态原型／visual-self-review 回归继续适用于 legacy-v1／unified-v1。Storyboard 的 Gate 2 不验证动态观看证据；Gate 3 的实际质量及人工决定仍须用户验收。默认切换、旧项目迁移的实际使用、实际 Web 手动检查、真实视频及跨视频交付待验证；以 ROADMAP 和本地收敛记录为准。
+旧动态原型／visual-self-review 仅供历史资料读取，旧生产入口停止执行。当前默认和旧契约阻断由 current-production.test.mjs 验证；正常返工由 current-production／storyboard-production 验证。Gate 2 审核设计，Gate 3 的实际质量及人工决定仍须用户验收；手动 Web 检查、真实视频及跨视频交付待验证，以 ROADMAP 为准。
 
-显式迁移回归覆盖原样保留旧资料与任务、严格复用纯口播、重建 stage order、Gate 2 批准失效、活动任务／下游／完成态阻断，以及状态／产物／配置交接中断后同一日志恢复。
+旧转换／接管入口已停用。正常返工验证保留历史资料、从最早不满足当前规则的输入重做、不继承旧 Gate 批准、同计划恢复、冲突／活动任务／completed 阻断。
+
+## Shot 定向验证
+
+`node --test harness/test/current-production.test.mjs harness/test/storyboard-production.test.mjs harness/test/storyboard-execution.test.mjs harness/test/storyboard-shots.test.mjs`：78／78，通过于2026-10-11。临时隔离工作区，HTTP 测试监听 localhost；不修改实际视频、不调用外部 TTS 或完整渲染。覆盖单／多镜头、缺失或重复 ID、未知归属、父子／对象连续性、空隙／重叠／越界动作、Cue 中间无词级切点、逐镜头审计、冻结镜头映射、过期批准／证据、源码引用、硬切／视觉重叠／片尾效果、pending 阻断、CLI／HTTP 同版本审核、批量 Gate 2、独立输入包和旧格式只读预览。
+
+实片审美、完整正常速度试听、Web 手动观看、人工 Gate 和跨视频固化仍未验证；null 组件、模拟音频及模拟观看证据仅验证程序契约。全项目 tsc 仍受未修改的第15条相关代码既有错误阻断，详见 `local/shot-implementation/type-check.log`；本次 JS 语法及定向测试不受影响。

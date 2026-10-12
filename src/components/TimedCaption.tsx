@@ -5,9 +5,11 @@ import {colors} from './SceneContainer';
 type TimedCaptionProps = {
   cues: SubtitleCue[];
   bottomMargin?: number;
+  fontSize?: number;
+  letterSpacing?: number | string;
 };
 
-export const TimedCaption = ({cues, bottomMargin = 72}: TimedCaptionProps) => {
+export const TimedCaption = ({cues, bottomMargin = 72, fontSize = 34, letterSpacing = 0.4}: TimedCaptionProps) => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
   // Compare at frame precision. Decimal SRT timestamps often fall between two
@@ -56,9 +58,9 @@ export const TimedCaption = ({cues, bottomMargin = 72}: TimedCaptionProps) => {
           color: colors.text,
           fontFamily:
             '"Noto Sans CJK SC", "PingFang SC", "Arial Unicode MS", "Microsoft YaHei", Arial, sans-serif',
-          fontSize: 34,
+          fontSize,
           fontWeight: 500,
-          letterSpacing: 0.4,
+          letterSpacing,
           lineHeight: 1.36,
           margin: `0 92px ${bottomMargin}px`,
           maxWidth: 'calc(100% - 184px)',

@@ -4,6 +4,8 @@ import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
 import { readGitHubActionsConfig, validateRenderInputUrl } from "./github-config.mjs";
 import { validateRenderInputDelivery } from "./render-input.mjs";
+import {usesAuthoredStoryboard} from './storyboard-implementation.mjs';
+import {STORYBOARD_SHARED_REFERENCES, STORYBOARD_DESIGN_REFERENCES} from './storyboard-design.mjs';
 
 const RENDER_RELEVANT_PREFIXES = [
   "src/",
@@ -27,6 +29,11 @@ const RENDER_ALLOWED_FILES = new Set([
   "src/lib/motion.ts",
   "harness/src/cli.mjs",
   "harness/src/render-delivery.mjs",
+  "harness/src/render-backend.mjs",
+  "harness/src/local-render.mjs",
+  "harness/src/local-render-worker.mjs",
+  "harness/src/local-ffmpeg.mjs",
+  "harness/src/jobs.mjs",
   "harness/src/production-contract.mjs",
   "harness/src/production-lock.mjs",
   "harness/src/batch-delivery.mjs",
@@ -131,12 +138,19 @@ function isRenderRelevantPath(relativePath) {
 
 export function renderRequiredPaths(project) {
   return [
+    ...(usesAuthoredStoryboard(project) ? [...STORYBOARD_SHARED_REFERENCES, ...STORYBOARD_DESIGN_REFERENCES,
+      'harness/src/storyboard.mjs', 'harness/src/storyboard-design.mjs', 'harness/src/storyboard-rework.mjs',
+      'harness/src/storyboard-implementation.mjs'] : []),
     ...(project.config?.seriesSelection?.mode === 'series'
       ? ["src/components/SeriesCover.tsx", "src/components/VideoWithCover.tsx"] : []),
     "src/TemplateVideo.tsx",
     "src/lib/timing.ts",
     "harness/src/cli.mjs",
     "harness/src/render-delivery.mjs",
+    "harness/src/render-backend.mjs",
+    "harness/src/local-render.mjs",
+    "harness/src/local-render-worker.mjs",
+    "harness/src/local-ffmpeg.mjs",
     "harness/src/video-cover.mjs",
     "harness/src/render-preflight.mjs",
     "harness/src/render-input.mjs",

@@ -1,5 +1,6 @@
 export const UNIFIED_PRODUCTION_CONTRACT = "unified-v1";
 export const STORYBOARD_PRODUCTION_CONTRACT = "storyboard-v1";
+export const CURRENT_STORYBOARD_SCHEMA_VERSION = 3;
 export const PLANNING_STAGES = Object.freeze(["content-analysis", "video-narrative", "scene-script"]);
 
 export function productionContract(project) {
@@ -16,6 +17,28 @@ export function usesUnifiedProduction(project) {
 
 export function usesStoryboardProduction(project) {
   return productionContract(project) === STORYBOARD_PRODUCTION_CONTRACT;
+}
+
+// Historical contract parsing remains available to read existing records.
+// Production admission is deliberately separate and has no legacy fallback.
+export function usesCurrentProduction(project) {
+  const config = project.config ?? project;
+  return productionContract(project) === STORYBOARD_PRODUCTION_CONTRACT
+    && config.storyboardSchemaVersion === CURRENT_STORYBOARD_SCHEMA_VERSION;
+}
+
+export function assertCurrentProduction(project) {
+  if (!usesCurrentProduction(project)) throw Object.assign(new Error(
+    "当前生产仅使用 storyboard-v1 的现行分镜契约。此项目资料尚未符合当前规则，请使用 storyboard-rework prepare 查看正常返工范围；不能继续旧流程或仅修改版本字段。",
+  ), { code: "production-rework-required", slug: (project.config ?? project).slug });
+}
+
+export function assertCurrentCreation(config = {}) {
+  assertCurrentProduction({
+    productionContract: STORYBOARD_PRODUCTION_CONTRACT,
+    storyboardSchemaVersion: CURRENT_STORYBOARD_SCHEMA_VERSION,
+    ...config,
+  });
 }
 
 export function planningStages(project) {

@@ -523,6 +523,8 @@ async function serveAction(response, request, pathname, runtime) {
       return true;
     }
     const files = initializeProject(slug, {
+      ...(body.productionContract === undefined ? {} : { productionContract: body.productionContract }),
+      ...(body.storyboardSchemaVersion === undefined ? {} : { storyboardSchemaVersion: Number(body.storyboardSchemaVersion) }),
       workflow: typeof body.workflow === "string" ? body.workflow : projectView.workflow ?? "default",
       ...(body.workflowVersion === undefined ? {} : { workflowVersion: Number(body.workflowVersion) }),
     });

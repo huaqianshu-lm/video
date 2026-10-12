@@ -13,6 +13,8 @@ import {createRemoteJobMonitor} from './remote-jobs.mjs';
 import {createGitHubActionsAdapterFromEnv} from './adapters.mjs';
 import {retryStage, validateStage} from './runner.mjs';
 import {assertProductionTaskOwner} from './production-lock.mjs';
+import {resolveRenderBackend} from './render-backend.mjs';
+import {runLocalRenderDelivery} from './local-render.mjs';
 
 export function readRenderMethod(project, options = {}) {
   const saved = read(path.join(project.config.workspaceRoot, 'local/render-method.json'));
@@ -119,6 +121,11 @@ export async function runRenderDelivery(action, slug, options = {}, dependencies
   const load = dependencies.loadProject ?? loadProject;
   const project = load(slug, {refresh: false});
   assertProjectMutable(project, 'Agent 单条视频渲染交付');
+  const previousSession = readRenderDeliverySession(project);
+  const backend = resolveRenderBackend({backend: options.backend, session: previousSession, batchId: options.batchId,
+    remoteOptions: ['repository', 'inputRepository', 'ref', 'baselineRun'].some(key => options[key] !== undefined)});
+  if (previousSession && (previousSession.jobId || action !== 'prepare') && backend !== (previousSession.backend ?? 'github')) fail('render-backend-changed', '已有计划／任务必须恢复原方式，不能切换方式。');
+  if (backend === 'local') return runLocalRenderDelivery(action, project, options, dependencies);
   assertProductionTaskOwner(project);
   if (action === 'prepare' && !['render', 'gate-3'].includes(project.state.currentStage)) assertRenderStageReady(project, '准备 Agent 渲染交付');
   const workspace = path.resolve(project.config.workspaceRoot);
@@ -155,7 +162,7 @@ export async function runRenderDelivery(action, slug, options = {}, dependencies
       job = jobsFor().find(item => item.id === job.id);
     }
     checkpoint({jobId: job.id, phase: job.status === 'succeeded' ? 'gate-4' : 'rendering'});
-    return {status: job.status, job, next: job.status === 'succeeded' ? '用户下载视频并进行 Gate 4 验收' : `render-delivery resume ${slug}`};
+    return {backend: 'github', status: job.status, job, next: job.status === 'succeeded' ? '用户下载视频并进行 Gate 4 验收' : `render-delivery resume ${slug}`};
   };
   if (!['prepare', 'start', 'resume'].includes(action)) fail('render-delivery-action-invalid', 'render-delivery 仅支持 prepare、start、resume。');
   if (action === 'prepare') {
@@ -171,18 +178,23 @@ export async function runRenderDelivery(action, slug, options = {}, dependencies
       if (issues.length) fail('render-preview-invalid', issues.map(item => item.message).join('；'));
     } else if (!(retry && project.state.currentStage === 'render' && project.state.stages.render.status === 'failed')) assertRenderStageReady(project, '准备 Agent 渲染交付');
     if (retry && project.state.stages.render.status === 'failed') retryStage(project, 'render');
+    // Persist the chosen backend before publication, so interrupted preparation
+    // cannot fall through to the new local default on a later prepare.
+    checkpoint({schemaVersion: 1, backend: 'github', slug, workspace, method, phase: 'preparing',
+      plan: null, confirmedPlan: null, commit: null, jobId: null});
     const {publication} = await prepareVerifiedRenderInput(project, method, options, dependencies);
     const plan = planFor();
     if (plan.branch !== method.ref || plan.outOfScopePaths.length) fail('render-delivery-plan-out-of-scope', '交付分支不一致或存在范围外的渲染改动，请先整理独立交付工作区。');
-    checkpoint({schemaVersion: 1, slug, workspace, method, phase: 'awaiting-confirmation', plan,
+    checkpoint({schemaVersion: 1, backend: 'github', slug, workspace, method, phase: 'awaiting-confirmation', plan,
       publication, preparedAt: new Date().toISOString(), confirmedPlan: null, commit: null, jobId: null});
-    return {status: 'awaiting-confirmation', planId: plan.planId, files: plan.commitPaths,
+    return {backend: 'github', status: 'awaiting-confirmation', planId: plan.planId, files: plan.commitPaths,
       input: publication, next: `用户确认上述精确清单后：render-delivery start ${slug} --confirm-plan ${plan.planId}`};
   }
   if (!session || session.slug !== slug || session.workspace !== workspace) fail('render-delivery-session-missing', '缺少当前工作区的单条交付记录，请先 prepare。');
   const existing = session.jobId ? jobsFor().find(job => job.id === session.jobId)
     : jobsFor().find(job => Date.parse(job.createdAt) >= Date.parse(session.preparedAt));
   if (existing) return recoverJob(existing);
+  if (!session.plan) fail('render-delivery-preparation-incomplete', '上次准备尚未完成，请先 prepare 恢复输入发布与计划。');
   if (!session.confirmedPlan) {
     if (action !== 'start' || options.confirmPlan !== session.plan.planId) fail('render-delivery-confirmation-required', '必须先获得用户对精确文件清单的确认，再使用 start --confirm-plan <planId>。');
     const report = await preflight();
@@ -230,7 +242,7 @@ export async function renderDeliveryCli(args, dependencies = {}) {
   const [action, slug, ...rest] = args;
   if (!slug || !/^[a-z0-9][a-z0-9-]*$/.test(slug)) fail('render-delivery-slug-invalid', '需要有效视频 slug。');
   const names = {'--repository': 'repository', '--input-repository': 'inputRepository', '--ref': 'ref',
-    '--baseline-run': 'baselineRun', '--component-file': 'componentFile', '--component-export': 'componentExport', '--confirm-plan': 'confirmPlan', '--retry-job': 'retryJob'};
+    '--baseline-run': 'baselineRun', '--component-file': 'componentFile', '--component-export': 'componentExport', '--confirm-plan': 'confirmPlan', '--retry-job': 'retryJob', '--backend': 'backend'};
   const options = {};
   for (let i = 0; i < rest.length; i += 1) {
     if (rest[i] === '--json') continue;

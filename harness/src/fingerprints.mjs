@@ -1,4 +1,5 @@
 import { storyboardReview } from "./storyboard.mjs";
+import { storyboardSchemaVersion, storyboardDesignReferences, STORYBOARD_SHARED_REFERENCES } from "./storyboard-design.mjs";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
@@ -66,6 +67,10 @@ export function fingerprintStageArtifacts(project, stage) {
     if (fs.existsSync(directory)) for (const file of fs.readdirSync(directory).sort()) {
       if (/\.(tsx?|json)$/.test(file)) hashFile(hash, project.config.workspaceRoot, `${project.config.remotionDirectory}/${file}`);
     }
+    if (usesStoryboardProduction(project) && storyboardSchemaVersion(project) >= 2) for (const file of STORYBOARD_SHARED_REFERENCES) hashFile(hash, project.config.workspaceRoot, file);
+    if (usesStoryboardProduction(project) && storyboardSchemaVersion(project) >= 2) {
+      hashFile(hash, project.config.workspaceRoot, `${project.config.sourceDirectory}/remotion-viewing-evidence.json`);
+    }
   }
   return hash.digest("hex");
 }
@@ -81,5 +86,7 @@ export function fingerprintTaskInputs(project, stages) {
     const cover = project.config.seriesSelection;
     if (cover?.mode === "series" && /^local-assets\/[a-z0-9-]+\/cover\/[a-f0-9]{64}\.(png|jpg|webp)$/.test(cover.src ?? "")) hashFile(hash, project.config.workspaceRoot, `public/${cover.src}`);
   }
+  if (usesStoryboardProduction(project) && storyboardSchemaVersion(project) >= 2) for (const file of storyboardDesignReferences(project)) hashFile(hash, project.config.workspaceRoot, file);
+  if (usesStoryboardProduction(project) && storyboardSchemaVersion(project) >= 2 && stages.includes("remotion")) for (const file of STORYBOARD_SHARED_REFERENCES) hashFile(hash, project.config.workspaceRoot, file);
   return hash.digest("hex");
 }

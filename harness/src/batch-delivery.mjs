@@ -1,8 +1,9 @@
 import { buildBatchGitRenderCommitPlan, commitAndPushBatchRenderDelivery, validateGitRenderDelivery } from "./git-delivery.mjs";
-import { loadProject } from "./storage.mjs";
+import { loadProject, assertProjectSlugMutable } from "./storage.mjs";
 import { readRenderInputDelivery, validateRenderInputDelivery } from "./render-input.mjs";
 import { validateRemoteRenderInputs, validateRemoteRenderPackage } from "./remote-executor.mjs";
 import { runRenderDelivery, readRenderMethod, renderMethodEnvironment, readRenderDeliverySession, checkpointRenderDelivery, checkVerifiedRenderPreparation } from "./render-delivery.mjs";
+import { resolveRenderBackend } from "./render-backend.mjs";
 
 const UNCOMMITTED_RENDER_ISSUE = /^渲染相关文件存在未提交修改：/;
 
@@ -52,7 +53,10 @@ export async function prepareBatchRenderDelivery(batch, {
   environment = process.env,
   prepareInputs = null,
   deliveryDependencies = {},
+  backend = 'github',
 } = {}) {
+  resolveRenderBackend({backend, batchId: batch.id});
+  for (const item of batch.items ?? []) assertProjectSlugMutable(item.slug, "准备批量渲染交付");
   if (batch?.type !== "to-render") {
     const error = new Error("批量交付预检只支持 to-render 批次");
     error.code = "batch-render-delivery-type-invalid";
@@ -76,7 +80,7 @@ export async function prepareBatchRenderDelivery(batch, {
     try {
       const method = readRenderMethod(project);
       environment = renderMethodEnvironment(method, environment);
-      preparation = await runRenderDelivery("prepare", item.slug, {}, { ...deliveryDependencies, environment,
+      preparation = await runRenderDelivery("prepare", item.slug, {backend: 'github', batchId: batch.id}, { ...deliveryDependencies, environment,
         ...(prepareInputs ? { prepareInputs } : {}) });
     } catch (error) {
       issues.push(errorMessage(error));
@@ -138,6 +142,7 @@ export async function commitPreparedBatchRenderDelivery(batch, {
   selectedPaths = null,
   deliveryDependencies = {},
 } = {}) {
+  for (const item of batch.items ?? []) assertProjectSlugMutable(item.slug, "启动批量渲染交付");
   const delivery = batch?.renderDelivery;
   if (!delivery || delivery.kind !== "batch-render-delivery") {
     const error = new Error("批量渲染尚未完成交付预检，请先准备交付计划");
@@ -189,7 +194,7 @@ export async function commitPreparedBatchRenderDelivery(batch, {
   }
   let result;
   if (recordedCommits.length) {
-    const recovered = await runRenderDelivery("resume", projects[0].config.slug, { commitOnly: true }, { ...deliveryDependencies, environment });
+    const recovered = await runRenderDelivery("resume", projects[0].config.slug, { backend: 'github', batchId: batch.id, commitOnly: true }, { ...deliveryDependencies, environment });
     result = { status: "committed", commit: recovered.commit, ...delivery.git };
   } else {
     result = commitAndPushBatchRenderDelivery(projects, { environment, deliveryPlanId, selectedPaths,
@@ -206,6 +211,7 @@ export async function assertCommittedBatchRenderDelivery(
     environment = deliveryDependencies.environment ?? process.env,
   } = {},
 ) {
+  for (const item of batch.items ?? []) assertProjectSlugMutable(item.slug, "恢复批量渲染交付");
   const delivery = batch?.renderDelivery;
   if (!delivery || delivery.kind !== "batch-render-delivery" || delivery.status !== "committed") {
     const error = new Error("批量渲染交付尚未完成 commit/push，不能派发");

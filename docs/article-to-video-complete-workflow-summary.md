@@ -1,6 +1,10 @@
-# 文章到视频：完整工作流总结
+# 文章到视频：早期工作流与案例背景
 
-> 版本边界：`storyboard-v1` 按 [Storyboard 生产契约](STORYBOARD-PRODUCTION-CONTRACT.md) 整合 Scene／Visual Script，Gate 2 审核口播与分镜，无 HTML 原型或旧动态自检要求；本文原型制作及观看要求只适用于旧契约。新契约保留视觉质量规则，实际动态检查在 Gate 3 完成。
+> 使用边界：本文保留早期 Claude Code 案例、原型探索及声音时间链的背景，不作为当前可执行生产手册。下文 Scene Script、Visual Script、HTML 原型、第一版／后续原型及示例文件名均是历史记录，不表示可选择或继续旧生产流程。
+>
+> 当前工作是在现有项目内迭代、优化唯一生产流程：Harness 调度 → 两份合并策划／Gate 1 内部检查 → 纯口播与 Storyboard／设计审计 → Gate 2 同版本冻结 → +25% TTS／真实字幕与 Timeline → Agent 编写的 Remotion／观看及正常速度试听 → Gate 3 → 共享交付 → Gate 4。现行格式标识只用于识别契约，不提供生产版本选择。
+>
+> 实际操作见 [当前资料职责流程](VIDEO-PROJECT-WORKFLOW.md)、[Storyboard 生产契约](STORYBOARD-PRODUCTION-CONTRACT.md)、[分镜质量契约](STORYBOARD-EXECUTION-QUALITY.md) 与 [渲染交付基线](RENDER-DELIVERY-BASELINE.md)。旧资料不满足要求时正常返工，completed 永久只读；实现与剩余验收见 ROADMAP.md。
 
 
 > 目标：把一篇文章重新演绎成一条独立的视频作品。  
@@ -46,9 +50,9 @@
 
 ---
 
-# 二、整体流程
+# 二、早期整体流程（历史背景）
 
-完整的视频内容设计与生产流程：
+该案例当时的视频内容设计与生产流程：
 
 ```text
 原始文章

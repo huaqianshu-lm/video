@@ -1,3 +1,4 @@
+import { usesCurrentProduction } from "./production-contract.mjs";
 import fs from "node:fs";
 import path from "node:path";
 import { matchesArtifactPath } from "./artifact-paths.mjs";
@@ -155,7 +156,7 @@ function projectWorkflowInput(slug) {
     && fs.existsSync(path.join(videosRoot(), definition.pathNamespace, slug)));
   return promoDefinition
     ? { config: { workflow: promoDefinition.id, workflowVersion: promoDefinition.version, slug } }
-    : { config: { workflow: "default", workflowVersion: 2, slug } };
+    : { config: { workflow: "default", workflowVersion: 2, slug, productionContract: "storyboard-v1", storyboardSchemaVersion: 3 } };
 }
 
 function buildUninitializedView(slug) {
@@ -229,9 +230,10 @@ function buildInitializedView(slug) {
     workflow: project.config.workflow,
     workflowVersion: project.config.workflowVersion,
     productionContract: project.config.productionContract ?? "legacy-v1",
+    ...(project.config.storyboardSchemaVersion === undefined ? {} : { storyboardSchemaVersion: project.config.storyboardSchemaVersion }),
     timelineMode: workflowForProject(project).timelineMode,
     audioMode: workflowForProject(project).audioMode,
-    batchSupported: workflowForProject(project).batchSupported !== false,
+    batchSupported: usesCurrentProduction(project) && workflowForProject(project).batchSupported !== false,
     readOnly: project.state.currentStage === "completed",
     style: resolveStyleId(project.config, slug),
     next: buildNextAction(project),

@@ -2,7 +2,7 @@
 
 ## 入口与选择
 
-新视频开始制作前，Agent 运行 `node harness/src/cli.mjs series list --json`，向用户显示实际系列名称、标识、风格和封面是否可用。提供「新建系列」和「不加入系列」，不得根据文章路径或名称自行选定。用户选择后运行 `series select <slug> <series-id|none>`。只允许在 Visual Script 开始前设置；后续修改需单独设计失效与重新审核流程，不能悄悄换封面。
+新视频开始制作前，Agent 运行 `node harness/src/cli.mjs series list --json`，向用户显示实际系列名称、标识、风格和封面是否可用。提供「新建系列」和「不加入系列」，不得根据文章路径或名称自行选定。用户选择后运行 `series select <slug> <series-id|none>`。当前生产只允许在口播／Storyboard 联合收敛开始前设置（运行时以 narration-script 阶段为边界）；后续修改需单独设计失效与重新审核流程，不能悄悄换封面。
 
 `series create <id> --title <名称> --style <风格>` 和 `series cover <id> --file <图片>` 复用现有系列配置与图片校验；上传图片仍须满足 16:9。已有已完成成员的系列不可改写封面。新成员的选择保存在自己的 `project.json` 和 `cover.json`，不重写已有系列成员或已完成视频。
 
@@ -15,7 +15,7 @@
 
 ## 消费与检查
 
-Agent 任务包携带系列选择与封面快照。Gate 2 原型须呈现封面及正文承接；Gate 3 用输入包生成的正式入口确认实际封面、时长和音画衔接，不能仅看正文组件。具体视频资源 ZIP 包含封面副本；输入包校验同时核对快照、Manifest 与 ZIP 内图片哈希。缺失、不一致或无效图片阻止包装／渲染；旧输入包无 `entry.cover` 时继续沿用原行为，已完成视频只读。
+Agent 任务包携带系列选择与封面快照。Gate 2 分镜方案须交代封面及正文承接，审核包冻结对应系列与封面；不要求 HTML 原型；Gate 3 用输入包生成的正式入口确认实际封面、时长和音画衔接，不能仅看正文组件。具体视频资源 ZIP 包含封面副本；输入包校验同时核对快照、Manifest 与 ZIP 内图片哈希。缺失、不一致或无效图片阻止包装／渲染；旧输入包无 `entry.cover` 时继续沿用原行为，已完成视频只读。
 
 ## 验收标准
 
@@ -25,4 +25,4 @@ Agent 任务包携带系列选择与封面快照。Gate 2 原型须呈现封面�
 - AC-4 [MUST] 输入包验证快照、Manifest 和资源 ZIP 图片哈希，阻止漏图与不一致。
 - AC-5 [MUST] completed 和旧无快照输入不被改写。
 
-本次涉及 CLI 发起入口、Agent 任务包、资源生产者、输入 Manifest、Studio／Runner 消费者、审核规则与文档；Web UI／批量仍沿用原入口，不迁移历史视频。代码检查不能替代下一条视频的实际 Gate 2／Gate 3 画面审核。
+本次涉及 CLI 发起入口、Agent 任务包、资源生产者、输入 Manifest、Studio／Runner 消费者、审核规则与文档；Web UI／批量仍沿用原入口，不自动改写历史视频。代码检查不能替代下一条视频的Gate 2 设计审核与 Gate 3 实际画面／试听验收。

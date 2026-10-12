@@ -1,4 +1,4 @@
-import { usesStoryboardProduction } from "./production-contract.mjs";
+import { usesStoryboardProduction, usesCurrentProduction } from "./production-contract.mjs";
 import { storyboardReview } from "./storyboard.mjs";
 import {
   retiredStageDefinition,
@@ -14,6 +14,8 @@ import { productionManualChecks } from "./production-contract.mjs";
 import { hasAssetSource } from "./asset-bundler.mjs";
 import { validateRemoteRenderPackage } from "./remote-executor.mjs";
 import { isGitWorkspace, validateGitRenderDelivery } from "./git-delivery.mjs";
+import fs from 'node:fs';
+import path from 'node:path';
 
 function commandFor(project, command, stage = null) {
   const suffix = stage ? ` ${stage}` : "";
@@ -37,6 +39,9 @@ function isBlockingPreExecutionIssue(project, stage, issue) {
 
 function remoteDeliveryIssues(project, stage) {
   if (!(stage === "render" && isGitWorkspace(project.config.workspaceRoot))) return [];
+  const sessionFile = path.join(project.config.workspaceRoot, 'local/render-input', `${project.config.slug}.agent-delivery.json`);
+  const session = fs.existsSync(sessionFile) ? JSON.parse(fs.readFileSync(sessionFile, 'utf8')) : null;
+  if (!session || session.backend === 'local') return [];
   return [
     ...validateRemoteRenderPackage(project).map((message) => ({
       code: "remote-render-inputs-invalid",
@@ -69,13 +74,20 @@ export function buildNextAction(project) {
   }
 
   const stage = project.state.currentStage;
+  if (!usesCurrentProduction(project)) return {
+    currentStage: stage, status: project.state.stages[stage]?.status ?? "unknown",
+    action: "rework-required", requiresUser: true,
+    message: "资料尚未符合当前生产规则，请先准备正常返工；旧流程不能继续执行。",
+    commands: [commandFor(project, 'storyboard-rework') + ' prepare --reason "按当前生产规则重新制作"'],
+    issues: [{ code: "production-rework-required", severity: "error", stage, message: "需要按当前规则返工，旧审核不能作为当前版本批准。" }],
+  };
   const item = project.state.stages[stage];
   const activeTask = activeProductionTask(project);
   if (activeTask) return {
     currentStage: stage, status: item.status, action: "wait", requiresUser: false,
     taskId: activeTask.id, mode: activeTask.mode,
     message: `任务 ${activeTask.id} 已由 ${activeTask.mode} 领取，请恢复同一任务。`,
-    commands: activeTask.mode === "dialogue" ? [`node harness/src/cli.mjs production-task resume ${activeTask.id}`] : [], issues: [],
+    commands: activeTask.mode === "dialogue" ? [`node harness/src/cli.mjs production-task resume ${activeTask.id}`] : activeTask.mode === 'local-render' ? [commandFor(project, 'render-delivery resume')] : [], issues: [],
   };
   const definition = workflowStageDefinition(project, stage);
   if (!definition) {

@@ -5,7 +5,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { spawn } from "node:child_process";
 import { packageVideoAssets } from "./asset-bundler.mjs";
-import { assertProjectSlugMutable } from "./storage.mjs";
+import { assertProjectSlugMutable, loadProject } from "./storage.mjs";
+import { saveTtsGenerationRecord, ttsScriptFingerprint } from "./tts-generation.mjs";
 
 const DEFAULT_VOICE = "zh-CN-XiaoxiaoNeural";
 const DEFAULT_RATE = "+25%";
@@ -143,9 +144,13 @@ export async function runTtsHarnessAdapter(payload, { spawnProcess = runProcess 
   const slug = payload.videoId;
   if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) fail(`videoId 不是合法 slug：${slug}`, "tts-input-invalid");
   assertProjectSlugMutable(slug, "生成 TTS 产物");
+  const project = loadProject(slug, { refresh: false });
+  if (path.resolve(project.config.workspaceRoot) !== workspaceRoot) fail("TTS 工作区与已登记项目不一致", "tts-path-invalid");
+  const startedAt = new Date().toISOString();
 
   const inputPath = safePath(workspaceRoot, payload.input.ttsScript, "TTS Script 路径");
   ensureFile(inputPath, "冻结的 tts-script.json");
+  const inputFingerprint = ttsScriptFingerprint(workspaceRoot, slug);
   const ttsScript = loadJson(inputPath, "冻结的 tts-script.json");
   if (ttsScript.videoId !== slug) fail(`tts-script.json 的 videoId 不匹配：${ttsScript.videoId}`, "tts-input-invalid");
   if (!Array.isArray(ttsScript.scenes) || ttsScript.scenes.length === 0) fail("tts-script.json 缺少 scenes", "tts-input-invalid");
@@ -170,7 +175,9 @@ export async function runTtsHarnessAdapter(payload, { spawnProcess = runProcess 
 
   const scriptHash = crypto.createHash("sha256").update(fs.readFileSync(inputPath)).digest("hex").slice(0, 16);
   const cacheRoot = path.resolve(process.env.HARNESS_TTS_CACHE_DIR || path.join(workspaceRoot, "harness", ".cache", "tts"));
-  const runRoot = path.join(cacheRoot, `${slug}-${scriptHash}`);
+  const task = payload.executionTask;
+  if (task && (!/^[a-zA-Z0-9-]+$/.test(task.id ?? "") || !Number.isInteger(task.attempt) || task.attempt < 1 || typeof task.inputFingerprint !== "string" || !task.inputFingerprint || !Number.isFinite(Date.parse(task.startedAt)))) fail("TTS 任务标识或输入绑定不合法", "tts-input-invalid");
+  const runRoot = task ? path.join(cacheRoot, `${slug}-${scriptHash}`, task.id) : path.join(cacheRoot, `${slug}-${scriptHash}`);
   const assetsRoot = path.join(runRoot, "video-assets");
   const stagedScript = path.join(assetsRoot, "tts-script.json");
   fs.mkdirSync(assetsRoot, { recursive: true });
@@ -204,7 +211,8 @@ export async function runTtsHarnessAdapter(payload, { spawnProcess = runProcess 
   const publicAssets = path.join(workspaceRoot, "public", "local-assets", slug);
   copyTree(path.join(assetsRoot, "audio"), path.join(publicAssets, "audio"));
   copyTree(path.join(assetsRoot, "subtitles"), path.join(publicAssets, "subtitles"));
-  const assetBundle = packageVideoAssets({ config: { slug, workspaceRoot } });
+  const assetBundle = packageVideoAssets(project);
+  const generationRecord = task ? saveTtsGenerationRecord({ root: workspaceRoot, slug, task, inputFingerprint, startedAt, cacheDirectory: path.relative(workspaceRoot, runRoot) }) : null;
   return {
     executor: "tts-harness-adapter",
     videoId: slug,
@@ -214,6 +222,7 @@ export async function runTtsHarnessAdapter(payload, { spawnProcess = runProcess 
     assetBundle: assetBundle.archiveRelativePath,
     scenes: manifests.timeline.scenes.length,
     duration: manifests.timeline.duration,
+    ...(generationRecord ? { generationRecord } : {}),
     outputs: [
       path.relative(workspaceRoot, outputAudioManifest),
       path.relative(workspaceRoot, outputSubtitleManifest),

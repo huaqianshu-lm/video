@@ -1,5 +1,6 @@
 import fs from "node:fs";
-import { productionContract, UNIFIED_PRODUCTION_CONTRACT, usesUnifiedProduction, usesStoryboardProduction } from "./production-contract.mjs";
+import {randomUUID} from 'node:crypto';
+import { productionContract, STORYBOARD_PRODUCTION_CONTRACT, CURRENT_STORYBOARD_SCHEMA_VERSION, assertCurrentProduction, usesCurrentProduction, usesUnifiedProduction, usesStoryboardProduction } from "./production-contract.mjs";
 import { activeProductionTask, assertProductionTaskOwner } from "./production-lock.mjs";
 import path from "node:path";
 import {
@@ -78,7 +79,7 @@ export function isCompletedProject(projectOrSlug) {
   return inMemoryCompleted || existingProjectState(slug)?.currentStage === "completed";
 }
 
-export function assertProjectMutable(projectOrSlug, operation = "修改") {
+export function assertProjectMutable(projectOrSlug, operation = "修改", { allowRework = false } = {}) {
   const slug = typeof projectOrSlug === "string"
     ? projectOrSlug
     : projectOrSlug?.config?.slug ?? projectOrSlug?.state?.slug;
@@ -87,6 +88,10 @@ export function assertProjectMutable(projectOrSlug, operation = "修改") {
     ? (fs.existsSync(projectFiles(slug).config) ? readJson(projectFiles(slug).config) : null)
     : projectOrSlug?.config;
   if (config?.workflow === ARCHIVED_WORKFLOW_ID) throw retiredWorkflowError();
+  if (config && !allowRework) {
+    assertCurrentProduction(config);
+    if (slug && fs.existsSync(projectFiles(slug).config)) assertCurrentProduction(readJson(projectFiles(slug).config));
+  }
   return projectOrSlug;
 }
 
@@ -99,7 +104,14 @@ export function writeJson(filePath, value) {
   const slug = projectSlugForPath(filePath);
   if (slug && isCompletedProject(slug)) throw completedProjectError(slug, "写入项目及其相关产物");
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
-  fs.writeFileSync(filePath, `${JSON.stringify(value, null, 2)}\n`, "utf8");
+  const temporary = path.join(path.dirname(filePath), `.${path.basename(filePath)}.${process.pid}.${randomUUID()}.tmp`);
+  try {
+    fs.writeFileSync(temporary, `${JSON.stringify(value, null, 2)}\n`, "utf8");
+    if (slug && isCompletedProject(slug)) throw completedProjectError(slug, "替换项目及其相关产物");
+    fs.renameSync(temporary, filePath);
+  } finally {
+    if (fs.existsSync(temporary)) fs.rmSync(temporary);
+  }
 }
 
 export function readJson(filePath) {
@@ -111,10 +123,11 @@ export function initializeProject(slug, {
   prototypeBaseline = "codex-v1",
   workflow = DEFAULT_WORKFLOW_ID,
   workflowVersion = null,
-  productionContract: requestedProductionContract = UNIFIED_PRODUCTION_CONTRACT,
+  productionContract: requestedProductionContract = STORYBOARD_PRODUCTION_CONTRACT,
+  storyboardSchemaVersion = CURRENT_STORYBOARD_SCHEMA_VERSION,
 } = {}) {
   const files = projectFiles(slug);
-  productionContract({ productionContract: requestedProductionContract });
+  assertCurrentProduction({ productionContract: requestedProductionContract, storyboardSchemaVersion });
   if (fs.existsSync(files.config) || fs.existsSync(files.state) || fs.existsSync(files.artifacts)) {
     throw new Error(`Harness project already exists: ${slug}`);
   }
@@ -155,6 +168,7 @@ export function initializeProject(slug, {
     workflow,
     workflowVersion: persistedWorkflowVersion,
     productionContract: requestedProductionContract,
+    storyboardSchemaVersion,
     style: resolveStyleId(style ? { style } : {}, slug),
     target: workflowDefinition.stages.at(-1),
     createdAt: now,
@@ -237,7 +251,7 @@ export function loadProject(slug, { refresh = true } = {}) {
   };
   productionContract(project);
   if ((usesStoryboardProduction(project) && (workflowStages(project).some(stage => !project.state.stages[stage]) || ["scene-script", "visual-script", "visual-prototype"].some(stage => project.state.stages[stage]))) || (!usesStoryboardProduction(project) && project.state.stages.storyboard)) {
-    throw Object.assign(new Error("Storyboard 契约与持久化阶段不一致；禁止只修改字段迁移。请从原契约使用 storyboard-migration，或恢复同一迁移版本。"), { code: "production-contract-state-mismatch" });
+    throw Object.assign(new Error("Storyboard 契约与持久化阶段不一致；禁止只修改字段。请恢复同一 storyboard-rework 返工计划。"), { code: "production-contract-state-mismatch" });
   }
   if (refresh) refreshProject(project);
   return project;
@@ -313,6 +327,7 @@ export function reconcileCurrentRemotionOutput(project) {
 export function refreshProject(project) {
   if (isCompletedProject(project)) return { changed: false, stage: null, readOnly: true };
   productionContract(project);
+  if (!usesCurrentProduction(project)) return { changed: false, stage: null, reworkRequired: true };
   if (activeProductionTask(project)) return { changed: false, stage: null, taskActive: true };
   const stages = workflowStages(project);
 

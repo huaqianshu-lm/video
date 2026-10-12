@@ -8,16 +8,21 @@ import { findActiveBatchForProject, getBatchForView } from "../../batches.mjs";
 import { listAgentJobs } from "../../agent-jobs.mjs";
 import { usesStoryboardProduction } from "../../production-contract.mjs";
 import { buildStoryboardReview } from "../../storyboard-review.mjs";
+import {readRenderDeliverySession} from '../../render-delivery.mjs';
+import {refreshLocalRenderJobs} from '../../local-render.mjs';
 
 export async function getProjectWorkspace(slug, { remoteJobMonitor = null } = {}) {
   let project = getVideoProject(slug);
   if (!project) return null;
+  if (project.initialized && project.currentStage !== 'completed') await refreshLocalRenderJobs(slug);
+  project = getVideoProject(slug);
   if (project.initialized && remoteJobMonitor) {
     await remoteJobMonitor.poll();
     project = getVideoProject(slug);
   }
 
   const jobs = listJobs(slug);
+  const delivery = project.initialized ? readRenderDeliverySession(loadProject(slug, {refresh: false})) : null;
   const workspace = {
     project,
     files: listProjectFiles(slug),
@@ -28,6 +33,7 @@ export async function getProjectWorkspace(slug, { remoteJobMonitor = null } = {}
     remotionTasks: listRemotionTasks({ slug }).map(remotionTaskForView),
     continuousBatch: null,
     storyboardReview: null,
+    renderBackend: delivery ? delivery.backend ?? 'github' : 'local',
   };
 
   if (project.initialized) {

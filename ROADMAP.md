@@ -7,13 +7,15 @@
 
 ## 当前阶段
 
-- Storyboard 生产契约在 `feat/harness-unified-production` 分支迁移中：共享任务、Gate 2 口播／分镜审核、版本冻结与失效、真实 Cue 映射、Remotion schema 3、输入包及显式旧项目迁移已实现，351 项适用回归分批通过（单次并行两组超时，独立运行通过）。默认仍为 `unified-v1`；旧项目不自动迁移、completed 永久只读。14-workflows 已通过 Gate 2／Gate 3 人工验收；Web 页面、真实新契约交付及跨视频验收未完成。契约见 `docs/STORYBOARD-PRODUCTION-CONTRACT.md`，验收见 `local/storyboard-migration/acceptance.md`。
-- `13-prompting` 已获用户本片一次性 Gate 4 验收并进入 completed，永久只读；正常速度试听和 Codex 风格令牌机器检查的例外不能用于后续视频。Run 与一次性接受记录见本地资料，通用验证流程未改变。
+- 按用户明确要求移除统一画面执行器、自动组件生成、固定动作白名单和演示入口；改由 Agent 按冻结分镜编写 React／Remotion。文档与代码已同步；相关隔离任务／输入包／Gate 检查52／52通过，通用 Root 类型检查通过，第15条正式片已完成本地渲染并通过 Gate 4；规则跨视频验收待后续验证。证据见 local/remove-storyboard-renderer/及本条本地渲染Job。
+- 教程片审美与感官要求已接入规则 14.4、设计审计／观看证据说明、制作 Skill、共享任务包和 Gate 2／3 页面提示；调校配方按 9.7 留证并区分候选与实际验证。权威规则及配方模板加入现有输入指纹，格式／阶段不变；定向 4 项检查通过，第 15 条通过 Gate 3 实际画面与试听审核、完成渲染并通过 Gate 4；配方复用及跨视频验收仍待验证，流程证据见 `local/aesthetic-review-integration/acceptance.md`。
+- `16-security`：第三版Gate 2、Gate 3及本地完整渲染均已通过；Gate 4经用户确认并于2026-10-12 06:03 UTC由Harness批准，状态进入 `completed`，该视频永久只读。首次Job在受限环境启动Chromium失败；同计划重试Job `c8d4bc85-bd2f-4423-879a-cd438f82db0c` 成功，耗时2237.69秒。输出 `out/local-render/16-security/c8d4bc85-bd2f-4423-879a-cd438f82db0c/16-security.mp4`，18,290,770字节，SHA-256 `4a03d0f6e5146ba8765156ea26701e6f86c9db5c1606bb59e2c45ad79503ec16`；1920×1080、30fps、9939帧、H.264/AAC，规格与整片解码检查通过。证据见 `local/remotion/16-security/` 与该Job的 `result.json`。
+- 当前生产流程迭代已落实到代码与入口：新建统一 storyboard-v1／现行分镜契约，旧流程与旧格式停止生产，不提供版本选择；资料不足通过正常返工重做，不自动改写历史视频。Shot内部分镜格式3及其上下游已同步，最新定向78项通过，completed 与全部实际视频资料保持原样。实际画面／试听、Web 手动检查、真实交付与跨视频验收仍未完成，不能把入口检查当成整流程质量验收。收敛见 `local/current-production-iteration/acceptance.md`。
 - `12-slash-commands` 已通过 Gate 4 并进入 `completed`，后续永久只读。用户已检查成片并确认无问题；Run `37254126010` 成功，head_sha 与推送提交 `151e9c11080e9c0afa1bd6ebe025a72ac0617db2` 一致，Artifact `11322455206` 为 5,389,975 bytes 且未过期。渲染使用 Composition ID `12-slash-commands`、输入包 SHA-256 `1e3e0396de194e817d04a8411c2536d12189fae81a100b70588f57bda6349189`；交付代码只包含 `harness/src/render-delivery.mjs` 和 `harness/src/render-input.mjs`。 `11-agents-md` 完整 Render Run `37202648340` 成功，Artifact 非空且有效，head_sha 与交付提交 `1d5550b` 一致；用户确认成片无问题、封面存在，Gate 4 已通过，Harness 为 `completed`，后续永久只读。 Agent 系列封面已通过 `11-agents-md` 原型、Gate 3 与最终成片人工验收；目录 Studio 一致性与封面精确帧数尚未单独实测，剩余项见 drafts 验证清单。
-- 通用反 PPT 视觉原型和 Gate 2 自检能力已合入 `main` 并通过专项验证；实际画面仍须由人工在 Gate 2／Gate 3 检查。`project-structure` 原型尚未实际观看，Gate 2 未通过。
-- Agent 单条固定 `render-delivery prepare／start／resume` 已用 `11-agents-md` 走通真实发布绑定、确认后提交推送、派发、同一 Job 恢复及 Gate 4；12个渲染必需文件已提交推送。中断分支未全部在实片触发；Web UI／批量不在本次范围。
 
 ## 历史状态记录（旧状态，仅供追溯）
+
+以下为当时的实现与视频记录，不代表当前可执行流程、现存视频清单或有效审核。当前唯一生产流程与未完成视频返工规则以 CLAUDE.md 和当前契约为准。
 
 - 宣传片生产能力本地退役完成：生产目录仅提供口播教程；专项定义／校验／测试和三份本地方案已删除，历史宣传片仅保留只读元数据与 5 个预览依赖。303 项适用回归分批通过，TypeScript／隔离 Studio 入口／差异检查通过；24 条已完成视频及依赖共 2,111 个文件无修改、新增或删除。验收见 `local/workflow-retirement/acceptance.md`；退役内容已提交并推送到 main（e2306fc），未调用真实 TTS 或远程 Render，下一次真实教程仍按既有基线与 Gate 验证。
 
@@ -74,6 +76,8 @@
 
 
 ## 历史完成记录（旧记录，仅供追溯）
+
+以下旧入口与历史完成接管仅记载当时事实，不能作为当前生产操作指引。
 
 - 2026-09-13：修复 `07-desktop-app` 当前 Remotion 交付预检的 41 个阻塞；10 个 Scene 已补齐命名 `visualBindings`、`visualElements` 和 `implementationSymbols`，场景实现移除固定间隔时间推算，Composition 校验改为识别本地 `RenderInputRoot.tsx`；Remotion 校验阻塞清零，未提交远程任务，等待 Gate 3 人工确认。
 - 2026-09-13：修正 Harness Web UI 启动时未继承远程输入包配置的问题；`harness:web` 现在显式加载持久化 Shell 配置，重启后的 Web UI 诊断已确认 Token、仓库、输入包 URL/SHA 和两个 workflow 全部可用；未执行 Smoke Render 或完整渲染。
@@ -186,22 +190,29 @@
 
 ## 进行中
 
-- Storyboard 迁移尚有 partial：AC-3 的实片 Web 页面人工验收，AC-8 的全部强制中断窗口、AC-10 的新契约真实交付与 AC-12 跨视频验收待完成；AC-11 单次并行回归的超时稳定性待复核；默认切换待端到端验收。保留原 AC，证据见 `local/storyboard-migration/acceptance.md`。
-- 统一调度既有验收仍有缺口：强制杀进程的全部落盘窗口、宿主远端交付及跨入口／跨视频验收未完成。`14-workflows` 已显式迁移为 `storyboard-v1`，由对话领取并完成 8 幕／30 事件分镜任务，新 Gate 2 已获用户人工批准并按展示版本冻结，已从实际 CLI 生成 +25% TTS、字幕和 Timeline，并完成对话 Remotion 任务，用户已通过 Gate 3，Harness 同时记录当前音频审核，当前 render 待交付；不声称逐事件穷举完成。
-- 封面 AC-2～AC-5 的实际选择／包装／Studio／Runner 路径未验证；下一条新视频按 drafts 验证清单的 CV-1～CV-5 完成，不能仅凭静态检查宣告迁移结束。
-- 视觉质量实际验收未完成：动态防遮挡规则尚无自动识别能力；官方动效组件修正的实际画面、整体样片与跨视频验证仍待完成，详情见 `docs/MOTION-COMPONENTS.md`。
-- 固定交付尚缺隔离工作区 Studio 入口自动生成／前置检查及 Codex 风格令牌的正常实片验证；不得依赖既有单片手工恢复与例外。
+- Shot 通用流程程序已接入，固化中／待实片及跨视频验证：格式3、设计审计2、冻结5、alignment5、观看证据2同步，CLI／HTTP／批量及输入包的定向78／78通过；不增加阶段、Gate、统一画面生成器或自动审查调用。真实观看／试听、人工Gate、真实交付及跨视频仍待验，见 `local/shot-implementation/acceptance.md`；本轮第15条当前Gate 2已冻结、正式浅色实现已同步，实际完整观看／试听及人工Gate 3待验。原统一调度的强杀落盘、宿主交付及跨入口／跨视频缺口继续保留于相关验收清单。
+- 当前生产迭代的实际质量验收待完成：代码与定向入口检查已通过，Web 手动观看、正常速度试听、真实新片／交付与跨视频仍未验；正式 npm run check 受第15条相关代码的既有类型错误阻断，通用能力专项检查通过。不得修改作废或 completed 视频来凑通过，后续按独立新视频与人工 Gate 验收。 封面实际选择／包装／Studio／Runner 和动态防遮挡／动效实际画面亦待验收，分别见 drafts 的 CV-1～CV-5 及 `docs/MOTION-COMPONENTS.md`。
+- TTS 首次执行申请已补齐授权证据清单，并接入 Harness 的 TTS 任务包提示；当前项目授权记录保存在被忽略的 local/tts/external-service-authorization.md。实际 CLI 任务包检查、相关回归 3／3、语法与差异检查通过。未修改工具审批或网络配置，机器约束／跨视频首次申请验证待完成，不保证审批放行。
+
+- 统一执行器方案按用户要求停止，原 Phase C 实片计划被替代；Agent 编写画面的真实新片、完整交付及跨视频验收待完成。制作与流程变更边界已写入权威契约及 Skill，仅操作规则已补齐；自动识别未经授权强制工具／表达限制的机器约束、实际入口及跨视频验证未落实。生命周期、同 Cue 时间阻断和人工 Gate 继续保留，旧模拟回归不作为新实现的整体验收依据。
+- 本地渲染 AC-1～AC-4 为 partial：代码及文档已接入，本地专项 34/34、全量 392/392 通过（模拟编码／浏览器，真实 CLI／HTTP 分派）；真实入口整片、所有强制中断落盘窗口的穷举及跨视频成片验收待完成；AC-5 保持接入中标记。固定远程交付仍缺隔离 Studio 入口及风格令牌正常实片验证。原样本 `15-permissions` 已由用户作废，不再作为后续实片及跨视频验收样本；收敛清单见 `local/local-render-integration/acceptance.md`。 本轮成片命名已改为 `<slug>.mp4`，路径为 `out/local-render/<slug>/<jobId>/<slug>.mp4`，prepare 展示同步；命名／重试目录隔离、语法及差异检查通过。旧 Job 仍消费原记录路径。实际 CLI 模拟渲染回归因旧 legacy-v1 fixture 在初始化时被当前生产契约拒绝，尚未验证新路径的完整入口；后续用当前契约 fixture 补验，不修改已完成视频。
 
 ## 下一步
 
-- `14-workflows` 已通过 Gate 3，下一步按共享 render-delivery 入口准备真实交付，展示精确文件清单后获得明确授权再提交／推送／派发；本次尚未执行渲染。证据见 `local/storyboard-migration/14-workflows/gate3-human-acceptance.json`。
-- 手动查看 Web 分镜页面并走相同版本的批准／驳回，验证批量适用入口；再用另一条未完成／新视频完成跨视频验收。受影响端到端路径验收后切换新建默认值，不修改 completed 视频。
+- 教程片量化基线已接入 `docs/VIDEO-PRODUCTION-RULES.md` 9.6 及制作 Skill／设计审计模板；后续未完成或新视频按适用 Gate 记录采用值、偏离及实际观看／试听证据。当前仅规则接入，机器参数校验与跨视频实片验证未完成，不回写 completed 视频。
+- `15-permissions-v3` 已通过 Gate 3 与 Gate 4 并进入 `completed`，后续永久只读。正式本地渲染入口在本条已验证；共享入口的跨视频固化仍需用另一条未完成／新视频验证。
+- 手动查看 Web 分镜页面并走相同版本的批准／驳回，验证批量适用入口；再用另一条未完成／新视频完成跨视频验收。新建默认已统一当前流程；继续完成实际画面与交付验收，不修改 completed 视频。
 - 新契约远程交付和渲染按既有精确清单授权与共享交付入口验证；同步修复固定交付 Studio 入口与风格令牌正常检查。
-- 后续改动遵守 `docs/HARNESS-PRODUCTION-CONTRACT.md` 的回归要求，运行 `npm run test:production --prefix harness`；改动其他模块时运行全量回归，新增恢复窗口同步补测试。
+- 后续改动默认只验证本次修改及其直接受影响行为；只有用户明确要求整套测试时才运行整套生产回归或全项目回归。范围按 `docs/HARNESS-PRODUCTION-CONTRACT.md` 执行，新增恢复窗口只补相关测试。
 
 ## 阻塞
 
-- `14-workflows` 的 Gate 2 人工批准已记录并冻结，当前无 Gate 2 阻塞；真实 TTS、Remotion 与机器检查已完成，Gate 3 用户批准已由 Harness 记录，当前无 Gate 3 阻塞；后续真实交付尚未执行。
+- `16-security` 的分镜冲突已修复并获新版Gate 2；Edge403失败事实保留，用户本次明确允许复用本条既有成功TTS，文本／生成记录／字节核验通过且Harness已应用。当前仅完整动态观看和正常速度试听待验，不改通用TTS默认。
+
+- 第15条旧实现的开头丢字／断续已用提前60帧预挂载、缓冲等待、绝对起止帧差修正并完成源音频检查；旧完整复听未验。该修复是新Remotion的继承要求；用户已通过本条Gate 3实际观看与试听，不能把旧检查写成独立复听通过。字幕44px现为通用默认。
+- 第15条TTS网络阻塞已由用户本次例外复用授权消除：不调用外部服务，原失败任务保留失败事实；复用凭证 `local/formal-sync/15-permissions-v3/tts-reuse-once.json` 绑定当前冻结／既有成功任务和文件指纹，不伪造新生成记录，不改通用默认。Gate 3与Gate 4均已通过；该视频已完成并永久只读。
+- 本地渲染共享入口固化中：自动回归392／392曾通过；`15-permissions-v3` 已从正式 Harness 单条入口完成5423帧整片渲染并通过 Gate 4，验证 Node 绝对路径 FFmpeg shim、持久化 Job、FFprobe规格／音轨检查和整片解码。另一条未完成视频上的跨视频复用验证仍待完成，不能据本条宣称固化完成。
+- `14-workflows` 保留历史 Gate 2／Gate 3、TTS 和 Remotion 记录，但其旧分镜格式不满足当前生产准入；继续制作须先准备正常返工计划，按影响范围重做与人工审核，不能凭历史批准直接交付。
 - `13-prompting` 的 Gate 4 机器校验例外已由用户一次性接受并留档；Codex 风格令牌检查在其他视频上的正常流程验证尚未完成。`12-slash-commands` 与 `13-prompting` 均保持永久只读。
 
 ## 关键避坑
@@ -226,13 +237,22 @@
 
 ## 最近验证（最近 10 条）
 
-- 2026-10-06：TTS 标题兼容新增 7/7 自动回归，两个公开入口均覆盖中文／英文冒号与竖线，正文、原文件和原始指纹不变；隔离副本去掉修复后 4 项按预期失败。已接入 test:production，TTS 相关 81/81、类型／语法／差异检查通过；宿主生产并行 71 项通过，两组交付触及 240 秒超时后分别独立 9/9、14/14 通过，生产共 94/94 分批通过，不宣称单次全量通过。没有视频写入、外部 TTS 或提交推送；证据见 `local/storyboard-migration/tts-heading-verification.json`。
-- 2026-10-06：主人通过 `14-workflows` Gate 3，实际 Harness approve 成功，当前阶段 render；同一服务记录当前 TTS／Timeline 指纹的音频审核，验证本条视频取消单独 TTS 人工停顿、在 Remotion 后统一验收的路径。未执行完整渲染、交付提交／推送、Web 页面或跨视频验收；标题适配专项自动回归现已补齐，生产并行交付超时及迁移中状态保留。证据见 `local/storyboard-migration/14-workflows/gate3-human-acceptance.json`。
-- 2026-10-06：`14-workflows` 从实际 Harness CLI 生成 +25% TTS（9 Segment、93 Cue、196.152 秒正文），对话任务 `abd7c5e7-563d-422e-919e-434c3717550a` 完成 8 幕／30 事件 Remotion，自动推进到 Gate 3 waiting，无独立人工 TTS 停顿。冻结依赖未变、TTS／Remotion／Gate 3 机器检查、类型与差异检查通过；检查帧修正模块展开及列表反转的中间文字重叠，Studio 3001／Composition `14-workflows` 包含 45 帧封面。修复标准 TTS 生成器的冒号标题适配，不改冻结口播。正常速度试听、完整动画人工审核、远程交付与跨视频未完成；证据见 `local/storyboard-migration/14-workflows/downstream-verification.json`。
-- 2026-10-06：`14-workflows` 新 Gate 2 获用户人工通过，实际 CLI approve 绑定展示版本 `80b39b391fbc0f08a0aa7118a4b33ccac2d579b1a24eb1a4218adf1e3d69be71` 并冻结；当前阶段为 TTS，attempts 仍为 0。本次只批准方案，下游真实音频、画面、试听和跨视频验收待完成。证据见 `local/storyboard-migration/14-workflows/gate2-approval.json`。
-- 2026-10-06：用户授权 `14-workflows` 实片试点，展示影响后通过 `storyboard-migration prepare／start` 迁移；对话 production-task `b80c0103-7c18-4944-bd79-6812b3d5317c` 完成 8 幕／30 事件分镜，实际 Gate 2 校验零问题并进入 waiting。宿主 Web UI 启动后真实 HTTP／CLI 全审核包一致（版本 `80b39b391fbc0f08a0aa7118a4b33ccac2d579b1a24eb1a4218adf1e3d69be71`）；既有 10 份视频资料哈希不变。未批准 Gate、生成 TTS／Remotion 或渲染，页面人工与跨视频验收仍待完成。证据见 `local/storyboard-migration/14-workflows/verification.json`。
-- 2026-10-06：Storyboard opt-in 契约已实现，新增 21/21；39 个模块共 351/351 分批通过。最终并行 341 项通过，批量交付／真实资料只读两组触及 240 秒超时后分别单独 9/9、1/1 通过，保留超时报告；29 个 JS／MJS 语法、`npm run check`、`git diff --check` 通过。真实文件／状态快照一致；模拟 TTS 与隔离临时 Git，未实际迁移视频、远程渲染或提交推送。`14-workflows` 只读迁移清单已保存，未应用。证据见 `local/storyboard-migration/verification.json`，实片人工与跨视频验收待完成。
-- 2026-10-06：真实视频 `14-workflows`（`codex-guide`，`unified-v1`）从对话入口连续运行到 Gate 2；合并策划的 3 份资料及 Narration／Visual Script／Prototype 校验通过。实际 `node harness/src/cli.mjs run 14-workflows gate-2` 因 VC-1～VC-6、TUTORIAL-1～4 缺少动态观看证据而按契约失败关闭，`next` 指向重试 Gate 2，TTS 保持 pending；原型尚待人工观看。Web UI、TTS、试听、Remotion、远程交付及渲染未验证。复核记录见 `videos/14-workflows/visual-review/review-status.md`。
-- 2026-10-06：统一生产全量自动回归 330/330、43 个 JS／MJS／CJS 语法、`npm run check` 和 `git diff --check` 通过。覆盖实际 CLI／本机 HTTP、双进程互斥、原任务恢复、三份策划校验、旧试听兼容、音频审核失效、单条／批量 TTS Job、共享交付与授权；修复重试持锁、旧任务误改状态、最终检查点恢复及 TTS 绕过任务校验。真实视频资料／状态哈希前后一致；外部服务模拟、本地临时 Git 交付，未调用真实 TTS、远端渲染或项目提交推送。证据见 `local/harness-unified-production/verification.json`。
-- 2026-10-06：宣传片生产能力退役的宿主 Harness 回归 297 项通过，旧真实资料读取测试修正后与新增退役回归 6/6 通过，合计 303 项分批通过；`npm run check`、实际教程／历史宣传片输入包的隔离 Studio 入口编译、`git diff --check` 通过。完成态保护快照 24 条视频、2,111 个文件哈希和集合均不变；验证记录见 `local/workflow-retirement/verification.json`。未调用真实 TTS、远程渲染或 Git 交付。
-- 2026-10-05：`13-prompting` Run `37313750923` 成功，Artifact `11347616083`（11,721,283 字节、未过期）；用户观看成片并确认无问题，Gate 4 获本片一次性人工接受，Harness 进入 `completed`。Gate 4 机器校验曾报 Codex 风格令牌缺失，失败事实已留档；通用校验未改，未再次渲染。
+- 2026-10-12：用户确认`16-security` Gate 4，Harness于06:03:04Z批准并进入`completed`，视频永久只读。本地完整渲染Job `c8d4bc85-bd2f-4423-879a-cd438f82db0c` 成功，耗时2237.69秒；输出18,290,770字节，SHA-256 `4a03d0f6e5146ba8765156ea26701e6f86c9db5c1606bb59e2c45ad79503ec16`。FFprobe确认1920×1080、30fps、9939帧、H.264/AAC，音频331.328秒；整片FFmpeg解码与Harness校验通过。首次受限环境Chromium启动失败记录保留。证据见 `local/local-render/16-security/c8d4bc85-bd2f-4423-879a-cd438f82db0c/result.json`。
+
+- 2026-10-12：用户批准16-security第三版Gate 2，冻结成功、独立TTS输入校验通过；真实任务 `571da543-aa0b-49fe-9fa3-281acba34d6e` 同任务两次首段Edge HTTP403。此前成功任务33段+25%音频与当前冻结文本、成功生成记录及全部产物字节核验通过，未复用或恢复下游；见 `local/remotion/16-security/verified-tts-reuse-proposal.json`。
+
+- 2026-10-12：用户确认正常返工范围后，Harness任务 `9936a0d7-14e7-4231-914b-abcda74008d9` 完成两项镜头清单修正；分镜校验、重新绑定设计审计和当前真实时间映射零问题，新审核ready=true，版本 `a210ad06ee369c4481e8992780ee00764d109d8fa229da6375b64953ff17f758`，Gate 2等待人工确认。见 `local/gate-2/16-security/verification.json`。
+
+- 2026-10-12：Harness Remotion任务 `66855e10-d03c-467d-a60b-098520dc39c0` 领取后确认两处镜头对象生命周期冲突并正常fail释放锁；正常返工prepare成功。修正候选通过共享resolveStoryboardTiming的10幕／14镜头／31事件检查，零问题；未改冻结资料、未启动返工或制作正式画面，见 `local/remotion/16-security/`。
+
+- 2026-10-12：`16-security` 获用户本次外部目的地与冻结载荷明确授权，Harness真实TTS任务 `a2f5b26d-d9ab-4617-967d-0bcf8570a569` 成功；10幕／33段音频、155条字幕Cue、329.784秒Timeline与资源包校验零问题，显式+25%，当前Remotion ready。初次DNS失败和自动审批拒绝记录保留；正常速度试听／画面／渲染未验。证据见 `local/tts/16-security/verification.json`。
+
+- 2026-10-11：`16-security` 新版Gate 2用户批准、Harness冻结成功；独立tts-script的10幕／33段校验零问题。真实TTS任务 `1d64cdfd-f59a-43af-b355-8ccf19f76036` 因DNS失败，后续网络执行申请被自动审批拒绝，未生成真实音频／字幕／Timeline；阶段已由retry恢复ready，未绕过拒绝。证据见 `local/tts/16-security/verification.json`。
+
+- 2026-10-11：`16-security` 按用户Gate 2反馈经Harness驳回、策划与口播分镜任务重新制作，五项教学因果修正及重点取景完成；10幕／14镜头／31事件、310项SQ／14项Shot审计零问题，审核ready=true，版本 `0902b85798c0643fe3e47eb9201b4e2cfdac11f5e90c442b5e216d65d70bd28e`。旧稿留档，完整知识依据与返工对照已附入 `local/gate-2/16-security/review.md`；真实画面、音频与渲染未执行。
+
+- 2026-10-11：用户确认 `15-permissions-v3` 成片通过 Gate 4；Harness `approve` 返回 `status=succeeded`、`nextStage=completed`，当前状态已核对。视频及相关生产资料进入永久只读；成片、渲染规格与 Job 见上方记录，跨视频固化仍待验证。
+
+- 2026-10-11：`15-permissions-v3` 正式 Harness 本地渲染 Job `7142363b-2894-4fd1-818c-2478d8b182cb` 成功；5423帧、1920×1080、30fps、H.264／AAC、180.8秒，输出14,769,125字节，FFprobe与整片解码校验通过，耗时1627.955秒。Node绝对路径FFmpeg shim在正式入口实际生效；Harness已进入Gate 4等待用户验片，未自动通过。跨视频固化仍待验证。证据见 `local/local-render/15-permissions-v3/7142363b-2894-4fd1-818c-2478d8b182cb/result.json`。
+
+- 2026-10-11：用户授权本版例外复用既有TTS，32段冻结文字／+25%／成功生成记录及音频字幕Timeline字节核对通过；通过Harness进入当前Remotion任务并安装正式浅色整片／稳定转场背景／44px白字近黑描边字幕。正式入口定向类型零错误、20镜头32事件对齐零问题、独立输入包校验与打包、Composition5423帧编译及29个代表／交界静帧完成，Studio3007 HTTP200。完整播放／试听仍pending，任务保留running，Gate 3与整片渲染未执行；见 `local/formal-sync/15-permissions-v3/verification.json`、`acceptance.md`。

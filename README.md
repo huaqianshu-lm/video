@@ -1,14 +1,14 @@
 # Remotion AI Video Harness
 
-## Storyboard 新契约（迁移中）
+## 当前 Storyboard 生产流程（实片验收待完成）
 
 `storyboard-v1` 合并内容分析／叙事策划，以纯口播与 Storyboard 共同收敛替代 Scene／Visual Script 和逐视频 HTML 原型。Gate 2 页面按序并排展示口播与分镜，可附静态图；实际画面与试听在 Gate 3 审核。对话、CLI、Web 和批量复用相同任务和审核版本。
 
-迁移期间新建默认仍为 `unified-v1`，旧项目不自动切换。新契约可显式创建，当前人工与跨视频验收待完成；完整边界见 [Storyboard 生产契约](docs/STORYBOARD-PRODUCTION-CONTRACT.md) 。
+新建统一使用 `storyboard-v1` 与当前分镜契约，不提供旧流程或生产版本选择。旧资料仅可读取；未完成视频不满足当前规则时使用正常返工，completed 永久只读。实际入口与实片验收状态见 ROADMAP；完整边界见 [Storyboard 生产契约](docs/STORYBOARD-PRODUCTION-CONTRACT.md) 。
 
 ```bash
 # 先准备 videos/<new-slug>/source.md；初始化后按项目规则确认系列与封面。
-node harness/src/cli.mjs init <new-slug> --production-contract storyboard-v1
+node harness/src/cli.mjs init <new-slug>
 node harness/src/cli.mjs run <new-slug> source
 node harness/src/cli.mjs production-task claim <new-slug>
 # 根据任务包制作，再 complete；重复领取下一任务，完成后 run Gate 2。
@@ -17,15 +17,15 @@ node harness/src/cli.mjs storyboard-review <new-slug>
 node harness/src/cli.mjs approve <new-slug> gate-2 --review-version <reviewVersion>
 ```
 
-旧项目显式迁移先运行 `storyboard-migration <slug> prepare`，查看精确影响后使用返回的 `migrationVersion` 调用 `start --migration-version <hash>`。活动任务、Gate 2 下游项目和 completed 均阻断；中断恢复同一版本，旧资料／任务及审核快照保留，重新审核 Gate 2。
+资料不满足当前规则时运行 `storyboard-rework <slug> prepare --reason <原因>`，查看精确范围后以 `start --reason <同一原因> --rework-version <hash>` 执行。只沿用严格校验通过的上游，从最早缺失输入返工，重新审核下游 Gate；历史资料与快照保留，中断恢复同一计划。旧 storyboard-migration 入口已停用。
 
-Web 项目详情页显示同一分镜卡片。HTTP `GET /api/projects/<slug>/storyboard-review` 获取审核包，`POST .../action` 的 approve 请求必须带当前 `reviewVersion`。导入支持显式 `productionContract=storyboard-v1` 查询参数，初始化 action 支持同名字段。普通导入界面默认值暂未切换；现有项目禁止仅改字段迁移。
+Web 项目详情页显示同一分镜卡片。HTTP `GET /api/projects/<slug>/storyboard-review` 获取审核包，`POST .../action` 的 approve 请求必须带当前 `reviewVersion`。初始化与普通导入均使用服务端当前默认，不需要指定版本；旧选择直接拒绝。资料不符合当前规则时，页面提供“按当前规则准备返工”，展示精确范围后确认执行。
 
 
 
-这是一个专门服务于视频生产的 Harness。它把一条视频从原始内容推进到最终 MP4：内容分析、视频叙事、Scene 脚本、口播稿、视觉脚本、视觉原型、TTS、字幕与时间轴、Remotion、远程渲染和人工验收都在同一套阶段契约下管理。
+这是一个专门服务于视频生产的 Harness。它把一条视频从原始内容推进到最终 MP4：合并策划、纯口播与 Storyboard、设计审计、TTS、字幕与真实时间轴、Agent 编写的 Remotion、共享交付和人工验收都在同一套阶段契约下管理。
 
-它不是“点一下就自动出片”的黑盒。系统负责记录状态、校验资料、调度任务、保存失败信息和恢复上下文；口播、视觉原型、Remotion 预览和最终视频仍然要经过人工 Gate。
+它不是“点一下就自动出片”的黑盒。系统负责记录状态、校验资料、调度任务、保存失败信息和恢复上下文；口播与分镜、Remotion 实际画面／试听和最终视频仍然要经过人工 Gate。
 
 当前 Harness 版本为 `0.6.0`。当前仅支持 `narrated-tutorial-v1` 口播教程生产。历史上的 `Smoke Render` 已经退出生产阶段，只保留为独立的 GitHub Actions 环境检查。
 
@@ -36,29 +36,27 @@ Web 项目详情页显示同一分镜卡片。HTTP `GET /api/projects/<slug>/sto
 ```text
 原始内容
   ↓
-内容分析 → 视频叙事 → Scene 脚本
+内容分析 ＋ 视频叙事（合并策划）
   ↓ Gate 1：内容与叙事内部审查
-口播稿 → 视觉脚本 → 视觉原型
-  ↓ Gate 2：人工确认口播和视觉原型
+纯口播 ＋ Storyboard ＋ 设计审计
+  ↓ Gate 2：人工确认口播和分镜方案
 TTS → 音频／字幕／Timeline
-  ↓ TTS 人工质检
+  ↓ 自动质检（人工试听合并到 Gate 3）
 Remotion 实现
-  ↓ Gate 3：人工预览确认
+  ↓ Gate 3：人工检查实际画面与正常速度试听
 完整 Render
   ↓ Gate 4：人工验收最终 MP4
 完成
 ```
 
-Harness 里实际登记的 14 个生产阶段是：
+当前 Storyboard 登记的 12 个内部阶段是：
 
 ```text
 source
 → content-analysis
 → video-narrative
-→ scene-script
 → narration-script
-→ visual-script
-→ visual-prototype
+→ storyboard
 → gate-2
 → tts
 → subtitle-timeline
@@ -75,7 +73,7 @@ source
 - 持久化后台任务：Agent、TTS、Remotion 和远程任务都会保存状态；服务重启后可以继续检查，失败任务可以重试。
 - 批量编排：支持批量到 Gate 2、批量完成 TTS、批量完成 Remotion 和批量完整渲染；每条视频仍使用自己的阶段状态和人工检查点。
 - TTS 与音画同步：Gate 2 后先生成并校验独立的 `tts-script.json`，音频、字幕和 Timeline Manifest 从它派生，Remotion 使用经过校验的 Manifest 驱动时间轴。
-- Visual Prototype 与 Remotion 对照：Gate 2 冻结原型基线，Gate 3 按 Scene 对照原型、Visual Script 和 `remotion-alignment.json`。
+- Storyboard 与Agent 编写的 Remotion 对照：Gate 2 冻结同版本方案，Gate 3 按当前 alignment 5 与观看／试听证据检查实际实现。
 - 独立渲染输入包：每条视频有自己的输入目录、Manifest、资源 ZIP、源资料快照、package fingerprint 和远程绑定记录。
 - GitHub Actions 远程 Render：Runner 在临时目录恢复输入包，校验 slug、Composition、资源、Manifest 和 SHA-256 后生成最终 MP4 并上传 Artifact。
 - 远程任务恢复：保存准确的 dispatch、Run ID、Run URL 和 Artifact 信息；批量远程 Job 进入终态后可以继续批次，不会因为页面关闭而丢失上下文。
@@ -144,7 +142,7 @@ node harness/src/cli.mjs validate <video-slug> [stage]
 node harness/src/cli.mjs next <video-slug>
 node harness/src/cli.mjs report <video-slug>
 node harness/src/cli.mjs context <video-slug>
-node harness/src/cli.mjs plan <video-slug> --until visual-prototype
+node harness/src/cli.mjs plan <video-slug> --until storyboard
 node harness/src/cli.mjs jobs <video-slug>
 node harness/src/cli.mjs jobs --all
 node harness/src/cli.mjs doctor --json
@@ -179,8 +177,8 @@ Remotion 任务只有在项目当前处于 `remotion / ready` 时才能执行。
 
 | 批量目标 | 自动推进 | 停在哪里 |
 | --- | --- | --- |
-| `to-gate-2` | 内容分析、叙事、Scene、口播、视觉脚本、视觉原型 | Gate 2 人工确认 |
-| `to-tts` | TTS、音频、字幕和 Timeline | TTS 人工质检 |
+| `to-gate-2` | 合并策划、纯口播、分镜与设计审计 | Gate 2 人工确认 |
+| `to-tts` | TTS、音频、字幕和 Timeline | 自动质检，试听在 Gate 3 |
 | `to-remotion` | Remotion 任务和产物校验 | Gate 3 人工预览 |
 | `to-render` | Gate 3 通过后的完整 Render 交付 | Gate 4 人工验收 |
 
@@ -218,6 +216,17 @@ node harness/src/cli.mjs batch approve-tts-qc <batch-id> <video-slug>
 如果任意一条视频的输入包、绑定、Manifest、Git 文件、分支或提交发生变化，交付计划会失效，需要重新预检和确认。不能用临时 shell 变量里的全局 URL／SHA-256 冒充持久化绑定。
 
 ## 远程渲染输入包
+
+单条新交付支持本地渲染并默认使用本地，可显式选择 GitHub；批量只使用 GitHub。两者共享 Harness 的 `render-delivery prepare／start／resume`，旧远程记录继续按 GitHub 恢复。接入及验收状态见 ROADMAP.md，本地执行不会发布输入包、commit 或 push。
+
+```bash
+node harness/src/cli.mjs render-delivery prepare <slug> --backend local
+# 确认返回的计划后启动；--backend github 使用原远程交付：
+node harness/src/cli.mjs render-delivery start <slug> --confirm-plan <planId>
+node harness/src/cli.mjs render-delivery resume <slug>
+```
+
+本地默认并发 1，要求 FFmpeg 9、ffprobe 及已安装的 Remotion 无头浏览器；输出保存在被忽略的 `out/local-render/<slug>/<jobId>.mp4`。详见 [渲染交付契约](./docs/RENDER-DELIVERY-BASELINE.md)。以下发布与认证要求仅适用于 GitHub。
 
 每条视频的本地输入包都放在被 Git 忽略的目录中：
 
@@ -333,3 +342,7 @@ git diff --check
 - [`ROADMAP.md`](./ROADMAP.md)：当前视频数量、项目阶段、阻塞和下一步。
 
 README 只描述当前稳定能力和正确使用方式。具体某条视频是否完成、是否有 Render Job、是否等待人工 Gate，以 `ROADMAP.md` 和对应项目的实时 `state.json` 为准。
+
+## Shot 分镜设计
+
+当前 Storyboard 按 Scene → Shot → Event 组织：先决定内容与观看方式，再设计变化，最后选择组件或编写实现。镜头设计属于现有口播／分镜任务，不增加阶段或 Gate；没有最少镜头数和画面生成器。新建唯一使用内部格式 3；模板见 `templates/video-production/storyboard-v3.json`，权威字段、真实音频切点、转场和观看证据见 `docs/STORYBOARD-PRODUCTION-CONTRACT.md` 的 Shot 章节。Gate 2 展示并冻结镜头设计，Gate 3 审核真实逐镜头／交界观看及整片试听。旧资料只读，未完成视频继续制作先用 storyboard-rework prepare 展示正常返工范围，不自动补镜头。程序及隔离入口验证已完成；真实视频和人工 Gate 验收状态见 ROADMAP。

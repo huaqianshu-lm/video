@@ -56,9 +56,14 @@ async function run(file) {
   if (!ok) console.log(output);
 }
 
-await Promise.all(Array.from({ length: Math.min(4, files.length) }, async () => {
-  while (index < files.length) await run(files[index++]);
+// These suites spawn workers/Git or hash real project trees. Run them alone so
+// the regression command also works on the supported two-core local machine.
+const resourceHeavy = new Set(["batch-delivery.test.mjs", "git-delivery.test.mjs", "render-delivery.test.mjs", "local-render.test.mjs", "web-regression.test.mjs"]);
+const parallelFiles = files.filter(file => !resourceHeavy.has(file));
+await Promise.all(Array.from({ length: Math.min(4, parallelFiles.length) }, async () => {
+  while (index < parallelFiles.length) await run(parallelFiles[index++]);
 }));
+for (const file of files.filter(file => resourceHeavy.has(file))) await run(file);
 results.sort((left, right) => left.file.localeCompare(right.file));
 const summary = { node: process.version, results, tests: results.reduce((total, item) => total + item.tests, 0), passed: results.reduce((total, item) => total + item.passed, 0), ok: results.every(item => item.ok) };
 fs.writeFileSync(path.join(root, "summary.json"), JSON.stringify(summary, null, 2));

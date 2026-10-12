@@ -1,4 +1,5 @@
 import { usesStoryboardProduction } from "./production-contract.mjs";
+import { storyboardSchemaVersion } from "./storyboard-design.mjs";
 import { storyboardBaseline, storyboardReview, storyboardTimingEvents } from "./storyboard.mjs";
 import crypto from "node:crypto";
 import fs from "node:fs";
@@ -7,6 +8,7 @@ import { assertProjectMutable, assertProjectSlugMutable, readJson, writeJson } f
 import { buildRemotionTimingPlan } from "./remotion-timing.mjs";
 import { validateVisualBindings } from "./visual-timing.mjs";
 import { renderEntryPointSource, renderInputDirectory, validateCurrentRenderInput } from "./render-input.mjs";
+import { validateStoryboardImplementation } from "./storyboard-implementation.mjs";
 import { workflowStageDefinition } from "./workflows/registry.mjs";
 
 export const REMOTION_ALIGNMENT_SCHEMA_VERSION = 2;
@@ -140,7 +142,7 @@ function validateTemporaryRenderEntry(project) {
   if (!new RegExp(`\\bid\\s*=\\s*[\"']${escapeRegExp(expectedCompositionId)}[\"']`).test(source)) {
     issues.push(alignmentIssue("render-input-entry-mismatch", `临时入口的 Composition ID 不是 ${expectedCompositionId}。`, entryPath));
   }
-  if (manifest.entry?.cover) {
+  if (manifest.entry?.cover || (manifest.productionContract === 'storyboard-v1' && manifest.storyboardSchemaVersion >= 2)) {
     // The generated cover entry owns the wrapper, body offset and total duration.
     // Check the complete canonical entry so a stray CoveredVideo alias cannot pass.
     if (source.trim() !== renderEntryPointSource(manifest).trim()) {
@@ -198,7 +200,7 @@ function validateVisualElements(scene, bindings, relativePath, issues) {
       issues.push(alignmentIssue("visual-element-binding-missing", `视觉元素 ${element.id} 未绑定有效视觉事件：${element.bindingId}。`, relativePath));
       continue;
     }
-    if (typeof element.screenText !== "string" || !Array.isArray(scene.screenText) || !scene.screenText.includes(element.screenText)) {
+    if (typeof element.screenText !== "string" || !Array.isArray(scene.screenText) || (element.screenText.length > 0 && !scene.screenText.includes(element.screenText))) {
       issues.push(alignmentIssue("visual-element-text-unmapped", `视觉元素 ${element.id} 的屏幕文字没有出现在 Scene screenText 清单中。`, relativePath));
     }
     if (element.atFrame !== undefined && element.atFrame !== binding.atFrame) {
@@ -222,7 +224,11 @@ function validateImplementationTimingPatterns(scene, project, relativePath, issu
       const marker = `const ${symbol} =`;
       const start = source.indexOf(marker);
       if (start < 0) {
-        issues.push(alignmentIssue("visual-timing-symbol-missing", `Scene ${scene.sceneId} 找不到实现符号：${symbol}。`, relativePath));
+        const foundElsewhere = (scene.implementationFiles ?? []).some(file => {
+          const candidate = path.join(project.config.workspaceRoot, file);
+          return fs.existsSync(candidate) && fs.statSync(candidate).isFile() && fs.readFileSync(candidate, "utf8").includes(marker);
+        });
+        if (!foundElsewhere) issues.push(alignmentIssue("visual-timing-symbol-missing", `Scene ${scene.sceneId} 找不到实现符号：${symbol}。`, relativePath));
         continue;
       }
       const nextDeclaration = source.indexOf("\nconst ", start + marker.length);
@@ -369,7 +375,7 @@ export function validateRemotionAlignment(project) {
     issues.push(alignmentIssue("invalid-remotion-alignment-json", `无法解析 Remotion 对齐清单：${alignment.parseError}`, relativePath));
     return issues;
   }
-  if (alignment.schemaVersion !== (usesStoryboardProduction(project) ? 3 : REMOTION_ALIGNMENT_SCHEMA_VERSION) || alignment.slug !== project.config.slug) {
+  if (alignment.schemaVersion !== (usesStoryboardProduction(project) ? (storyboardSchemaVersion(project) === 3 ? 5 : storyboardSchemaVersion(project) === 2 ? 4 : 3) : REMOTION_ALIGNMENT_SCHEMA_VERSION) || alignment.slug !== project.config.slug) {
     issues.push(alignmentIssue("invalid-remotion-alignment-schema", "Remotion 对齐清单的 schemaVersion 或 slug 无效。", relativePath));
   }
   if (usesStoryboardProduction(project) ? (alignment.storyboardFingerprint !== baseline.storyboardFingerprint || alignment.reviewVersion !== baseline.reviewVersion) : (alignment.prototypeFingerprint !== baseline.visualPrototype.fingerprint
@@ -475,6 +481,7 @@ export function validateRemotionAlignment(project) {
     }
     validateImplementationTimingPatterns(scene, project, relativePath, issues, strictVisualTiming);
   }
+  if (usesStoryboardProduction(project) && storyboardSchemaVersion(project) >= 2) issues.push(...validateStoryboardImplementation(project, {requireViewing: true}));
   return issues;
 }
 

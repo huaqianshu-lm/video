@@ -189,12 +189,15 @@ export function createRemoteJobMonitor({
     inFlight.add(jobId);
     try {
       let job = listAllJobs().find((item) => item.id === jobId) ?? null;
+      if (job?.backend === 'local') return job;
       const knownTimedOutRun = [REMOTE_JOB_STATUS.TIMEOUT, REMOTE_JOB_STATUS.FAILED].includes(job?.status)
         && REMOTE_STAGES.has(job.stage) && hasRunId(job.remote);
       if (!job || (!isPollableJob(job) && !(reconcile && knownTimedOutRun))) {
         return job;
       }
       if (isCompletedProject(job.slug)) return job;
+      try { assertProjectSlugMutable(job.slug, "轮询生产 Job"); }
+      catch (error) { if (error.code === "production-rework-required") return job; throw error; }
 
       if (timeoutReached(job) && !hasRunId(job.remote)) {
         return uncertainDispatchJob(job);
@@ -503,7 +506,7 @@ export function createRemoteJobMonitor({
   }
 
   async function poll() {
-    const jobs = listAllJobs().filter(isPollableJob);
+    const jobs = listAllJobs().filter(job => job.backend !== 'local' && isPollableJob(job));
     await Promise.all(jobs.map((job) => processJob(job.id)));
   }
 

@@ -126,6 +126,10 @@ test('actual CLI prepares, confirms, dispatches once and resumes the same Run to
   assert.equal(f.calls.dispatches, 1);
   assert.match(f.git(['status', '--porcelain']), /README.md/);
   assert.doesNotMatch(f.git(['show', '--format=', '--name-only', 'HEAD']), /README/);
+  // Historical sessions did not persist backend; they must still resume GitHub.
+  const sessionFile = path.join(f.workspace, 'local/render-input', `${f.slug}.agent-delivery.json`);
+  const session = JSON.parse(fs.readFileSync(sessionFile)); delete session.backend;
+  fs.writeFileSync(sessionFile, JSON.stringify(session));
   f.succeed();
   const resumed = await cli(['render-delivery', 'resume', f.slug], f.dependencies);
   assert.equal(resumed.result.status, 'succeeded', JSON.stringify({error: resumed.result.job.error, issues: validateProjectStage(loadProject(f.slug, {refresh: false}), 'gate-4')}));
@@ -151,6 +155,7 @@ test('binding failure resumes publication without another release or upload', as
   const bind = f.dependencies.bindInput;
   f.dependencies.bindInput = async () => {throw new Error('interrupted binding');};
   await assert.rejects(() => cli(['render-delivery', 'prepare', f.slug, ...firstOptions], f.dependencies), /interrupted binding/);
+  await assert.rejects(() => cli(['render-delivery', 'start', f.slug], f.dependencies), {code: 'render-delivery-preparation-incomplete'});
   f.dependencies.bindInput = bind;
   await cli(['render-delivery', 'prepare', f.slug], f.dependencies);
   assert.equal(f.calls.creates, 1); assert.equal(f.calls.uploads, 1);

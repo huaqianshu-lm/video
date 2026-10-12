@@ -405,6 +405,12 @@ test("real project view puts current decision, task evidence, full stages and ma
   assert.match(html, /src="\/preview\/detail-demo"/);
   assert.match(html, /视觉原型预览/);
   assert.match(html, /当前缺失，不能查看文件内容/);
+  assert.doesNotMatch(html, /审美与感官复查/);
+  workspace.project.productionContract = "storyboard-v1";
+  await view.open("detail-demo");
+  assert.match(container.innerHTML, /审美与感官复查/);
+  assert.match(container.innerHTML, /14\.4/);
+  assert.match(container.innerHTML, /结构通过不能代替实际质量验收/);
 });
 
 test("real project view keeps action and Gate rejection parameters while preventing duplicate submissions", async () => {
@@ -479,7 +485,7 @@ test("real project view keeps remote preparation feedback when render remains bl
           preparation: { action: "prepare-remote-render" },
         },
         stages: [{ order: 0, stage: "render", label: "完整渲染", objective: "生成成片", status: "ready", artifacts: [] }],
-      }, files: [], jobs: [], agentJobs: [], remotionTasks: [], activeJob: null,
+      }, renderBackend: "github", files: [], jobs: [], agentJobs: [], remotionTasks: [], activeJob: null,
     };
     const preparation = deferred();
     let calls = 0;
@@ -487,19 +493,22 @@ test("real project view keeps remote preparation feedback when render remains bl
       elements: { container },
       api: {
         async getProjectWorkspace() { return workspace; },
-        runProjectAction(slug, body) { calls += 1; assert.equal(slug, "remote-prep-demo"); assert.equal(body.action, "prepare-remote-render"); return preparation.promise; },
+        runProjectAction(slug, body) { calls += 1; assert.equal(slug, "remote-prep-demo"); assert.equal(body.action, "prepare-render"); assert.equal(body.backend, "github"); return preparation.promise; },
       },
       polling: { stop() {}, start() {} },
     });
     view.mount();
     await view.open("remote-prep-demo");
-    const button = container.querySelectorAll("[data-action]").find((item) => item.dataset.action === "prepare-remote-render");
+    const button = container.querySelectorAll("[data-action]").find((item) => item.dataset.action === "prepare-render");
     button.dispatch("click");
     assert.equal(button.disabled, true);
-    preparation.resolve({ result: { status: "ready" } });
+    button.dispatch("click");
+    assert.equal(calls, 1);
+    preparation.reject(new Error("GitHub 渲染准备发现 2 个阻塞问题"));
     await flush();
     assert.equal(calls, 1);
-    assert.match(container.querySelector("#action-feedback").textContent, /资源已准备完成/);
+    assert.match(container.querySelector("#action-feedback").textContent, /操作失败/);
+    assert.equal(button.disabled, false);
     assert.match(container.querySelector("#action-feedback").textContent, /2 个阻塞问题/);
   });
 });
@@ -523,7 +532,9 @@ test("real project view exposes direct complete Render and no Smoke production a
   view.mount();
   await view.open("direct-render-demo");
 
-  assert.match(container.innerHTML, /提交完整渲染/);
+  assert.match(container.innerHTML, /准备完整渲染/);
+  assert.match(container.innerHTML, /value="local" selected/);
+  assert.match(container.innerHTML, /value="github"/);
   assert.doesNotMatch(container.innerHTML, /提交并执行 Smoke Render|Smoke Render 提交/);
 });
 

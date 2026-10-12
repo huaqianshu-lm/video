@@ -1,54 +1,34 @@
 ---
 name: video-production
-description: Create or revise reusable narrated or visual video production materials, including the seven-layer documents, scene planning, visual prototype, and human review gates.
+description: 通过 Harness 任务和人工审核 Gate，创建或修改口播视频的策划、纯口播与分镜方案。
 ---
 
-# Video production
+# 视频制作
 
-Use this skill when the task creates or revises a video's Source, Content Analysis, Video Narrative, Scene Script, Narration Script, Visual Script, or Visual Prototype.
+当前生产仅使用 `storyboard-v1` 与现行分镜契约。先读取 `docs/STORYBOARD-PRODUCTION-CONTRACT.md` 和 `docs/STORYBOARD-EXECUTION-QUALITY.md`；不提供旧流程或版本选择。旧资料不符合当前规则时先用 Harness 正常返工，不自动改写历史项目，completed 永久只读。
 
+## 开始前
 
-`storyboard-v1` 先读取 `docs/STORYBOARD-PRODUCTION-CONTRACT.md`，以其阶段、任务和审核边界覆盖本文的旧原型要求；旧契约继续遵守本文。新契约保留纯口播、真实 Timeline、人工 Gate 和共享交付约束。
+- 核对 `docs/HARNESS-PRODUCTION-CONTRACT.md`“视频制作与流程变更的边界”。制作任务不附带流程改造授权；任务包或模板出现未声明的强制生成器、依赖或表达限制时，先报告契约差异，不据此缩减分镜设计。
 
-## Before working
+- 读取项目的 `CLAUDE.md` 和 `ROADMAP.md`。所有生产入口，包括对话，都使用 Harness 任务和持久化标识；不得独立修改状态或自动批准 Gate。
+- 新建 Agent 系列视频时，读取 `docs/AGENT-SERIES-COVER.md`，列出实际系列及封面可用情况供用户选择，并冻结确认后的快照。不得根据文件名推断系列归属。
+- 使用 `templates/video-production/storyboard-v3.json` 及其 schema。视觉与声音默认数值的唯一权威来源是 `docs/VIDEO-PRODUCTION-RULES.md` 第 9.6 节；不得把数值复制到 Skill 中维护。
+- 按同一规则第 14.4 节完成审美与感官设计，写入既有 SQ 审计 evidence／note；采用或沉淀调校配方时读取第 9.7 节和 `templates/video-production/tutorial-motion-recipe.md`，未经实际观看不得标为已验证。
+- 按同一规则 6.1 把对象造型、构图、镜头变化的认知收益与因果动画设计具体；视觉难点可按 9.7 在现有任务内局部实验后推广整片，不新增阶段或强制样稿，局部认可不代替整片 Gate。浅色设计作为可选参考，配色按当前内容与风格选择。
 
-- For new Agent videos, follow `docs/AGENT-SERIES-COVER.md`: list actual series names, IDs and cover availability for the user to choose; include new-series and no-series options. Never infer the choice from a filename. After confirmation, freeze it with `series select`; show the cover and handoff in the prototype. Do not alter completed members.
-- Read only the relevant sections of `docs/VIDEO-PRODUCTION-RULES.md` and `docs/VIDEO-PROJECT-WORKFLOW.md`.
-- For full background or historical rationale, read `docs/article-to-video-complete-workflow-summary.md` only when needed.
-- Use the generic structures in `templates/video-production/`; do not use a local video's private files as the only baseline.
+## 制作与审核
 
-## Required boundaries
+1. 登记原始资料（Source）；领取共享策划任务，合并制作内容分析（Content Analysis）和视频叙事（Video Narrative）。Harness 校验产物并记录 Gate 1 内部检查。
+2. 领取口播与分镜联合收敛任务。Scene 的口播正文只能包含实际朗读内容，观众应能独立理解。Storyboard 使用一致的 Scene ID、Scene → Shot → Event 层级、稳定的镜头／对象／事件 ID、有资料依据的文字，以及可观察的前态／动作／后态（before／action／after）、焦点、停留和衔接设计。
+3. 先按内容设计画面和变化，再选择合适组件；没有合适组件，就规划所需实现，不根据组件库倒推分镜。组件积累遵守 `VIDEO-PRODUCTION-RULES.md` 13.3。使用 SQ-1～SQ-10 和 `storyboard-design-audit.json` 审计每个 Scene／Shot／Event；现有组件缺失不算阻塞，React／Remotion 与当前环境确实无法实现时报告具体能力缺口，不能用标签替代实际行为；允许按冻结分镜编写 JSX。
+4. 通过 `production-task complete` 提交真实产物；失败仍记为失败，恢复时继续同一任务。按口播与设计的准确 `reviewVersion` 请求 Gate 2 审核。设计审计不等于实际观看证据。
+5. Gate 2 通过后，按 `narrated-video-tts` 生成并校验 `tts-script.json`、真实音频和 Timeline；按 `visual-prototype-remotion` 完成按冻结分镜编写的实现及 Gate 3 实际观看／试听。
 
-- All production, including conversation work, is scheduled by Harness. Read `docs/HARNESS-PRODUCTION-CONTRACT.md`; use the returned task packet and persistent task ID. Discussion does not claim a task. For unified projects, claim with `production-task claim`, submit with `complete --summary`, and recover the same task with `resume`. Never independently edit Harness state or approve a human Gate.
+## 质量与边界
 
-- Keep the seven production layers separate and preserve their upstream/downstream responsibilities.
-- Complete Content Analysis, Video Narrative, and Scene Script together before the Gate 1 internal review.
-- Under `unified-v1`, produce these three documents in one planning task. Preserve their separate files and responsibilities; Harness validates all outputs before advancing. Do not request approval for each document; request Gate 2 after the narration and actual visual prototype are ready.
-- Complete Narration Script, Visual Script, and Visual Prototype together before Gate 2.
-- A Scene in `narration-script.md` contains spoken text only. Do not put visual instructions, production notes, gate checklists, or source-document references in the spoken body.
-- Write narration as a self-contained video for viewers who have not seen the source material.
-- Visual Script and Visual Prototype must add visual information, process, state, or relationship; they must not merely repeat narration as slides.
-- For each new Scene, identify the visual focus, before state, semantic trigger, visible after state, intentional hold, and handoff to the next focus. Apply the Workflow-specific timing source from `docs/VIDEO-PRODUCTION-RULES.md`; do not demand continuous motion during reading holds.
-- Select and describe motion semantics using section 9.1 of `docs/VIDEO-PRODUCTION-RULES.md`; use consistent expressions for the same meaning and do not invent changes to fit an animation component.
-- Before choosing paths for code or execution scenes, apply the three code-execution and path-expression rules in section 9.1; record the actual execution changes and the source-supported meaning of any path geometry in Visual Script.
-- Apply sections 8.4／8.5 for titles as visual events and persistent subjects in a shared evolving space; record title handoff, world relationships, camera movement and reasons for any viewpoint change.
-- Apply sections 9.3～9.5 for animation capability selection, action chains, whole-film rhythm and strategy coverage; record available versus proposed components and bind formal timing to the current Workflow. Use the expanded Visual Script template rather than relying on the local motion sample as the only guide.
-- Apply section 9.2 to record each element's entry, visible interval, exit and any reason for retaining it across Scenes; include underlying paths, arrows, labels and effects in actual prototype review.
-- Apply section 10.3 of `docs/VIDEO-PRODUCTION-RULES.md` to inspect text throughout each relevant animation; record actual viewing evidence under VC-4／VC-5, including intermediate and overlapping states.
-- Keep the fixed 16:9 prototype skeleton, short source-supported context text, preview subtitle area, navigation, and progress area. At the upper left of the video canvas, omit Scene numbers and recurring large titles.
-- The final Scene in a series must include a source-supported next-episode teaser as a visual event.
-- Preserve human Gate decisions. Do not mark a gate passed because files merely exist or because structural checks passed.
-- Before Gate 2, perform the visual convergence check defined in `docs/VIDEO-PRODUCTION-RULES.md` using actual prototype or preview evidence. Treat structural, type, and file validation as supporting checks only; if the visual check fails, return to Visual Script and do not continue to Remotion.
-- Save that review as the current video's `visual-self-review.json`; Gate 2 automation must verify its schema, workflow, current Visual Script／Prototype fingerprints, evidence files, and all required checks before the project is ready for human approval. This record never replaces the human Gate 2 decision.
-- Apply the tutorial anti-PPT baseline: tutorials may use explanatory UI, code, diagrams, or cards only when they advance the narrated reasoning and are not repeated title-card pages.
-
-## Output and review
-
-- Record the current stage and next action in `ROADMAP.md` after meaningful work.
-- Before moving to the next stage, check structure against the generic templates and verify that all visible text belongs to the current video's production materials.
-- Record the visual evidence and any failed visual-convergence item before requesting Gate 2; do not describe a visual change as complete from code or Harness output alone.
-- Keep all concrete video materials under local ignored directories; extract only reusable patterns into tracked templates or Skill references.
-
-## Lightweight dynamic prototype
-
-Follow the lightweight prototype contract in `docs/VIDEO-PRODUCTION-RULES.md`: estimated playback, stable semantic event IDs, no downstream TTS dependency. Preserve layout, state changes and handoffs in Remotion; bind actual timing after Gate 2. The prototype task may write `visual-self-review.json` and review evidence, but must never claim visual checks passed without actual viewing.
+- 按 `VIDEO-PRODUCTION-RULES.md` 第 8～10 章和第 14 章检查教程视觉、标题、对象生命周期、路径、阅读停留及文字重叠。Gate 2 检查设计；Gate 3 检查真实时序下的动作和音频。
+- 不把 HTML 原型、独立 Scene Script／Visual Script 或 `visual-self-review.json` 作为当前生产的前置产物。
+- 系列视频结尾必须包含有资料依据的下一集预告。结构检查不能代替人工批准或视觉质量检查。
+- 具体视频资料保留在本地，并由 Git 忽略。可复用能力进入共享代码或模板。
+- 在 `ROADMAP.md` 中分别记录实现与验证状态。尚未验证的观看或试听必须保持待验证。
