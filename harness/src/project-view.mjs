@@ -15,6 +15,7 @@ import {
 } from "./workflows/registry.mjs";
 import { ARCHIVED_NAMESPACE, ARCHIVED_WORKFLOW_ID, retiredWorkflowError } from "./workflows/archived.mjs";
 import { resolveStyleId } from "./styles.mjs";
+import { resolveTtsProvider } from "./tts-provider.mjs";
 
 const repositoryRoot = path.resolve(new URL("../..", import.meta.url).pathname);
 
@@ -233,6 +234,7 @@ function buildInitializedView(slug) {
     ...(project.config.storyboardSchemaVersion === undefined ? {} : { storyboardSchemaVersion: project.config.storyboardSchemaVersion }),
     timelineMode: workflowForProject(project).timelineMode,
     audioMode: workflowForProject(project).audioMode,
+    tts: resolveTtsProvider(project.config),
     batchSupported: usesCurrentProduction(project) && workflowForProject(project).batchSupported !== false,
     readOnly: project.state.currentStage === "completed",
     style: resolveStyleId(project.config, slug),

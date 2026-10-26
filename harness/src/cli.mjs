@@ -7,14 +7,14 @@ import {seriesChoices, selectVideoSeries} from './video-cover.mjs';
 import {getStyleDefinition} from './styles.mjs';
 import {saveSeries, saveSeriesCover} from './series-assets.mjs';
 import {renderDeliveryCli} from './render-delivery.mjs';
-import { claimDialogueTask, completeDialogueTask, failAgentTask, getAgentJob, resumeDialogueTask, createAgentJob, runAgentJob } from './agent-jobs.mjs';
+import { claimDialogueTask, completeDialogueTask, reuseDialogueTaskAudio, failAgentTask, getAgentJob, resumeDialogueTask, createAgentJob, runAgentJob } from './agent-jobs.mjs';
 import { usesUnifiedProduction } from './production-contract.mjs';
 import { formatStoryboardReview } from './storyboard.mjs';
 import { buildStoryboardReview } from './storyboard-review.mjs';
-import { prepareStoryboardRework, startStoryboardRework, storyboardReworkPlanView } from './storyboard-rework.mjs';
+import { prepareStoryboardRework, startStoryboardRework, prepareTtsRebuild, startTtsRebuild, storyboardReworkPlanView } from './storyboard-rework.mjs';
 import { workflowStageDefinition } from './workflows/registry.mjs';
 import { createAgentExecutorFromEnv } from './agent-executor.mjs';
-import { initializeProject, loadProject, writeJson, reopenGate3ForSeriesCover } from "./storage.mjs";
+import { initializeProject, loadProject, setProjectTtsConfig, writeJson, reopenGate3ForSeriesCover } from "./storage.mjs";
 import { workflowCatalog, workflowStages } from "./workflows/registry.mjs";
 import { approveGate, rejectGate, resumeProject, retryStage, runStage, validateStage } from "./runner.mjs";
 import { createTtsExecutor } from "./tts-executor.mjs";
@@ -63,6 +63,7 @@ import {
 function usage() {
   console.log(`Usage:
   node harness/src/cli.mjs init <slug>
+  node harness/src/cli.mjs tts-config <slug> edge|bailian [--voice <voice>]
   node harness/src/cli.mjs series list [--json]
   node harness/src/cli.mjs series select <slug> <series-id|none>
   node harness/src/cli.mjs series create <id> --title <title> --style <style>
@@ -86,6 +87,7 @@ function usage() {
   node harness/src/cli.mjs render-input entry-all --output <file> [--json]
   node harness/src/cli.mjs storyboard-review <slug> [--json]
   node harness/src/cli.mjs storyboard-rework <slug> prepare|start --return-to storyboard|narration-script|remotion --reason <text> [--rework-version <hash>]
+  node harness/src/cli.mjs tts-rebuild <slug> prepare|start --provider edge|bailian --reason <text> [--voice <voice>] [--rework-version <hash>]
   node harness/src/cli.mjs approve <slug> <gate> [--review-version <hash>]
   node harness/src/cli.mjs reject <slug> <gate> --return-to <stage> --reason <text>
   node harness/src/cli.mjs retry <slug> [stage]
@@ -276,10 +278,11 @@ export async function main(args, {deliveryDependencies = {}} = {}) {
     else if (action === "show") { result = getAgentJob(value); if (!result) throw new Error("任务不存在。"); }
     else if (action === "resume") result = resumeDialogueTask(value);
     else if (action === "complete") result = completeDialogueTask(value, option("--summary"));
+    else if (action === "reuse-audio") result = reuseDialogueTaskAudio(value, { sourceTaskId: option("--source-task"), authorization: option("--authorization"), summary: option("--summary") });
     else if (action === "fail") {
       if (getAgentJob(value)?.mode !== "dialogue") throw new Error("只能结束对话任务。");
       result = failAgentTask(value, option("--reason"));
-    } else throw new Error("production-task 仅支持 claim／show／resume／complete／fail。");
+    } else throw new Error("production-task 仅支持 claim／show／resume／complete／reuse-audio／fail。");
     console.log(JSON.stringify(result, null, 2));
     return 0;
   }
@@ -473,6 +476,32 @@ export async function main(args, {deliveryDependencies = {}} = {}) {
     console.log('请先运行 series list，向用户展示系列并确认选择，再执行 series select。');
     console.log(`Initialized Harness project: ${slug}`);
     console.log(`State: ${files.state}`);
+    return 0;
+  }
+
+  if (command === "tts-rebuild") {
+    validateSlug(slug);
+    const value = flag => { const i = options.indexOf(flag); return i < 0 ? undefined : options[i + 1]; };
+    const provider = value("--provider"), voice = value("--voice");
+    if (!["edge", "bailian"].includes(provider) || (provider === "bailian" && !voice)) throw new Error("tts-rebuild 需要 --provider edge|bailian；百炼还需要 --voice。");
+    const args = { reason: value("--reason"), tts: { provider, ...(voice ? { voice } : {}) } };
+    if (options[0] === "prepare") console.log(JSON.stringify(storyboardReworkPlanView(prepareTtsRebuild(slug, args)), null, 2));
+    else if (options[0] === "start") console.log(JSON.stringify(startTtsRebuild(slug, value("--rework-version"), args), null, 2));
+    else throw new Error("tts-rebuild requires prepare or start");
+    return 0;
+  }
+
+  if (command === "tts-config") {
+    validateSlug(slug);
+    const provider = options[0];
+    const voiceIndex = options.indexOf("--voice");
+    const voice = voiceIndex >= 0 ? options[voiceIndex + 1] : null;
+    if (!provider || !["edge", "bailian"].includes(provider)) throw new Error("tts-config 需要 edge 或 bailian。");
+    if (provider === "bailian" && !voice) throw new Error("百炼 TTS 需要显式 --voice，例如 Cherry。");
+    const result = setProjectTtsConfig(slug, provider === "edge" ? { provider, ...(voice ? { voice } : {}) } : {
+      provider, model: "qwen3-tts-flash", voice, region: "cn-beijing", languageType: "Chinese", timingProvider: "qwen-audio-3.1-asr-flash", audioSpeed: 1,
+    });
+    console.log(JSON.stringify(result, null, 2));
     return 0;
   }
 

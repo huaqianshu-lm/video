@@ -98,8 +98,8 @@ export function assetSourceIssues(project) {
   const issues = videoCoverAssetIssues(project);
   if (!files.includes("subtitles/captions.vtt")) issues.push("资源目录缺少 subtitles/captions.vtt");
   if (!files.includes("subtitles/captions.srt")) issues.push("资源目录缺少 subtitles/captions.srt");
-  if (!files.some((file) => file.startsWith("audio/") && file.endsWith(".mp3"))) {
-    issues.push("资源目录缺少 audio/*.mp3");
+  if (!files.some((file) => file.startsWith("audio/") && /\.(?:mp3|wav)$/.test(file))) {
+    issues.push("资源目录缺少 audio/*.mp3 或 audio/*.wav");
   }
   return issues;
 }

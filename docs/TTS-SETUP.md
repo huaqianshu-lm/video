@@ -6,7 +6,7 @@ Harness 调用标准 TTS Script 生成器时，会将 `## Scene 01：标题` 或
 
 ## 1. 获取 TTS 模块
 
-TTS 模块已作为独立仓库发布：[huaqianshu-lm/tts](https://github.com/huaqianshu-lm/tts)。建议先创建工作目录，再把 Video 和 TTS 仓库克隆到同一级：
+Edge TTS 模块已作为独立仓库发布：[huaqianshu-lm/tts](https://github.com/huaqianshu-lm/tts)。建议先创建工作目录，再把 Video 和 TTS 仓库克隆到同一级：
 
 ```bash
 mkdir video-workspace
@@ -34,20 +34,26 @@ Video Harness 默认从 `../tts` 查找 TTS 模块。
 
 当前流程优先支持 macOS 和 Linux。Windows 建议使用 WSL2；如果直接使用 Windows Python，必须显式配置 Python 路径，并自行确保兼容的 `zip`、`unzip` 命令可用。
 
-TTS 默认使用 Microsoft Edge 在线服务，不需要单独申请 API Key。生成配音时，冻结后的口播文本会发送至该服务。
+缺省 TTS 使用 Microsoft Edge 在线服务，不需要单独申请 API Key。显式选择百炼时，Harness 使用项目内 `harness/tts/bailian/` worker，须在其 `.venv` 安装锁定的 `requirements.txt` 并仅在运行环境设置 `DASHSCOPE_API_KEY`；Key 不写入项目配置、任务、日志或资源包。百炼将冻结口播发送到 TTS，并将生成音频发送到 `qwen-audio-3.1-asr-flash` 取得词级时间证据。每段 ASR 请求只附带从该段冻结文本提取的技术术语，术语不改写朗读文本、音频、字幕或时间轴。
+
+百炼原始 WAV 与 Edge MP3 都属于合法音频输入；资源打包、Remotion 音频指纹和远程输入检查须同时支持，保留文件存在、路径安全、归档数量及内容指纹校验，不为格式兼容转码或改变时间基准。
+
+同音代词差异仅允许“他／她／它”之间的一对一替换，仍使用对应 ASR 词条的真实起止时间，不插值或猜测字内时间。字幕取冻结原文；`wordMapping` 中须记录源字位置、原识别字、原文字及替换原因，原始 ASR 结果完整保留。其他文字差异、数值变化、增字、漏字继续阻断。该映射不代表实际发音或正常速度试听通过。
+
+另允许数值完全相同的中文整数与阿拉伯整数书写转换，例如“三／3、三千／3000”。不接受数值改变、小数或日期格式转换，不推测含糊的中文数字省略写法。记录原文范围、识别形式、整数值及所采用的原始 ASR 词索引；跨越多个词的数词只能合并使用这些相邻词的真实区间，不能按字符分配或插值时间。原文字幕保持不变；没有独立词时间证据的位置不能作为镜头切点。
 
 ### Agent 首次执行申请
 
 在受限网络环境中，Agent 首次申请宿主权限执行 TTS 时，必须先核对已有外部发送授权，并在该次申请的 `justification` 中附上以下证据，不能只写“已授权”，也不能等被拒绝后才补：
 
 - 授权记录的实际路径和相关原文；当前项目可读取本地 `local/tts/external-service-authorization.md`，其他安装必须使用各自真实的用户授权，不能继承本项目授权。
-- 本次视频标识、冻结的 `tts-script.json`、既定 Edge TTS 服务及 `speech.platform.bing.com:443` 目的地。
-- 本次生成音频、字幕和 Timeline 的范围、显式 `+25%` 语速，以及项目、输入范围和服务与授权一致的核对结果。
+- 本次视频标识、冻结的 `tts-script.json`、既定 TTS／ASR 服务及其实际目的地；百炼还须说明音频会发送到 Qwen-Audio ASR。
+- 本次生成音频、字幕和 Timeline 的范围；Edge 须显式 `+25%`，百炼须确认原始语速，以及项目、输入范围、服务和数据目的地与授权一致的核对结果。
 - 实际 Harness 命令；重新制作使用独立缓存，恢复中断任务沿用该次缓存，不回退到旧缓存。
 
 申请示例（必须替换为已核对的真实信息）：
 
-> 用户已授权当前项目的冻结口播发送到既定 Edge TTS 服务。证据：<授权记录路径>，原文：<相关授权原文>。本次通过 Harness 为 <video-slug> 的冻结 tts-script.json 生成 +25% 音频、字幕和 Timeline，目的地为 speech.platform.bing.com:443。项目、输入范围和服务均与授权一致，使用 <本次缓存目录>。
+> 用户已授权当前项目的冻结口播及其生成音频发送到既定 TTS／ASR 服务。证据：<授权记录路径>，原文：<相关授权原文>。本次通过 Harness 为 <video-slug> 的冻结 tts-script.json 生成 <Edge +25% 或百炼原始语速> 的音频、字幕和 Timeline，目的地为 <实际服务端点>。项目、输入范围、服务和数据目的地均与授权一致，使用 <本次缓存目录>。
 
 授权缺失或范围改变时先确认。已有同范围授权时不重复向用户索取授权。工具层的自动审批仍可拒绝执行；证据齐全不能保证放行。拒绝后报告原理由，只在新增授权证据或明确用户批准支持下重新提交同一操作，不通过改写命令绕过拒绝。
 
@@ -199,7 +205,7 @@ assets/<video-slug>-assets.zip
 
 ### 缺少 TTS Python 执行器
 
-确认 `tts/.venv/bin/python` 存在。使用自定义目录或 Windows Python 时，显式设置 `HARNESS_TTS_PYTHON`。
+确认 `tts/.venv/bin/python` 存在。使用自定义目录或 Windows Python 时，显式设置 `HARNESS_TTS_PYTHON`。百炼使用 `harness/tts/bailian/.venv/bin/python`，需要覆盖时设置 `HARNESS_BAILIAN_TTS_PYTHON`；它固定稳定模型别名 `qwen3-tts-flash`、`qwen-audio-3.1-asr-flash` 与原始语速，不接入音频加速。
 
 ### `ffprobe: command not found`
 

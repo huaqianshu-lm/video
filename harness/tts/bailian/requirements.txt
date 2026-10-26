@@ -1,0 +1,2 @@
+dashscope==1.25.0
+cryptography==45.0.7

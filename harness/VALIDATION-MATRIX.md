@@ -134,6 +134,8 @@ Smoke Render 只能针对未完成视频或独立副本，并通过 GitHub Actio
 
 TTS 相同内容重制：`tts-generation` 检查本次任务／执行次数、冻结输入、包含媒体字节的产物指纹、旧记录／改时间／空产物拒绝；`tts-harness-adapter` 检查实际子进程成功后保存记录、新任务缓存隔离以及失败不写记录；`unified-production` 检查共享单条／批量入口接受相同内容的当前生成记录，缺记录仍拒绝，保留人工 Gate。自定义执行器未接入记录时保留原变化检查，旧资料不自动改写。跨视频实际生成验收状态见 ROADMAP。
 
+TTS 配置切换重制：定向检查 9／9 验证 CLI／HTTP 同一计划、Gate 2 保留、批次停止且不伪造 Gate 驳回、锁／过期输入／completed 保护、部分写入恢复、旧返工路径；TTS provider 与生成记录检查 8／8。测试使用隔离工作区和模拟音频；本机 HTTP 初次受限环境监听 EPERM，获准本地回环后通过。真实视频生成和跨视频状态见 ROADMAP。
+
 | ID | 条件与期望 | 当前状态 |
 |---|---|---|
 | AC-1 | 对话与 Web 使用相同 task packet、next 和阻塞；Gate 3 显示试听清单 | `unified-production` 覆盖实际 CLI、现代／兼容 HTTP 与共享服务；`web-server` 覆盖连续制作到 Gate 2 |
@@ -162,6 +164,10 @@ TTS 相同内容重制：`tts-generation` 检查本次任务／执行次数、�
 旧转换／接管入口已停用。正常返工验证保留历史资料、从最早不满足当前规则的输入重做、不继承旧 Gate 批准、同计划恢复、冲突／活动任务／completed 阻断。
 
 ## Shot 定向验证
+
+显式音频复用入口：`node --test harness/test/tts-generation.test.mjs` 核对独立复用记录、原生成记录不变、授权／来源／配置／产物变化及过期记录阻断；`node --test --test-name-pattern='explicit audio reuse CLI' harness/test/storyboard-production.test.mjs` 使用隔离项目与模拟音频，检查实际 CLI 提交、默认提交不自动复用、无授权／过期输入／completed 阻断及重复调用。模拟音频不作为真实试听证据；实际视频入口与跨视频验证状态见 ROADMAP。
+
+2026-10-17：内容驱动设计与内部审查改进的 `storyboard-production.test.mjs` 40／40、`storyboard-shots.test.mjs` 最终 12／12 通过（通过 `harness/scripts/test.mjs` 隔离执行）。实际 CLI、HTTP、对话领取和批量任务检查相同设计顺序及初稿后独立审查要求；展示检查命令／对象／预期对照状态、转义与结构校验边界；重复取景／相机及审计文本仅提示，不阻断合理固定镜头或改变批准契约。一处不同镜头不能掩盖其余重复描述。首次受限环境 HTTP 测试因 localhost 监听 EPERM 失败，申请本地端口权限后重跑通过。规则执行、内部审查促成修正、人工首审质量及跨视频效果仍待真实制作验收，见 `local/storyboard-design-quality-improvement/acceptance.md`。
 
 `node --test harness/test/current-production.test.mjs harness/test/storyboard-production.test.mjs harness/test/storyboard-execution.test.mjs harness/test/storyboard-shots.test.mjs`：78／78，通过于2026-10-11。临时隔离工作区，HTTP 测试监听 localhost；不修改实际视频、不调用外部 TTS 或完整渲染。覆盖单／多镜头、缺失或重复 ID、未知归属、父子／对象连续性、空隙／重叠／越界动作、Cue 中间无词级切点、逐镜头审计、冻结镜头映射、过期批准／证据、源码引用、硬切／视觉重叠／片尾效果、pending 阻断、CLI／HTTP 同版本审核、批量 Gate 2、独立输入包和旧格式只读预览。
 

@@ -21,6 +21,7 @@ import { fingerprintStageArtifacts } from "./fingerprints.mjs";
 import { resolveStyleId } from "./styles.mjs";
 import { validateProjectStage } from "./validation.mjs";
 import { ARCHIVED_WORKFLOW, ARCHIVED_WORKFLOW_ID, retiredWorkflowError } from "./workflows/archived.mjs";
+import { resolveTtsProvider } from "./tts-provider.mjs";
 
 const repositoryRoot = path.resolve(new URL("../..", import.meta.url).pathname);
 
@@ -236,6 +237,23 @@ export function applySeriesStyle(slug, style) {
   project.state.currentStage = restartAt;
   saveState(project);
   return { changed: true, restartedAt: restartAt };
+}
+
+export function setProjectTtsConfig(slug, tts) {
+  const project = loadProject(slug, { refresh: false });
+  assertProjectMutable(project, "设置 TTS 方案");
+  if (activeProductionTask(project)) throw Object.assign(new Error("存在活动制作任务，不能更换 TTS 方案。"), { code: "production-task-owned" });
+  const resolved = resolveTtsProvider({ tts });
+  if (JSON.stringify(resolveTtsProvider(project.config)) === JSON.stringify(resolved)) return { changed: false, tts: resolved };
+  const stages = workflowStages(project);
+  const currentIndex = stages.indexOf(project.state.currentStage), audioIndex = stages.indexOf("subtitle-timeline");
+  if (currentIndex > audioIndex || (currentIndex === audioIndex && (project.state.stages["subtitle-timeline"]?.attempts ?? 0) > 0) || project.state.stages["subtitle-timeline"]?.status === "succeeded") {
+    throw Object.assign(new Error("音频阶段已完成，请先准备并执行 TTS 重制计划。"), { code: "tts-rebuild-required" });
+  }
+  project.config.tts = resolved;
+  project.config.updatedAt = new Date().toISOString();
+  writeJson(project.files.config, project.config);
+  return { changed: true, tts: resolved };
 }
 
 export function loadProject(slug, { refresh = true } = {}) {

@@ -840,7 +840,7 @@ export function batchReworkScope(slug) {
   });
 }
 
-export function stopBatchesAfterGateRejection({ slug, gate, returnTo, reason, allTypes = false, batchIds = null }) {
+export function stopBatchesAfterGateRejection({ slug, gate, returnTo, reason, allTypes = false, batchIds = null, cause = "gate-rejected" }) {
   if (isCompletedProject(slug)) return [];
   const stopped = [];
   for (const batch of listBatches()) {
@@ -855,8 +855,8 @@ export function stopBatchesAfterGateRejection({ slug, gate, returnTo, reason, al
     Object.assign(batchItem, {
       status: "failed",
       phase: gate,
-      error: { code: "gate-rejected", gate, returnTo, message: reason },
-      message: `${gate} 已驳回，旧的连续批次已停止；请从 ${returnTo} 重新执行。`,
+      error: cause === "tts-rebuild" ? { code: cause, returnTo, message: reason } : { code: "gate-rejected", gate, returnTo, message: reason },
+      message: cause === "tts-rebuild" ? `音频重制，旧的连续批次已停止；请从 ${returnTo} 重新执行。` : `${gate} 已驳回，旧的连续批次已停止；请从 ${returnTo} 重新执行。`,
       completedAt: now,
       updatedAt: now,
     });

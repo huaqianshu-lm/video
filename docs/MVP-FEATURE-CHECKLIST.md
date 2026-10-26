@@ -14,6 +14,21 @@
 
 ## 能力清单
 
+- [x] 真实词级时间接入：TTS适配器保留原始边界并绑定脚本／Manifest／音频，时间计划及alignment校验消费实际词起点，Remotion任务输入和独立包绑定证据；旧Cue级事件兼容，缺词级证据的Cue内镜头继续阻断。22项定向检查及20-mcp实际CLI／输入包验证通过；正常速度实片及跨视频固化待验，见 `local/remotion/20-mcp/acceptance.md`。
+
+- [x] 对话／CLI 显式音频复用入口已实现：用户授权、同视频原成功生成记录、冻结口播／provider／全部产物一致性及当前任务校验；独立复用记录不冒充新生成。定向单元8／8、CLI集成1／1及19-memory真实提交通过。默认不自动复用；Web自动入口与跨视频固化不在已验范围，证据见 `local/tts/19-memory/entry-rebuild-20261024/reuse-acceptance.md`。
+
+- [x] 已有音频执行记录后的 TTS 配置切换使用共享重制计划，保留 Gate 2 并失效音频及下游，CLI／HTTP、批次、冲突恢复和 completed 保护定向 9／9；生成记录及 provider 定向 8／8。真实入口及跨视频验证进度见 ROADMAP。
+- [x] 百炼 WAV 在资源打包、Remotion 音频指纹和远程输入检查中兼容，保留 MP3；ASR 允许有限同音代词及等值整数写法映射并保留原文与识别时间证据，数值变化、其他错字及增漏字继续阻断。定向格式／路径／缺失资源检查 8 项、词级映射／术语检查 13 项通过，实际完整 TTS 及跨视频验证状态见 ROADMAP.md。
+- [x] 内容驱动的分镜任务与独立内部审查要求已接入共享任务包；取景／相机及审计重复文本的非阻断提示、CLI／Web 的结构校验与 Agent 审查分开展示已实现。隔离入口与展示 40／40、镜头定向 12／12 通过，证据见 `local/storyboard-design-quality-improvement/acceptance.md`。
+- [x] 视觉导演创作要求已接入共享联合任务：全片构思、逐幕表达、镜头组织、按难点画面推敲、全片统筹后再整理数据；两份原创设计推导与现有审计骨架纳入输入指纹。定向入口／版本／只读保护 8 项通过，不新增 schema、阶段或自动评分；证据见 `local/storyboard-director-design/acceptance.md`。
+- [x] 共享导演方法第二轮补强：完整情境与前提、声画共同含义、镜头内注意力顺序、针对性实验与可推翻原设计的内部审查，已同步权威指导、通用推导、Skill／审计路由及共享任务包；工程验证范围见 `local/storyboard-director-design/revision-02/acceptance.md`，不代表画面质量已验收。
+- [ ] 视觉导演创作的首次交付质量与跨视频验收：`20-mcp` 首次提交主线获基本认可，但状态与时序问题仍需用户指出；第二轮共享方法的真实首次交付与跨视频稳定性待验。保留首次版本及画面依据，由用户判断成熟度；入口接入不等于设计质量已经改善。
+- [x] 根目录设计参考层与共享任务包索引：9份参考资料、Skill路由、4个相关阶段含索引／TTS排除的只读检查通过，证据见 `local/references-iteration/acceptance.md`。
+- [ ] 参考资料在实际Agent设计任务、Web／批量入口及后续视频上的应用与画面质量验收；目录和阅读提示不代表设计能力已提升。
+- [x] 视觉模板目录职责及入口路由：14个原混合文件已分别迁入 `contracts/`、`scaffolds/`、`legacy/`；`templates/README.md` 只接收验收后的可运行视觉实现；实际 CLI、HTTP、批量、TTS、Remotion 及历史兼容／completed 保护定向84／84通过，Storyboard／Gate 2／Remotion按需读取，TTS排除；模板清单已收入 `boundary-permission`（历史单场景交互预览认可）、`document-key-points`（10.8秒独立Shot无声预览认可，提取324帧一致）及 `sources-to-brief`（7.4秒独立Shot无声预览认可，修正播放器适配后入库，提取222帧一致）及 `code-walkthrough`（6.6秒独立Shot无声预览认可，逐行高亮时固定编辑器、连续入出场，提取198帧一致）及 `condition-filter`（8.4秒独立Shot无声预览认可，同一装置切换条件并展示通过／拦截，提取252帧一致）及 `object-comparison`（8.2秒独立Shot无声预览认可，盒体／分区柜对比，合门及双向滑出收尾，提取246帧一致）及 `aligned-comparison`（8秒独立Shot无声预览认可，三列逐行比较及窄条上滑收尾，提取240帧一致）及 `context-detail`（串行修正版8秒独立Shot无声预览认可，处理节点展开与收回完成后再输出，提取240帧一致）及 `digital-workspace`（静帧及7.8秒独立Shot无声预览认可，独立内容串行归入数字工作空间，窗口收拢上移收尾，提取234帧一致）及 `network-volume`（静帧及持续循环独立Shot无声预览认可，曲面网络与轨道光点共享24秒闭合周期，无入场／离场，提取720帧一致）及 `metal-volume`（实体金属持续循环独立Shot无声预览认可，浅槽与纹理转动、世界光照固定，24秒一周期，无入场／离场；提取渲染逻辑一致、720帧角度一致）及 `material-comparison`（8.8秒双球独立Shot无声预览认可，左右比较、暖金／青绿分层光晕与实体暗面；提取264帧状态与SVG一致，绘制代码核对及定向严格类型检查通过）及 `operation-feedback`（7.8秒独立Shot无声预览认可，配置２改４、执行与并行轨道反馈；结束保留完整结果，无收尾动画；提取234帧状态与SVG一致，定向严格类型检查通过）及 `context-focus`（6.2秒独立Shot无声预览认可，低亮上下文、来源选择与明亮细节展开；结束保留结果；提取186帧状态与SVG一致，定向严格类型检查通过）及 `chapter-title`（5.1秒独立Shot无声预览认可，字符归位、科技字形及右到左风吹散出场；提取153帧状态／碎片参数／SVG一致，字形构建与定向严格类型检查通过）及 `opening-questions`（7.4秒独立Shot无声预览认可，任务核心、能力问题与权限边界依次演示，结束保留完整画面；提取222帧状态与SVG一致，定向严格类型检查通过）；新候选按短时长独立Shot无声预览准入，生产实片／跨视频待验。证据见 `local/visual-template-directory-acceptance/acceptance.md`。
+- [ ] 首个原创模板正式生产实片及另一条视频跨视频验证：`boundary-permission` 已获独立场景交互预览质量认可并入库，含主体实现和两个中性示例；实际Remotion成片、中性示例观看及跨视频复用待验。
+
 - [x] Remotion 固定工程：16:9、1920 × 1080、30fps，内容驱动时长。
 - [x] 当前资料链：Source、合并策划、纯口播与 Storyboard／设计审计、真实音频／Timeline、按冻结分镜编写的实现与交付。旧七层结构仅供历史读取。
 - [x] 六个通用场景组件：Opening、Concept、Comparison、StepList、Terminal、Summary。

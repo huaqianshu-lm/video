@@ -1,17 +1,18 @@
 import path from "node:path";
 import { commandConfigFromEnv, createCommandExecutor } from "./command-executor.mjs";
-
-const TTS_RATE = "+25%";
-const TTS_VOICE = "zh-CN-XiaoxiaoNeural";
+import { resolveTtsProvider } from "./tts-provider.mjs";
 
 function ttsInput(project, executionTask) {
   const slug = project.config.slug;
+  const tts = resolveTtsProvider(project.config);
   return {
     schemaVersion: 1,
     kind: "video-tts-execution",
     videoId: slug,
-    rate: TTS_RATE,
-    voice: TTS_VOICE,
+    provider: tts.provider,
+    tts,
+    ...(tts.rate ? { rate: tts.rate } : {}),
+    voice: tts.voice,
     workspaceRoot: project.config.workspaceRoot,
     ...(executionTask ? { executionTask } : {}),
     input: {
@@ -28,6 +29,7 @@ function ttsInput(project, executionTask) {
       "只能消费冻结且已通过 Harness 校验的 tts-script.json。",
       "音频、字幕和 Timeline 必须由同一份 TTS Script 和实际音频生成。",
       "已有有效 Segment 应复用，失败或空文件 Segment 才允许重试。",
+      "任务开始后不得更换 TTS provider、模型、音色或语速配置。",
       "完成后必须让 Harness 重新校验所有输出。",
     ],
   };

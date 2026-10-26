@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { readWordTiming, segmentWords } from './word-timing.mjs';
 
 const EPSILON_SECONDS = 0.02;
 
@@ -38,6 +39,7 @@ export function buildRemotionTimingPlan({ workspaceRoot, slug, fps = 30 }) {
   const audio = readManifest(workspaceRoot, `${root}/audio-manifest.json`, "Audio Manifest");
   const subtitles = readManifest(workspaceRoot, `${root}/subtitle-manifest.json`, "Subtitle Manifest");
   const timeline = readManifest(workspaceRoot, `${root}/timeline-manifest.json`, "Timeline Manifest");
+  const wordTiming = readWordTiming(workspaceRoot, slug);
 
   if (!Number.isFinite(fps) || fps <= 0) throw new Error(`无效的 Remotion FPS：${fps}`);
   if (!Number.isFinite(timeline.duration) || timeline.duration <= 0) {
@@ -73,6 +75,7 @@ export function buildRemotionTimingPlan({ workspaceRoot, slug, fps = 30 }) {
       assertClose(Number(audioSegment.duration), segmentDuration, `Scene ${sceneId}／Segment ${segmentId} 的音频时长不一致`);
 
       const globalStart = sceneOffset + segmentOffset;
+      const words = segmentWords(wordTiming, segmentId, (subtitleSegment.cues ?? []).map(c => c.text).join(''), segmentDuration, globalStart, fps);
       const cues = (subtitleSegment.cues ?? []).map((cue) => {
         const start = Number(cue.start);
         const end = Number(cue.end);
@@ -93,6 +96,7 @@ export function buildRemotionTimingPlan({ workspaceRoot, slug, fps = 30 }) {
       return {
         audioDurationSeconds: Number(audioSegment.duration),
         audioFile: audioSegment.file,
+        ...(words ? {words} : {}),
         cues,
         durationSeconds: segmentDuration,
         endFrame: secondsToFrames(globalStart + segmentDuration, fps),
@@ -119,6 +123,7 @@ export function buildRemotionTimingPlan({ workspaceRoot, slug, fps = 30 }) {
     durationFrames: secondsToFrames(timeline.duration, fps),
     durationSeconds: timeline.duration,
     fps,
+    ...(wordTiming ? {wordTiming} : {}),
     scenes,
     source: "timeline-manifest.json",
   };

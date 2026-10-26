@@ -10,7 +10,7 @@ import { prepareRenderInputEntry, renderInputDirectory, validateRenderInputDirec
 import { listRemotionTasks } from "./remotion-tasks.mjs";
 import { assertProjectMutable, assertProjectSlugMutable, isCompletedProject, loadProject, projectsRoot, readJson, writeJson } from "./storage.mjs";
 import { workflowStageDefinition } from "./workflows/registry.mjs";
-import { readTtsGenerationRecord, validateTtsGenerationRecord } from "./tts-generation.mjs";
+import { readTtsGenerationRecord, validateTtsGenerationRecord, saveTtsReuseRecord, validateTtsReuseRecord } from "./tts-generation.mjs";
 
 const ACTIVE_STATUSES = new Set(["queued", "running"]);
 
@@ -128,13 +128,17 @@ function submitJob(job, execution = {}) {
   project.taskOwner = job.id;
   assertProductionTaskOwner(project, job.id);
   const stages = job.stages ?? [job.stage];
-  if (stages.includes("subtitle-timeline")) execution.generationRecord ??= readTtsGenerationRecord(project.config.workspaceRoot, job);
+  if (stages.includes("subtitle-timeline") && !execution.reuseRecord) execution.generationRecord ??= readTtsGenerationRecord(project.config.workspaceRoot, job);
   const finishedCheckpoint = job.validatedFingerprints && stages.every(stage => project.state.stages[stage]?.status === "succeeded");
   if ((!stages.includes(project.state.currentStage) && !finishedCheckpoint) || fingerprintTaskInputs(project, job.originalStages ?? stages) !== job.inputFingerprint) {
     throw Object.assign(new Error("制作期间输入或项目阶段已改变，原任务结果不能推进；结束任务后刷新安排返工。"), { code: "production-input-changed" });
   }
   if (usesUnifiedProduction(project) || job.mode === "dialogue") {
     for (const stage of stages) {
+      if (stage === "subtitle-timeline" && execution.reuseRecord) {
+        validateTtsReuseRecord(project, job, execution.reuseRecord, getAgentJob(execution.reuseRecord.sourceTaskId));
+        continue;
+      }
       if (stage === "subtitle-timeline" && execution.generationRecord) {
         validateTtsGenerationRecord(project, job, execution.generationRecord);
         continue;
@@ -174,7 +178,7 @@ function submitJob(job, execution = {}) {
   }
   job.status = "succeeded";
   job.completedAt = new Date().toISOString();
-  job.result = { outputs: execution.outputs ?? [], summary: execution.summary ?? null, stages, nextStage: project.state.currentStage, ...(execution.generationRecord ? { generationRecord: execution.generationRecord } : {}) };
+  job.result = { outputs: execution.outputs ?? [], summary: execution.summary ?? null, stages, nextStage: project.state.currentStage, ...(execution.generationRecord ? { generationRecord: execution.generationRecord } : {}), ...(execution.reuseRecord ? { reuseRecord: execution.reuseRecord } : {}) };
   job.error = null;
   saveJob(job);
   if (activeProductionTask(project)?.id === job.id) releaseProductionTask(project, job.id);
@@ -203,6 +207,22 @@ export function completeDialogueTask(id, summary) {
   if (job.status !== "running" || !summary?.trim()) throw new Error("必须回传运行中的任务和非空制作说明。");
   // A rejected submission leaves the claim intact so the Agent can fix its output.
   return submitJob(job, { summary: summary.trim() });
+}
+
+export function reuseDialogueTaskAudio(id, { sourceTaskId, authorization, summary } = {}) {
+  const job = getAgentJob(id);
+  if (!job || job.mode !== 'dialogue' || job.stage !== 'subtitle-timeline') throw new Error('仅支持对话领取的音频任务显式复用。');
+  const project = loadProject(job.slug, { refresh: false });
+  assertProjectMutable(project, '显式复用音频');
+  if (job.status === 'succeeded' && job.result?.reuseRecord?.sourceTaskId === sourceTaskId && authorization?.trim() && summary?.trim()) return job;
+  if (job.status !== 'running' || !summary?.trim()) throw new Error('必须提交当前运行任务和非空复用说明。');
+  assertProductionTaskOwner(project, job.id);
+  const checkpoint = job.validatedFingerprints && project.state.stages[job.stage]?.status === 'succeeded';
+  if ((!checkpoint && project.state.currentStage !== job.stage) || fingerprintTaskInputs(project, job.originalStages ?? job.stages) !== job.inputFingerprint) throw Object.assign(new Error('复用任务输入已过期。'), { code: 'production-input-changed' });
+  const issues = validateStage(project, job.stage).filter(issue => issue.severity !== 'warning');
+  if (issues.length) throw Object.assign(new Error('复用产物未通过当前阶段校验。'), { code: 'validation-failed', issues });
+  const reuseRecord = saveTtsReuseRecord({ project, job, sourceJob: getAgentJob(sourceTaskId), authorization });
+  return submitJob(job, { summary: summary.trim(), reuseRecord });
 }
 
 export function failAgentTask(id, reason) {

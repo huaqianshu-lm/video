@@ -23,6 +23,9 @@ harness/remotion-tasks/
 # Generated temporary Remotion entry for an isolated render input
 src/RenderInputRoot.tsx
 harness/agent-jobs/
+harness/tts/bailian/.venv/
+**/__pycache__/
+*.py[cod]
 
 # Local production media and previews
 *.mp4

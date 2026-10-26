@@ -19,7 +19,7 @@ function fixture() {
   fs.writeFileSync(path.join(sourceRoot, "audio", "scene-01", "01-01.mp3"), "audio\n");
   fs.writeFileSync(path.join(sourceRoot, "subtitles", "captions.srt"), "srt\n");
   fs.writeFileSync(path.join(sourceRoot, "subtitles", "captions.vtt"), "WEBVTT\n");
-  return { workspaceRoot, slug, project: { config: { slug, workspaceRoot } }, sourceRoot };
+  return { workspaceRoot, slug, project: { config: { slug, workspaceRoot, productionContract: "storyboard-v1", storyboardSchemaVersion: 3 } }, sourceRoot };
 }
 
 test("packages all local audio and subtitle assets under the video slug", () => {

@@ -424,7 +424,9 @@ export function validateRemotionAlignment(project) {
         for (const event of expected.events) {
           const mapping = mappings.find(item => item.id === event.id);
           const binding = scene.visualBindings?.find(item => item.id === mapping.bindingId);
-          if (mapping.cueId !== event.cueId || mapping.segmentId !== event.segmentId || mapping.atFrame !== event.atFrame || !binding || binding.atFrame !== event.atFrame || binding.source?.type !== "cue" || binding.source.id !== event.cueId || (binding.source.offsetFrames ?? 0) !== 0) issues.push(alignmentIssue("storyboard-event-binding-invalid", `Event ${event.id} 未绑定真实锚点 Cue 的命名 visualBinding。`, relativePath));
+          const cue = timingPlan.scenes.find(s => s.sceneId === expected.sceneId)?.segments.flatMap(s => s.cues).find(c => c.id === event.cueId);
+          const offset = event.timingSource === 'provider-word-timing' ? event.atFrame - cue.startFrame : 0;
+          if (mapping.cueId !== event.cueId || mapping.segmentId !== event.segmentId || mapping.atFrame !== event.atFrame || !binding || binding.atFrame !== event.atFrame || binding.source?.type !== "cue" || binding.source.id !== event.cueId || (binding.source.offsetFrames ?? 0) !== offset) issues.push(alignmentIssue("storyboard-event-binding-invalid", `Event ${event.id} 未绑定真实锚点 Cue／词级证据的命名 visualBinding。`, relativePath));
         }
         const boardScene = storyboardReview(project).scenes.find(item => item.id === expected.sceneId);
         if (JSON.stringify(scene.screenText) !== JSON.stringify(boardScene.elements.filter(item => item.text).map(item => item.text))) issues.push(alignmentIssue("storyboard-screen-text-mismatch", `Scene ${expected.sceneId} 屏幕文字与冻结分镜不一致。`, relativePath));

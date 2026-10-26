@@ -2,6 +2,8 @@
 
 当前分镜在领取 Remotion 任务后由 Agent 编写画面和配置，提交 storyboard-authored-alignment 5。使用 render-input prepare／entry 准备单视频 Studio；实际完整观看和正常速度试听后填写 remotion-viewing-evidence.json，再完成任务并等待人工 Gate 3。Harness 不生成业务 JSX。旧自动画面需正常返工。
 
+词级锚点消费 `generated/word-timing.json`：TTS适配器保留真实provider边界，绑定当前脚本、Manifest和音频字节；原成功缓存可导入派生词级资料，不重写生成记录。有证据时Shot／Event用准确词起点，无证据保留旧Cue级事件，Cue内镜头仍阻断。具体契约见 [Storyboard生产契约](../docs/STORYBOARD-PRODUCTION-CONTRACT.md) 。
+
 
 ## 当前 Storyboard 生产流程（实片验收待完成）
 
@@ -291,6 +293,18 @@ export HARNESS_AGENT_EXECUTOR_CWD="<optional-working-directory>"
 
 Harness 通过 stdin 发送结构化阶段任务包。`subtitle-timeline` 和 `remotion` 分别继续使用 `HARNESS_TTS_EXECUTOR_*` 与 `HARNESS_REMOTION_EXECUTOR_*`；浏览器不会接触执行器凭据。
 
+TTS 由项目配置选择：缺省项目保持 Edge／Xiaoxiao／`+25%`；`node harness/src/cli.mjs tts-config <slug> bailian --voice Cherry` 才会选择百炼 Qwen3-TTS-Flash。百炼固定原始语速，使用 `qwen-audio-3.1-asr-flash` 从实际音频取得词级时间证据；每段只内联该段冻结文本中的技术词，允许有限同音代词和等值整数书写映射，无法按规则对齐仍会阻断生成。具体边界见 `docs/TTS-SETUP.md`。配置、缓存和成功记录按任务绑定；不会在 Edge 失败时自动切换。
+
+音频阶段已有执行记录且项目处于该阶段或其后时，不能仅用 `tts-config` 修改 provider；先准备并查看重制计划，再以同一版本执行。计划保留 Gate 2，重新开放音频阶段并使后续状态失效，活动任务／未对账交付阻断，相关批次停止；完成视频只读。若已从更早的口播／分镜阶段正常返工并使音频失效，仍可提前选择配置。Web 的 TTS 选择复用同一判断和计划。计划执行后仍须通过普通 Harness 任务生成音频；失败恢复同一任务。
+
+```bash
+node harness/src/cli.mjs tts-rebuild <slug> prepare --provider edge --reason "更换语音并重制"
+node harness/src/cli.mjs tts-rebuild <slug> start --provider edge --reason "更换语音并重制" --rework-version <计划版本>
+node harness/src/cli.mjs run <slug> subtitle-timeline
+```
+
+百炼重制使用 `--provider bailian --voice Cherry`，prepare 与 start 的参数必须一致。实现与实际入口验证状态见 ROADMAP。
+
 ### TTS 执行器
 
 当前项目已提供可直接接入既有 TTS 工程的 Harness 适配器，但它只适用于 `narrated-tutorial-v1`。Gate 2 通过时，Harness 会调用既有 TTS 工程的 `scripts/build_tts_script.py`，从冻结的 `narration-script.md` 生成 `tts-script.json`；CLI、WebUI 不各自实现 Markdown 解析规则。普通 `npm run harness:web` 会自动使用该适配器；它读取生成并校验过的 narrated `videos/<video-slug>/tts-script.json`，按 `+25%` 调用 TTS 工程中的三个脚本，再把音频、字幕和 Timeline Manifest 同步到当前视频目录，并自动生成 narrated 资源归档。默认假设 TTS 工程与本仓库同级，目录为 `../tts`；如果目录不同，或需要替换适配器，显式设置：
@@ -306,7 +320,7 @@ export HARNESS_TTS_SCRIPT_BUILDER="/Users/limiao/personal/2-topic/4-AI/project/t
 
 CLI 的 `run <slug> subtitle-timeline` 也默认使用项目内适配器，无需设置 `HARNESS_TTS_EXECUTOR_COMMAND`。显式设置 COMMAND 时使用该命令及配置的 ARGS，未设置 ARGS 则传空参数；仅设置 ARGS／CWD 时覆盖默认适配器的对应配置。参数格式错误会直接报错，不静默回退。
 
-适配器会在 `harness/.cache/tts/` 保留按 TTS Script 内容哈希区分的可恢复中间结果；这个目录已加入 Git 忽略。启动 Web UI 的终端必须继承上述环境变量，修改后需要重启 Web Server。
+适配器会在 `harness/.cache/tts/` 保留按 TTS Script 内容哈希与 provider 配置区分的可恢复中间结果；这个目录已加入 Git 忽略。百炼的项目内 Python 环境可由 `HARNESS_BAILIAN_TTS_PYTHON` 覆盖，Key 只从运行环境的 `DASHSCOPE_API_KEY` 读取。启动 Web UI 的终端必须继承上述环境变量，修改后需要重启 Web Server。
 
 ## CLI 使用
 
@@ -456,13 +470,14 @@ node harness/src/cli.mjs context <slug>
 node harness/src/cli.mjs production-task claim <slug>
 node harness/src/cli.mjs production-task show <task-id>
 node harness/src/cli.mjs production-task complete <task-id> --summary "实际制作内容"
+node harness/src/cli.mjs production-task reuse-audio <task-id> --source-task <original-task-id> --authorization "用户明确授权原文" --summary "复用说明"
 node harness/src/cli.mjs production-task fail <task-id> --reason "失败原因"
 node harness/src/cli.mjs production-task resume <task-id>
 ```
 
 Source 登记与冻结 TTS 输入校验使用 `run`，无需 Agent 制作任务。策划合并成一个任务、Content Analysis 与 Video Narrative 两份文件和两个内部阶段，Gate 1 为内部检查；纯口播与 Storyboard 在 Gate 2 审核并冻结同版本。TTS 机器检查完成后可制作Agent 编写的 Remotion，在 Gate 3 实际观看并正常速度试听；旧独立 TTS 试听仅为历史记录。
 
-同一项目只能有一个已领取任务；Web UI 重启不会撤销对话任务。提交结果必须通过真实产物、变化和输入版本校验，过期或原样回传不能推进。
+同一项目只能有一个已领取任务；Web UI 重启不会撤销对话任务。提交结果必须通过真实产物、变化和输入版本校验，过期或原样回传不能推进。`reuse-audio` 是显式例外：需要用户对当前视频的复用授权、同视频原成功 TTS 生成记录以及完全一致的口播／provider／产物；保存独立复用记录，保留原生成时间。默认提交及 Web／后台／批量不自动复用，Gate 3 仍须实际观看／试听，详细边界见统一生产契约。
 
 单条交付 `render-delivery prepare／start／resume`；批量交付 `batch delivery prepare／start／resume <batch-id>`，start 须传当前 `--confirm-plan <plan-id>`。Web UI 复用服务，准备不 commit／push／dispatch。批量只提交一次，各视频独立发布绑定与恢复 Job。既有成功基线配置及机器检查见 `docs/RENDER-DELIVERY-BASELINE.md`。
 

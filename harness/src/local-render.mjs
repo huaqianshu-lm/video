@@ -73,7 +73,7 @@ export function localRenderEnvironment(workspace, environment = process.env) {
     node: process.execPath, platform: process.platform, arch: process.arch};
 }
 
-function capabilityFiles(root) {
+export function localRenderCapabilityFiles(root) {
   const result = [];
   const walk = relative => {
     const file = path.join(root, relative);
@@ -87,7 +87,7 @@ function capabilityFiles(root) {
     }
     else if (stat.isFile()) result.push(relative);
   };
-  for (const relative of ['src', 'public', 'styles', 'templates', 'docs', 'remotion.config.ts', 'tsconfig.json', 'package.json', 'package-lock.json', 'harness/src']) walk(relative);
+  for (const relative of ['src', 'public', 'styles', 'templates', 'docs', 'contracts/video-production', 'remotion.config.ts', 'tsconfig.json', 'package.json', 'package-lock.json', 'harness/src']) walk(relative);
   return result;
 }
 
@@ -96,7 +96,7 @@ function currentPlan(project, prepared, runtime) {
   if (issues.length) fail('local-render-input-stale', issues.join('；'));
   const root = project.config.workspaceRoot;
   const manifest = read(path.join(prepared.directory, 'render-input.json'));
-  const files = Object.fromEntries(capabilityFiles(root).map(relative => [relative, hash(fs.readFileSync(path.join(root, relative)))]));
+  const files = Object.fromEntries(localRenderCapabilityFiles(root).map(relative => [relative, hash(fs.readFileSync(path.join(root, relative)))]));
   let codeCommit = null;
   try { codeCommit = execFileSync('git', ['-C', root, 'rev-parse', 'HEAD'], {encoding: 'utf8', timeout: 5000, stdio: ['ignore', 'pipe', 'ignore']}).trim(); } catch {}
   const plan = {backend: 'local', slug: project.config.slug, workspace: path.resolve(root),

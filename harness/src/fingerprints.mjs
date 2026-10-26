@@ -88,5 +88,9 @@ export function fingerprintTaskInputs(project, stages) {
   }
   if (usesStoryboardProduction(project) && storyboardSchemaVersion(project) >= 2) for (const file of storyboardDesignReferences(project)) hashFile(hash, project.config.workspaceRoot, file);
   if (usesStoryboardProduction(project) && storyboardSchemaVersion(project) >= 2 && stages.includes("remotion")) for (const file of STORYBOARD_SHARED_REFERENCES) hashFile(hash, project.config.workspaceRoot, file);
+  if (stages.includes('remotion')) {
+    const words = `${project.config.remotionDirectory}/generated/word-timing.json`;
+    if (fs.existsSync(path.join(project.config.workspaceRoot, words))) hashFile(hash, project.config.workspaceRoot, words);
+  }
   return hash.digest("hex");
 }

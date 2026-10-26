@@ -3,11 +3,11 @@ const ACTIONS = new Set([
   "approve", "reject", "approve-tts-qc", "run-to-gate-2", "prepare-remote-render", "resume-render-delivery", "bind-render-input", "remote-run", "find-historical", "adopt-historical",
   "prepare-storyboard-migration", "start-storyboard-migration",
   "prepare-storyboard-rework", "start-storyboard-rework",
-  "prepare-render", "start-render",
+  "prepare-render", "start-render", "set-tts-config", "prepare-tts-rebuild", "start-tts-rebuild",
 ]);
 
 import { artifactManifestFor } from "../../artifacts.mjs";
-import { prepareStoryboardRework, startStoryboardRework, storyboardReworkPlanView } from "../../storyboard-rework.mjs";
+import { prepareStoryboardRework, startStoryboardRework, prepareTtsRebuild, startTtsRebuild, storyboardReworkPlanView } from "../../storyboard-rework.mjs";
 import { usesUnifiedProduction } from "../../production-contract.mjs";
 import { approveTtsQcForProject, createBatch, findActiveBatchForProject, getBatchForView, stopBatchesAfterGateRejection, runBatch } from "../../batches.mjs";
 import { buildTaskPacket } from "../../context.mjs";
@@ -18,7 +18,7 @@ import { getVideoProject } from "../../project-view.mjs";
 import { buildNextAction, buildProjectReport } from "../../reports.mjs";
 import { ensureRemotionTask, listRemotionTasks } from "../../remotion-tasks.mjs";
 import { bindRenderInputDelivery } from "../../render-input.mjs";
-import { assertProjectMutable, initializeProject, loadProject } from "../../storage.mjs";
+import { assertProjectMutable, initializeProject, loadProject, setProjectTtsConfig } from "../../storage.mjs";
 import { workflowStageDefinition } from "../../workflows/registry.mjs";
 import { approveGate, rejectGate, resumeProject, retryStage, runStage, validateStage } from "../../runner.mjs";
 import { validateProjectStage } from "../../validation.mjs";
@@ -49,6 +49,7 @@ export function normalizeProjectAction(input = {}) {
     renderInputUrl: typeof input.renderInputUrl === "string" ? input.renderInputUrl : null,
     renderInputSha256: typeof input.renderInputSha256 === "string" ? input.renderInputSha256 : null,
     ...(typeof input.workflow === "string" ? { workflow: input.workflow } : {}),
+    ...(input.tts && typeof input.tts === "object" && !Array.isArray(input.tts) ? { tts: input.tts } : {}),
     ...(input.workflowVersion === undefined || input.workflowVersion === null || input.workflowVersion === ""
       ? {}
       : { workflowVersion: Number(input.workflowVersion) }),
@@ -82,6 +83,10 @@ export function createProjectActionService(runtime) {
         throw error;
       }
       if (["start-storyboard-migration", "prepare-storyboard-migration"].includes(action.action)) throw Object.assign(new Error("旧转换入口已停用，请使用 prepare-storyboard-rework 按当前规则正常返工。"), { code: "production-entry-retired" });
+      if (["prepare-tts-rebuild", "start-tts-rebuild"].includes(action.action)) {
+        const options = { reason: action.reason, tts: action.tts };
+        return { status: 200, result: action.action === "prepare-tts-rebuild" ? storyboardReworkPlanView(prepareTtsRebuild(action.slug, options)) : startTtsRebuild(action.slug, action.reworkVersion, options) };
+      }
       if (["prepare-storyboard-rework", "start-storyboard-rework"].includes(action.action)) {
         const options = { returnTo: action.returnTo ?? "storyboard", reason: action.reason, dataVersion: action.storyboardSchemaVersion ?? null };
         return { status: 200, result: action.action === "prepare-storyboard-rework" ? storyboardReworkPlanView(prepareStoryboardRework(action.slug, options)) : startStoryboardRework(action.slug, action.reworkVersion, options) };
@@ -118,6 +123,10 @@ export function createProjectActionService(runtime) {
       if (!projectView.initialized) {
         if (action.action === "next") return { status: 200, result: projectView.next, project: projectView };
         const error = new Error("Initialize the Harness project before this action"); error.code = "project-not-initialized"; throw error;
+      }
+      if (action.action === "set-tts-config") {
+        if (!action.tts) throw Object.assign(new Error("set-tts-config 需要 TTS 配置。"), { code: "tts-provider-invalid" });
+        return { status: 200, result: { action: action.action, ...setProjectTtsConfig(action.slug, action.tts) }, project: getVideoProject(action.slug) };
       }
       if (action.action === "find-historical" || action.action === "adopt-historical") {
         if (action.stage !== "render") { const error = new Error(action.action + " only supports render"); error.code = "invalid-historical-stage"; throw error; }

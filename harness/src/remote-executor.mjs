@@ -78,7 +78,7 @@ function validateNarratedRemoteRenderInputs(project, { listArchiveEntries = arch
   const invalidAudioScene = audioManifest.scenes.find((scene) =>
     !Array.isArray(scene.segments)
     || scene.segments.length === 0
-    || scene.segments.some((segment) => typeof segment.file !== "string" || !segment.file.endsWith(".mp3")));
+    || scene.segments.some((segment) => typeof segment.file !== "string" || !/\.(?:mp3|wav)$/.test(segment.file)));
   if (invalidAudioScene) return [`Audio Manifest 的 Scene ${invalidAudioScene.sceneId ?? "未知"} 缺少有效音频 Segment`];
 
   let entries;
@@ -105,7 +105,7 @@ function validateNarratedRemoteRenderInputs(project, { listArchiveEntries = arch
     if (!entrySet.has(expectedPath)) issues.push(`ZIP 缺少音频 ${expectedPath}`);
   }
   const actualAudioPaths = [...entrySet].filter((entry) =>
-    entry.startsWith(`${rootPrefix}audio/`) && entry.endsWith(".mp3"));
+    entry.startsWith(`${rootPrefix}audio/`) && /\.(?:mp3|wav)$/.test(entry));
   if (actualAudioPaths.length !== expectedAudioPaths.length) {
     issues.push(`ZIP 音频数量为 ${actualAudioPaths.length}，Audio Manifest 需要 ${expectedAudioPaths.length}`);
   }

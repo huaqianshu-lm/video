@@ -7,6 +7,8 @@ import { spawn } from "node:child_process";
 import { packageVideoAssets } from "./asset-bundler.mjs";
 import { assertProjectSlugMutable, loadProject } from "./storage.mjs";
 import { saveTtsGenerationRecord, ttsScriptFingerprint } from "./tts-generation.mjs";
+import { resolveTtsProvider, ttsProviderFingerprint } from "./tts-provider.mjs";
+import { writeWordTiming } from './word-timing.mjs';
 
 const DEFAULT_VOICE = "zh-CN-XiaoxiaoNeural";
 const DEFAULT_RATE = "+25%";
@@ -154,6 +156,11 @@ export async function runTtsHarnessAdapter(payload, { spawnProcess = runProcess 
   const ttsScript = loadJson(inputPath, "冻结的 tts-script.json");
   if (ttsScript.videoId !== slug) fail(`tts-script.json 的 videoId 不匹配：${ttsScript.videoId}`, "tts-input-invalid");
   if (!Array.isArray(ttsScript.scenes) || ttsScript.scenes.length === 0) fail("tts-script.json 缺少 scenes", "tts-input-invalid");
+  let tts;
+  try { tts = resolveTtsProvider({ tts: payload.tts }); }
+  catch (error) { fail(error.message, error.code ?? "tts-input-invalid"); }
+  const expectedTts = resolveTtsProvider(project.config);
+  if (JSON.stringify(tts) !== JSON.stringify(expectedTts)) fail("TTS 任务配置与当前项目不一致", "tts-input-invalid");
 
   const output = payload.output;
   const outputRoot = safePath(workspaceRoot, path.dirname(output.audioManifest), "TTS 输出目录");
@@ -163,35 +170,40 @@ export async function runTtsHarnessAdapter(payload, { spawnProcess = runProcess 
   const outputSubtitleManifest = safePath(workspaceRoot, output.subtitleManifest, "Subtitle Manifest 输出路径");
   const outputTimelineManifest = safePath(workspaceRoot, output.timelineManifest, "Timeline Manifest 输出路径");
 
-  const ttsProjectDir = path.resolve(
-    process.env.HARNESS_TTS_PROJECT_DIR || path.resolve(workspaceRoot, "..", "tts"),
-  );
-  const python = process.env.HARNESS_TTS_PYTHON || path.join(ttsProjectDir, ".venv", "bin", "python");
-  const scriptsDir = path.resolve(process.env.HARNESS_TTS_SCRIPTS_DIR || path.join(ttsProjectDir, "scripts"));
-  ensureFile(python, "TTS Python 执行器");
-  for (const name of ["generate_audio.py", "generate_subtitles.py", "generate_timeline.py"]) {
-    ensureFile(path.join(scriptsDir, name), `TTS 脚本 ${name}`);
-  }
-
   const scriptHash = crypto.createHash("sha256").update(fs.readFileSync(inputPath)).digest("hex").slice(0, 16);
   const cacheRoot = path.resolve(process.env.HARNESS_TTS_CACHE_DIR || path.join(workspaceRoot, "harness", ".cache", "tts"));
   const task = payload.executionTask;
   if (task && (!/^[a-zA-Z0-9-]+$/.test(task.id ?? "") || !Number.isInteger(task.attempt) || task.attempt < 1 || typeof task.inputFingerprint !== "string" || !task.inputFingerprint || !Number.isFinite(Date.parse(task.startedAt)))) fail("TTS 任务标识或输入绑定不合法", "tts-input-invalid");
-  const runRoot = task ? path.join(cacheRoot, `${slug}-${scriptHash}`, task.id) : path.join(cacheRoot, `${slug}-${scriptHash}`);
+  const configHash = ttsProviderFingerprint(tts).slice(0, 16);
+  const runBase = path.join(cacheRoot, `${slug}-${scriptHash}`, configHash);
+  const runRoot = task ? path.join(runBase, task.id) : runBase;
   const assetsRoot = path.join(runRoot, "video-assets");
   const stagedScript = path.join(assetsRoot, "tts-script.json");
   fs.mkdirSync(assetsRoot, { recursive: true });
   fs.copyFileSync(inputPath, stagedScript);
   removeEmptyFiles(assetsRoot);
 
-  const voice = payload.voice || DEFAULT_VOICE;
-  const rate = payload.rate || DEFAULT_RATE;
-  const pitch = process.env.HARNESS_TTS_PITCH || DEFAULT_PITCH;
-  const volume = process.env.HARNESS_TTS_VOLUME || DEFAULT_VOLUME;
-  const common = ["--project-dir", runRoot];
-  await spawnProcess(python, [path.join(scriptsDir, "generate_audio.py"), ...common, "--input", stagedScript, "--voice", voice, "--rate", rate, "--pitch", pitch, "--volume", volume], { cwd: ttsProjectDir });
-  await spawnProcess(python, [path.join(scriptsDir, "generate_subtitles.py"), ...common, "--tts-script", stagedScript, "--audio-manifest", path.join(assetsRoot, "audio-manifest.json"), "--timing-root", path.join(assetsRoot, "timing"), "--output-root", path.join(assetsRoot, "subtitles"), "--manifest", path.join(assetsRoot, "subtitle-manifest.json")], { cwd: ttsProjectDir });
-  await spawnProcess(python, [path.join(scriptsDir, "generate_timeline.py"), ...common, "--tts-script", stagedScript, "--audio-manifest", path.join(assetsRoot, "audio-manifest.json"), "--subtitle-manifest", path.join(assetsRoot, "subtitle-manifest.json"), "--timeline", path.join(assetsRoot, "timeline-manifest.json"), "--srt", path.join(assetsRoot, "subtitles", "captions.srt"), "--vtt", path.join(assetsRoot, "subtitles", "captions.vtt"), "--scene-buffer", "0"], { cwd: ttsProjectDir });
+  if (tts.provider === "bailian") {
+    const worker = path.join(workspaceRoot, "harness", "tts", "bailian", "generate.py");
+    const python = process.env.HARNESS_BAILIAN_TTS_PYTHON || path.join(workspaceRoot, "harness", "tts", "bailian", ".venv", "bin", "python");
+    ensureFile(python, "百炼 Python 执行器");
+    ensureFile(worker, "百炼 TTS worker");
+    await spawnProcess(python, [worker, "--tts-script", stagedScript, "--assets-root", assetsRoot, "--provider-json", JSON.stringify(tts)], { cwd: workspaceRoot });
+  } else {
+    const ttsProjectDir = path.resolve(process.env.HARNESS_TTS_PROJECT_DIR || path.resolve(workspaceRoot, "..", "tts"));
+    const python = process.env.HARNESS_TTS_PYTHON || path.join(ttsProjectDir, ".venv", "bin", "python");
+    const scriptsDir = path.resolve(process.env.HARNESS_TTS_SCRIPTS_DIR || path.join(ttsProjectDir, "scripts"));
+    ensureFile(python, "TTS Python 执行器");
+    for (const name of ["generate_audio.py", "generate_subtitles.py", "generate_timeline.py"]) ensureFile(path.join(scriptsDir, name), `TTS 脚本 ${name}`);
+    const voice = tts.voice || DEFAULT_VOICE;
+    const rate = tts.rate || DEFAULT_RATE;
+    const pitch = process.env.HARNESS_TTS_PITCH || DEFAULT_PITCH;
+    const volume = process.env.HARNESS_TTS_VOLUME || DEFAULT_VOLUME;
+    const common = ["--project-dir", runRoot];
+    await spawnProcess(python, [path.join(scriptsDir, "generate_audio.py"), ...common, "--input", stagedScript, "--voice", voice, "--rate", rate, "--pitch", pitch, "--volume", volume], { cwd: ttsProjectDir });
+    await spawnProcess(python, [path.join(scriptsDir, "generate_subtitles.py"), ...common, "--tts-script", stagedScript, "--audio-manifest", path.join(assetsRoot, "audio-manifest.json"), "--timing-root", path.join(assetsRoot, "timing"), "--output-root", path.join(assetsRoot, "subtitles"), "--manifest", path.join(assetsRoot, "subtitle-manifest.json")], { cwd: ttsProjectDir });
+    await spawnProcess(python, [path.join(scriptsDir, "generate_timeline.py"), ...common, "--tts-script", stagedScript, "--audio-manifest", path.join(assetsRoot, "audio-manifest.json"), "--subtitle-manifest", path.join(assetsRoot, "subtitle-manifest.json"), "--timeline", path.join(assetsRoot, "timeline-manifest.json"), "--srt", path.join(assetsRoot, "subtitles", "captions.srt"), "--vtt", path.join(assetsRoot, "subtitles", "captions.vtt"), "--scene-buffer", "0"], { cwd: ttsProjectDir });
+  }
 
   const manifests = validateOutputs({
     payload,
@@ -207,17 +219,20 @@ export async function runTtsHarnessAdapter(payload, { spawnProcess = runProcess 
   fs.copyFileSync(path.join(assetsRoot, "audio-manifest.json"), outputAudioManifest);
   fs.copyFileSync(path.join(assetsRoot, "subtitle-manifest.json"), outputSubtitleManifest);
   fs.copyFileSync(path.join(assetsRoot, "timeline-manifest.json"), outputTimelineManifest);
+  writeWordTiming({workspaceRoot, slug, timingRoot: path.join(assetsRoot, 'timing')});
 
   const publicAssets = path.join(workspaceRoot, "public", "local-assets", slug);
   copyTree(path.join(assetsRoot, "audio"), path.join(publicAssets, "audio"));
   copyTree(path.join(assetsRoot, "subtitles"), path.join(publicAssets, "subtitles"));
   const assetBundle = packageVideoAssets(project);
-  const generationRecord = task ? saveTtsGenerationRecord({ root: workspaceRoot, slug, task, inputFingerprint, startedAt, cacheDirectory: path.relative(workspaceRoot, runRoot) }) : null;
+  const generationRecord = task ? saveTtsGenerationRecord({ root: workspaceRoot, slug, task, inputFingerprint, startedAt, cacheDirectory: path.relative(workspaceRoot, runRoot), tts }) : null;
   return {
     executor: "tts-harness-adapter",
     videoId: slug,
-    rate,
-    voice,
+    provider: tts.provider,
+    tts,
+    ...(tts.rate ? { rate: tts.rate } : { rate: "original" }),
+    voice: tts.voice,
     cacheDirectory: path.relative(workspaceRoot, runRoot),
     assetBundle: assetBundle.archiveRelativePath,
     scenes: manifests.timeline.scenes.length,

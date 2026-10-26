@@ -6,13 +6,15 @@ import path from "node:path";
 import { execFileSync } from "node:child_process";
 import test from "node:test";
 import { planningDocuments } from "./helpers/planning-fixture.mjs";
-import { initializeProject, loadProject, writeJson } from "../src/storage.mjs";
+import { initializeProject, loadProject, writeJson, setProjectTtsConfig } from "../src/storage.mjs";
 import { runStage, approveGate, rejectGate, validateStage, retryStage } from "../src/runner.mjs";
-import { claimDialogueTask, completeDialogueTask, failAgentTask } from "../src/agent-jobs.mjs";
+import { claimDialogueTask, completeDialogueTask, reuseDialogueTaskAudio, getAgentJob, failAgentTask } from "../src/agent-jobs.mjs";
+import {saveTtsGenerationRecord, ttsScriptFingerprint} from '../src/tts-generation.mjs';
+import {resolveTtsProvider} from '../src/tts-provider.mjs';
 import {ensureRemotionTask, startRemotionTask, completeRemotionTask, getRemotionTask} from '../src/remotion-tasks.mjs';
 import { buildTaskPacket } from "../src/context.mjs";
 import { workflowStages } from "../src/workflows/registry.mjs";
-import { storyboardReview, storyboardTimingEvents, storyboardImplementationTiming, frozenStoryboardIssues, storyboardBaseline } from "../src/storyboard.mjs";
+import { storyboardReview, formatStoryboardReview, storyboardTimingEvents, storyboardImplementationTiming, frozenStoryboardIssues, storyboardBaseline } from "../src/storyboard.mjs";
 import { buildStoryboardReview } from "../src/storyboard-review.mjs";
 import { createProjectActionService } from "../src/web/services/project-actions.mjs";
 import { createWebServer } from "../src/web/server.mjs";
@@ -24,7 +26,8 @@ import { getPrototypeBaseline, validateRemotionAlignment } from "../src/remotion
 import { prepareRenderInputEntry, validateCurrentRenderInput } from "../src/render-input.mjs";
 import { buildRemotionExecutionInput } from "../src/remotion-executor.mjs";
 import { buildRemotionAgentPrompt } from "../src/remotion-harness-adapter.mjs";
-import { prepareStoryboardRework, startStoryboardRework } from "../src/storyboard-rework.mjs";
+import { prepareStoryboardRework, startStoryboardRework, prepareTtsRebuild, startTtsRebuild } from "../src/storyboard-rework.mjs";
+import { acquireProductionTask, releaseProductionTask } from "../src/production-lock.mjs";
 import { storyboardDesignReferences, STORYBOARD_DESIGN_REFERENCES, STORYBOARD_SHARED_REFERENCES, STORYBOARD_QUALITY_CHECKS } from "../src/storyboard-design.mjs";
 import { fingerprintTaskInputs } from "../src/fingerprints.mjs";
 import {buildStoryboardImplementationReview, validateStoryboardImplementation, runtimeFiles, storyboardViewingRanges} from '../src/storyboard-implementation.mjs';
@@ -653,6 +656,110 @@ function approvedRenderFixture(t) {
   writeJson(p.files.state,p.state); return f;
 }
 
+async function ttsRebuildFixture(t) {
+  const f = await downstreamFixture(t);
+  failAgentTask(f.remotionJob.id, "隔离测试结束 Remotion 任务");
+  const p = f.project();
+  p.config.tts = {provider:"bailian", voice:"Cherry"};
+  writeJson(p.files.config, p.config);
+  return f;
+}
+
+test('explicit audio reuse CLI keeps original evidence and rejects unauthorized, stale and completed submissions', async t => {
+  const f = await downstreamFixture(t);
+  const old = f.audioJob;
+  const original = saveTtsGenerationRecord({ root: f.workspace, slug: f.slug,
+    task: {id: old.id, attempt: old.attempts, inputFingerprint: old.inputFingerprint, startedAt: old.startedAt},
+    inputFingerprint: ttsScriptFingerprint(f.workspace, f.slug), startedAt: old.startedAt,
+    cacheDirectory: 'isolated-simulated-generation', tts: resolveTtsProvider(f.project().config) });
+  const originalBytes = fs.readFileSync(path.join(f.workspace, original.path));
+  failAgentTask(f.remotionJob.id, '结束隔离测试画面任务');
+  const opts = { reason: '隔离验证显式复用', tts: {provider: 'edge'} };
+  const plan = prepareTtsRebuild(f.slug, opts); startTtsRebuild(f.slug, plan.reworkVersion, opts);
+  const job = claimDialogueTask(f.slug);
+  assert.throws(() => completeDialogueTask(job.id, '默认提交不能自动复用'), {code: 'production-output-unchanged'});
+  const args = { sourceTaskId: old.id, summary: '复用隔离模拟音频，仅验证入口契约' };
+  assert.throws(() => reuseDialogueTaskAudio(job.id, args), /授权/);
+  const p = f.project();
+  p.config.reuseTest = true; writeJson(p.files.config, p.config);
+  assert.throws(() => reuseDialogueTaskAudio(job.id, {...args, authorization: '允许本视频复用'}), {code: 'production-input-changed'});
+  delete p.config.reuseTest; writeJson(p.files.config, p.config);
+  const result = JSON.parse(execFileSync(process.execPath, [path.join(repository, 'harness/src/cli.mjs'), 'production-task', 'reuse-audio', job.id,
+    '--source-task', old.id, '--authorization', '允许本视频复用', '--summary', args.summary], {env: process.env, encoding: 'utf8'}));
+  assert.equal(result.status, 'succeeded'); assert.equal(result.result.nextStage, 'remotion');
+  assert.equal(result.result.reuseRecord.sourceTaskId, old.id);
+  assert.equal(result.result.generationRecord, undefined);
+  assert.deepEqual(fs.readFileSync(path.join(f.workspace, original.path)), originalBytes);
+  assert.equal(getAgentJob(job.id).result.reuseRecord.kind, 'authorized-tts-reuse');
+  assert.equal(reuseDialogueTaskAudio(job.id, {...args, authorization: '允许本视频复用'}).status, 'succeeded');
+  const done = f.project(); done.state.currentStage = 'completed'; writeJson(done.files.state, done.state);
+  const before = fs.readFileSync(done.files.state);
+  assert.throws(() => reuseDialogueTaskAudio(job.id, {...args, authorization: '允许本视频复用'}), {code: 'completed-project-readonly'});
+  assert.deepEqual(fs.readFileSync(done.files.state), before);
+});
+
+test("TTS rebuild shares CLI and Web plans, preserves Gate 2 and stops batches without inventing rejection", async t => {
+  const f = await ttsRebuildFixture(t);
+  const p = f.project(), gate = structuredClone(p.state.stages['gate-2']);
+  const input = fs.readFileSync(path.join(f.materials, 'tts-script.json'));
+  const batch = createBatch({type:'to-remotion',slugs:[f.slug]});
+  batch.items[0].status='waiting-config'; writeJson(path.join(process.env.HARNESS_BATCHES_DIR,`${batch.id}.json`),batch);
+  const args = {reason:'更换语音',tts:{provider:'edge'}};
+  assert.throws(()=>setProjectTtsConfig(f.slug,args.tts),{code:'tts-rebuild-required'});
+  const cli = JSON.parse(execFileSync(process.execPath,[path.join(repository,'harness/src/cli.mjs'),'tts-rebuild',f.slug,'prepare','--provider','edge','--reason',args.reason],{env:process.env,encoding:'utf8'}));
+  const service = createProjectActionService({});
+  const web = await service.execute({slug:f.slug,action:'prepare-tts-rebuild',...args});
+  assert.deepEqual(web.result,cli); assert.equal(cli.tts.rate,'+25%'); assert.deepEqual(cli.requiresHumanGate,['gate-3','gate-4']);
+  await service.execute({slug:f.slug,action:'start-tts-rebuild',...args,reworkVersion:cli.reworkVersion});
+  const next=f.project(); assert.equal(next.config.tts.provider,'edge'); assert.equal(next.config.tts.rate,'+25%');
+  assert.equal(next.state.currentStage,'subtitle-timeline'); assert.equal(next.state.stages['subtitle-timeline'].status,'ready');
+  assert.equal(next.state.stages.remotion.status,'invalidated'); assert.equal(next.state.stages['gate-3'].status,'invalidated');
+  assert.deepEqual(next.state.stages['gate-2'],gate); assert.deepEqual(fs.readFileSync(path.join(f.materials,'tts-script.json')),input);
+  assert.equal(getBatch(batch.id).items[0].error.code,'tts-rebuild'); assert.equal(getBatch(batch.id).items[0].error.gate,undefined);
+  const journal=JSON.parse(fs.readFileSync(path.join(next.files.directory,'storyboard-rework',`${cli.reworkVersion}.json`)));
+  assert.equal(journal.previous.config.tts.provider,'bailian'); assert.equal(journal.previous.state.stages['gate-2'].review.decision,'approved');
+  assert.equal(startTtsRebuild(f.slug,cli.reworkVersion).resumed,true);
+});
+
+test("TTS rebuild blocks active locks, stale plans and changed frozen input", async t => {
+  const f=await ttsRebuildFixture(t), opts={reason:'重制',tts:{provider:'edge'}},p=f.project();
+  acquireProductionTask(p,{id:'occupied',stage:'remotion',mode:'dialogue'});
+  assert.throws(()=>prepareTtsRebuild(f.slug,opts),{code:'storyboard-rework-busy'}); releaseProductionTask(p,'occupied');
+  const plan=prepareTtsRebuild(f.slug,opts);
+  fs.appendFileSync(path.join(f.materials,'tts-script.json'),' ');
+  assert.throws(()=>startTtsRebuild(f.slug,plan.reworkVersion,opts));
+  assert.equal(f.project().config.tts.provider,'bailian'); assert.equal(f.project().state.currentStage,'remotion');
+});
+
+test("TTS rebuild keeps prior configuration selection available after earlier design rework", async t => {
+  const f=await ttsRebuildFixture(t),p=f.project();
+  p.state.currentStage='storyboard';p.state.stages['gate-2'].status='invalidated';p.state.stages.tts.status='invalidated';p.state.stages['subtitle-timeline'].status='invalidated';
+  writeJson(p.files.state,p.state);
+  assert.equal(setProjectTtsConfig(f.slug,{provider:'edge'}).changed,true);assert.equal(f.project().config.tts.rate,'+25%');
+});
+
+test("TTS rebuild recovers partial writes, rejects conflicts and preserves completed projects", async t => {
+  const f=await ttsRebuildFixture(t),opts={reason:'重制',tts:{provider:'edge'}},plan=prepareTtsRebuild(f.slug,opts);
+  startTtsRebuild(f.slug,plan.reworkVersion,opts);
+  const p=f.project(),file=path.join(p.files.directory,'storyboard-rework',`${plan.reworkVersion}.json`),journal=JSON.parse(fs.readFileSync(file));
+  journal.status='applying';writeJson(file,journal);writeJson(p.files.config,journal.previous.config);
+  assert.equal(startTtsRebuild(f.slug,plan.reworkVersion).status,'applied'); assert.equal(f.project().config.tts.provider,'edge');
+  journal.status='applying';writeJson(file,journal);const conflict=f.project().state;conflict.updatedAt='conflict';writeJson(p.files.state,conflict);
+  assert.throws(()=>startTtsRebuild(f.slug,plan.reworkVersion),/拒绝覆盖/);
+  conflict.currentStage='completed';writeJson(p.files.state,conflict);const before=fs.readFileSync(p.files.state);
+  assert.throws(()=>prepareTtsRebuild(f.slug,opts),{code:'completed-project-readonly'});
+  assert.throws(()=>startTtsRebuild(f.slug,plan.reworkVersion),{code:'completed-project-readonly'});assert.deepEqual(fs.readFileSync(p.files.state),before);
+});
+
+test("TTS rebuild HTTP prepare and CLI start use the same persisted plan", async t => {
+  const f=await ttsRebuildFixture(t),server=createWebServer({port:0,remoteJobMonitor:{start(){},stop(){},async poll(){}}});
+  await server.listen();t.after(()=>server.close());
+  const response=await fetch(`http://127.0.0.1:${server.server.address().port}/api/projects/${f.slug}/action`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({action:'prepare-tts-rebuild',reason:'切换音色',tts:{provider:'edge'}})});
+  assert.equal(response.status,200);const plan=(await response.json()).result;
+  const output=JSON.parse(execFileSync(process.execPath,[path.join(repository,'harness/src/cli.mjs'),'tts-rebuild',f.slug,'start','--provider','edge','--reason','切换音色','--rework-version',plan.reworkVersion],{env:process.env,encoding:'utf8'}));
+  assert.equal(output.status,'applied');assert.equal(f.project().state.currentStage,'subtitle-timeline');assert.equal(f.project().config.tts.rate,'+25%');
+});
+
 test("post-approval CLI and HTTP prepare share a read-only rework version; start archives Gate facts",async t=>{
   const f=approvedRenderFixture(t), statePath=f.project().files.state;
   const before=fs.readFileSync(statePath,"utf8"), source=fs.readFileSync(path.join(f.materials,"storyboard.json"),"utf8");
@@ -783,6 +890,20 @@ test('Shot design audit, frozen mapping and intra-Cue cut points fail explicitly
   fs.writeFileSync(file,JSON.stringify({...base,shotIds:['s01-shot01']}));assert.ok(frozenStoryboardIssues(f.project()).length);fs.writeFileSync(file,JSON.stringify(base));
   const timing={scenes:[{sceneId:'01',startFrame:0,endFrame:120,segments:[{cues:[{id:'one',segmentId:'01-01',text:'任务从等待进入制作，校验通过后完成。',startFrame:0,startSeconds:0}]}]}]};
   assert.throws(()=>storyboardTimingEvents(f.project(),timing),/Cue 中间/);
+});
+
+test('verified word boundaries resolve intra-Cue shots and events without guessing',t=>{
+  const f=fixture(t,{shotCount:2});f.converge();
+  approveGate(f.project(),'gate-2',{reviewVersion:storyboardReview(f.project()).reviewVersion});
+  const text='任务从等待进入制作，校验通过后完成。',spoken=text.replace(/[\p{P}\p{Z}\s]/gu,'');
+  const words=Array.from(spoken,(text,textOffset)=>({text,textOffset,startFrame:textOffset*4,startSeconds:textOffset*4/30}));
+  const timing={scenes:[{sceneId:'01',startFrame:0,endFrame:120,segments:[{segmentId:'01-01',words,cues:[{id:'one',segmentId:'01-01',text,startFrame:0,startSeconds:0}]}]}]};
+  const mapped=storyboardTimingEvents(f.project(),timing)[0];
+  assert.equal(mapped.shots[1].startFrame,spoken.indexOf('校验')*4);
+  assert.equal(mapped.events[1].atFrame,spoken.indexOf(f.board.scenes[0].events[1].trigger.anchor)*4);
+  assert.equal(mapped.events[1].timingSource,'provider-word-timing');
+  timing.scenes[0].segments[0].words=words.filter(w=>w.textOffset!==spoken.indexOf('校验'));
+  assert.throws(()=>storyboardTimingEvents(f.project(),timing),/词内部/);
 });
 
 
