@@ -3,16 +3,16 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { getStyleDefinition } from "./styles.mjs";
-import { storyboardSchemaVersion, validateStoryboardDesign, validateStoryboardDesignAudit, resolveStoryboardTiming, storyboardDesignReferences, STORYBOARD_QUALITY_VERSION } from "./storyboard-design.mjs";
+import { storyboardSchemaVersion, validateStoryboardDesign, validateStoryboardDesignAudit, storyboardDesignReviewHints, resolveStoryboardTiming, storyboardDesignReferences, STORYBOARD_QUALITY_VERSION } from "./storyboard-design.mjs";
 
 export const storyboardPath = project => `${project.config.sourceDirectory}/storyboard.json`;
 const hash = bytes => crypto.createHash("sha256").update(bytes).digest("hex");
 const nonempty = value => typeof value === "string" && Boolean(value.trim());
-const schema = JSON.parse(fs.readFileSync(new URL("../../templates/video-production/storyboard.schema.json", import.meta.url), "utf8"));
-const executionSchema = JSON.parse(fs.readFileSync(new URL("../../templates/video-production/storyboard-v2.schema.json", import.meta.url), "utf8"));
-const shotSchema = JSON.parse(fs.readFileSync(new URL("../../templates/video-production/storyboard-v3.schema.json", import.meta.url), "utf8"));
-const shotAuditSchema = JSON.parse(fs.readFileSync(new URL("../../templates/video-production/storyboard-design-audit-v2.schema.json", import.meta.url), "utf8"));
-const auditSchema = JSON.parse(fs.readFileSync(new URL("../../templates/video-production/storyboard-design-audit.schema.json", import.meta.url), "utf8"));
+const schema = JSON.parse(fs.readFileSync(new URL("../../contracts/video-production/legacy/storyboard-v1.schema.json", import.meta.url), "utf8"));
+const executionSchema = JSON.parse(fs.readFileSync(new URL("../../contracts/video-production/legacy/storyboard-v2.schema.json", import.meta.url), "utf8"));
+const shotSchema = JSON.parse(fs.readFileSync(new URL("../../contracts/video-production/current/storyboard.schema.json", import.meta.url), "utf8"));
+const shotAuditSchema = JSON.parse(fs.readFileSync(new URL("../../contracts/video-production/current/storyboard-design-audit.schema.json", import.meta.url), "utf8"));
+const auditSchema = JSON.parse(fs.readFileSync(new URL("../../contracts/video-production/legacy/storyboard-design-audit-v1.schema.json", import.meta.url), "utf8"));
 
 function schemaIssues(value, rule, location = "storyboard") {
   const type = value === null ? "null" : Array.isArray(value) ? "array" : typeof value === "number" && Number.isInteger(value) ? "integer" : typeof value;
@@ -156,7 +156,8 @@ export function storyboardReview(project) {
     if (auditIssues.length) designAudit = null;
   }
   const reviewVersion = version();
-  return { schemaVersion: 1, kind: "storyboard-review", slug: config.slug, productionContract: "storyboard-v1", storyboardSchemaVersion: dataVersion, reviewVersion, designInputVersion, designAudit, designAuditFingerprint, ready: issues.length === 0, issues, dependencies: dependencyList(), storyboardFingerprint: boardBytes ? hash(boardBytes) : null, narrationFingerprint: narrationBytes ? hash(narrationBytes) : null, seriesSelection: cover ?? null, scenes: (Array.isArray(board?.scenes) ? board.scenes : []).filter(Boolean).map(scene => ({ ...scene, narration: narration.find(item => item.id === scene.id)?.text ?? "" })) };
+  const reviewHints = storyboardDesignReviewHints(Array.isArray(board?.scenes) ? board : null, designAudit);
+  return { schemaVersion: 1, kind: "storyboard-review", slug: config.slug, productionContract: "storyboard-v1", storyboardSchemaVersion: dataVersion, reviewVersion, designInputVersion, designAudit, designAuditFingerprint, reviewHints, ready: issues.length === 0, issues, dependencies: dependencyList(), storyboardFingerprint: boardBytes ? hash(boardBytes) : null, narrationFingerprint: narrationBytes ? hash(narrationBytes) : null, seriesSelection: cover ?? null, scenes: (Array.isArray(board?.scenes) ? board.scenes : []).filter(Boolean).map(scene => ({ ...scene, narration: narration.find(item => item.id === scene.id)?.text ?? "" })) };
 }
 
 export function storyboardBaseline(project) {
@@ -169,14 +170,17 @@ export function formatStoryboardReview(review) {
   return [
     `Gate 2：${review.slug} 口播与分镜审核`,
     `审核版本：${review.reviewVersion}`,
+    `结构与提交条件校验：${review.ready ? "通过" : "未通过"}；仅核对契约、引用、版本和审计记录，不证明设计质量。`,
+    "Agent 设计审查记录：以下结果由 Agent 填写，须人工审核具体判断及依据；不代表机器质量认证。",
     "实际动画、遮挡、节奏、试听和同步在 Gate 3 验证。",
     ...review.issues.map(issue => `阻塞：${issue.message}`),
+    ...(review.reviewHints ?? []).map(hint => `复查提示（不阻断）：${hint.message}`),
     ...review.scenes.flatMap(scene => [
       "", `Scene ${scene.id}：${scene.objective}`, `口播：${scene.narration}`,
       `焦点：${scene.focus}`, `布局：${scene.layout}`,
       ...(scene.shots ?? []).flatMap(shot => [`Shot ${shot.id}：${shot.purpose}`, `取景：${shot.framing}；构图：${shot.composition}；视角：${shot.viewpoint}；焦点：${shot.focus}；运镜：${shot.camera}`, `对象：${shot.visibleElementIds.join("、")}；进入：${shot.entryState}；退出：${shot.exitState}`, `边界：${JSON.stringify(shot.start)} → ${JSON.stringify(shot.end)}；衔接：${JSON.stringify(shot.transitionToNext)}；实现：${shot.implementation}`, ...scene.events.filter(e => e.shotId === shot.id).map(e => `${e.id}：${e.before} → ${e.action} → ${e.after}；触发「${e.trigger.anchor}」第 ${e.trigger.occurrence} 次`)]),
       ...(scene.shots ? [] : scene.events).map(event => `${event.id}：${event.before} → ${event.action} → ${event.after}；触发「${event.trigger.anchor}」第 ${event.trigger.occurrence} 次`),
-      `屏幕文字：${scene.elements.filter(element => element.text).map(element => element.text).join("、")}`,
+      `屏幕文字与关键对象文案：${scene.elements.filter(element => element.text).map(element => `${element.id}：${element.text}`).join("\n")}`,
       ...(review.storyboardSchemaVersion >= 2 ? scene.elements.map(e => `元素 ${e.id}（${e.role}，父对象 ${e.parentId ?? "无"}）：${JSON.stringify(e.enter)} → ${JSON.stringify(e.exit)}；用途 ${e.purpose}`) : []),
       ...(review.designAudit?.checks ?? []).filter(c => c.sceneId === scene.id).map(c => `设计审计 ${c.eventId}/${c.checkId} ${c.result}：${c.note}；依据 ${c.evidence}`),
       ...(review.designAudit?.shotChecks ?? []).filter(c => c.sceneId === scene.id).map(c => `镜头审计 ${c.shotId} ${c.result}：${c.note}；构图 ${c.purposeComposition}；连续 ${c.objectContinuity}；切换 ${c.transitionBenefit}；时间 ${c.timingSource}；实现 ${c.implementation}；依据 ${c.evidence}`),
@@ -217,28 +221,20 @@ export function storyboardTimingEvents(project, timingPlan) {
       let offset = 0, cueOffset = 0;
       const cue = cues.find(item => { const begin = offset; offset += semanticText(item.text).length; const match = at >= begin && at < offset; if (match) cueOffset = begin; return match; });
       if (!cue?.id || !cue.segmentId) throw new Error(`${label} 缺少真实 Cue／Segment ID`);
+      const segment = timedScene.segments.find(item => item.segmentId === cue.segmentId);
+      if (segment?.words) {
+        const earlier = timedScene.segments.slice(0, timedScene.segments.indexOf(segment));
+        const segmentOffset = earlier.reduce((sum, item) => sum + item.cues.reduce((n, c) => n + semanticText(c.text).length, 0), 0);
+        const word = segment.words.find(item => item.textOffset === at - segmentOffset);
+        if (!word) throw new Error(`${label} 锚点在词内部，不能猜测切点`);
+        return {cueId:cue.id, segmentId:cue.segmentId, atFrame:word.startFrame, atSeconds:word.startSeconds, timingSource:'provider-word-timing'};
+      }
       if (requireBoundary && at !== cueOffset) throw new Error(`${label} 锚点在 Cue 中间且缺少词级时间，不能猜测切点`);
       return {cueId:cue.id, segmentId:cue.segmentId, atFrame:cue.startFrame, atSeconds:cue.startSeconds};
     };
-    const result = { sceneId: scene.id, ...(review.storyboardSchemaVersion >= 2 ? { startFrame: timedScene.startFrame, endFrame: timedScene.endFrame } : {}), events: scene.events.map(event => {
-      const anchor = semanticText(event.trigger.anchor);
-      if (!anchor) throw new Error(`Event ${event.id} 缺少可定位锚点`);
-      const positions = [];
-      for (let from = 0; from <= scene.narration.length;) {
-        const at = scene.narration.indexOf(event.trigger.anchor, from);
-        if (at < 0) break;
-        positions.push(at); from = at + event.trigger.anchor.length;
-      }
-      const rawAt = positions[event.trigger.occurrence - 1];
-      if (rawAt === undefined) throw new Error(`Event ${event.id} 锚点在真实字幕中缺失`);
-      const at = semanticText(scene.narration.slice(0, rawAt)).length;
-      let offset = 0;
-      const cue = cues.find(item => { const end = offset + semanticText(item.text).length; const match = at >= offset && at < end; offset = end; return match; });
-      if (!cue?.id || !cue.segmentId) throw new Error(`Event ${event.id} 缺少 Cue／Segment ID`);
-      return { id: event.id, cueId: cue.id, segmentId: cue.segmentId, atFrame: cue.startFrame, atSeconds: cue.startSeconds };
-    }) };
+    const result = { sceneId: scene.id, ...(review.storyboardSchemaVersion >= 2 ? { startFrame: timedScene.startFrame, endFrame: timedScene.endFrame } : {}), events: scene.events.map(event => ({id:event.id, ...locate(event.trigger, `Event ${event.id}`)})) };
     if (review.storyboardSchemaVersion === 3) result.shots = resolveShotRanges(scene, timedScene, (ref, label) => locate(ref, label, true).atFrame);
-    if (review.storyboardSchemaVersion >= 2 && new Set(result.events.map(e => e.cueId)).size !== result.events.length) throw new Error(`Scene ${scene.id} 同 Cue 多事件没有词级时间来源，不能宣称精确同步；请重设计或补时间能力`);
+    if (review.storyboardSchemaVersion >= 2 && new Set(result.events.map(e => `${e.cueId}:${e.atFrame}`)).size !== result.events.length) throw new Error(`Scene ${scene.id} 同 Cue 多事件没有词级时间来源，不能宣称精确同步；请重设计或补时间能力`);
     return result;
   });
   if (review.storyboardSchemaVersion >= 2) resolveStoryboardTiming({ scenes: review.scenes }, resolved);

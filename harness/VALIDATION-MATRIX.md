@@ -2,6 +2,8 @@
 
 ## 当前生产统一迭代专项
 
+2026-10-12：视觉模板目录职责与入口路由完成定向验收。实际 CLI 领取 Storyboard 任务、HTTP Gate 2／TTS context、批量 Storyboard Agent Job、TTS／Remotion生产 Job、当前 schema／scaffold、v1／v2 历史只读兼容及 completed 保护合并84／84通过；Storyboard／Gate 2／Remotion读取 `templates/README.md`，策划与TTS排除。测试使用隔离目录、模拟音频和本机回环HTTP，不代表首个模板已产生或画面质量已通过人工验收。证据见 `local/visual-template-directory-acceptance/acceptance.md`。
+
 2026-10-10：服务端统一新建 storyboard-v1 与现行分镜契约，旧生产及转换入口停用；current-production 11／11、storyboard-production 31／31、历史解析 unified-production 3／3，共 45 项定向回归通过。覆盖实际 CLI／HTTP 创建、导入、审核与返工，单条／批量／后台恢复阻断、受控输出及包一致性、观看证据、冲突恢复和 completed 保护。测试使用隔离输入及模拟音频／编码，不证明实际视觉／试听质量。整套生产／全项目回归未运行。收敛证据见 local/current-production-iteration/acceptance.md。
 
 ## 本地渲染接入（自动回归通过，实片待验收）
@@ -9,6 +11,8 @@
 实施方案：`drafts/LOCAL-RENDER-INTEGRATION-PLAN.md`，验收 ID AC-1～AC-5。`local-render.test.mjs` 新增 34 项，覆盖默认／显式方式、旧记录、批量创建／HTTP／服务强制 GitHub、无 GitHub 凭据、计划及浏览器变化、环境／磁盘不足、实际 CLI／HTTP 的模拟 worker、重复请求、初始化／结果／阶段检查点恢复、强制杀进程、失败显式新 Job 重试、Gate 4 驳回后独立产物、规格／帧数／音轨／空文件／解码失败、下载哈希与路径边界、并发释放锁和 completed 保护。不是所有落盘窗口的强制杀进程穷举。
 
 2026-10-07：最终全量 41 个模块、392/392 单次通过，包括 GitHub 单条 14/14、批量 9/9、Git 交付 10/10、Web 模块 35/35、HTTP 18/18 和真实资料／状态前后哈希只读 1/1；证据 `local/local-render-integration/verification.json`。早期失败／240 秒超时保留，重测试组现串行运行。本地编码器、浏览器和渲染结果为模拟；外网被阻断，远程服务使用模拟响应及临时本地 Git 仓库。自动回归不证明真实音画或宿主浏览器权限，实际入口整片、人工 Gate 4 与另一条视频仍须验证，整体保持接入中。
+
+2026-10-18：本地渲染快照新增 `contracts/video-production/`，针对性隔离快照／Storyboard 模块导入回归 `local-render-contracts.test.mjs` 1/1 通过。当前工作区的 `local-render.test.mjs` 仍有 34 项在 fixture 初始化时报 `production-rework-required`：fixture 使用的 `legacy-v1` 与工作区正在进行的 current-only 契约迁移不兼容；本次未修改该迁移或其测试夹具，因此不报告整套本地渲染回归通过。
 
 这份矩阵是 Workflow Registry 中阶段契约的实现清单。它区分自动校验、适配器校验和必须由人工完成的质量判断；0.6 另外覆盖远程任务状态、超时／恢复、环境诊断、全局任务视图和 Gate 4 审查记录。
 
@@ -146,6 +150,8 @@ TTS 相同内容重制：`tts-generation` 检查本次任务／执行次数、�
 
 
 ## 当前 Storyboard 生产（实片验收待完成）
+
+2026-10-26：视觉导演创作改造定向 8 项通过，覆盖实际 CLI／HTTP、对话与后台共享联合任务、批量等候 Gate 2、设计推导／审计骨架引用及输入过期阻断、TTS／Remotion 路由和 completed 保护。命令筛选及日志见 `local/storyboard-director-design/acceptance.md`。首轮 6 项通过、2 项 HTTP 因沙箱禁止监听 127.0.0.1 失败；这 2 项在宿主权限下重跑通过。隔离项目使用格式示例与模拟审计，只证明任务入口、版本和提交契约，不证明导演设计质量；实际首次提交与用户质量验收待指定试点。
 
 2026-10-10：按用户要求删除统一画面执行器及专用 React 输出测试。storyboard-execution.test.mjs 现只验证分镜设计、生命周期、真实时间和审计；动作名称不再受白名单限制。storyboard-production.test.mjs 验证领取任务不写画面、自写 JSX 和递归依赖打包、单条／目录 Studio、旧生成对齐记录阻断、源码／音频变化使证据失效、完整观看前禁止提交 Gate 3，以及批准后返工／批次和 completed 保护。相关隔离检查不代表真实画面、编码或试听验收。
 

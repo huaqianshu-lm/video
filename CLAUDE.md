@@ -27,6 +27,7 @@ Workflow 的判断以 Harness 服务端 Registry 和项目 `project.json.workflo
 - 本文件：项目定位、仓库边界、核心不变量、Skill 路由和验证要求。
 - `.claude/skills/`：只在对应任务发生时加载的操作流程和专项规则。
 - `docs/`：稳定、可共享的详细规则和工作流参考，不在本文件中重复全文。
+- `references/`：按表达问题检索的设计方法与案例解析；分镜设计和画面实现先读 `references/README.md`，再按需读取。案例观察值不替代权威规则或默认参数，复现认可不等于原创或通用质量验收。
 - `drafts/`：实施方案、讨论结果、临时设计和被替代方案，不具有规范效力。
 - `notes/`：本地问题记录和经验沉淀，不作为远端执行的唯一规则来源。
 
@@ -48,7 +49,11 @@ Workflow 的判断以 Harness 服务端 Registry 和项目 `project.json.workflo
 - `src/components/`、`src/scenes/`、`src/lib/`：通用 Remotion 能力。
 - `styles/`：可复用视觉风格。
 - `.claude/skills/`：项目内专项工作流。
-- `templates/`：不包含具体视频内容的通用模板和基线。
+- `templates/`：通过原创独立 Shot 预览、正常速度观看与用户画面质量验收，且可运行、可改造的 React／Remotion 视觉模板；候选、案例复现和未验收实现不得进入。真实生产应用与跨视频验证单独记录。
+- `contracts/`：当前生产和历史只读兼容所需的数据 Schema 与合法示例。
+- `scaffolds/`：不代表质量验收结果的空白制作资料骨架。
+- `legacy/`：退役流程的只读兼容资料，不得作为当前生产入口。
+- `references/`：不包含上游源码、媒体或具体视频业务资料的设计分析、方法和案例索引。
 - `docs/`：稳定规则、架构说明和使用文档。
 - `README.md`：项目介绍和使用方式。
 - `ROADMAP.md`：当前真实进度、阻塞和下一步。
@@ -61,7 +66,7 @@ Workflow 的判断以 Harness 服务端 Registry 和项目 `project.json.workflo
 - `drafts/`、`notes/`：过程方案、项目笔记和经验记录。
 - `*.mp4`、`*.mp3`、`*.wav`、`*.m4a`、`*.webm` 等本地媒体。
 
-具体视频目录不得成为远端仓库唯一的模板或规范来源；需要复用的结构必须提取到 `templates/` 或 Skill 的 `references/`。
+具体视频目录不得成为远端仓库唯一的模板或规范来源；经过真实画面与用户质量验收的可运行视觉实现才可提取到 `templates/`，跨制作环节的设计方法与案例解析进入根目录 `references/`，专项操作细则可保留在 Skill 的 `references/`。Schema、合法数据示例、空白资料骨架和退役兼容资料分别进入 `contracts/`、`scaffolds/` 和 `legacy/`，不得以模板名义混放。
 
 ## 不可变核心约束
 
@@ -69,7 +74,7 @@ Workflow 的判断以 Harness 服务端 Registry 和项目 `project.json.workflo
 - 视频生产保留人工 Gate。Agent、Harness 和远程任务不得自动通过 Gate，不得用“已有文件校验”伪装成真实制作完成。
 - 已标记为 `completed` 的视频永久只读。一旦视频进入该状态，任何后续任务、Agent、Harness、Web UI、批处理、渲染、状态刷新、校验、修复、规则迭代、数据转换或其他操作都不得修改该视频的内容、生产资料、Remotion 配置和代码、音视频／字幕／Timeline／Manifest、Gate／审核记录、状态、阶段、进度、尝试次数、Job／任务记录及其他相关产物；只允许只读检查和展示。若必须产生新版本，只能创建新的视频标识或独立副本，不得回写原视频。
 - `narration-script.md` 的 Scene 正文只能是实际口播；Gate 2 后必须先生成并校验独立的 `tts-script.json`，音频、字幕和 Timeline 只能从它生成。
-- narrated 视频默认显式使用 TTS `+25%` 语速；字幕展示文本去掉句末标点，但不能修改朗读文本、音频或时间轴。
+- narrated 视频默认显式使用 Edge TTS `+25%` 语速；显式选择百炼 Qwen3-TTS-Flash 时使用原始语速，不做音频加速。字幕展示文本去掉句末标点，但不能修改朗读文本、音频或时间轴。
 - Remotion 必须使用已校验的 Timeline Manifest 作为 narrated 视频的时间基准，并保持 Scene、Audio、Subtitle 和视觉事件的映射一致。
 - 新视频的每个 Scene 要有明确的视觉焦点和可观察的状态／关系变化，旧主体应在新主体出现时让位或有意保留；允许为阅读和理解静置，不以持续运动或镜头次数代替视觉质量。Storyboard 和Agent 编写的 Remotion 必须表达同一条变化链，Gate 2 检查方案与设计审计，Gate 3 检查真实时序下的实际画面。
 - 口播教程进入 Gate 2 前必须完成当前分镜设计审计；Gate 3 前必须提交绑定当前冻结、实现及真实音频的观看／试听证据。结构、类型、文件、状态或指纹校验不能代替实际画面质量。方案不通过时返工 Storyboard，实际画面不通过时按影响范围返工，不绕过人工 Gate。
@@ -108,7 +113,7 @@ Workflow 的判断以 Harness 服务端 Registry 和项目 `project.json.workflo
 1. 读取对应 Skill 与当前契约，所有生产由 Harness 调度。
 2. 登记 Source，合并制作 Content Analysis 与 Video Narrative，完成 Gate 1 内部检查。
 3. 联合收敛 Narration Script 与 Storyboard，完成设计审计，进入 Gate 2 人工审核并冻结同版本方案。
-4. 派生并校验独立 tts-script.json，显式 +25% 生成真实音频、字幕与 Timeline，完成机器质检。
+4. 派生并校验独立 tts-script.json，按冻结的 TTS provider 配置生成真实音频、字幕与 Timeline；Edge 显式 `+25%`，百炼保持原始语速，完成机器质检。
 5. 按冻结分镜及真实时间使用Agent 编写的实现，提交实际观看／正常速度试听证据，进入 Gate 3 人工审核。
 6. Gate 3 通过后复用 render-delivery prepare／start／resume，保留精确计划确认；单条默认本地，可选 GitHub，批量只用 GitHub。渲染后进入 Gate 4。Smoke Render 仅为独立手动环境检查。
 7. 资料不符合当前规则时，先用 storyboard-rework 展示正常返工范围，按同一计划执行／恢复；不自动改写历史视频，不继承失效审核。
@@ -128,6 +133,7 @@ Workflow 的判断以 Harness 服务端 Registry 和项目 `project.json.workflo
 
 - 使用 React、TypeScript 和 Remotion；Node.js 18+；TypeScript 继续固定为 `~5.8.3`。
 - 先按内容设计画面，再选择合适组件；没有合适组件就编写所需实现。组件从持续视频制作中经过实际验证且有复用价值的实现逐步积累，不为复用改变表达，不预建组件库作为制作前置条件。具体提取与验证边界见 `docs/VIDEO-PRODUCTION-RULES.md` 13.3；时间基准继续使用 `src/lib/timing.ts`。
+- 视觉模板只在内容与冻结分镜已经确定后供 Agent 查询和改造。首次入库须有原创独立 Shot 的可播放预览，完整呈现建立、变化与收尾，并经正常速度观看和用户画面质量认可；这不代表真实生产视频或 Timeline 已验收。实际生产应用仍按真实 Timeline 和当前视频 Gate 3 验收；另一条视频再次改造并验收后才能标记跨视频验证。模板不得自动选择、生成分镜、限制实现能力或替代当前视频 Gate 3。
 - 不引入数据库、登录系统、后端服务、复杂状态管理或与 MVP 无关的新依赖。
 - 分镜按当前 schema 和内容表达需要设计；Gate 2 冻结后才实现正式画面，由 Agent 按冻结分镜编写正式 React／Remotion 画面，不使用统一画面生成器。
 - 执行长驻命令、预览和渲染时控制日志体积，不读取 `node_modules/`、缓存、构建产物和大型媒体，除非任务确有必要。

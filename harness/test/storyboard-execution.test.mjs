@@ -3,7 +3,7 @@ import fs from "node:fs";
 import test from "node:test";
 import { validateStoryboardDesign, validateStoryboardDesignAudit, resolveStoryboardTiming, storyboardSchemaVersion, STORYBOARD_QUALITY_CHECKS } from "../src/storyboard-design.mjs";
 
-const sample = JSON.parse(fs.readFileSync(new URL("../../templates/video-production/storyboard-v2.json", import.meta.url)));
+const sample = JSON.parse(fs.readFileSync(new URL("../../contracts/video-production/legacy/examples/storyboard-v2.json", import.meta.url)));
 const board = () => structuredClone(sample);
 const code = value => validateStoryboardDesign(value).map(i => i.message).join("；");
 const timed = () => [{ sceneId: "01", startFrame: 0, endFrame: 120, events: [{ id: "task-start", atFrame: 10 }, { id: "task-complete", atFrame: 70 }] }];

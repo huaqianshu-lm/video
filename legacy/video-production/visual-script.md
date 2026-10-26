@@ -1,4 +1,4 @@
-> 历史 Visual Script 模板，仅供旧资料读取。当前生产使用 storyboard-v2.json 与 storyboard-design-audit.json，不生成此资料。
+> 历史 Visual Script 骨架，仅供旧资料读取。当前生产使用现行 Storyboard 与 storyboard-design-audit.json，不生成此资料。
 
 # Visual Script
 

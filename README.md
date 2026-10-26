@@ -1,5 +1,9 @@
 # Remotion AI Video Harness
 
+设计方法与案例入口：[视频设计参考](references/README.md) 。分镜与画面实现按表达问题阅读；当前第一批是三个已获认可的外部示例复现解析，不代表原创或真实教程质量已验收。
+
+目录职责：`contracts/` 保存当前与历史只读数据契约，`scaffolds/` 保存空白生产资料骨架，`legacy/` 保存退役流程兼容资料，`templates/` 只保存经过原创独立 Shot 预览及用户画面质量验收的可运行视觉模板；真实生产应用与跨视频验证单独记录。当前模板清单见 [视觉模板库](templates/README.md) 。
+
 ## 当前 Storyboard 生产流程（实片验收待完成）
 
 `storyboard-v1` 合并内容分析／叙事策划，以纯口播与 Storyboard 共同收敛替代 Scene／Visual Script 和逐视频 HTML 原型。Gate 2 页面按序并排展示口播与分镜，可附静态图；实际画面与试听在 Gate 3 审核。对话、CLI、Web 和批量复用相同任务和审核版本。
@@ -345,4 +349,4 @@ README 只描述当前稳定能力和正确使用方式。具体某条视频是�
 
 ## Shot 分镜设计
 
-当前 Storyboard 按 Scene → Shot → Event 组织：先决定内容与观看方式，再设计变化，最后选择组件或编写实现。镜头设计属于现有口播／分镜任务，不增加阶段或 Gate；没有最少镜头数和画面生成器。新建唯一使用内部格式 3；模板见 `templates/video-production/storyboard-v3.json`，权威字段、真实音频切点、转场和观看证据见 `docs/STORYBOARD-PRODUCTION-CONTRACT.md` 的 Shot 章节。Gate 2 展示并冻结镜头设计，Gate 3 审核真实逐镜头／交界观看及整片试听。旧资料只读，未完成视频继续制作先用 storyboard-rework prepare 展示正常返工范围，不自动补镜头。程序及隔离入口验证已完成；真实视频和人工 Gate 验收状态见 ROADMAP。
+当前 Storyboard 按 Scene → Shot → Event 组织：先决定内容与观看方式，再设计变化，最后选择组件或编写实现。镜头设计属于现有口播／分镜任务，不增加阶段或 Gate；没有最少镜头数和画面生成器。新建唯一使用内部格式 3；合法示例见 `contracts/video-production/current/examples/storyboard.json`，权威字段、真实音频切点、转场和观看证据见 `docs/STORYBOARD-PRODUCTION-CONTRACT.md` 的 Shot 章节。Gate 2 展示并冻结镜头设计，Gate 3 审核真实逐镜头／交界观看及整片试听。旧资料只读，未完成视频继续制作先用 storyboard-rework prepare 展示正常返工范围，不自动补镜头。程序及隔离入口验证已完成；真实视频和人工 Gate 验收状态见 ROADMAP。

@@ -12,7 +12,7 @@ Storyboard 草案是收敛任务的工作步骤，不另存正式草案，不增
 
 ## 数据
 
-设计与执行质量标准见 [STORYBOARD-EXECUTION-QUALITY.md](STORYBOARD-EXECUTION-QUALITY.md)。当前格式的完整结构以 `templates/video-production/storyboard-v3.schema.json` 为准，示例为 `storyboard-v3.json`；文件名和数据版本号只用于识别格式，不代表两条可选生产路线。Gate 2 使用独立设计审计、同版本展示与冻结；冻结 schemaVersion 5、共享 Remotion、alignment 5、独立输入包及版本化观看／试听证据共同约束下游。审计模板见 `templates/video-production/storyboard-quality-audit.md`。真实入口与实片验收状态见 ROADMAP。
+设计与执行质量标准见 [STORYBOARD-EXECUTION-QUALITY.md](STORYBOARD-EXECUTION-QUALITY.md)。当前格式的完整结构以 `contracts/video-production/current/storyboard.schema.json` 为准，合法示例为 `contracts/video-production/current/examples/storyboard.json`；文件名和数据版本号只用于识别格式，不代表两条可选生产路线。Gate 2 使用独立设计审计、同版本展示与冻结；冻结 schemaVersion 5、共享 Remotion、alignment 5、独立输入包及版本化观看／试听证据共同约束下游。审计填写骨架见 `scaffolds/video-production/storyboard-quality-audit.md`。真实入口与实片验收状态见 ROADMAP。
 
 `storyboard.json` schemaVersion 为 3，包含 videoSlug、workflow、productionContract、style、seriesSelection 和有序 scenes。系列选择与项目中已确认快照一致。
 
@@ -32,7 +32,7 @@ assets 是相对视频资料目录的文件路径；diagrams 为 path、caption�
 
 ## 下游与返工
 
-保持纯口播 → 已校验 tts-script.json → 显式 +25% TTS → 实际音频／字幕／Timeline。事件语义锚点映射到真实 Subtitle Cue 和 Audio Segment。当前生产仅使用Agent 编写的实现、alignment 5 和版本化观看证据；缺项、过期或非真实 Cue 映射阻断。
+保持纯口播 → 已校验 tts-script.json → 冻结 provider 配置 → 实际音频／字幕／Timeline。缺省 Edge 使用显式 `+25%`；百炼使用原始语速，字幕原文与 ASR 词级时间映射无法可靠对应时阻断。事件语义锚点映射到真实 Subtitle Cue 和 Audio Segment。当前生产仅使用Agent 编写的实现、alignment 5 和版本化观看证据；缺项、过期或非真实 Cue 映射阻断。
 
 Gate 3 逐事件兑现分镜，实际检查中间状态、文字遮挡、生命周期、衔接、节奏、正常速度试听、字幕同步及清洁成片。保留现有通用外壳、字幕安全区、时间工具和视觉质量约束。
 
@@ -40,7 +40,7 @@ Gate 2 的审美与感官设计及 Gate 3 的实际复查遵守 `VIDEO-PRODUCTIO
 
 视觉事件绑定真实 Cue／Segment 和帧区间；alignment 5 每幕 events 记录 id、startFrame、completeFrame。可从任务包获取真实锚点映射。字幕可能删除显示标点；先通过纯口播／字幕完整文本核对，再按指定 occurrence 找到真实 Cue，禁止用模糊词语或估算秒数猜测。
 
-修改口播：口播／分镜任务及 Gate 2、TTS、Timeline、Remotion、后续审核失效。修改分镜或审核依赖：从分镜任务及 Gate 2 返工，保守地重建下游音频，不默认复用；实现修复：仅返工 Remotion 和 Gate 3。所有返工使用共享任务、Gate 驳回和状态刷新。远程交付仍须精确文件清单授权，不重复派发已存在 Job。
+修改口播：口播／分镜任务及 Gate 2、TTS、Timeline、Remotion、后续审核失效。修改分镜或审核依赖：从分镜任务及 Gate 2 返工，保守地重建下游音频，不默认复用；用户明确授权当前视频复用时，按 HARNESS-PRODUCTION-CONTRACT.md 的显式音频复用入口校验并保留原音频／字幕／Timeline。实现修复：仅返工 Remotion 和 Gate 3。所有返工使用共享任务、Gate 驳回和状态刷新。远程交付仍须精确文件清单授权，不重复派发已存在 Job。
 
 ## 实施与验收
 
@@ -57,11 +57,11 @@ Gate 2 的审美与感官设计及 Gate 3 的实际复查遵守 `VIDEO-PRODUCTIO
 
 按内容表达目标 → Scene 组织内容 → Shot 设计观看方式 → Event 设计镜头内变化 → 选择组件或编写实现。Shot 属于现有口播／Storyboard 联合收敛步骤，不增加阶段、独立镜头文件、人工 Gate、画面生成器或自动审查调用。换字幕、亮标签、对象移动不自动算新镜头；单 Scene 单 Shot 可以成立，不规定最少镜头数或必须运镜。
 
-每幕维护唯一 elements、events 和有序 shots，Event.shotId 引用所属 Shot，不复制对象或事件。Shot 必需字段及结构以 storyboard-v3.schema.json 为准：id、purpose、framing、composition、viewpoint、focus、visibleElementIds、camera、start、end、entryState、exitState、transitionToNext、implementation。取景、构图、视角、焦点及相机用描述表达，不设能力白名单；素材缺口写明，不强制图片或录屏。Scene.focus/layout 是总体说明，Shot.focus/composition 是具体观看方式；不能复制同一个框冒充镜头设计。
+每幕维护唯一 elements、events 和有序 shots，Event.shotId 引用所属 Shot，不复制对象或事件。Shot 必需字段及结构以当前 `storyboard.schema.json` 为准：id、purpose、framing、composition、viewpoint、focus、visibleElementIds、camera、start、end、entryState、exitState、transitionToNext、implementation。取景、构图、视角、焦点及相机用描述表达，不设能力白名单；素材缺口写明，不强制图片或录屏。Scene.focus/layout 是总体说明，Shot.focus/composition 是具体观看方式；不能复制同一个框冒充镜头设计。
 
 start 首镜为 {type: scene-start}，后续为 {type: cue, anchor, occurrence}；end 为 {type: next-shot, shotId} 或末镜 {type: scene-end}。后续起点必须在口播中明确定位且有序。transitionToNext 含 target（type 为 shot／scene／end，id 引用目标，end 的 id 为 null）、mechanism、reason、retainedElementIds、exitingElementIds；同幕延续与退出对象由相邻可见清单准确核对。跨幕延续使用唯一对象 ID、既有生命周期和具体 retain 理由，下幕可以引用上幕存续对象。镜头可见范围不销毁、复制或重置对象，必须包含可见子元素的父容器；路径和标签也独立登记。
 
-真实音频返回后，以真实 Cue 起点解析 Shot 边界；锚点落在 Cue 中间而没有词级时间来源时阻断，不按字数、百分比或偏移猜切点。Shot 的半开区间连续覆盖 Scene，每镜至少一帧；Event 起点及完成点必须在所属 Shot 内。跨硬切动作拆为明确前后状态事件；连续运镜可以留在同一 Shot。Shot 不切分 TTS 或字幕，不延长音频。
+真实音频返回后，以真实 Cue 起点解析 Shot 边界；若有 `generated/word-timing.json`，Shot 与 Event 均读取准确词边界。该派生资料保存原始 wordBoundaries，绑定当前 TTS Script、三份 Manifest 和每段音频的 SHA-256，逐段去标点文本必须完整对应原口播，时间须单调且处于音频内。已有成功 TTS 可从其独立缓存导入词级资料，不改变原生成记录或音频；新生成由适配器同时保留。缺失资料的旧 Cue 级事件路径继续受支持，不称为词级精确同步；Cue 内镜头锚点没有证据时阻断，词级资料存在时任何锚点落在词内部或证据过期均阻断，不按字数、百分比或偏移猜切点。词级资料纳入时间计划指纹，并随完整 Remotion 目录进入独立输入包。Shot 的半开区间连续覆盖 Scene，每镜至少一帧；Event 起点及完成点必须在所属 Shot 内。跨硬切动作拆为明确前后状态事件；连续运镜可以留在同一 Shot。Shot 不切分 TTS 或字幕，不延长音频。
 
 Gate 2 展示 Scene → Shot → Event，设计审计 schemaVersion 2、质量规则 storyboard-execution-quality-v2 保留逐事件 SQ-1～10，另用 shotChecks 逐 Shot 覆盖目的／构图、对象完整性／连续性、切换收益、真实锚点可定位性及实现条件。冻结 5 绑定 shotIds、eventShotMap 与完整审核依赖，旧格式仅历史读取；未完成资料通过正常返工，不自动补镜头或继承批准。completed 永久只读。
 

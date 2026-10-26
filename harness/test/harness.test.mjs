@@ -169,12 +169,12 @@ test("adds the style-specific prototype baseline to the visual prototype task pa
   const packet = buildTaskPacket(project);
   assert.deepEqual(packet.context.referencePaths, [
     "styles/codex/STYLE.md",
-    "templates/video-production/visual-prototype.html",
+    "legacy/video-production/visual-prototype.html",
     "docs/VIDEO-PRODUCTION-RULES.md",
-    "templates/video-production/visual-script.md",
+    "legacy/video-production/visual-script.md",
   ]);
   assert.ok(packet.context.readPaths.includes("styles/codex/STYLE.md"));
-  assert.ok(packet.context.readPaths.includes("templates/video-production/visual-prototype.html"));
+  assert.ok(packet.context.readPaths.includes("legacy/video-production/visual-prototype.html"));
   assert.match(packet.context.constraints.join("\n"), /shell、toolbar、stage、section\.scene、caption、controls、progress 和 meta/);
 });
 
@@ -182,7 +182,7 @@ test("requires the immutable Codex prototype shell and layout contract", () => {
   const { slug } = createFixture({ prototypeBaseline: "codex-v1" });
   const project = loadFixture(slug);
   const prototypePath = path.join(project.config.workspaceRoot, `videos/${slug}/visual-prototype.html`);
-  const baseline = fs.readFileSync(new URL("../../templates/video-production/visual-prototype.html", import.meta.url), "utf8");
+  const baseline = fs.readFileSync(new URL("../../legacy/video-production/visual-prototype.html", import.meta.url), "utf8");
   fs.writeFileSync(prototypePath, baseline, "utf8");
   const validIssues = validateStage(loadFixture(slug), "visual-prototype");
   assert.equal(validIssues.some((item) => item.code === "prototype-baseline-format-mismatch"), false);
@@ -198,7 +198,7 @@ test("requires one short context label and permits a prototype without a main ti
   const { slug } = createFixture({ prototypeBaseline: "codex-v1" });
   const project = loadFixture(slug);
   const prototypePath = path.join(project.config.workspaceRoot, `videos/${slug}/visual-prototype.html`);
-  const baseline = fs.readFileSync(new URL("../../templates/video-production/visual-prototype.html", import.meta.url), "utf8");
+  const baseline = fs.readFileSync(new URL("../../legacy/video-production/visual-prototype.html", import.meta.url), "utf8");
   fs.writeFileSync(prototypePath, baseline, "utf8");
   const validIssues = validateStage(loadFixture(slug), "visual-prototype");
   assert.equal(validIssues.some((item) => item.code === "prototype-baseline-scene-title-mismatch"), false);

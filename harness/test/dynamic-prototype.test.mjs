@@ -4,7 +4,7 @@ import vm from "node:vm";
 import test from "node:test";
 
 test("lightweight prototype plays semantic events, pauses, replays and changes Scenes without audio", () => {
-  const html = fs.readFileSync(new URL("../../templates/video-production/visual-prototype.html", import.meta.url), "utf8");
+  const html = fs.readFileSync(new URL("../../legacy/video-production/visual-prototype.html", import.meta.url), "utf8");
   assert.doesNotMatch(html, /<audio\b|tts-script|audio-manifest/);
   const script = html.match(/<script>([\s\S]*?)<\/script>/)[1];
   const nodes = new Map();

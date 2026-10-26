@@ -33,6 +33,29 @@ import {renderEntryPointSource, renderStudioCatalogSource, discoverStudioEntries
 
 const repository = path.resolve(new URL("../..", import.meta.url).pathname);
 
+function assertDesignTask(packet) {
+  const constraints=packet.context.constraints.join("\n");
+  assert.match(constraints,/全片构思.*→ 逐幕表达.*→ 镜头组织.*→ 按难点画面推敲.*→ 全片统筹.*→ 实现选择与数据整理/);
+  assert.match(constraints,/首次提交应当主要表达已经成立、可进入细节打磨/);
+  assert.match(constraints,/合法 JSON 示例只解释格式/);
+  assert.match(constraints,/实际查看后修正/);
+  assert.match(constraints,/不自动打分/);
+  for (const file of ["references/content-to-visual.md", "scaffolds/video-production/storyboard-quality-audit.md"]) {
+    assert.ok(packet.context.readPaths.includes(file));
+    assert.ok(packet.context.referencePaths.includes(file));
+  }
+  assert.match(constraints,/初稿后在同一任务内单独执行审查/);
+  assert.match(constraints,/重大问题先内部修订/);
+  assert.match(constraints,/禁止从创作描述拼接证据并无条件生成 pass/);
+  assert.match(constraints,/匹配核对及不一致处理/);
+  assert.match(constraints,/量化基线只校准已确定的方案/);
+  assert.match(constraints,/推演整幅画面的完整状态/);
+  assert.match(constraints,/共同设计口播与动作的含义/);
+  assert.match(constraints,/定位→追踪→阅读的注意力顺序/);
+  assert.match(constraints,/抽帧与完整解码不能证明正常速度的运动观感/);
+  assert.match(constraints,/允许推翻原设计/);
+}
+
 function fixture(t, { dataVersion = 3, shotCount = 1, transitionMechanism = "cut" } = {}) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "storyboard-production-"));
   const previous = {};
@@ -53,7 +76,10 @@ function fixture(t, { dataVersion = 3, shotCount = 1, transitionMechanism = "cut
   if (dataVersion === 3) for (const file of [...STORYBOARD_DESIGN_REFERENCES, ...STORYBOARD_SHARED_REFERENCES]) {
     fs.mkdirSync(path.dirname(path.join(workspace,file)),{recursive:true});fs.copyFileSync(path.join(repository,file),path.join(workspace,file));
   }
-  const board = JSON.parse(fs.readFileSync(path.join(repository, `templates/video-production/storyboard${dataVersion === 3 ? "-v3" : ""}.json`), "utf8"));
+  const examplePath = dataVersion === 3
+    ? "contracts/video-production/current/examples/storyboard.json"
+    : "contracts/video-production/legacy/examples/storyboard-v1.json";
+  const board = JSON.parse(fs.readFileSync(path.join(repository, examplePath), "utf8"));
   if (shotCount === 2) {
     const scene=board.scenes[0], first=scene.shots[0], second=structuredClone(first);
     second.id='s01-shot02';second.start={type:'cue',anchor:'校验通过后完成',occurrence:1};second.purpose='观察独立结果，不再把结果与请求混为一个对象';second.composition='以结果为中心的近景，请求保留为参照';second.framing='结果近景';second.entryState='制作中的请求延续，等待形成结果';
@@ -154,7 +180,7 @@ async function downstreamFixture(t, {dataVersion = 3, shotCount = 1, transitionM
 
   if (dataVersion === 3) alignment.scenes[0].shots = alignment.scenes[0].shots.map((shot,i) => ({...shot,implementationFiles:[component],implementationSymbols:['Scene01'],transition:{target:f.board.scenes[0].shots[i].transitionToNext.target,mechanism:f.board.scenes[0].shots[i].transitionToNext.mechanism,startFrame:shot.endFrame-(f.board.scenes[0].shots[i].transitionToNext.mechanism==='cut'?0:3),endFrame:shot.endFrame+(f.board.scenes[0].shots[i].transitionToNext.mechanism==='cut'?0:3),visibleElementIds:[...new Set([...f.board.scenes[0].shots[i].visibleElementIds,...(f.board.scenes[0].shots[i+1]?.visibleElementIds ?? [])])]}}));
   write(`videos/${f.slug}/remotion-alignment.json`, alignment);
-  return { ...f, write, alignment, remotionJob };
+  return { ...f, write, alignment, audioJob, remotionJob };
 }
 
 test("versioned graph groups two planning outputs and narration/storyboard without old stages", t => {
@@ -276,6 +302,9 @@ test("CLI and Web share reviewVersion and Web approval rejects stale versions", 
   assert.equal(cli.reviewVersion, review.reviewVersion);
   assert.deepEqual(cli.scenes[0].shots.map(s=>s.id),["s01-shot01","s01-shot02"]);
   assert.deepEqual(cli.scenes[0].shots,review.scenes[0].shots);
+  assert.deepEqual(cli.reviewHints,review.reviewHints);
+  assert.ok(cli.reviewHints.some(h=>h.code==='storyboard-audit-repetition'));
+  assert.equal(cli.ready,true); // Review prompts do not block a legitimate static shot.
   assert.match(storyboardPanel(review),/Shot s01-shot02/);
   const post = body => fetch(`${base}/action`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
   const stale = await post({ action: "approve", gate: "gate-2", reviewVersion: "old" });
@@ -317,6 +346,29 @@ test("review page renders ordered narration/cards safely without prototype playb
   assert.doesNotMatch(html, /<script>|<iframe|<video/);
 });
 
+test("CLI and Web display concrete commands, objects and comparison results separately from validation", t => {
+  const f=fixture(t,{shotCount:2});f.converge();
+  const review=buildStoryboardReview(f.project()), version=review.reviewVersion;
+  // Display-only sample: do not manufacture source evidence or change a real video.
+  review.scenes[0].elements[1].text='python3 -m http.server 3000 --bind 127.0.0.1';
+  review.scenes[0].elements[2].text='sample.txt <expected>';
+  review.scenes[0].events[1].after='文件名与原页面逐项匹配；不一致则标出差异并重新读取';
+  review.reviewHints.push({message:'<script>复查</script>'});
+  const cli=formatStoryboardReview(review), html=storyboardPanel(review);
+  for(const output of [cli,html]) {
+    assert.match(output,/结构与提交条件校验：通过/);
+    assert.match(output,/Agent 设计审查记录/);
+    assert.match(output,/不代表机器质量认证/);
+    assert.match(output,/复查提示（不阻断）/);
+    assert.match(output,/python3 -m http.server 3000 --bind 127.0.0.1/);
+    assert.match(output,/文件名与原页面逐项匹配；不一致则标出差异并重新读取/);
+    assert.match(output,/task-result/);
+  }
+  assert.match(html,/sample.txt &lt;expected&gt;/);
+  assert.doesNotMatch(html,/<script>/);
+  assert.equal(storyboardReview(f.project()).reviewVersion,version);
+});
+
 test("batch shares planning and convergence tasks and waits at Gate 2", async t => {
   const f = fixture(t,{shotCount:2}); const queued = [];
   const batch = createBatch({ type: "to-gate-2", slugs: [f.slug] });
@@ -325,13 +377,69 @@ test("batch shares planning and convergence tasks and waits at Gate 2", async t 
   const { getAgentJob, runAgentJob } = await import("../src/agent-jobs.mjs");
   let job = getAgentJob(queued[0]);
   assert.deepEqual(job.task.task.stages, ["content-analysis", "video-narrative"]);
+  assert.equal(job.task.context.readPaths.includes("templates/README.md"), false);
   await runAgentJob(job.id, { executor: { async run() { for (const name of ["content-analysis.md", "video-narrative.md"]) fs.writeFileSync(path.join(f.materials, name), planningDocuments[name]); return { summary: "批量策划" }; } } });
   await runBatch(batch.id, { queueAgentJob(id) { queued.push(id); } });
   job = getAgentJob(queued[1]); assert.deepEqual(job.task.task.stages, ["narration-script", "storyboard"]);
+  assertDesignTask(job.task);
+  assert.ok(job.task.context.readPaths.includes("contracts/video-production/current/storyboard.schema.json"));
+  assert.ok(job.task.context.readPaths.includes("scaffolds/video-production/tutorial-motion-recipe.md"));
+  assert.ok(job.task.context.readPaths.includes("templates/README.md"));
   await runAgentJob(job.id, { executor: { async run() { fs.writeFileSync(path.join(f.materials, "narration-script.md"), "## Scene 01\n任务从等待进入制作，校验通过后完成。\n"); f.writeBoard(); f.writeAudit(); return { summary: "批量分镜" }; } } });
   await runBatch(batch.id, { queueAgentJob() { assert.fail("no more production before approval"); } });
   assert.equal(getBatch(batch.id).items[0].status, "waiting-gate");
   assert.equal(f.project().state.currentStage, "gate-2");
+});
+
+test("dialogue and HTTP convergence entry use the same design and independent review requirements", async t => {
+  const f=fixture(t);f.planning();
+  const server=createWebServer({port:0,remoteJobMonitor:{start(){},stop(){},async poll(){}}});
+  await server.listen();t.after(()=>server.close());
+  const response=await fetch(`http://127.0.0.1:${server.server.address().port}/api/projects/${f.slug}/action`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'context'})});
+  assert.equal(response.status,200);
+  const web=(await response.json()).result, dialogue=claimDialogueTask(f.slug).task;
+  assertDesignTask(web);assertDesignTask(dialogue);
+  assert.deepEqual(web.context.constraints,dialogue.context.constraints);
+});
+
+test("actual CLI and HTTP entries share visual template routing while TTS excludes it", async t => {
+  const f = fixture(t, {dataVersion: 3});
+  f.planning();
+  const claimed = JSON.parse(execFileSync(process.execPath, [path.join(repository, "harness/src/cli.mjs"), "production-task", "claim", f.slug], { encoding: "utf8", env: process.env }));
+  assert.deepEqual(claimed.task.task.stages, ["narration-script", "storyboard"]);
+  assertDesignTask(claimed.task);
+  for (const reference of ["contracts/video-production/current/storyboard.schema.json", "scaffolds/video-production/tutorial-motion-recipe.md", "templates/README.md"]) {
+    assert.ok(claimed.task.context.readPaths.includes(reference));
+  }
+  fs.writeFileSync(path.join(f.materials, "narration-script.md"), "## Scene 01\n任务从等待进入制作，校验通过后完成。\n");
+  f.writeBoard(); f.writeAudit();
+  execFileSync(process.execPath, [path.join(repository, "harness/src/cli.mjs"), "production-task", "complete", claimed.id, "--summary", "入口验收制作资料"], { encoding: "utf8", env: process.env });
+  runStage(f.project(), "gate-2");
+
+  const server = createWebServer({ port: 0, remoteJobMonitor: { start() {}, stop() {}, async poll() {} } });
+  await server.listen(); t.after(() => server.close());
+  const endpoint = `http://127.0.0.1:${server.server.address().port}/api/projects/${f.slug}/action`;
+  const context = async () => {
+    const response = await fetch(endpoint, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "context" }) });
+    assert.equal(response.status, 200);
+    return (await response.json()).result;
+  };
+  const gate2 = await context();
+  assert.equal(gate2.task.stage, "gate-2");
+  assert.ok(gate2.context.readPaths.includes("templates/README.md"));
+  approveGate(f.project(), "gate-2", { reviewVersion: storyboardReview(f.project()).reviewVersion });
+  const tts = await context();
+  assert.equal(tts.task.stage, "tts");
+  assert.equal(tts.context.readPaths.includes("templates/README.md"), false);
+  assert.equal(tts.context.referencePaths.includes("templates/README.md"), false);
+});
+
+test("TTS and Remotion production jobs apply opposite visual template routing", async t => {
+  const f = await downstreamFixture(t, {dataVersion: 3});
+  assert.equal(f.audioJob.task.context.readPaths.includes("templates/README.md"), false);
+  assert.equal(f.audioJob.task.context.referencePaths.includes("templates/README.md"), false);
+  assert.ok(f.remotionJob.task.context.readPaths.includes("templates/README.md"));
+  assert.ok(f.remotionJob.task.context.referencePaths.includes("templates/README.md"));
 });
 
 
@@ -344,9 +452,10 @@ test("executable Shot version three task completion and Gate 2 bind the complete
   const f=fixture(t,{dataVersion:3});f.planning();
   const packet=buildTaskPacket(f.project());
   assert.ok(packet.context.writePaths.includes(`videos/${f.slug}/storyboard-design-audit.json`));
-  assert.ok(packet.context.readPaths.includes("templates/video-production/storyboard-v3.schema.json"));
+  assert.ok(packet.context.readPaths.includes("contracts/video-production/current/storyboard.schema.json"));
   assert.ok(packet.context.readPaths.includes("docs/VIDEO-PRODUCTION-RULES.md"));
-  assert.ok(packet.context.readPaths.includes("templates/video-production/tutorial-motion-recipe.md"));
+  assert.ok(packet.context.readPaths.includes("scaffolds/video-production/tutorial-motion-recipe.md"));
+  assert.ok(packet.context.readPaths.includes("templates/README.md"));
   assert.ok(packet.context.constraints.some(text => text.includes("审美与感官") && text.includes("未观看保持 pending")));
   const job=claimDialogueTask(f.slug);
   fs.writeFileSync(path.join(f.materials,"narration-script.md"),"## Scene 01\n任务从等待进入制作，校验通过后完成。\n");f.writeBoard();
@@ -374,7 +483,7 @@ test("failed, duplicate, omitted and stale audit checks prevent Gate 2 approval"
 
 test("quality-rule changes invalidate the claimed task input rather than accepting old output",t=>{
   const f=fixture(t,{dataVersion:3});f.planning();const job=claimDialogueTask(f.slug);
-  for (const reference of ["docs/STORYBOARD-EXECUTION-QUALITY.md", "docs/VIDEO-PRODUCTION-RULES.md", "templates/video-production/tutorial-motion-recipe.md"]) {
+  for (const reference of ["docs/STORYBOARD-EXECUTION-QUALITY.md", "docs/VIDEO-PRODUCTION-RULES.md", "references/content-to-visual.md", "scaffolds/video-production/storyboard-quality-audit.md", "scaffolds/video-production/tutorial-motion-recipe.md"]) {
     const before=fingerprintTaskInputs(f.project(),["narration-script","storyboard"]);
     const designBefore=storyboardReview(f.project()).designInputVersion;
     fs.appendFileSync(path.join(f.workspace,reference),"\nChanged isolated rule\n");
@@ -697,7 +806,7 @@ test('historical schema two input remains a read-only preview dependency without
   const f=await downstreamFixture(t), prepared=prepareRenderInputEntry(f.project());
   // Build a fictional archived package in isolation. Never migrate a real video.
   const p=f.project();p.config.storyboardSchemaVersion=2;writeJson(p.files.config,p.config);
-  const old=JSON.parse(fs.readFileSync(path.join(repository,'templates/video-production/storyboard-v2.json')));old.videoSlug=f.slug;old.scenes[0].sourceRefs[0].path=`videos/${f.slug}/source.md`;
+  const old=JSON.parse(fs.readFileSync(path.join(repository,'contracts/video-production/legacy/examples/storyboard-v2.json')));old.videoSlug=f.slug;old.scenes[0].sourceRefs[0].path=`videos/${f.slug}/source.md`;
   f.write(`videos/${f.slug}/storyboard.json`,old);
   for(const file of storyboardDesignReferences(p)){fs.mkdirSync(path.dirname(path.join(f.workspace,file)),{recursive:true});fs.copyFileSync(path.join(repository,file),path.join(f.workspace,file));}
   const review=storyboardReview(p);

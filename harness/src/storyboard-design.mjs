@@ -7,9 +7,11 @@ export const STORYBOARD_QUALITY_CHECKS = Object.freeze(Array.from({ length: 10 }
 export const STORYBOARD_DESIGN_REFERENCES = Object.freeze([
   "docs/STORYBOARD-EXECUTION-QUALITY.md",
   "docs/VIDEO-PRODUCTION-RULES.md",
-  "templates/video-production/tutorial-motion-recipe.md",
-  "templates/video-production/storyboard-v3.schema.json",
-  "templates/video-production/storyboard-design-audit-v2.schema.json",
+  "references/content-to-visual.md",
+  "scaffolds/video-production/storyboard-quality-audit.md",
+  "scaffolds/video-production/tutorial-motion-recipe.md",
+  "contracts/video-production/current/storyboard.schema.json",
+  "contracts/video-production/current/storyboard-design-audit.schema.json",
 ]);
 export const STORYBOARD_SHARED_REFERENCES = Object.freeze([
   "src/lib/timing.ts", "src/lib/motion.ts", "src/components/TimedCaption.tsx",
@@ -17,7 +19,15 @@ export const STORYBOARD_SHARED_REFERENCES = Object.freeze([
 ]);
 
 export function storyboardDesignReferences(project) {
-  return storyboardSchemaVersion(project) === 3 ? STORYBOARD_DESIGN_REFERENCES : STORYBOARD_DESIGN_REFERENCES.map(file => file.replace('storyboard-v3.schema.json', 'storyboard-v2.schema.json').replace('storyboard-design-audit-v2.schema.json', 'storyboard-design-audit.schema.json'));
+  const version = storyboardSchemaVersion(project);
+  if (version === 3) return STORYBOARD_DESIGN_REFERENCES;
+  return Object.freeze([
+    "docs/STORYBOARD-EXECUTION-QUALITY.md",
+    "docs/VIDEO-PRODUCTION-RULES.md",
+    "scaffolds/video-production/tutorial-motion-recipe.md",
+    `contracts/video-production/legacy/storyboard-v${version}.schema.json`,
+    "contracts/video-production/legacy/storyboard-design-audit-v1.schema.json",
+  ]);
 }
 
 export function storyboardSchemaVersion(project) {
@@ -137,6 +147,38 @@ export function validateStoryboardDesign(board) {
   }
   issues.push(...validateStoryboardShots(board));
   return issues;
+}
+
+// Read-only review prompts, deliberately separate from blocking validation.
+// Exact repeated wording is observable; whether repetition is useful is not.
+export function storyboardDesignReviewHints(board, audit) {
+  const hints = [];
+  const shots = (Array.isArray(board?.scenes) ? board.scenes : []).filter(Boolean).flatMap(scene => (Array.isArray(scene.shots) ? scene.shots : []).filter(Boolean).map(shot => ({ ...shot, sceneId: scene.id })));
+  const normalized = value => typeof value === "string" ? value.trim().replace(/\s+/g, " ") : "";
+  for (const [field, label] of [["framing", "取景"], ["camera", "相机"]]) {
+    const groups = new Map();
+    for (const shot of shots) {
+      const value = normalized(shot[field]);
+      if (!value) continue;
+      if (!groups.has(value)) groups.set(value, []);
+      groups.get(value).push(shot.id);
+    }
+    for (const ids of groups.values()) if (ids.length > 1) hints.push({ code: "storyboard-shot-repetition", message: `Shot ${ids.join("、")} 的${label}描述相同，请复查各镜头的内容理由；重复本身不判错，也不要求增加运镜。`, shotIds: ids });
+  }
+  for (const [kind, checks] of [["事件", audit?.checks ?? []], ["镜头", audit?.shotChecks ?? []]]) {
+    for (const field of ["evidence", "note"]) {
+      const groups = new Map();
+      for (const check of checks) {
+        const value = normalized(check[field]);
+        if (!value) continue;
+        const key = JSON.stringify([check.checkId ?? null, value]);
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key).push(`${check.sceneId}/${check.shotId ?? check.eventId}${check.checkId ? `/${check.checkId}` : ""}`);
+      }
+      for (const ids of groups.values()) if (ids.length > 1) hints.push({ code: "storyboard-audit-repetition", message: `${kind}审计 ${ids.join("、")} 的 ${field} 文本相同，请核对是否有独立判断，不能以复述设计代替依据。`, checkIds: ids });
+    }
+  }
+  return hints;
 }
 
 export function validateStoryboardDesignAudit(board, audit, { inputVersion, storyboardFingerprint, narrationFingerprint }) {

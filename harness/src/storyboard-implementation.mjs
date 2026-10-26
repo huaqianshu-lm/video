@@ -45,7 +45,7 @@ export function buildStoryboardImplementationReview(project, {plan = null, timin
   if (!Object.keys(files).some(file => file.startsWith(directory + '/') && file.endsWith('Video.tsx'))) throw new Error('缺少 Agent 编写的视频组件');
   if (!files[`${directory}/video.config.ts`]) throw new Error('缺少真实 Timeline 对应的视频配置');
   const audioFiles = timing.scenes.flatMap(scene => scene.segments.map(segment => {
-    if (!/^audio\/[A-Za-z0-9_./-]+\.mp3$/.test(segment.audioFile) || segment.audioFile.includes('..')) throw new Error(`音频路径无效：${segment.audioFile}`);
+    if (!/^audio\/[A-Za-z0-9_./-]+\.(?:mp3|wav)$/.test(segment.audioFile) || segment.audioFile.includes('..')) throw new Error(`音频路径无效：${segment.audioFile}`);
     return {path: segment.audioFile, sha256: hash(fs.readFileSync(path.join(project.config.workspaceRoot, directory, 'generated', segment.audioFile)))};
   }));
   const implementationFingerprint = hash({runtime: files, audioFiles});

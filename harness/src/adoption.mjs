@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { artifactManifestFor } from "./artifacts.mjs";
-import { projectFiles } from "./storage.mjs";
+import { assertProjectMutable, projectFiles } from "./storage.mjs";
 import {
   workflowStageIndex,
   workflowStages,
@@ -70,6 +70,9 @@ export function inspectAdoptionCandidate(slug) {
 }
 
 // Adoption of old prototypes or approvals is no longer a production path.
-const retired = () => { throw Object.assign(new Error("旧资料接管入口已停用，请初始化当前流程或使用 storyboard-rework 正常返工；历史记录保持只读。"), {code: "production-entry-retired"}); };
+const retired = (slug) => {
+  assertProjectMutable(slug, "执行已退役的历史资料接管");
+  throw Object.assign(new Error("旧资料接管入口已停用，请初始化当前流程或使用 storyboard-rework 正常返工；历史记录保持只读。"), {code: "production-entry-retired"});
+};
 export const adoptExistingProjectToGate2 = retired;
 export const markHistoricalProjectCompleted = retired;

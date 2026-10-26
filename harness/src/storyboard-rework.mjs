@@ -13,6 +13,8 @@ import { listAgentJobs } from "./agent-jobs.mjs";
 import { listRemotionTasks } from "./remotion-tasks.mjs";
 import { listJobs } from "./jobs.mjs";
 import { stopBatchesAfterGateRejection, batchReworkScope, getBatch } from "./batches.mjs";
+import { frozenStoryboardIssues } from "./storyboard.mjs";
+import { resolveTtsProvider } from "./tts-provider.mjs";
 
 const hash = value => crypto.createHash("sha256").update(JSON.stringify(value)).digest("hex");
 const journalPath = (files, version) => path.join(files.directory, "storyboard-rework", `${version}.json`);
@@ -26,12 +28,19 @@ function requireIdle(project) {
     || listJobs(project.config.slug).some(j => !["succeeded", "failed", "timeout"].includes(j.status))) throw error("storyboard-rework-busy", "存在活动或未对账任务，不能开始返工");
 }
 
-export function prepareStoryboardRework(slug, { returnTo = "storyboard", reason, dataVersion = null } = {}) {
+function prepareRework(slug, { returnTo = "storyboard", reason, dataVersion = null, tts = null } = {}, kind = "storyboard") {
   const project = loadProject(slug, { refresh: false });
   assertProjectMutable(project, "准备分镜返工", { allowRework: true });
   requireIdle(project);
-  if (!reason?.trim() || !["narration-script", "storyboard", "remotion"].includes(returnTo)) throw error("storyboard-rework-input", "返工需要具体原因和口播／分镜／Remotion 返回阶段");
+  if (!reason?.trim() || !(kind === "tts" ? ["subtitle-timeline"] : ["narration-script", "storyboard", "remotion"]).includes(returnTo)) throw error("storyboard-rework-input", "返工需要具体原因及允许的返回阶段");
   const current = usesCurrentProduction(project);
+  let targetTts = null;
+  if (kind === "tts") {
+    if (!current || !tts || project.state.stages["gate-2"]?.status !== "succeeded" || project.state.stages.tts?.status !== "succeeded") throw error("tts-rebuild-input", "音频重制需要当前契约和已通过的 Gate 2 与 TTS 输入。 ");
+    const issues = [...frozenStoryboardIssues(project), ...validateProjectStage(project, "tts")].filter(issue => issue.severity !== "warning");
+    if (issues.length || !project.state.stages.tts.outputFingerprint || project.state.stages.tts.outputFingerprint !== fingerprintStageArtifacts(project, "tts")) throw error("tts-rebuild-input", "冻结分镜或 TTS 输入已变化，不能沿用旧 Gate 2。");
+    targetTts = resolveTtsProvider({ tts });
+  }
   const targetVersion = dataVersion ?? CURRENT_STORYBOARD_SCHEMA_VERSION;
   if (targetVersion !== CURRENT_STORYBOARD_SCHEMA_VERSION) throw error("storyboard-rework-version", "返工仅使用当前分镜契约，不提供版本选择");
   if (!current && returnTo === "remotion") throw error("storyboard-rework-input", "旧设计不符合当前规则，必须先返工口播／分镜，不能只重做实现");
@@ -53,18 +62,21 @@ export function prepareStoryboardRework(slug, { returnTo = "storyboard", reason,
   const previousVersion = project.config.storyboardSchemaVersion ?? 1;
   const baselineFile = path.join(project.files.directory, "prototype-baseline.json");
   const previous = { config: project.config, state: project.state, artifacts: project.artifacts, fingerprints: fingerprints(project), baseline: fs.existsSync(baselineFile) ? readJson(baselineFile) : null, batches: batchReworkScope(slug) };
-  const options = { returnTo, reason: reason.trim(), dataVersion: targetVersion };
+  const options = { returnTo, reason: reason.trim(), dataVersion: targetVersion, ...(kind === "tts" ? { tts: targetTts } : {}) };
   const reworkVersion = hash({ slug, options, previous });
-  return { kind: "storyboard-rework-plan", slug, reworkVersion, ...options, fromDataVersion: previousVersion,
+  return { kind: kind === "tts" ? "tts-rebuild-plan" : "storyboard-rework-plan", slug, reworkVersion, ...options, fromDataVersion: previousVersion,
+    ...(kind === "tts" ? { previousTts: resolveTtsProvider(project.config) } : {}),
     invalidated: stages.slice(stages.indexOf(returnTo)), retained: ["既有视频资料与音视频", "历史 Gate／阶段／基线快照", "原 Agent／Job／任务记录"],
     currentRulesRequired: !current,
-    requiresHumanGate: returnTo === "remotion" ? ["gate-3", "gate-4"] : ["gate-2", "gate-3", "gate-4"],
+    requiresHumanGate: ["remotion", "subtitle-timeline"].includes(returnTo) ? ["gate-3", "gate-4"] : ["gate-2", "gate-3", "gate-4"],
     batchIds: previous.batches.map(b => b.batch.id), writePaths: [project.files.config, project.files.state, project.files.artifacts, journalPath(project.files, reworkVersion), ...previous.batches.map(b => b.path)], previous };
 }
 
+export function prepareStoryboardRework(slug, options = {}) { return prepareRework(slug, options); }
+export function prepareTtsRebuild(slug, { reason, tts } = {}) { return prepareRework(slug, { returnTo: "subtitle-timeline", reason, tts }, "tts"); }
 export function storyboardReworkPlanView({ previous, ...view }) { return view; }
 
-export function startStoryboardRework(slug, reworkVersion, options = {}) {
+function startRework(slug, reworkVersion, options = {}, kind = "storyboard") {
   if (!/^[a-f0-9]{64}$/.test(reworkVersion ?? "")) throw error("storyboard-rework-stale", "缺少有效返工计划版本");
   const files = projectFiles(slug), file = journalPath(files, reworkVersion);
   let journal = fs.existsSync(file) ? readJson(file) : null;
@@ -72,12 +84,12 @@ export function startStoryboardRework(slug, reworkVersion, options = {}) {
     ? { files, config: readJson(files.config), state: readJson(files.state), artifacts: readJson(files.artifacts) }
     : loadProject(slug, { refresh: false });
   assertProjectMutable(project, "执行分镜返工", { allowRework: true });
-  if (journal && (journal.slug !== slug || journal.reworkVersion !== reworkVersion)) throw error("storyboard-rework-stale", "返工记录与计划不一致");
+  if (journal && (journal.slug !== slug || journal.reworkVersion !== reworkVersion || (kind === "tts") !== (journal.options.returnTo === "subtitle-timeline"))) throw error("storyboard-rework-stale", "返工记录与计划不一致");
   if (!journal) {
-    const plan = prepareStoryboardRework(slug, options);
+    const plan = kind === "tts" ? prepareTtsRebuild(slug, options) : prepareStoryboardRework(slug, options);
     if (plan.reworkVersion !== reworkVersion) throw error("storyboard-rework-stale", "返工计划已过期或范围改变，请重新查看清单");
     const now = new Date().toISOString();
-    const config = { ...project.config, productionContract: STORYBOARD_PRODUCTION_CONTRACT, storyboardSchemaVersion: plan.dataVersion, validationPolicy: "strict", productionRevision: (project.config.productionRevision ?? 0) + 1, updatedAt: now };
+    const config = { ...project.config, productionContract: STORYBOARD_PRODUCTION_CONTRACT, storyboardSchemaVersion: plan.dataVersion, validationPolicy: "strict", ...(kind === "tts" ? { tts: plan.tts } : {}), productionRevision: (project.config.productionRevision ?? 0) + 1, updatedAt: now };
     const state = structuredClone(project.state);
     if (plan.currentRulesRequired) {
       state.stages = createWorkflowStagesState({ config });
@@ -88,7 +100,7 @@ export function startStoryboardRework(slug, reworkVersion, options = {}) {
     for (const stage of plan.invalidated) {
       const old = state.stages[stage];
       state.stages[stage] = { ...old, status: stage === plan.returnTo ? "ready" : "invalidated", review: null, outputs: [], error: null, outputFingerprint: null,
-        invalidatedBy: stage === plan.returnTo ? null : "storyboard-rework", rebuildBaselineFingerprint: null, updatedAt: now };
+        invalidatedBy: stage === plan.returnTo ? null : kind === "tts" ? "tts-rebuild" : "storyboard-rework", rebuildBaselineFingerprint: null, updatedAt: now };
     }
     if (plan.returnTo === "remotion") {
       state.stages.remotion.invalidatedBy = "gate-3-rejected";
@@ -97,7 +109,7 @@ export function startStoryboardRework(slug, reworkVersion, options = {}) {
       if (implementation) state.stages.remotion.rebuildImplementationFingerprint = implementation;
     }
     state.currentStage = plan.returnTo; state.updatedAt = now;
-    journal = { schemaVersion: 1, slug, reworkVersion, taskId: `storyboard-rework-${reworkVersion}`, status: "prepared", options: { returnTo: plan.returnTo, reason: plan.reason, dataVersion: plan.dataVersion }, previous: plan.previous,
+    journal = { schemaVersion: 1, slug, reworkVersion, taskId: `storyboard-rework-${reworkVersion}`, status: "prepared", options: { returnTo: plan.returnTo, reason: plan.reason, dataVersion: plan.dataVersion, ...(kind === "tts" ? { tts: plan.tts } : {}) }, previous: plan.previous,
       config, state, artifacts: { ...project.artifacts, stages: artifactManifestFor({ ...project, config }) }, startedAt: now };
     writeJson(file, journal);
   }
@@ -125,10 +137,13 @@ export function startStoryboardRework(slug, reworkVersion, options = {}) {
   journal.status = "applying"; writeJson(file, journal);
   writeJson(files.state, journal.state); writeJson(files.artifacts, journal.artifacts); writeJson(files.config, journal.config);
   if (!journal.stoppedBatchIds) {
-    journal.stoppedBatchIds = stopBatchesAfterGateRejection({ slug, gate: journal.options.returnTo === "remotion" ? "gate-3" : "gate-2", returnTo: journal.options.returnTo, reason: journal.options.reason, allTypes: true, batchIds: journal.previous.batches.map(b => b.batch.id) });
+    journal.stoppedBatchIds = stopBatchesAfterGateRejection({ slug, gate: kind === "tts" ? "subtitle-timeline" : journal.options.returnTo === "remotion" ? "gate-3" : "gate-2", returnTo: journal.options.returnTo, reason: journal.options.reason, allTypes: true, batchIds: journal.previous.batches.map(b => b.batch.id), ...(kind === "tts" ? { cause: "tts-rebuild" } : {}) });
     writeJson(file, journal);
   }
   journal.status = "applied"; journal.completedAt = new Date().toISOString(); writeJson(file, journal);
   project = loadProject(slug, { refresh: false }); releaseProductionTask(project, journal.taskId);
   return { status: "applied", slug, reworkVersion, currentStage: project.state.currentStage, storyboardSchemaVersion: journal.config.storyboardSchemaVersion, requiresNewHumanReview: true };
 }
+
+export function startStoryboardRework(slug, reworkVersion, options = {}) { return startRework(slug, reworkVersion, options); }
+export function startTtsRebuild(slug, reworkVersion, options = {}) { return startRework(slug, reworkVersion, options, "tts"); }

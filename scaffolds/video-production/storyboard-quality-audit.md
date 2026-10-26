@@ -9,6 +9,27 @@
 - reviewVersion（Gate 2 前未冻结时如实记录）：
 - 审计方法：设计资料／源码检查／实际观看（分别填写，不互相替代）。
 
+## 创作完成后再审查
+
+导演创作以 `docs/STORYBOARD-EXECUTION-QUALITY.md`「导演创作与首次交付」为准。本骨架用于留证，不生成创意。先完成全片构思、逐幕表达、镜头组织、按难点画面推敲与全片统筹，再整理数据及填写审计；合法 JSON 示例只说明格式，设计推导见 `references/content-to-visual.md`。
+
+现有字段应能读出：视觉主线如何发展、各幕关键设计及理解收益、前态／变化中／后态如何可见、重点与阅读停留如何分配、相邻场景如何交接。具体判断写入 Scene／Shot／Event；审查发现、修正及实际查看范围写入 evidence／note。完成 summary 概括主线和待验范围，不替代设计；不新增运行时字段或独立必交文档。
+
+试点保留首次提交及用户反馈，区分细节打磨与主体／机制／大量镜头的重设计。任务完成、审计 pass 和程序检查均不能代替用户对首次设计成熟度的判断；未实际查看的草图或动作不写成视觉验证通过。
+
+## 提交前独立审查
+
+创作时先执行 `STORYBOARD-EXECUTION-QUALITY.md`「关键变化怎样完成导演决策」，设计推导见 `references/content-to-visual.md`「把关键变化设计完整」。审查时从整幅画面的共同状态、无声画面含义、配合口播的含义与连续观看的焦点交接重新判断；允许推翻创作决定。记录到原有 SQ evidence／note，不增加检查 ID。静帧、抽帧与解码检查仅按实际范围留证，不能代填未完成的动态判断。
+
+按 `docs/STORYBOARD-EXECUTION-QUALITY.md`「设计与审查的执行顺序」先设计，再单独审查初稿。以下判断写入现有 checks／shotChecks 的 evidence／note，不要求另交本表或新增 JSON 字段：
+
+- 观众能否照做：前提、命令／输入、示例对象、预期结果和核对方法是否具体；不一致怎样识别和处理。
+- 每个 Shot 为什么采用当前造型、构图、距离、焦点和变化；隐喻有无夸大产品能力或把原则说成验证结果。
+- 通看整片有无机械重复、焦点冲突、平台混淆或缺少对照；所学案例方法如何适配当前内容。
+- 发现了什么，修改了哪里，复查后依据是什么；尚无法判断的项目保持 pending。
+
+脚本只能整理已完成的设计与审查判断，不能批量填入默认镜头描述或 pass；不得把创作字段的复述当成检查证据。重大问题在本任务内修订后再提交，未发现问题也须有实际检查依据。结构校验及重复文本提示不能证明视觉质量。
+
 ## 逐幕逐事件
 
 必须覆盖全片所有 Scene／Event，包括有意静置与交界；每个事件逐项填写 SQ-1～SQ-10，不由模板默认通过。
@@ -63,4 +84,4 @@
 
 ## 镜头审计（当前格式）
 
-使用 `storyboard-design-audit-v2.schema.json`：schemaVersion 2；逐事件 checks 保留 SQ-1～10；shotChecks 按每幕每 Shot 唯一记录 sceneId、shotId、result、全部可见 elementIds、purposeComposition、objectContinuity、transitionBenefit、timingSource、implementation、evidence 和 note。各项写具体取景任务、构图理由、身份／状态交接、切换收益和真实时间可定位性，不复制一份空泛 pass。绑定当前 designInputVersion、分镜和口播指纹，未完成填 pending。当前数据参考 storyboard-v3.json；v2 文件仅供历史读取。
+使用 `contracts/video-production/current/storyboard-design-audit.schema.json`：schemaVersion 2；逐事件 checks 保留 SQ-1～10；shotChecks 按每幕每 Shot 唯一记录 sceneId、shotId、result、全部可见 elementIds、purposeComposition、objectContinuity、transitionBenefit、timingSource、implementation、evidence 和 note。各项写具体取景任务、构图理由、身份／状态交接、切换收益和真实时间可定位性，不复制一份空泛 pass。绑定当前 designInputVersion、分镜和口播指纹，未完成填 pending。当前数据参考 `contracts/video-production/current/examples/storyboard.json`；v1／v2 文件仅供历史读取。

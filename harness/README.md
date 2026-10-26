@@ -24,6 +24,8 @@ node harness/src/cli.mjs approve <new-slug> gate-2 --review-version <reviewVersi
 
 Web 项目详情页显示同一分镜卡片。HTTP `GET /api/projects/<slug>/storyboard-review` 获取审核包，`POST .../action` 的 approve 请求必须带当前 `reviewVersion`。初始化与普通导入均使用服务端当前默认，不需要指定版本；旧选择直接拒绝。资料不符合当前规则时，页面提供“按当前规则准备返工”，展示精确范围后确认执行。
 
+分镜任务在现有联合任务内按内容理解 → Scene → Shot → Event → 实现选择 → 数据整理执行，初稿后单独审查并内部修订；详见 `docs/STORYBOARD-EXECUTION-QUALITY.md`。CLI 与 Web 分开显示结构与提交条件校验、Agent 设计审查记录；审核 JSON 的 `reviewHints` 是只读、非阻断提示，列出相同取景／相机及重复审计文本，保留定位 ID，不改变 `ready`、审核版本或 Gate。具体命令、关键对象文案与预期结果在同一审核包中展示。机器提示不能判断设计好坏，实际首审质量与跨视频验收状态见 ROADMAP。
+
 
 
 ## Agent 新视频的系列和封面
@@ -438,7 +440,7 @@ macOS 的 Agent 沙箱可能无法读取系统钥匙串或访问 GitHub；沙箱
 
 ### 当前分镜设计与 Gate 审核
 
-当前制作使用 storyboard-v3.json／schema 与 storyboard-design-audit.json，Gate 2 审核纯口播和分镜方案并冻结同版本；不要求 HTML 原型或 visual-self-review.json。Gate 3 使用真实 Timeline、按冻结分镜编写的实现、alignment 5 与实际观看／正常速度试听证据，设计审计不能替代实际观看。
+当前制作使用 `contracts/video-production/current/` 中的 schemaVersion 3 契约与 `storyboard-design-audit.json`，Gate 2 审核纯口播和分镜方案并冻结同版本；不要求 HTML 原型或 visual-self-review.json。Gate 3 使用真实 Timeline、按冻结分镜编写的实现、alignment 5 与实际观看／正常速度试听证据，设计审计不能替代实际观看。
 
 资料不符合当前规则时，先准备 storyboard-rework，查看范围后按同一计划执行；旧 Gate 批准不能继承。已有旧任务可以显式 production-task fail 结束并释放其锁，再准备返工；后台任务必须先安全停止实际执行，不能用记录失败冒充进程已退出。completed 永久只读。旧转换和资料接管入口停用。
 
@@ -468,4 +470,4 @@ Source 登记与冻结 TTS 输入校验使用 `run`，无需 Agent 制作任务�
 
 ## Shot 分镜设计
 
-当前 Storyboard 按 Scene → Shot → Event 组织：先决定内容与观看方式，再设计变化，最后选择组件或编写实现。镜头设计属于现有口播／分镜任务，不增加阶段或 Gate；没有最少镜头数和画面生成器。新建唯一使用内部格式 3；模板见 `templates/video-production/storyboard-v3.json`，权威字段、真实音频切点、转场和观看证据见 `docs/STORYBOARD-PRODUCTION-CONTRACT.md` 的 Shot 章节。Gate 2 展示并冻结镜头设计，Gate 3 审核真实逐镜头／交界观看及整片试听。旧资料只读，未完成视频继续制作先用 storyboard-rework prepare 展示正常返工范围，不自动补镜头。程序及隔离入口验证已完成；真实视频和人工 Gate 验收状态见 ROADMAP。
+当前 Storyboard 按 Scene → Shot → Event 组织：先决定内容与观看方式，再设计变化，最后选择组件或编写实现。镜头设计属于现有口播／分镜任务，不增加阶段或 Gate；没有最少镜头数和画面生成器。新建唯一使用内部格式 3；合法示例见 `contracts/video-production/current/examples/storyboard.json`，权威字段、真实音频切点、转场和观看证据见 `docs/STORYBOARD-PRODUCTION-CONTRACT.md` 的 Shot 章节。Gate 2 展示并冻结镜头设计，Gate 3 审核真实逐镜头／交界观看及整片试听。Storyboard、Gate 2 与 Remotion 任务包提供 `templates/README.md`，但必须先完成内容设计再判断是否有匹配模板；模板不自动选择或替代 Gate 3。旧资料只读，未完成视频继续制作先用 storyboard-rework prepare 展示正常返工范围，不自动补镜头。程序及隔离入口验证状态见 ROADMAP。
