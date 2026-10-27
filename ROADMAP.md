@@ -7,11 +7,11 @@
 
 ## 当前阶段
 
-- Harness 第一轮减负已在 `local/worktrees/harness-slim-phase-1/` 隔离实施：紧凑审计、直接任务包及同次读取复用；原生产入口未切换，工程验证与实际制作验收分别记录。详见该工作区 `local/harness-slim/acceptance.md`。
-- 当前生产继续为 storyboard-v1／分镜3、冻结5、Agent 编写 Remotion、alignment5、观看证据2及人工 Gate。原工作区仍使用原审计2；隔离实现使用紧凑审计3，不混写生产状态。
+- Harness 第一轮减负已按用户要求合入当前 `main` 工作目录：紧凑审计、直接任务包及同次读取复用；后续直接在当前目录开发。原工程验收记录保存在 `local/harness-slim/acceptance.md`，本次整合记录见 `local/harness-slim-integration/acceptance.md`。
+- 当前代码使用紧凑审计3；生产继续为 storyboard-v1／分镜3、冻结5、Agent 编写 Remotion、alignment5、观看证据2及人工 Gate。历史审计2只读兼容，不自动改写旧冻结或生产状态。
 - 视觉模板准入继续以原创独立 Shot 的正常速度预览及用户认可为准，具体进度见下文；模板认可不代表真实视频、Timeline 或跨视频验收。
 - TTS 缺省保持 Edge／Xiaoxiao／+25%，显式百炼使用原速及词级对齐；真实既有证据与限制见 `local/tts/17-computer-use/`、`docs/TTS-SETUP.md`，本轮未调用 TTS 或渲染。
-- 切换清单只读核对了37个项目：29个 completed、8个未完成、无活动 Job；其中2个现行格式项目均有规则绑定差异，保留旧入口。具体阶段、冻结和既有失效问题见隔离区 `local/harness-slim/compatibility.json`。
+- 合入前兼容清单只读核对了37个项目：29个 completed、8个未完成、当时无活动 Job；其中2个现行格式项目有规则绑定差异，旧冻结不能直接续作，须按正常返工处理。未迁移、失效或推进任何视频，详见 `local/harness-slim/compatibility.json`。
 
 ## 当前视频制作待审
 
@@ -222,15 +222,15 @@
 
 ## 进行中
 
-- Harness 精简收敛缺口 AC-9（partial）：代码、规范和隔离 CLI／HTTP 链已验证；尚未切换生产或用新视频完成实际人工 Gate 试点，实际质量、确认次数、制作耗时／token 与跨视频效果未测。待指定新视频内容并确认切换后恢复，不改历史视频。
+- Harness 精简收敛缺口 AC-9（partial）：用户已要求合入当前目录，代码已整合；新视频实际人工 Gate 试点、实际质量、确认次数、制作耗时／token 与跨视频效果仍未测。待指定新视频内容后恢复，不改历史视频。
 - 音频复用、TTS 配置重制及首次外发授权证据已接入；跨视频、Web 人工操作、实片批量与强杀落盘窗口仍待验证，详见 `local/tts/19-memory/entry-rebuild-20261024/reuse-acceptance.md`、`local/tts-rebuild-integration/acceptance.md`。
 - 视觉导演与 Shot／Agent 制作机制仍待真实首审质量及跨视频验收；旧模拟回归、单片返修和独立研究不能证明整体质量，详见 `local/storyboard-director-design/revision-02/acceptance.md`、`local/shot-implementation/acceptance.md`。
 - 模板及设计参考层的真实生产应用与跨视频质量待验，具体候选、已认可范围及证据仍见下文视觉模板进度和模板索引；不以结构校验替代实际观看。
-- 本地／远程交付的全部中断落盘窗口、隔离 Studio、风格令牌与跨视频固化仍待验；未经授权的强制制作机制自动识别未实现。历史详细缺口保留在隔离区 `local/harness-slim/previous-roadmap.md` 及原对应验收记录。
+- 本地／远程交付的全部中断落盘窗口、隔离 Studio、风格令牌与跨视频固化仍待验；未经授权的强制制作机制自动识别未实现。历史详细缺口保留在 `local/harness-slim/previous-roadmap.md` 及原对应验收记录。
 
 ## 下一步
 
-- 先审阅隔离实现与兼容清单，再以新视频验证紧凑审计和人工 Gate 的实际负担；未指定试点内容或确认生产切换前保持旧入口。
+- 在当前工作目录继续精简；以新视频验证紧凑审计和人工 Gate 的实际负担，保留真实观看、实际耗时／token 与跨视频验收，不自动迁移现有视频。
 - `17-computer-use` 已通过 Gate 3。本地 worker 快照现包含 Harness 引用的 `contracts/video-production/`，隔离导入回归 1/1 通过。首次 Job `daadc393-d948-4614-af4d-c50ce935a525` 已由原执行环境核实失败，无有效结果或 MP4；新本地计划 `1e8a626f575704a590b7dd335a8bf1583728e00ff6df6d4d9c8c95a9a485afde` 等待用户确认，确认前不启动。
 - `15-permissions-v3` 已通过 Gate 3 与 Gate 4 并进入 `completed`，后续永久只读。正式本地渲染入口在本条已验证；共享入口的跨视频固化仍需用另一条未完成／新视频验证。
 - 新契约远程交付和渲染按既有精确清单授权与共享交付入口验证；同步修复固定交付 Studio 入口与风格令牌正常检查。
@@ -268,7 +268,7 @@
 
 ## 最近验证（最近 10 条）
 
-- 2026-10-27：Harness第一轮精简在隔离工作区完成工程自检，79项定向用例、改动JS语法及diff检查通过；联合任务15537→7529字节（51.5%），同次审核计算最多1次。28058个原有文件与备份一致；37个项目只读盘点，无生产迁移。实际新视频、人工Gate、耗时/token及跨视频效果待验，详见 `local/harness-slim/acceptance.md`。
+- 2026-10-27：按用户要求将精简提交 `b5cb6a5` 合入当前 `main`，清理隔离分支和工作目录，验收资料移至当前 `local/harness-slim/`。主目录重跑6项关键入口检查通过；排除本次授权修改及事件元数据后，28036个原文件与备份一致，PreviewRoot17.tsx未改动。原79项工程验证留档，实际新视频／人工Gate／耗时与token效果仍待验，整合记录见 `local/harness-slim-integration/acceptance.md`。
 - 2026-10-27：精简前基线已保存到 `local/backups/before-harness-slim-20261027-110826/`：`repository.bundle` 通过 `git bundle verify`，工作区快照 2,837,739,520 字节、28,062 个普通文件逐一 SHA-256 对照源文件一致，含未跟踪的 `src/PreviewRoot17.tsx`、生产资料、资源及 Harness 状态。排除依赖、缓存、备份目录和 Git 工作树元数据（历史另存 bundle）；清单、校验和及独立目录恢复说明已保存。未执行恢复后的运行验证；备份仅在本机，不构成异地备份。原视频资料及状态未改写。
 - 2026-10-26：`20-mcp` Gate 2定向返修从真实Harness驳回／联合任务／完成入口走通；口播与分镜校验零问题，ready=true，版本 `ba95b6c54a613798dd3b36cea17486cad9373deeed855f2dc8708e957d2f372e`。三个无声局部研究共660帧，1920×1080／30fps、完整解码通过；五幕结构未变、07练习记录退出与故障隔离、06审批锚点和TOML前提定向检查通过。38文件便携审核包链接与ZIP校验通过，正常速度主观运动质量和真实音频同步待验；见 `local/gate-2/20-mcp/revision-01/verification.json`。
 - 2026-10-26：`20-mcp` 从实际对话Harness入口完成Source、Codex系列封面快照、策划与口播／Storyboard联合任务；8幕／15镜头／29事件，290项事件设计记录及15项镜头审查，口播／分镜校验零问题，Gate 2 waiting。5张静态关键状态已实际查看并保存首份提交；不是动态观看或质量认可。版本 `6d1fd4696de1e89f17104fa95789bdf5eba43f51eb867a548bb1a6412c19ab1d`；见 `local/gate-2/20-mcp/verification.json`。
