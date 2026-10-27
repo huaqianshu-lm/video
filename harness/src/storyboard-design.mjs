@@ -182,6 +182,21 @@ export function storyboardDesignReviewHints(board, audit) {
 }
 
 export function validateStoryboardDesignAudit(board, audit, { inputVersion, storyboardFingerprint, narrationFingerprint }) {
+  if (audit.schemaVersion === 3) {
+    const issues = [];
+    if (audit.ruleVersion !== STORYBOARD_QUALITY_VERSION || audit.videoSlug !== board.videoSlug || audit.inputVersion !== inputVersion || audit.storyboardFingerprint !== storyboardFingerprint || audit.narrationFingerprint !== narrationFingerprint) issues.push(issue("storyboard-audit-stale", "设计审计未绑定当前规则、分镜、口播和资料输入版本"));
+    const ids = board.scenes.map(scene => scene.id);
+    if (audit.reviewedSceneIds.length !== ids.length || new Set(audit.reviewedSceneIds).size !== ids.length || ids.some(id => !audit.reviewedSceneIds.includes(id))) issues.push(issue("storyboard-audit-coverage", "设计审计未精确覆盖全片 Scene"));
+    if (audit.status !== "ready") issues.push(issue("storyboard-audit-failed", "设计审查尚未完成"));
+    for (const finding of audit.findings) {
+      const scene = board.scenes.find(scene => scene.id === finding.sceneId);
+      const shot = scene?.shots.find(shot => shot.id === finding.shotId);
+      const event = scene?.events.find(event => event.id === finding.eventId);
+      if ((finding.sceneId && !scene) || (finding.shotId && !shot) || (finding.eventId && !event) || (shot && event && event.shotId !== shot.id)) issues.push(issue("storyboard-audit-coverage", "设计问题引用未知或不一致的 Scene／Shot／Event"));
+      if (finding.status === "open") issues.push(issue("storyboard-audit-failed", `设计问题未解决：${finding.problem}`));
+    }
+    return issues;
+  }
   const issues = [], expected = new Map(board.scenes.flatMap(s => s.events.flatMap(e => STORYBOARD_QUALITY_CHECKS.map(check => [`${s.id}/${e.id}/${check}`, e]))));
   if (audit.ruleVersion !== (board.schemaVersion === 3 ? STORYBOARD_QUALITY_VERSION : "storyboard-execution-quality-v1") || audit.videoSlug !== board.videoSlug || audit.inputVersion !== inputVersion || audit.storyboardFingerprint !== storyboardFingerprint || audit.narrationFingerprint !== narrationFingerprint) issues.push(issue("storyboard-audit-stale", "设计审计未绑定当前规则、分镜、口播和资料输入版本"));
   const seen = new Set(), elements = new Set(board.scenes.flatMap(s => s.elements.map(e => e.id)));

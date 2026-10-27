@@ -14,7 +14,7 @@ Harness 只服务于视频生产，不扩展为处理代码、数据或其他任
 
 渲染方式以 `docs/RENDER-DELIVERY-BASELINE.md` 为权威来源：单条新交付默认本地，可显式选择 GitHub；批量只允许 GitHub。所有方式复用 render-delivery prepare／start／resume，保留人工 Gate。没有 backend 字段的旧交付／Job 解释为 GitHub，恢复不得切换方式。下文远程认证、发布、提交和派发要求仅适用于 GitHub；本地无需发布、commit 或 push。接入及跨视频验收状态见 ROADMAP.md。
 
-当前唯一生产流程为 `storyboard-v1`，新建统一使用现行分镜契约（内部格式标识 `storyboardSchemaVersion: 3`），不提供流程或版本选择。权威来源为 `docs/STORYBOARD-PRODUCTION-CONTRACT.md`：Storyboard 按 Scene → Shot → Event 整合场景与镜头／视觉变化设计，Gate 2 审核口播与分镜方案，Gate 3 审核实际画面与试听。生产不要求 HTML 原型、独立 Scene Script／Visual Script 或旧 visual-self-review.json。legacy-v1／unified-v1 和旧分镜格式仅供历史读取，不能继续生产；未完成视频通过正常返工补齐当前规则，不自动改写历史状态。
+当前唯一生产流程为 `storyboard-v1`，新建统一使用现行分镜契约（内部格式标识 `storyboardSchemaVersion: 3`），不提供流程或版本选择。权威来源为 `docs/STORYBOARD-PRODUCTION-CONTRACT.md`：Storyboard 按 Scene → Shot → Event 整合场景与镜头／视觉变化设计，Gate 2 审核口播与分镜方案，Gate 3 审核实际画面与试听。设计审计采用全片结论及实际问题的紧凑记录，不逐事件十项或逐镜头重复填写；详细格式与历史边界见当前分镜契约。生产不要求 HTML 原型、独立 Scene Script／Visual Script 或旧 visual-self-review.json。legacy-v1／unified-v1 和旧分镜格式仅供历史读取，不能继续生产；未完成视频通过正常返工补齐当前规则，不自动改写历史状态。
 
 当前唯一生产 Workflow 为 `narrated-tutorial-v1`：阶段按当前 Storyboard 契约组织，保留人工 Gate、TTS、字幕和 narrated Timeline。历史项目缺少 `workflow` 或使用兼容值 `default` 时，运行时解释为该 Workflow，不批量改写历史状态。
 

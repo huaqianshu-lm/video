@@ -140,7 +140,7 @@ export function renderRequiredPaths(project) {
   return [
     ...(usesAuthoredStoryboard(project) ? [...STORYBOARD_SHARED_REFERENCES, ...STORYBOARD_DESIGN_REFERENCES,
       'harness/src/storyboard.mjs', 'harness/src/storyboard-design.mjs', 'harness/src/storyboard-rework.mjs',
-      'harness/src/storyboard-implementation.mjs'] : []),
+      'harness/src/storyboard-implementation.mjs', 'contracts/video-production/legacy/storyboard-design-audit-v2.schema.json'] : []),
     ...(project.config?.seriesSelection?.mode === 'series'
       ? ["src/components/SeriesCover.tsx", "src/components/VideoWithCover.tsx"] : []),
     "src/TemplateVideo.tsx",

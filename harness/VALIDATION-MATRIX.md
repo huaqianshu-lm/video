@@ -172,3 +172,8 @@ TTS 配置切换重制：定向检查 9／9 验证 CLI／HTTP 同一计划、Gat
 `node --test harness/test/current-production.test.mjs harness/test/storyboard-production.test.mjs harness/test/storyboard-execution.test.mjs harness/test/storyboard-shots.test.mjs`：78／78，通过于2026-10-11。临时隔离工作区，HTTP 测试监听 localhost；不修改实际视频、不调用外部 TTS 或完整渲染。覆盖单／多镜头、缺失或重复 ID、未知归属、父子／对象连续性、空隙／重叠／越界动作、Cue 中间无词级切点、逐镜头审计、冻结镜头映射、过期批准／证据、源码引用、硬切／视觉重叠／片尾效果、pending 阻断、CLI／HTTP 同版本审核、批量 Gate 2、独立输入包和旧格式只读预览。
 
 实片审美、完整正常速度试听、Web 手动观看、人工 Gate 和跨视频固化仍未验证；null 组件、模拟音频及模拟观看证据仅验证程序契约。全项目 tsc 仍受未修改的第15条相关代码既有错误阻断，详见 `local/shot-implementation/type-check.log`；本次 JS 语法及定向测试不受影响。
+
+
+## Harness 第一轮减负（定向）
+
+`storyboard-production.test.mjs` 的 compact audit、slim combined、one synchronous packet、Remotion packet shares 用例覆盖紧凑问题、场景覆盖、指纹、任务包指标和请求内复用；现有 CLI／HTTP review、combined tasks、batch、frozen、authored／multiple shots 用例覆盖直接消费链。`storyboard-execution.test.mjs` 与 `storyboard-shots.test.mjs` 核对原质量原则及旧审计校验不变。只选受影响名称运行，不自动扩大为整套生产回归。实际视频的人工 Gate、观看／试听与生产切换另验，详见 ROADMAP。

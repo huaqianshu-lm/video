@@ -9,6 +9,9 @@
 
 ## 当前生产迭代
 
+- [x] Harness 第一轮减负工程实现：紧凑审计3、直接组装联合任务包及同次同步读取复用；隔离 CLI／HTTP／后台／批量、冻结5与真实时间消费定向验证，保留人工 Gate 和历史只读。证据见 `local/harness-slim/acceptance.md`。
+- [ ] 精简入口生产切换、新视频人工 Gate 试点及实际耗时／token／跨视频效果待验；现有项目不自动迁移，兼容清单见 `local/harness-slim/compatibility.json`。
+
 - [x] 新建默认、旧流程阻断、正常返工和历史只读已实现；定向回归 45 项，证据见 local/current-production-iteration/acceptance.md。
 - [ ] 新片实际画面／试听、真实交付与跨视频验收待完成；不将机器检查视为实片验收。
 

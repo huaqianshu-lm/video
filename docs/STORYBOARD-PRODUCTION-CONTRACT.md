@@ -63,7 +63,9 @@ start 首镜为 {type: scene-start}，后续为 {type: cue, anchor, occurrence}�
 
 真实音频返回后，以真实 Cue 起点解析 Shot 边界；若有 `generated/word-timing.json`，Shot 与 Event 均读取准确词边界。该派生资料保存原始 wordBoundaries，绑定当前 TTS Script、三份 Manifest 和每段音频的 SHA-256，逐段去标点文本必须完整对应原口播，时间须单调且处于音频内。已有成功 TTS 可从其独立缓存导入词级资料，不改变原生成记录或音频；新生成由适配器同时保留。缺失资料的旧 Cue 级事件路径继续受支持，不称为词级精确同步；Cue 内镜头锚点没有证据时阻断，词级资料存在时任何锚点落在词内部或证据过期均阻断，不按字数、百分比或偏移猜切点。词级资料纳入时间计划指纹，并随完整 Remotion 目录进入独立输入包。Shot 的半开区间连续覆盖 Scene，每镜至少一帧；Event 起点及完成点必须在所属 Shot 内。跨硬切动作拆为明确前后状态事件；连续运镜可以留在同一 Shot。Shot 不切分 TTS 或字幕，不延长音频。
 
-Gate 2 展示 Scene → Shot → Event，设计审计 schemaVersion 2、质量规则 storyboard-execution-quality-v2 保留逐事件 SQ-1～10，另用 shotChecks 逐 Shot 覆盖目的／构图、对象完整性／连续性、切换收益、真实锚点可定位性及实现条件。冻结 5 绑定 shotIds、eventShotMap 与完整审核依赖，旧格式仅历史读取；未完成资料通过正常返工，不自动补镜头或继承批准。completed 永久只读。
+Gate 2 展示 Scene → Shot → Event。当前设计审计使用 schemaVersion 3，质量规则仍为 storyboard-execution-quality-v2：绑定 videoSlug、inputVersion、storyboardFingerprint、narrationFingerprint；reviewedSceneIds 精确覆盖实际审查的全片 Scene；status 为 ready／pending；summary 记录全片设计判断及依据；findings 只记录实际问题及修正，可为空。问题可按需定位 sceneId／shotId／eventId，status 为 open／resolved／gate-3，resolution 说明修正或真实观看的待验范围。未完成设计审查、未解决设计问题、定位错误或输入过期阻断 Gate 2；gate-3 仅用于必须在真实画面／试听验证的事项，不代表已验证。无需逐事件十项和逐镜头重复填写。SQ 原则继续用于审查，人工 Gate 不变。
+
+旧审计 schemaVersion 2 保留原校验和只读展示，不能作为新任务的产物；不自动转换历史审计。冻结 5、alignment 5、观看证据 2 不变。规则与 Schema 变化会改变依赖指纹；隔离实现不切换现有生产工作区。切换前逐一检查活动任务与旧冻结，无法继续的项目保留旧入口，不自动撤销审核。completed 永久只读。
 
 下游 alignment 5 各幕 shots 记录 id、startFrame、endFrame、implementationFiles、implementationSymbols、transition；事件增加 shotId。transition 包含 target、mechanism、startFrame、endFrame、visibleElementIds：硬切为边界零长区间；其他转场必须声明在双方镜头时间范围内、含交界的真实视觉重叠区间及准确的双镜头对象并集，不改变逻辑 Shot／Scene／音频范围。全片末镜的 fade 等结束效果可在本镜真实区间内结束，endFrame 必须等于片尾，不额外补时。实施文件和符号必须能对应当前源码，不能用文字声明代替画面。只读时间计算器不生成组件、写文件或批准 Gate。
 

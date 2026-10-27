@@ -1,8 +1,8 @@
-import { storyboardReview, storyboardTimingEvents, storyboardImplementationTiming } from "./storyboard.mjs";
+import { withStoryboardRead, storyboardReview, storyboardTimingEvents, storyboardImplementationTiming } from "./storyboard.mjs";
 import { storyboardDesignReferences, storyboardSchemaVersion, STORYBOARD_SHARED_REFERENCES } from "./storyboard-design.mjs";
 import { buildStoryboardReview } from "./storyboard-review.mjs";
 import { visualSelfReviewPath } from "./visual-self-review.mjs";
-import { productionContract, productionManualChecks, taskStages, usesUnifiedProduction, usesStoryboardProduction } from "./production-contract.mjs";
+import { productionContract, usesCurrentProduction, productionManualChecks, taskStages, usesUnifiedProduction, usesStoryboardProduction } from "./production-contract.mjs";
 import {
   requireWorkflowDefinition,
   retiredStageDefinition,
@@ -248,6 +248,7 @@ function buildSingleTaskPacket(project) {
 }
 
 export function buildTaskPacket(project) {
+  if (usesCurrentProduction(project) && project.state.currentStage !== "completed") return withStoryboardRead(project, buildCurrentTaskPacket);
   const packet = buildSingleTaskPacket(project);
   packet.project.productionContract = productionContract(project);
   if (!packet.task) return packet;
@@ -357,4 +358,200 @@ export function buildTaskPacket(project) {
     packet.task.commands.complete = 'node harness/src/cli.mjs production-task complete <task-id> --summary "<制作说明>"';
   }
   return packet;
+}
+
+// Build the combined contract directly; never construct discarded per-stage packets.
+function buildCurrentTaskPacket(project) {
+  const { config, state } = project,
+    stage = state.currentStage,
+    stages = taskStages(project);
+  const definition = workflowStageDefinition(project, stage);
+  if (!definition) return buildSingleTaskPacket(project);
+  const contracts = stages.map((id) => workflowStageDefinition(project, id).contract);
+  const style = getStyleDefinition(resolveStyleId(config, state.slug));
+  const inputStages = [...new Set(contracts.flatMap((c) => c.inputStages))].filter(
+    (id) => !stages.includes(id),
+  );
+  const inputs = artifactEntries(project, inputStages),
+    outputs = artifactEntries(project, stages);
+  const designing = stages.includes("storyboard"),
+    visual = designing || ["gate-2", "remotion"].includes(stage);
+  const referencePaths = visual
+    ? [
+        ...new Set([
+          style.path,
+          "references/README.md",
+          "templates/README.md",
+          "contracts/video-production/current/examples/storyboard.json",
+          ...storyboardDesignReferences(project),
+        ]),
+      ]
+    : [];
+  const readPaths = [...uniquePaths(inputs)];
+  if (visual) readPaths.push("docs/STORYBOARD-PRODUCTION-CONTRACT.md", "references/README.md");
+  if (designing)
+    readPaths.push(
+      "docs/STORYBOARD-EXECUTION-QUALITY.md",
+      "contracts/video-production/current/storyboard.schema.json",
+      "contracts/video-production/current/storyboard-design-audit.schema.json",
+    );
+  const constraints = [
+    "只制作 task.stages，且只写 writePaths；对话用 complete／fail／resume 回传，后台完成产物后退出，由统一服务校验；不自动批准人工 Gate。",
+  ];
+  if (visual)
+    constraints.push(
+      "按内容设计 Scene → Shot → Event；先读 references/README.md 按问题选方法，再选模板或自行编写。Storyboard 是唯一视觉方案，纯口播只写 narration-script.md；实际观看与正常速度试听保留在 Gate 3。",
+    );
+  if (designing)
+    constraints.push(
+      "先按 STORYBOARD-EXECUTION-QUALITY.md 完成全片构思→逐幕表达→镜头组织→难点画面推敲→全片统筹，再整理数据并独立审查。主要表达在提交前内部收敛；紧凑审计 schemaVersion 3 绑定当前 designInputVersion，写全片 summary、reviewedSceneIds、status 和实际 findings，不逐事件十项或逐镜头重复填写；设计未决保持 pending，真实观看待验标 gate-3，不虚构已观看。",
+    );
+  const commands = {
+    validate: commandFor("validate", state.slug, stage),
+    execute: commandFor("run", state.slug, stage),
+  };
+  if (definition.requiresApproval) {
+    commands.approve = commandFor("approve", state.slug, stage);
+    commands.reject = `node harness/src/cli.mjs reject ${state.slug} ${stage} --return-to <stage> --reason "<reason>"`;
+  }
+  if (definition.contract.executor === "agent" && !["source", "tts"].includes(stage)) {
+    commands.claim = `node harness/src/cli.mjs production-task claim ${state.slug}`;
+    commands.complete = 'node harness/src/cli.mjs production-task complete <task-id> --summary "<制作说明>"';
+    commands.fail = 'node harness/src/cli.mjs production-task fail <task-id> --reason "<原因>"';
+    commands.resume = "node harness/src/cli.mjs production-task resume <task-id>";
+  }
+  const context = {
+    workspaceRoot: config.workspaceRoot,
+    sourceDirectory: config.sourceDirectory,
+    remotionDirectory: config.remotionDirectory,
+    assetArchive: config.assetArchive,
+    renderInputDirectory: config.renderInputDirectory,
+    style: { id: style.id, version: style.version, path: style.path, description: style.description },
+    readPaths,
+    referencePaths,
+    writePaths: [],
+    constraints,
+  };
+  const addOutput = (id, file, status = "unverified") => {
+    if (!outputs.some((o) => o.path === file))
+      outputs.push({
+        stage: id,
+        path: file,
+        status,
+        exists: matchesArtifactPath(config.workspaceRoot, file),
+      });
+  };
+  if (visual) context.storyboardSchemaVersion = 3;
+  if (designing) {
+    addOutput("storyboard", `${config.sourceDirectory}/storyboard-design-audit.json`);
+    addOutput("storyboard", `${config.sourceDirectory}/storyboard-assets/*`, "optional");
+    const review = storyboardReview(project);
+    const { designInputVersion, storyboardFingerprint, narrationFingerprint, issues } = review;
+    context.storyboardDesignInputs = {
+      designInputVersion,
+      storyboardFingerprint,
+      narrationFingerprint,
+      issues,
+    };
+    commands.review = commandFor("storyboard-review", state.slug);
+  }
+  if (stage === "gate-2") {
+    context.storyboardReview = buildStoryboardReview(project);
+    commands.review = commandFor("storyboard-review", state.slug);
+    commands.approve += ` --review-version ${context.storyboardReview.reviewVersion}`;
+  }
+  if (["tts", "subtitle-timeline"].includes(stage)) {
+    readPaths.push("docs/TTS-SETUP.md");
+    referencePaths.push("docs/TTS-SETUP.md");
+    constraints.push(
+      "按 docs/TTS-SETUP.md 核对冻结的纯口播 tts-script.json、provider 与真实授权记录；Edge 显式 +25%，百炼原速。申请宿主／网络权限时附授权原文、目的地和输入输出范围；已有同范围授权不重复询问，拒绝后不得绕过审批。音频、字幕及 Timeline 只从已校验 tts-script.json 派生。",
+    );
+    if (stage === "subtitle-timeline")
+      for (const dir of ["audio", "subtitles"])
+        addOutput(stage, `${config.remotionDirectory}/generated/${dir}/**/*`);
+  }
+  if (stage === "remotion") {
+    context.prototypeBaseline = getPrototypeBaseline(project);
+    context.storyboardReview = storyboardReview(project);
+    readPaths.push(...STORYBOARD_SHARED_REFERENCES);
+    referencePaths.push(...STORYBOARD_SHARED_REFERENCES);
+    addOutput(stage, remotionAlignmentPath(project));
+    addOutput(stage, `${config.remotionDirectory}/*.tsx`);
+    addOutput(stage, `${config.sourceDirectory}/remotion-viewing-evidence.json`);
+    try {
+      context.timingPlan = buildRemotionTimingPlanForProject(project);
+      context.storyboardTimingEvents = storyboardTimingEvents(project, context.timingPlan);
+      context.storyboardTimingPlan = storyboardImplementationTiming(project, context.timingPlan);
+    } catch (error) {
+      if (!context.timingPlan) context.timingPlanError = error.message;
+      else context.storyboardTimingError = error.message;
+    }
+    constraints.push(
+      "由 Agent 按冻结分镜和 context.timingPlan／storyboardTimingPlan 编写 React／Remotion，保留 Scene／Shot／Event、Audio、Subtitle 映射；时间缺失即停止，不猜时间。提交 alignment 5 和当前真实画面／试听证据，未观看保持 pending。仅用独立输入包生成的 src/RenderInputRoot.tsx 预览，不修改 src/Root.tsx。审美与感官按 VIDEO-PRODUCTION-RULES.md 9.6、9.7、14.4 检查。",
+    );
+    const review = state.stages["gate-3"]?.review;
+    if (
+      state.stages.remotion?.invalidatedBy === "gate-3-rejected" &&
+      review?.decision === "rejected" &&
+      review.returnTo === "remotion"
+    ) {
+      context.rebuildRequest = {
+        gate: "gate-3",
+        returnTo: "remotion",
+        reason: review.reason,
+        requirement: "必须修改被驳回的 Remotion 实现，不能只校验或原样返回。",
+      };
+      constraints.push(context.rebuildRequest.requirement);
+    }
+  }
+  if (stage === "render") commands.execute = `node harness/src/cli.mjs render-delivery prepare ${state.slug}`;
+  context.readPaths = [...new Set(readPaths)];
+  context.referencePaths = [...new Set(referencePaths)];
+  context.writePaths = uniquePaths(outputs);
+  return {
+    schemaVersion: 1,
+    kind: "video-stage-task",
+    harnessVersion: config.harnessVersion,
+    project: {
+      slug: state.slug,
+      workflow: config.workflow,
+      workflowVersion: config.workflowVersion,
+      style: style.id,
+      styleVersion: style.version,
+      target: config.target,
+      currentStage: stage,
+      seriesSelection: config.seriesSelection ?? null,
+      cover: readVideoCover(project),
+      status: state.stages[stage].status,
+      productionContract: productionContract(project),
+    },
+    task: {
+      stage,
+      stages,
+      order: definition.order,
+      objective: designing
+        ? "联合收敛纯口播与分镜，完成紧凑设计审查后提交 Gate 2。"
+        : stages.length > 1
+          ? "一次制作内容分析与视频叙事，全部校验后内部审查。"
+          : definition.contract.objective,
+      executor: definition.contract.executor,
+      status: state.stages[stage].status,
+      inputStages,
+      inputArtifacts: inputs,
+      outputArtifacts: outputs,
+      validation: [...new Set(contracts.flatMap((c) => c.validation))],
+      currentValidationIssues: stages.flatMap((id) => validateProjectStage(project, id)),
+      manualChecks: productionManualChecks(project, definition),
+      fallbackStage: definition.contract.fallbackStage,
+      nextStage: designing
+        ? "gate-2"
+        : stages.length > 1
+          ? "narration-script"
+          : definition.contract.nextStage,
+      requiresApproval: definition.requiresApproval,
+      requiresAdapter: definition.requiresAdapter,
+      commands,
+    },
+    context,
+  };
 }

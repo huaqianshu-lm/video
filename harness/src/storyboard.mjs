@@ -12,6 +12,7 @@ const schema = JSON.parse(fs.readFileSync(new URL("../../contracts/video-product
 const executionSchema = JSON.parse(fs.readFileSync(new URL("../../contracts/video-production/legacy/storyboard-v2.schema.json", import.meta.url), "utf8"));
 const shotSchema = JSON.parse(fs.readFileSync(new URL("../../contracts/video-production/current/storyboard.schema.json", import.meta.url), "utf8"));
 const shotAuditSchema = JSON.parse(fs.readFileSync(new URL("../../contracts/video-production/current/storyboard-design-audit.schema.json", import.meta.url), "utf8"));
+const legacyShotAuditSchema = JSON.parse(fs.readFileSync(new URL("../../contracts/video-production/legacy/storyboard-design-audit-v2.schema.json", import.meta.url), "utf8"));
 const auditSchema = JSON.parse(fs.readFileSync(new URL("../../contracts/video-production/legacy/storyboard-design-audit-v1.schema.json", import.meta.url), "utf8"));
 
 function schemaIssues(value, rule, location = "storyboard") {
@@ -54,7 +55,21 @@ export function narrationScenes(text) {
   return matches.map((match, index) => ({ id: match[1].padStart(2, "0"), text: text.slice(match.index + match[0].length, matches[index + 1]?.index ?? text.length).trim().replace(/^---\s*$/gm, "").trim() }));
 }
 
+// The scope belongs to a private project copy and expires with this synchronous read.
+// Never pass it into a writer, approval, async callback or subsequent request.
+const reviewScope = Symbol("storyboard-read-scope");
+export function withStoryboardRead(project, read) {
+  if (project[reviewScope]) return read(project);
+  return read({ ...project, [reviewScope]: {} });
+}
+
 export function storyboardReview(project) {
+  const scope = project[reviewScope];
+  if (!scope) return computeStoryboardReview(project);
+  return scope.review ??= computeStoryboardReview(project);
+}
+
+function computeStoryboardReview(project) {
   const config = project.config;
   const issues = [];
   const dependencies = new Map();
@@ -151,7 +166,7 @@ export function storyboardReview(project) {
     const bytes = read(`${sourceRoot}storyboard-design-audit.json`);
     designAuditFingerprint = bytes ? hash(bytes) : null;
     try { designAudit = bytes ? JSON.parse(bytes.toString("utf8")) : null; } catch { fail("设计审计 JSON 无法解析"); }
-    const auditIssues = schemaIssues(designAudit, dataVersion === 3 ? shotAuditSchema : auditSchema, "designAudit"); auditIssues.forEach(fail);
+    const auditIssues = schemaIssues(designAudit, dataVersion === 3 ? (designAudit?.schemaVersion === 2 ? legacyShotAuditSchema : shotAuditSchema) : auditSchema, "designAudit"); auditIssues.forEach(fail);
     if (board && !auditIssues.length) issues.push(...validateStoryboardDesignAudit(board, designAudit, { inputVersion: designInputVersion, storyboardFingerprint: hash(boardBytes), narrationFingerprint: narrationBytes ? hash(narrationBytes) : null }));
     if (auditIssues.length) designAudit = null;
   }
@@ -173,6 +188,7 @@ export function formatStoryboardReview(review) {
     `结构与提交条件校验：${review.ready ? "通过" : "未通过"}；仅核对契约、引用、版本和审计记录，不证明设计质量。`,
     "Agent 设计审查记录：以下结果由 Agent 填写，须人工审核具体判断及依据；不代表机器质量认证。",
     "实际动画、遮挡、节奏、试听和同步在 Gate 3 验证。",
+    ...(review.designAudit?.schemaVersion === 3 ? [`全片设计审查：${review.designAudit.status}；${review.designAudit.summary}`, ...review.designAudit.findings.map(f => `设计问题 ${[f.sceneId,f.shotId,f.eventId].filter(Boolean).join("/") || "全片"} ${f.status}：${f.problem}；${f.resolution}`)] : []),
     ...review.issues.map(issue => `阻塞：${issue.message}`),
     ...(review.reviewHints ?? []).map(hint => `复查提示（不阻断）：${hint.message}`),
     ...review.scenes.flatMap(scene => [

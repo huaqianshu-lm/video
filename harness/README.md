@@ -486,3 +486,12 @@ Source 登记与冻结 TTS 输入校验使用 `run`，无需 Agent 制作任务�
 ## Shot 分镜设计
 
 当前 Storyboard 按 Scene → Shot → Event 组织：先决定内容与观看方式，再设计变化，最后选择组件或编写实现。镜头设计属于现有口播／分镜任务，不增加阶段或 Gate；没有最少镜头数和画面生成器。新建唯一使用内部格式 3；合法示例见 `contracts/video-production/current/examples/storyboard.json`，权威字段、真实音频切点、转场和观看证据见 `docs/STORYBOARD-PRODUCTION-CONTRACT.md` 的 Shot 章节。Gate 2 展示并冻结镜头设计，Gate 3 审核真实逐镜头／交界观看及整片试听。Storyboard、Gate 2 与 Remotion 任务包提供 `templates/README.md`，但必须先完成内容设计再判断是否有匹配模板；模板不自动选择或替代 Gate 3。旧资料只读，未完成视频继续制作先用 storyboard-rework prepare 展示正常返工范围，不自动补镜头。程序及隔离入口验证状态见 ROADMAP。
+
+
+### 第一轮 Harness 减负
+
+联合任务直接组装必要输入和声明产物。先读 readPaths，按需要从 referencePaths 选择设计方法、模板与详细参数；联合任务只需一次 production-task complete，内部会校验全部声明阶段。validate 和 storyboard-review 是排错／查看入口，无需依次重复跑完等价检查。
+
+设计审计输出仍为 storyboard-design-audit.json，当前格式 3：全片 summary、实际审查覆盖 reviewedSceneIds、ready／pending 状态，以及实际 findings。未解决设计问题阻断 Gate 2，真实动画／试听待验问题使用 gate-3；不自动批准。合法结构示例见 contracts/video-production/current/examples/storyboard-design-audit.json，实际指纹须从当前 storyboard-review 获取，零值仅说明格式。
+
+任务／审核请求只在同一次同步读取内复用分镜结果；新请求与批准动作重新核对输入。冻结 5、alignment 5 和观看证据 2 保持不变。旧审计按原规则只读展示，不自动转换历史状态；生产切换和真实试点状态见 ROADMAP。

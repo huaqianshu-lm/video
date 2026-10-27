@@ -31,7 +31,7 @@ export function buildRemotionAgentPrompt(payload) {
     "你是当前项目的 Remotion 制作 Agent。",
     "先读取并遵守 ~/.claude/CLAUDE.md、项目 CLAUDE.md 和 ROADMAP.md，再执行下面的 Harness 任务包。",
     payload.productionContract === "storyboard-v1"
-      ? "只修改任务包声明的输出路径；以 Gate 2 冻结的 Storyboard 为基线，不制作 HTML 原型；完成后运行任务包校验。"
+      ? "只修改任务包声明的输出路径；以 Gate 2 冻结的 Storyboard 为基线，不制作 HTML 原型；后台完成后由 Harness 统一校验，validate 仅供定向排错。"
       : "只修改任务包声明的输出路径；以 Gate 2 冻结的 Visual Script 与 Visual Prototype 为视觉基线；完成后运行任务包中的校验命令。",
     "不得渲染视频，不得自行通过 Gate 3。任务完成后直接退出，由 Harness 重新校验真实产物。",
     "",

@@ -1,10 +1,14 @@
-import { storyboardReview } from "./storyboard.mjs";
+import { withStoryboardRead, storyboardReview } from "./storyboard.mjs";
 import { usesStoryboardProduction } from "./production-contract.mjs";
 import { validateProjectStage } from "./validation.mjs";
 
 // The display packet shares the complete Gate 2 validation, including pure
 // narration and upstream readiness. Structural validation stays non-recursive.
 export function buildStoryboardReview(project) {
+  return withStoryboardRead(project, buildReview);
+}
+
+function buildReview(project) {
   if (!usesStoryboardProduction(project)) throw new Error("当前项目不是 Storyboard 契约");
   const review = storyboardReview(project);
   const issues = validateProjectStage(project, "gate-2").filter(issue => issue.severity !== "warning");

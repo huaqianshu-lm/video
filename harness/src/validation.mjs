@@ -579,7 +579,11 @@ export function validateStageContent(project, stage, options = {}) {
   issues.push(...validateStageStructure(project, stage));
   if (!usesStoryboardProduction(project) && index >= workflowStageIndex(project, "scene-script")) issues.push(...validateSceneAlignment(project, stage));
   if (index >= workflowStageIndex(project, "narration-script")) issues.push(...validateNarration(project, stage, { strict }));
-  if (usesStoryboardProduction(project) && index >= workflowStageIndex(project, "storyboard")) issues.push(...storyboardReview(project).issues.map(item => ({ ...item, stage })));
+  if (usesStoryboardProduction(project) && index >= workflowStageIndex(project, "storyboard")) {
+    const review = storyboardReview(project);
+    issues.push(...review.issues.map(item => ({ ...item, stage })));
+    if (["storyboard", "gate-2"].includes(stage) && review.designAudit && review.designAudit.schemaVersion !== 3) issues.push(issue(stage, "storyboard-audit-legacy", "旧审计仅供读取，新任务须提交紧凑审计 schemaVersion 3"));
+  }
   if (usesStoryboardProduction(project) && index >= workflowStageIndex(project, "tts")) issues.push(...frozenStoryboardIssues(project).map(item => ({ ...item, stage })));
   if (index >= workflowStageIndex(project, "tts")) issues.push(...validateTts(project, stage, { strict }));
   if (index >= workflowStageIndex(project, "subtitle-timeline")) issues.push(...validateTimeline(project, stage));

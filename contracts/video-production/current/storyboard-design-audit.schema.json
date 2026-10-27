@@ -1,10 +1,10 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "storyboard-design-audit-v2",
+  "$id": "storyboard-design-audit-v3",
   "type": "object",
   "properties": {
     "schemaVersion": {
-      "const": 2
+      "const": 3
     },
     "kind": {
       "const": "storyboard-design-audit"
@@ -28,72 +28,26 @@
       "type": "string",
       "pattern": "^[a-f0-9]{64}$"
     },
-    "checks": {
+    "reviewedSceneIds": {
       "type": "array",
       "minItems": 1,
       "items": {
-        "type": "object",
-        "properties": {
-          "sceneId": {
-            "type": "string",
-            "minLength": 1
-          },
-          "eventId": {
-            "type": "string",
-            "minLength": 1
-          },
-          "checkId": {
-            "enum": [
-              "SQ-1",
-              "SQ-2",
-              "SQ-3",
-              "SQ-4",
-              "SQ-5",
-              "SQ-6",
-              "SQ-7",
-              "SQ-8",
-              "SQ-9",
-              "SQ-10"
-            ]
-          },
-          "result": {
-            "enum": [
-              "pass",
-              "fail",
-              "pending"
-            ]
-          },
-          "elementIds": {
-            "type": "array",
-            "items": {
-              "type": "string",
-              "minLength": 1
-            }
-          },
-          "evidence": {
-            "type": "string",
-            "minLength": 1
-          },
-          "note": {
-            "type": "string",
-            "minLength": 1
-          }
-        },
-        "required": [
-          "sceneId",
-          "eventId",
-          "checkId",
-          "result",
-          "elementIds",
-          "evidence",
-          "note"
-        ],
-        "additionalProperties": false
+        "type": "string",
+        "minLength": 1
       }
     },
-    "shotChecks": {
+    "status": {
+      "enum": [
+        "ready",
+        "pending"
+      ]
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 1
+    },
+    "findings": {
       "type": "array",
-      "minItems": 1,
       "items": {
         "type": "object",
         "properties": {
@@ -105,61 +59,30 @@
             "type": "string",
             "minLength": 1
           },
-          "result": {
+          "eventId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "problem": {
+            "type": "string",
+            "minLength": 1
+          },
+          "status": {
             "enum": [
-              "pass",
-              "fail",
-              "pending"
+              "open",
+              "resolved",
+              "gate-3"
             ]
           },
-          "elementIds": {
-            "type": "array",
-            "items": {
-              "type": "string",
-              "minLength": 1
-            }
-          },
-          "purposeComposition": {
-            "type": "string",
-            "minLength": 1
-          },
-          "objectContinuity": {
-            "type": "string",
-            "minLength": 1
-          },
-          "transitionBenefit": {
-            "type": "string",
-            "minLength": 1
-          },
-          "timingSource": {
-            "type": "string",
-            "minLength": 1
-          },
-          "implementation": {
-            "type": "string",
-            "minLength": 1
-          },
-          "evidence": {
-            "type": "string",
-            "minLength": 1
-          },
-          "note": {
+          "resolution": {
             "type": "string",
             "minLength": 1
           }
         },
         "required": [
-          "sceneId",
-          "shotId",
-          "result",
-          "elementIds",
-          "purposeComposition",
-          "objectContinuity",
-          "transitionBenefit",
-          "timingSource",
-          "implementation",
-          "evidence",
-          "note"
+          "problem",
+          "status",
+          "resolution"
         ],
         "additionalProperties": false
       }
@@ -173,8 +96,10 @@
     "inputVersion",
     "storyboardFingerprint",
     "narrationFingerprint",
-    "checks",
-    "shotChecks"
+    "reviewedSceneIds",
+    "status",
+    "summary",
+    "findings"
   ],
   "additionalProperties": false
 }
