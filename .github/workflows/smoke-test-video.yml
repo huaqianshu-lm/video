@@ -14,7 +14,7 @@ on:
         required: true
         type: string
       dispatch_id:
-        description: Unique Harness dispatch ID used to identify this Run
+        description: Unique dispatch ID used to identify this Run
         required: true
         type: string
       render_input_url:
@@ -75,97 +75,49 @@ jobs:
           curl --fail --location --retry 3 --retry-all-errors -H 'Accept: application/octet-stream' "${auth_args[@]}" "$RENDER_INPUT_URL" -o "$input_archive"
           echo "$RENDER_INPUT_SHA256  $input_archive" | sha256sum --check --status
           mkdir -p "$input_root"
-          unzip -q "$input_archive" -d "$input_root"
-          node harness/src/cli.mjs render-input validate-path "$input_root"
+          python3 scripts/lib/archive.py extract "$input_archive" "$input_root"
+          node scripts/video-input.mjs validate "$input_root"
 
       - name: Install render input into temporary workspace
         run: |
           input_root="$RUNNER_TEMP/render-input"
-          manifest_values="$(node --input-type=module - "$input_root/render-input.json" <<'NODE'
+          node scripts/video-input.mjs install "$input_root" --workspace "$RUNNER_TEMP/video-workspace"
+          ln -s "$GITHUB_WORKSPACE/node_modules" "$RUNNER_TEMP/video-workspace/node_modules"
+          node --input-type=module - "$input_root/render-input.json" <<'NODE'
           import fs from 'node:fs';
-          import {requireWorkflowDefinition, workflowPaths} from './harness/src/workflows/registry.mjs';
           const manifest = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
-          const workflow = requireWorkflowDefinition({workflow: manifest.workflow, workflowVersion: manifest.workflowVersion});
-          const paths = workflowPaths({config: {workflow: workflow.id, workflowVersion: workflow.version, slug: manifest.videoSlug}}, manifest.videoSlug);
-          if (!manifest.entry?.configPath || !manifest.entry?.componentPath) throw new Error('render-input.json is missing Remotion entry paths');
-          console.log(manifest.videoSlug);
-          console.log(manifest.compositionId);
-          console.log(paths.sourceDirectory);
-          console.log(paths.remotionDirectory);
-          console.log(paths.assetArchive);
-          console.log(manifest.entry.configPath);
-          console.log(manifest.entry.componentPath);
+          if (manifest.videoSlug !== process.env.VIDEO_SLUG || manifest.compositionId !== process.env.COMPOSITION_ID) {
+            throw new Error('Workflow inputs differ from the verified input package');
+          }
           NODE
-          )"
-          mapfile -t manifest_values_array <<< "$manifest_values"
-          manifest_slug="${manifest_values_array[0]}"
-          manifest_composition="${manifest_values_array[1]}"
-          source_directory="${manifest_values_array[2]}"
-          remotion_directory="${manifest_values_array[3]}"
-          asset_archive="${manifest_values_array[4]}"
-          config_path="${manifest_values_array[5]}"
-          component_path="${manifest_values_array[6]}"
-          test "$manifest_slug" = "$VIDEO_SLUG"
-          test "$manifest_composition" = "$COMPOSITION_ID"
-          mkdir -p "$(dirname "$source_directory")" "$(dirname "$remotion_directory")" "$(dirname "$asset_archive")"
-          cp -R "$input_root/$source_directory" "$source_directory"
-          cp -R "$input_root/$remotion_directory" "$remotion_directory"
-          cp "$input_root/$asset_archive" "$asset_archive"
-          node harness/src/cli.mjs render-input entry \
-            --manifest "$input_root/render-input.json" \
-            --output src/RenderInputRoot.tsx
-          mkdir -p public/local-assets
-          unzip -q "$asset_archive" -d public/local-assets
-
-      - name: Validate workflow inputs
-        run: |
-          [[ "$VIDEO_SLUG" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]]
-          [[ "$COMPOSITION_ID" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]]
-          manifest_config_path="$(node -e "console.log(require(process.argv[1]).entry.configPath)" "$RUNNER_TEMP/render-input/render-input.json")"
-          manifest_component_path="$(node -e "console.log(require(process.argv[1]).entry.componentPath)" "$RUNNER_TEMP/render-input/render-input.json")"
-          test -f "$manifest_config_path"
-          test -f "$manifest_component_path"
-          test -f src/RenderInputRoot.tsx
-
-      - name: Verify render inputs
-        run: |
-          node harness/src/cli.mjs render-input validate-path "$RUNNER_TEMP/render-input"
 
       - name: Type-check project
+        working-directory: ${{ runner.temp }}/video-workspace
         run: npm run check
 
       - name: Select representative frames
         id: frames
         run: |
-          workflow_timeline_mode="$(node --input-type=module - "$RUNNER_TEMP/render-input/render-input.json" <<'NODE'
+          node --input-type=module - "$RUNNER_TEMP/render-input/render-input.json" <<'NODE' >> "$GITHUB_OUTPUT"
           import fs from 'node:fs';
-          import {requireWorkflowDefinition, workflowPaths} from './harness/src/workflows/registry.mjs';
+          import path from 'node:path';
+          const input = path.join(process.env.RUNNER_TEMP, 'render-input');
           const manifest = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
-          const workflow = requireWorkflowDefinition({workflow: manifest.workflow, workflowVersion: manifest.workflowVersion});
-          const paths = workflowPaths({config: {workflow: workflow.id, workflowVersion: workflow.version, slug: manifest.videoSlug}}, manifest.videoSlug);
-          console.log(`${workflow.timelineMode}\n${workflow.timelineMode === 'visual-beats'
-            ? `${paths.sourceDirectory}/visual-timeline.json`
-            : `${paths.remotionDirectory}/generated/timeline-manifest.json`}`);
-          NODE
-          )"
-          timeline_mode="${workflow_timeline_mode%%$'\n'*}"
-          timeline_path="${workflow_timeline_mode#*$'\n'}"
-          TIMELINE_PATH="$timeline_path" TIMELINE_MODE="$timeline_mode" node <<'NODE' >> "$GITHUB_OUTPUT"
-          const timeline = require(`./${process.env.TIMELINE_PATH}`);
+          const timeline = JSON.parse(fs.readFileSync(path.join(input, manifest.payload.remotionDirectory, 'generated/timeline-manifest.json'), 'utf8'));
+          const coverFrames = manifest.entry.cover?.durationInFrames ?? 0;
           const fps = 30;
           const scenes = timeline.scenes;
           if (!Array.isArray(scenes) || scenes.length < 3) {
             throw new Error('Expected at least 3 scenes in timeline manifest');
           }
-          const frameInScene = process.env.TIMELINE_MODE === 'visual-beats'
-            ? (scene) => Math.round(scene.startFrame + (scene.endFrame - scene.startFrame) * 0.65)
-            : (scene) => Math.round((scene.offset + scene.duration * 0.65) * fps);
+          const frameInScene = scene => coverFrames + Math.round((scene.offset + scene.duration * 0.65) * fps);
           console.log(`early=${frameInScene(scenes[0])}`);
           console.log(`middle=${frameInScene(scenes[Math.floor(scenes.length / 2)])}`);
           console.log(`late=${frameInScene(scenes[scenes.length - 1])}`);
           NODE
 
       - name: Render representative frames
+        working-directory: ${{ runner.temp }}/video-workspace
         run: |
           mkdir -p smoke
           npx remotion still src/RenderInputRoot.tsx "$COMPOSITION_ID" --frame="${{ steps.frames.outputs.early }}" --output=smoke/frame-early.png
@@ -173,12 +125,13 @@ jobs:
           npx remotion still src/RenderInputRoot.tsx "$COMPOSITION_ID" --frame="${{ steps.frames.outputs.late }}" --output=smoke/frame-late.png
 
       - name: Render first 10 seconds
+        working-directory: ${{ runner.temp }}/video-workspace
         run: npx remotion render src/RenderInputRoot.tsx "$COMPOSITION_ID" smoke/first-10-seconds.mp4 --frames=0-299
 
       - name: Upload smoke-test artifacts
         uses: actions/upload-artifact@v6
         with:
           name: ${{ inputs.video_slug }}-smoke-test
-          path: smoke/
+          path: ${{ runner.temp }}/video-workspace/smoke/
           if-no-files-found: error
           retention-days: 7

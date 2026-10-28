@@ -3,11 +3,11 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "preview": "node harness/src/cli.mjs render-input entry-all --output src/RenderInputRoot.tsx && remotion studio src/RenderInputRoot.tsx",
+    "preview": "node scripts/video-preview.mjs --studio",
     "preview:motion": "remotion studio src/index.ts",
     "check": "tsc --noEmit",
     "render": "remotion render video-production-template out/video-production-template.mp4",
-    "harness:web": "zsh -c 'source \"$HOME/.zshrc\"; exec npm run web --prefix harness'"
+    "check:tools": "node --test scripts/test/video-tools.test.mjs"
   },
   "dependencies": {
     "@remotion/cli": "latest",
