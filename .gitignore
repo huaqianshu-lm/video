@@ -1,5 +1,6 @@
 node_modules/
 .DS_Store
+**/.DS_Store
 .playwright-mcp/
 .claude/worktrees/
 
@@ -22,6 +23,7 @@ harness/remotion-tasks/
 
 # Generated temporary Remotion entry for an isolated render input
 src/RenderInputRoot.tsx
+src/PreviewRoot*.tsx
 harness/agent-jobs/
 harness/tts/bailian/.venv/
 **/__pycache__/

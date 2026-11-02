@@ -1,38 +1,20 @@
 ---
 name: narrated-video-tts
-description: 在视频的视觉与口播审核 Gate 通过后，准备并校验口播、TTS、音频、字幕和 Timeline Manifest。
+description: 从 Agent 审核通过的纯口播派生 TTS Script，由 Agent 调用脚本生成真实音频、字幕和 Timeline。
 ---
 
-# 口播视频与 TTS
+# 口播与真实时间
 
-视频包含口播，或需要处理 TTS、音频、字幕、时间数据及 Timeline Manifest 文件时，使用本 Skill。
+Agent 完成口播审核、用户确认分镜后使用。读取 `docs/DIRECT-VIDEO-PRODUCTION.md`，按其中的完成态保护、用户确认及变更规则确定可操作范围；工具实际验证范围见 ROADMAP，命令与配置见 `scripts/README.md`。
 
-当前生产仅使用 `storyboard-v1` 与现行分镜契约。先读取 `docs/STORYBOARD-PRODUCTION-CONTRACT.md` 和 `docs/STORYBOARD-EXECUTION-QUALITY.md`；不提供旧流程或版本选择。旧资料不符合当前规则时先用 Harness 正常返工，不自动改写历史项目，completed 永久只读。
+开始或恢复本环节时，依据 production-record.md 和当前产物核对工作位置，读取 `docs/VIDEO-PRODUCTION-RULES.md` 第 10 章及 8.6 中声音与字幕相关内容原文。生成后对照当前 TTS Script、真实音频、字幕与 Timeline 检查文本、配置、覆盖及时间一致性；正常速度试听按第 12 章合并画面检查。发现的问题及未验事项沿用现有制作记录，不以读过规范代替产物检查。
 
-## 执行顺序
+1. 核对本条口播的 Agent 审核记录、分镜的用户确认记录及准确范围，确定本次输入。
+2. 读取 `docs/TTS-SETUP.md` 的「环境与配置」，按 `scripts/README.md` 的 TTS 配置调用 build，派生并校验独立 tts-script.json；对照 Agent 审核通过的口播核对文本、ID、覆盖及制作指令边界。
+3. 外发前先按 `scripts/README.md` 的「TTS 配置与结果」确定实际生效的服务与配置；未显式传入时可能沿用历史项目配置，不能直接认定使用默认服务。再按 `docs/TTS-SETUP.md` 的「服务选择与外发授权」核对有效授权及实际数据流。
+4. 使用已核对的本次配置调用 generate；服务、语速与输入要求遵守制作规范第 10 章。显式使用百炼时读取 TTS 文档的「百炼 ASR 文本与时间映射」。
+5. 按工具说明核对生成结果，必要时调用 validate 定向排错；恢复或复用时核对当前口播与 TTS Script 的指纹及文本对应，validate 不检查口播指纹，也不验证词级证据或分镜锚点。交接或失败时执行 TTS 文档的「产物交接与失败恢复」。将核对后的音频、字幕、三份 Manifest 及可取得的词级证据交给 `.claude/skills/visual-prototype-remotion/SKILL.md`，在现有制作记录中保留实际生成／复用范围和未验事项。
 
-1. 确认 Gate 2 已通过，口播基线已冻结。
-2. 使用 `scripts/build_tts_script.py`，从纯口播文件 `narration-script.md` 派生 `tts-script.json`。
-3. 校验 Scene／Segment ID、文本覆盖、空文本，以及是否混入制作指令。
-   首次为 TTS 请求权限提升前，按 `docs/TTS-SETUP.md` 中的 Agent 执行申请清单操作：读取实际已有授权，核对其项目／输入／服务范围；在首次申请中附上授权路径与相关原文，并说明冻结输入、目的地、语速、输出范围和缓存选择。不能等申请被拒绝后才补授权证据；已获授权且范围未变的工作，不重复询问用户。本要求不绕过工具审批。
-4. 从已校验的 TTS Script 和实际生成的音频制作音频、字幕及 Timeline。
-5. 读取 `docs/HARNESS-PRODUCTION-CONTRACT.md`。生产必须使用当前 Storyboard 契约；旧项目必须先正常返工。进入 Remotion 前完成自动检查，人工试听与 Gate 3 实际观看合并，并绑定当前音频／Timeline 指纹。历史独立试听审核保持只读。
+口播或配置变化时，按直接制作入口确定受影响下游及复用范围。
 
-## 必须保持的约束
-
-- 不得把完整的制作 Markdown 文档发送给 TTS。
-- 缺省 Edge TTS 显式传入 `--rate +25%`；显式选择百炼 Qwen3-TTS-Flash 时保持模型原始语速，不做音频加速。
-- 字幕展示可以去掉句末标点，但不得修改 TTS 朗读文本、音频或时间来源。
-- Scene、Segment、Cue、音频、字幕与 Timeline 的映射必须一致。
-- Shot 边界消费真实 Cue／Timeline，不按镜头拆分或重拼口播；没有词级证据时阻断 Cue 内切点。
-- 时长来自真实音频与已校验时间数据；音频生成后不得按估算重新调整视频时间。
-- 同内容重新生成 TTS 时，使用 `docs/HARNESS-PRODUCTION-CONTRACT.md` 中规定的共享执行器当前任务生成记录；不得事后伪造记录或修改时间戳来通过生产检查。
-- 用户明确授权复用旧音频时，使用同一契约规定的显式音频复用入口及独立复用记录；不将复用记成重新生成。
-- 既有 Edge TTS 授权仅适用于当前项目、冻结口播及既定服务。百炼 TTS 与 ASR 是新的外发目的地；项目、输入范围、目的地或服务改变时，重新询问用户。
-
-## 按需读取的参考资料
-
-- 跨项目交接契约与交接文件：读取 `docs/END-TO-END-VIDEO-PRODUCTION-PLAN.md`。
-- 决定 TTS 制作规则时：读取 `docs/VIDEO-PRODUCTION-RULES.md` 中的 TTS 相关章节。
-- 字幕展示、阅读停留与可选混音默认值：读取 `docs/VIDEO-PRODUCTION-RULES.md` 第 9.6 节 A／B／H。保留真实音频及 Cue／Segment／Timeline 映射；不得为了满足字幕展示长度而虚构时间。记录偏离情况，分别验证最终试听结果与源素材音量倍率。
-- 申请 TTS 网络权限前：读取 `docs/TTS-SETUP.md` 中的 Agent 执行申请章节；其他章节仅在环境配置和排障时读取。
+交接 Shot／Event 时间时读取 `docs/STORYBOARD-PRODUCTION-CONTRACT.md` 的「真实时间映射与异常处理」，对照实际证据及当前实现核对。

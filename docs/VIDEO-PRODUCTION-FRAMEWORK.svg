@@ -1,0 +1,192 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1840" height="2240" viewBox="0 0 1840 2240" role="img" aria-labelledby="title desc">
+<title id="title">从原始资料到 MP4：制作与文档框架</title>
+<desc id="desc">展示十个制作环节、四个 Skill、相关规范与产物，并说明 references、styles、templates 对视觉设计和实现的作用，以及质量问题的回查方向。</desc>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#94a3b8"/></marker></defs>
+<style>text{font-family:"PingFang SC","Microsoft YaHei",sans-serif;fill:#25384d} .mono{font-family:"SFMono-Regular",Menlo,monospace}</style>
+<rect x="0" y="0" width="1840" height="2240" rx="0" fill="#f3f6fa" stroke="none"/>
+<rect x="0" y="0" width="1840" height="144" rx="0" fill="#17304b" stroke="none"/>
+<text x="48" y="65" font-size="40" font-weight="700" style="fill:#ffffff" class="">从原始资料到 MP4</text>
+<text x="48" y="107" font-size="23" font-weight="400" style="fill:#cad9e8" class="">制作主线 × 文档职责 × 视觉质量来源</text>
+<text x="1420" y="62" font-size="20" font-weight="400" style="fill:#cad9e8" class="">文档使用地图 · 框架图</text>
+<text x="1420" y="103" font-size="18" font-weight="400" style="fill:#cad9e8" class="">从上往下读，按环节查原文</text>
+<rect x="40" y="164" width="1760" height="68" rx="14" fill="#ffffff" stroke="#dce4ed"/>
+<text x="62" y="193" font-size="21" font-weight="700" style="fill:#17304b" class="">全程边界与协作</text>
+<text x="286" y="193" font-size="21" font-weight="400" style="fill:#25384d" class="">CLAUDE.md：项目规则与授权边界　｜　ROADMAP.md：进度与验证缺口</text>
+<text x="286" y="218" font-size="18" font-weight="400" style="fill:#596b80" class="">docs/DIRECT-VIDEO-PRODUCTION.md：制作记录、用户确认、变更与交付说明</text>
+<text x="42" y="271" font-size="25" font-weight="700" style="fill:#17304b" class="">视觉质量的三类支撑</text>
+<text x="425" y="271" font-size="20" font-weight="400" style="fill:#596b80" class="">在设计、实现和返修时按需选用；方法与模板清单由各自索引维护。</text>
+<rect x="40" y="292" width="568" height="144" rx="14" fill="#e8f3f0" stroke="none"/>
+<text x="62" y="326" font-size="26" font-weight="700" style="fill:#267d6b" class="">references/</text>
+<text x="260" y="326" font-size="21" font-weight="600" style="fill:#267d6b" class="">设计方法与案例</text>
+<text x="62" y="363" font-size="19" font-weight="400" style="fill:#25384d" class="">③设计 · ④审查 · ⑦实现 · ⑨返修</text>
+<text x="62" y="395" font-size="19" font-weight="400" style="fill:#25384d" class="">内容怎样变成画面；构图、造型、运动、节奏</text>
+<rect x="636" y="292" width="568" height="144" rx="14" fill="#edf0fb" stroke="none"/>
+<text x="658" y="326" font-size="26" font-weight="700" style="fill:#5b64b4" class="">styles/</text>
+<text x="856" y="326" font-size="21" font-weight="600" style="fill:#5b64b4" class="">可选的视觉风格</text>
+<text x="658" y="363" font-size="19" font-weight="400" style="fill:#25384d" class="">②选择 · ③⑦落实 · ⑨核对</text>
+<text x="658" y="395" font-size="19" font-weight="400" style="fill:#25384d" class="">配色、材质与整体视觉语言</text>
+<rect x="1232" y="292" width="568" height="144" rx="14" fill="#fff1e5" stroke="none"/>
+<text x="1254" y="326" font-size="26" font-weight="700" style="fill:#ad6d2e" class="">templates/</text>
+<text x="1452" y="326" font-size="21" font-weight="600" style="fill:#ad6d2e" class="">可选的实现能力</text>
+<text x="1254" y="363" font-size="19" font-weight="400" style="fill:#25384d" class="">③设计成立后选择 · ⑦改造 · ⑨检查</text>
+<text x="1254" y="395" font-size="19" font-weight="400" style="fill:#25384d" class="">匹配表达任务；也可直接编写新实现</text>
+<text x="42" y="478" font-size="25" font-weight="700" style="fill:#17304b" class="">制作主线与逐段调用</text>
+<text x="425" y="478" font-size="19" font-weight="400" style="fill:#596b80" class="">docs 同时管流程、内容与设计原则、质量标准；具体视觉方法主要在 references。</text>
+<rect x="40" y="500" width="382" height="46" rx="8" fill="#dfe7f0" stroke="none"/>
+<text x="58" y="530" font-size="21" font-weight="700" style="fill:#17304b" class="">制作环节</text>
+<rect x="440" y="500" width="297" height="46" rx="8" fill="#dfe7f0" stroke="none"/>
+<text x="458" y="530" font-size="21" font-weight="700" style="fill:#17304b" class="">负责的 Skill</text>
+<rect x="755" y="500" width="637" height="46" rx="8" fill="#dfe7f0" stroke="none"/>
+<text x="773" y="530" font-size="21" font-weight="700" style="fill:#17304b" class="">此时使用的 docs／契约</text>
+<rect x="1410" y="500" width="390" height="46" rx="8" fill="#dfe7f0" stroke="none"/>
+<text x="1428" y="530" font-size="21" font-weight="700" style="fill:#17304b" class="">本条视频的主要产物</text>
+<rect x="40" y="560" width="1760" height="100" rx="10" fill="#ffffff" stroke="#e0e7ef"/>
+<rect x="54" y="576" width="42" height="36" rx="10" fill="#e8eef6" stroke="none"/>
+<text x="60" y="602" font-size="25" font-weight="700" style="fill:#315c86" class="">①</text>
+<text x="108" y="594" font-size="23" font-weight="650" style="fill:#17304b" class="">开始／恢复</text>
+<text x="108" y="631" font-size="17" font-weight="400" style="fill:#596b80" class="">确认当前工作与可改范围</text>
+<text x="458" y="596" font-size="18" font-weight="550" style="fill:#355e86" class="">项目规则与直接制作入口</text>
+<text x="773" y="595" font-size="18" font-weight="400" style="fill:#25384d" class="">DIRECT：用途、记录与变更、完成态保护</text>
+<text x="773" y="622" font-size="18" font-weight="400" style="fill:#25384d" class="">CLAUDE.md ＋ ROADMAP.md</text>
+<text x="1428" y="595" font-size="18" font-weight="400" style="fill:#596b80" class="">原始资料／已有产物</text>
+<text x="1428" y="625" font-size="18" font-weight="400" style="fill:#596b80" class="">production-record.md</text>
+<path d="M74 660 L74 671" fill="none" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="40" y="672" width="1760" height="100" rx="10" fill="#ffffff" stroke="#e0e7ef"/>
+<rect x="54" y="688" width="42" height="36" rx="10" fill="#e8eef6" stroke="none"/>
+<text x="60" y="714" font-size="25" font-weight="700" style="fill:#315c86" class="">②</text>
+<text x="108" y="706" font-size="23" font-weight="650" style="fill:#17304b" class="">内容分析与叙事策划</text>
+<text x="108" y="743" font-size="17" font-weight="400" style="fill:#596b80" class="">先确定教学路线、系列与风格</text>
+<text x="458" y="708" font-size="18" font-weight="550" style="fill:#355e86" class="">video-production</text>
+<text x="458" y="738" font-size="18" font-weight="550" style="fill:#355e86" class="">第 1 步</text>
+<text x="773" y="707" font-size="18" font-weight="400" style="fill:#25384d" class="">RULES：第 1、2 章</text>
+<text x="773" y="734" font-size="18" font-weight="400" style="fill:#25384d" class="">AGENT-SERIES-COVER：系列选择与封面快照</text>
+<text x="1428" y="707" font-size="18" font-weight="400" style="fill:#596b80" class="">content-analysis.md</text>
+<text x="1428" y="737" font-size="18" font-weight="400" style="fill:#596b80" class="">video-narrative.md</text>
+<path d="M74 772 L74 783" fill="none" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="40" y="784" width="1760" height="100" rx="10" fill="#ffffff" stroke="#e0e7ef"/>
+<rect x="54" y="800" width="42" height="36" rx="10" fill="#e8eef6" stroke="none"/>
+<text x="60" y="826" font-size="25" font-weight="700" style="fill:#315c86" class="">③</text>
+<text x="108" y="818" font-size="23" font-weight="650" style="fill:#17304b" class="">纯口播与分镜联合设计</text>
+<text x="108" y="855" font-size="17" font-weight="400" style="fill:#596b80" class="">决定说什么、怎样呈现</text>
+<text x="458" y="820" font-size="18" font-weight="550" style="fill:#355e86" class="">video-production</text>
+<text x="458" y="850" font-size="18" font-weight="550" style="fill:#355e86" class="">第 2～3 步</text>
+<text x="773" y="810" font-size="18" font-weight="400" style="fill:#25384d" class="">RULES：第 3～8 章，8.6 按需</text>
+<text x="773" y="837" font-size="18" font-weight="400" style="fill:#25384d" class="">EXECUTION-QUALITY：分镜设计方法</text>
+<text x="773" y="864" font-size="18" font-weight="400" style="fill:#25384d" class="">PRODUCTION-CONTRACT：对象与衔接；Schema</text>
+<text x="1428" y="819" font-size="18" font-weight="400" style="fill:#596b80" class="">narration-script.md</text>
+<text x="1428" y="849" font-size="18" font-weight="400" style="fill:#596b80" class="">storyboard.json</text>
+<path d="M74 884 L74 895" fill="none" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="40" y="896" width="1760" height="100" rx="10" fill="#ffffff" stroke="#e0e7ef"/>
+<rect x="54" y="912" width="42" height="36" rx="10" fill="#e8eef6" stroke="none"/>
+<text x="60" y="938" font-size="25" font-weight="700" style="fill:#315c86" class="">④</text>
+<text x="108" y="930" font-size="23" font-weight="650" style="fill:#17304b" class="">Agent 审核与独立设计审查</text>
+<text x="108" y="967" font-size="17" font-weight="400" style="fill:#596b80" class="">修订口播及视觉设计</text>
+<text x="458" y="932" font-size="18" font-weight="550" style="fill:#355e86" class="">video-production</text>
+<text x="458" y="962" font-size="18" font-weight="550" style="fill:#355e86" class="">第 4 步</text>
+<text x="773" y="931" font-size="18" font-weight="400" style="fill:#25384d" class="">RULES：9.1；EXECUTION-QUALITY：独立审查</text>
+<text x="773" y="958" font-size="18" font-weight="400" style="fill:#25384d" class="">PRODUCTION-CONTRACT ＋ Schema／合法示例</text>
+<text x="1428" y="931" font-size="18" font-weight="400" style="fill:#596b80" class="">口播审核结果</text>
+<text x="1428" y="961" font-size="18" font-weight="400" style="fill:#596b80" class="">设计审查与修订后的分镜</text>
+<path d="M74 996 L74 1007" fill="none" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="40" y="1008" width="1760" height="100" rx="10" fill="#eff7f4" stroke="#e0e7ef"/>
+<rect x="54" y="1024" width="42" height="36" rx="10" fill="#dceae6" stroke="none"/>
+<text x="60" y="1050" font-size="25" font-weight="700" style="fill:#267d6b" class="">⑤</text>
+<text x="108" y="1042" font-size="23" font-weight="650" style="fill:#17304b" class="">用户确认分镜</text>
+<text x="108" y="1079" font-size="17" font-weight="400" style="fill:#596b80" class="">确认当前分镜与范围</text>
+<text x="458" y="1044" font-size="18" font-weight="550" style="fill:#355e86" class="">video-production</text>
+<text x="458" y="1074" font-size="18" font-weight="550" style="fill:#355e86" class="">第 5 步</text>
+<text x="773" y="1043" font-size="18" font-weight="400" style="fill:#25384d" class="">RULES：9.2</text>
+<text x="773" y="1070" font-size="18" font-weight="400" style="fill:#25384d" class="">DIRECT：用户确认与变更处理</text>
+<text x="1428" y="1043" font-size="18" font-weight="400" style="fill:#596b80" class="">已确认的分镜版本</text>
+<text x="1428" y="1073" font-size="18" font-weight="400" style="fill:#596b80" class="">production-record.md</text>
+<path d="M74 1108 L74 1119" fill="none" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="40" y="1120" width="1760" height="100" rx="10" fill="#ffffff" stroke="#e0e7ef"/>
+<rect x="54" y="1136" width="42" height="36" rx="10" fill="#e8eef6" stroke="none"/>
+<text x="60" y="1162" font-size="25" font-weight="700" style="fill:#315c86" class="">⑥</text>
+<text x="108" y="1154" font-size="23" font-weight="650" style="fill:#17304b" class="">生成音频、字幕与真实时间</text>
+<text x="108" y="1191" font-size="17" font-weight="400" style="fill:#596b80" class="">从纯口播派生并校验 TTS 输入</text>
+<text x="458" y="1156" font-size="18" font-weight="550" style="fill:#355e86" class="">narrated-video-tts</text>
+<text x="458" y="1186" font-size="18" font-weight="550" style="fill:#355e86" class="">第 1～5 步</text>
+<text x="773" y="1155" font-size="18" font-weight="400" style="fill:#25384d" class="">TTS-SETUP：环境、服务、交接与恢复</text>
+<text x="773" y="1182" font-size="18" font-weight="400" style="fill:#25384d" class="">RULES：第 10 章、8.6 H；CONTRACT：时间</text>
+<text x="1428" y="1155" font-size="18" font-weight="400" style="fill:#596b80" class="">tts-script.json → 真实音频</text>
+<text x="1428" y="1185" font-size="18" font-weight="400" style="fill:#596b80" class="">字幕／Manifest／Timeline</text>
+<path d="M74 1220 L74 1231" fill="none" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="40" y="1232" width="1760" height="100" rx="10" fill="#ffffff" stroke="#e0e7ef"/>
+<rect x="54" y="1248" width="42" height="36" rx="10" fill="#e8eef6" stroke="none"/>
+<text x="60" y="1274" font-size="25" font-weight="700" style="fill:#315c86" class="">⑦</text>
+<text x="108" y="1266" font-size="23" font-weight="650" style="fill:#17304b" class="">React／Remotion 实现</text>
+<text x="108" y="1303" font-size="17" font-weight="400" style="fill:#596b80" class="">按真实时间落实分镜设计</text>
+<text x="458" y="1268" font-size="18" font-weight="550" style="fill:#355e86" class="">visual-prototype-remotion</text>
+<text x="458" y="1298" font-size="18" font-weight="550" style="fill:#355e86" class="">第 1～2 步</text>
+<text x="773" y="1258" font-size="18" font-weight="400" style="fill:#25384d" class="">RULES：第 8、11 章；CONTRACT：时间映射</text>
+<text x="773" y="1285" font-size="18" font-weight="400" style="fill:#25384d" class="">EXECUTION-QUALITY：实现核对</text>
+<text x="773" y="1312" font-size="18" font-weight="400" style="fill:#25384d" class="">AGENT-SERIES-COVER：片头与正文时间</text>
+<text x="1428" y="1267" font-size="18" font-weight="400" style="fill:#596b80" class="">React／Remotion 代码</text>
+<text x="1428" y="1297" font-size="18" font-weight="400" style="fill:#596b80" class="">真实时间下的画面与动作</text>
+<path d="M74 1332 L74 1343" fill="none" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="40" y="1344" width="1760" height="100" rx="10" fill="#ffffff" stroke="#e0e7ef"/>
+<rect x="54" y="1360" width="42" height="36" rx="10" fill="#e8eef6" stroke="none"/>
+<text x="60" y="1386" font-size="25" font-weight="700" style="fill:#315c86" class="">⑧</text>
+<text x="108" y="1378" font-size="23" font-weight="650" style="fill:#17304b" class="">独立输入包与正式预览</text>
+<text x="108" y="1415" font-size="17" font-weight="400" style="fill:#596b80" class="">交付 Skill 准备后返回实现</text>
+<text x="458" y="1380" font-size="18" font-weight="550" style="fill:#355e86" class="">video-render：第 1 步</text>
+<text x="458" y="1410" font-size="18" font-weight="550" style="fill:#355e86" class="">实现 Skill：第 3 步</text>
+<text x="773" y="1379" font-size="18" font-weight="400" style="fill:#25384d" class="">RENDER-DELIVERY-BASELINE：独立输入</text>
+<text x="773" y="1406" font-size="18" font-weight="400" style="fill:#25384d" class="">DIRECT：预览协作；SERIES-COVER：核对</text>
+<text x="1428" y="1379" font-size="18" font-weight="400" style="fill:#596b80" class="">独立输入包／指纹</text>
+<text x="1428" y="1409" font-size="18" font-weight="400" style="fill:#596b80" class="">对应版本的 Studio 预览</text>
+<path d="M74 1444 L74 1455" fill="none" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="40" y="1456" width="1760" height="100" rx="10" fill="#eff7f4" stroke="#e0e7ef"/>
+<rect x="54" y="1472" width="42" height="36" rx="10" fill="#dceae6" stroke="none"/>
+<text x="60" y="1498" font-size="25" font-weight="700" style="fill:#267d6b" class="">⑨</text>
+<text x="108" y="1490" font-size="23" font-weight="650" style="fill:#17304b" class="">实际观看、试听与返修</text>
+<text x="108" y="1527" font-size="17" font-weight="400" style="fill:#596b80" class="">Agent 检查后，用户确认画面</text>
+<text x="458" y="1492" font-size="18" font-weight="550" style="fill:#355e86" class="">visual-prototype-remotion</text>
+<text x="458" y="1522" font-size="18" font-weight="550" style="fill:#355e86" class="">第 4～6 步</text>
+<text x="773" y="1482" font-size="18" font-weight="400" style="fill:#25384d" class="">RULES：12.1、12.2；8.6 按实际问题回查</text>
+<text x="773" y="1509" font-size="18" font-weight="400" style="fill:#25384d" class="">EXECUTION-QUALITY：实现与返修核对</text>
+<text x="773" y="1536" font-size="18" font-weight="400" style="fill:#25384d" class="">DIRECT：记录、确认与变更</text>
+<text x="1428" y="1491" font-size="18" font-weight="400" style="fill:#596b80" class="">已修正并确认的画面版本</text>
+<text x="1428" y="1521" font-size="18" font-weight="400" style="fill:#596b80" class="">实际观看／试听结果</text>
+<path d="M74 1556 L74 1567" fill="none" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="40" y="1568" width="1760" height="100" rx="10" fill="#eff7f4" stroke="#e0e7ef"/>
+<rect x="54" y="1584" width="42" height="36" rx="10" fill="#dceae6" stroke="none"/>
+<text x="60" y="1610" font-size="25" font-weight="700" style="fill:#267d6b" class="">⑩</text>
+<text x="108" y="1602" font-size="23" font-weight="650" style="fill:#17304b" class="">授权渲染、交付与验收</text>
+<text x="108" y="1639" font-size="17" font-weight="400" style="fill:#596b80" class="">本地或明确选择的 GitHub</text>
+<text x="458" y="1604" font-size="18" font-weight="550" style="fill:#355e86" class="">video-render</text>
+<text x="458" y="1634" font-size="18" font-weight="550" style="fill:#355e86" class="">第 2～4 步</text>
+<text x="773" y="1603" font-size="18" font-weight="400" style="fill:#25384d" class="">RENDER-DELIVERY-BASELINE：授权与所选路径</text>
+<text x="773" y="1630" font-size="18" font-weight="400" style="fill:#25384d" class="">DIRECT：交付说明、验收后记录收尾</text>
+<text x="1428" y="1603" font-size="18" font-weight="400" style="fill:#596b80" class="">最终 MP4 → 用户验收</text>
+<text x="1428" y="1633" font-size="18" font-weight="400" style="fill:#596b80" class="">验收后 completed 永久只读</text>
+<rect x="40" y="1696" width="1760" height="83" rx="12" fill="#e7edf4" stroke="none"/>
+<text x="62" y="1727" font-size="21" font-weight="700" style="fill:#17304b" class="">工具与数据的支撑</text>
+<text x="320" y="1727" font-size="19" font-weight="400" style="fill:#25384d" class="">scripts/README.md：②系列 · ⑥TTS · ⑧输入包／预览 · ⑩渲染的命令、配置与检查范围</text>
+<text x="320" y="1761" font-size="19" font-weight="400" style="fill:#25384d" class="">contracts/：③④⑦查分镜字段、结构与合法写法；Agent 读取文档，脚本消费 JSON、音频和代码等产物。</text>
+<text x="42" y="1828" font-size="27" font-weight="700" style="fill:#17304b" class="">画面或制作不过关，回到哪里改善？</text>
+<text x="42" y="1861" font-size="20" font-weight="400" style="fill:#596b80" class="">先对照本条分镜、实际画面和代码，找到问题最早出现的环节；检查环节不一定是问题来源。</text>
+<rect x="40" y="1885" width="416" height="134" rx="14" fill="#e8f3f0" stroke="none"/>
+<text x="58" y="1922" font-size="20" font-weight="700" style="fill:#267d6b" class="">视觉思路与表现不足</text>
+<text x="58" y="1960" font-size="18" font-weight="400" style="fill:#25384d" class="">查 references/ 的方法与案例</text>
+<text x="58" y="1989" font-size="18" font-weight="400" style="fill:#25384d" class="">回到③设计，再到⑦落实</text>
+<rect x="488" y="1885" width="416" height="134" rx="14" fill="#edf0fb" stroke="none"/>
+<text x="506" y="1922" font-size="20" font-weight="700" style="fill:#5b64b4" class="">配色、材质与风格不协调</text>
+<text x="506" y="1960" font-size="18" font-weight="400" style="fill:#25384d" class="">查采用的 styles/ 风格文档</text>
+<text x="506" y="1989" font-size="18" font-weight="400" style="fill:#25384d" class="">对照分镜与实际画面修正</text>
+<rect x="936" y="1885" width="416" height="134" rx="14" fill="#fff1e5" stroke="none"/>
+<text x="954" y="1922" font-size="20" font-weight="700" style="fill:#ad6d2e" class="">设计清楚，实现效果降级</text>
+<text x="954" y="1960" font-size="18" font-weight="400" style="fill:#25384d" class="">对照分镜、代码和所用模板</text>
+<text x="954" y="1989" font-size="18" font-weight="400" style="fill:#25384d" class="">修实现；方法不适配则回设计</text>
+<rect x="1384" y="1885" width="416" height="134" rx="14" fill="#e6eef8" stroke="none"/>
+<text x="1402" y="1922" font-size="20" font-weight="700" style="fill:#315c86" class="">流程、质量判断或交接有缺口</text>
+<text x="1402" y="1960" font-size="18" font-weight="400" style="fill:#25384d" class="">查对应 docs／Skill／工具说明</text>
+<text x="1402" y="1989" font-size="18" font-weight="400" style="fill:#25384d" class="">区分规范缺失与实际未执行</text>
+<rect x="40" y="2042" width="1760" height="110" rx="14" fill="#ffffff" stroke="#dce4ed"/>
+<text x="62" y="2077" font-size="21" font-weight="700" style="fill:#17304b" class="">怎样改善资料</text>
+<text x="320" y="2077" font-size="20" font-weight="400" style="fill:#25384d" class="">方法不足补 references；风格资料不足补 styles；规范有缺口修对应 docs。</text>
+<text x="320" y="2114" font-size="20" font-weight="400" style="fill:#25384d" class="">原文清楚而未落实，修当前设计、代码或执行；Skill 没有及时引导读取，修 Skill。</text>
+<text x="42" y="2192" font-size="18" font-weight="400" style="fill:#596b80" class="">本图是导航，具体章节与执行要求见 VIDEO-PRODUCTION-DOCUMENT-MAP.md 及链接原文。</text>
+<text x="42" y="2220" font-size="17" font-weight="400" style="fill:#596b80" class="">简称：RULES＝VIDEO-PRODUCTION-RULES；EXECUTION-QUALITY／PRODUCTION-CONTRACT＝两份 STORYBOARD 文档。</text>
+</svg>

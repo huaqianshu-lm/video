@@ -1,352 +1,166 @@
-# Remotion AI Video Harness
+# Remotion AI 视频制作
 
-设计方法与案例入口：[视频设计参考](references/README.md) 。分镜与画面实现按表达问题阅读；当前第一批是三个已获认可的外部示例复现解析，不代表原创或真实教程质量已验收。
+用 AI Agent 将原始资料制作成带口播、字幕和动画的教程视频。项目提供制作规范、四份阶段 Skill、视觉设计参考、可改造模板，以及 TTS、预览和渲染工具；Agent 负责策划、设计、编写 React／Remotion 和检查，用户确认分镜、观看试听画面并验收成片。
 
-目录职责：`contracts/` 保存当前与历史只读数据契约，`scaffolds/` 保存空白生产资料骨架，`legacy/` 保存退役流程兼容资料，`templates/` 只保存经过原创独立 Shot 预览及用户画面质量验收的可运行视觉模板；真实生产应用与跨视频验证单独记录。当前模板清单见 [视觉模板库](templates/README.md) 。
+## 环境准备与安装
 
-## 当前 Storyboard 生产流程（实片验收待完成）
+准备能够读取项目文件、执行命令和编写代码的 AI 编程 Agent，并准备以下环境：
 
-`storyboard-v1` 合并内容分析／叙事策划，以纯口播与 Storyboard 共同收敛替代 Scene／Visual Script 和逐视频 HTML 原型。Gate 2 页面按序并排展示口播与分镜，可附静态图；实际画面与试听在 Gate 3 审核。对话、CLI、Web 和批量复用相同任务和审核版本。
-
-新建统一使用 `storyboard-v1` 与当前分镜契约，不提供旧流程或生产版本选择。旧资料仅可读取；未完成视频不满足当前规则时使用正常返工，completed 永久只读。实际入口与实片验收状态见 ROADMAP；完整边界见 [Storyboard 生产契约](docs/STORYBOARD-PRODUCTION-CONTRACT.md) 。
-
-```bash
-# 先准备 videos/<new-slug>/source.md；初始化后按项目规则确认系列与封面。
-node harness/src/cli.mjs init <new-slug>
-node harness/src/cli.mjs run <new-slug> source
-node harness/src/cli.mjs production-task claim <new-slug>
-# 根据任务包制作，再 complete；重复领取下一任务，完成后 run Gate 2。
-node harness/src/cli.mjs storyboard-review <new-slug>
-# Agent 获取同一机器审核包：追加 --json。
-node harness/src/cli.mjs approve <new-slug> gate-2 --review-version <reviewVersion>
-```
-
-资料不满足当前规则时运行 `storyboard-rework <slug> prepare --reason <原因>`，查看精确范围后以 `start --reason <同一原因> --rework-version <hash>` 执行。只沿用严格校验通过的上游，从最早缺失输入返工，重新审核下游 Gate；历史资料与快照保留，中断恢复同一计划。旧 storyboard-migration 入口已停用。
-
-Web 项目详情页显示同一分镜卡片。HTTP `GET /api/projects/<slug>/storyboard-review` 获取审核包，`POST .../action` 的 approve 请求必须带当前 `reviewVersion`。初始化与普通导入均使用服务端当前默认，不需要指定版本；旧选择直接拒绝。资料不符合当前规则时，页面提供“按当前规则准备返工”，展示精确范围后确认执行。
-
-
-
-这是一个专门服务于视频生产的 Harness。它把一条视频从原始内容推进到最终 MP4：合并策划、纯口播与 Storyboard、设计审计、TTS、字幕与真实时间轴、Agent 编写的 Remotion、共享交付和人工验收都在同一套阶段契约下管理。
-
-它不是“点一下就自动出片”的黑盒。系统负责记录状态、校验资料、调度任务、保存失败信息和恢复上下文；口播与分镜、Remotion 实际画面／试听和最终视频仍然要经过人工 Gate。
-
-当前 Harness 版本为 `0.6.0`。当前仅支持 `narrated-tutorial-v1` 口播教程生产。历史上的 `Smoke Render` 已经退出生产阶段，只保留为独立的 GitHub Actions 环境检查。
-
-## 当前生产流程
-
-### `narrated-tutorial-v1`
-
-```text
-原始内容
-  ↓
-内容分析 ＋ 视频叙事（合并策划）
-  ↓ Gate 1：内容与叙事内部审查
-纯口播 ＋ Storyboard ＋ 设计审计
-  ↓ Gate 2：人工确认口播和分镜方案
-TTS → 音频／字幕／Timeline
-  ↓ 自动质检（人工试听合并到 Gate 3）
-Remotion 实现
-  ↓ Gate 3：人工检查实际画面与正常速度试听
-完整 Render
-  ↓ Gate 4：人工验收最终 MP4
-完成
-```
-
-当前 Storyboard 登记的 12 个内部阶段是：
-
-```text
-source
-→ content-analysis
-→ video-narrative
-→ narration-script
-→ storyboard
-→ gate-2
-→ tts
-→ subtitle-timeline
-→ remotion
-→ gate-3
-→ render
-→ gate-4
-```
-
-## 已实现的能力
-
-- 单视频阶段管理：初始化、校验、运行、暂停、恢复、重试、Gate 通过和 Gate 驳回。
-- 本地 Web UI：查看项目、资料、阶段状态、下一步动作、Agent Job、Remotion 任务、远程 Job、Run 和 Artifact。
-- 持久化后台任务：Agent、TTS、Remotion 和远程任务都会保存状态；服务重启后可以继续检查，失败任务可以重试。
-- 批量编排：支持批量到 Gate 2、批量完成 TTS、批量完成 Remotion 和批量完整渲染；每条视频仍使用自己的阶段状态和人工检查点。
-- TTS 与音画同步：Gate 2 后先生成并校验独立的 `tts-script.json`，音频、字幕和 Timeline Manifest 从它派生，Remotion 使用经过校验的 Manifest 驱动时间轴。
-- Storyboard 与Agent 编写的 Remotion 对照：Gate 2 冻结同版本方案，Gate 3 按当前 alignment 5 与观看／试听证据检查实际实现。
-- 独立渲染输入包：每条视频有自己的输入目录、Manifest、资源 ZIP、源资料快照、package fingerprint 和远程绑定记录。
-- GitHub Actions 远程 Render：Runner 在临时目录恢复输入包，校验 slug、Composition、资源、Manifest 和 SHA-256 后生成最终 MP4 并上传 Artifact。
-- 远程任务恢复：保存准确的 dispatch、Run ID、Run URL 和 Artifact 信息；批量远程 Job 进入终态后可以继续批次，不会因为页面关闭而丢失上下文。
-- 只读保护：已完成视频的资料、配置、状态、Gate、Job、批次和相关产物都不能被 Harness、Web UI 或后台任务修改。
-- Workflow Registry：可通过 `workflow list` 或 Web UI 的 Workflow Catalog 选择流程；未知 Workflow 和版本会 fail closed。
-
-## 快速开始
-
-### 环境要求
-
-- Node.js 18 或更高版本。
-- npm。
-- 本机可用的 `codex` CLI，用于默认 Agent 执行器。
-- 需要生成 TTS 时，使用项目既定的 TTS 工程；默认位置是当前仓库同级的 `../tts`。
-- 需要远程 Render 时，安装并登录 GitHub CLI（`gh`），并拥有目标仓库的 Actions 和推送权限。
-
-### 安装依赖
+| 环境 | 用途 |
+| --- | --- |
+| Git、Node.js 18+ 与 npm | 克隆仓库、安装依赖和运行制作工具；具体依赖由锁文件固定。 |
+| Python 3.10+ | TTS 脚本及输入包 ZIP 处理，需能通过 `python3` 调用。 |
+| FFmpeg 与 ffprobe | 音频检查及渲染；当前本地渲染执行器要求 FFmpeg 9，支持 macOS／Linux。 |
+| 与当前 Remotion 匹配的浏览器 | Studio 及渲染；本地渲染可通过 `VIDEO_LOCAL_BROWSER` 指定实际可执行文件。 |
+| 标准 TTS 模块及其 Python 依赖 | 派生口播输入；使用 Edge 时还负责音频、字幕和 Timeline 生成，配置见下文。 |
 
 ```bash
-npm install
-```
+git clone https://github.com/huaqianshu-lm/video.git
+cd video
+npm ci
 
-### 启动 Harness Web UI
-
-```bash
-npm run harness:web
-```
-
-然后打开：
-
-```text
-http://127.0.0.1:4173
-```
-
-Web UI 只监听本机 `127.0.0.1`，浏览器不会接触 GitHub Token。首页可以导入 Markdown／纯文本源文件、选择系列或通用风格，并查看当前所有视频项目。
-
-### 启动 Remotion Studio
-
-```bash
-npm run preview
-```
-
-这个命令会先扫描已经校验通过的逐视频输入包，生成被 Git 忽略的 `src/RenderInputRoot.tsx`，再启动 Studio。它不会把具体视频硬编码进受跟踪的 `src/Root.tsx`。
-
-也可以手动生成入口：
-
-```bash
-node harness/src/cli.mjs render-input entry-all \
-  --output src/RenderInputRoot.tsx
-npx remotion studio src/RenderInputRoot.tsx
-```
-
-没有有效输入包的未完成视频会先尝试准备；`completed` 视频缺包或包损坏时只读跳过，不会为了预览修改它。
-
-公共动效组件样片使用独立命令 `npm run preview:motion`，选择 `motion-components-template`（连续空间）或 `motion-transition-template`（官方转场）。该入口只注册通用 Composition；组件用法与验收边界见 [公共动效组件文档](docs/MOTION-COMPONENTS.md)。
-
-## 单视频 CLI
-
-常用的状态和诊断命令：
-
-```bash
-node harness/src/cli.mjs workflow list [--json]
-node harness/src/cli.mjs init <video-slug>
-node harness/src/cli.mjs status <video-slug>
-node harness/src/cli.mjs validate <video-slug> [stage]
-node harness/src/cli.mjs next <video-slug>
-node harness/src/cli.mjs report <video-slug>
-node harness/src/cli.mjs context <video-slug>
-node harness/src/cli.mjs plan <video-slug> --until storyboard
-node harness/src/cli.mjs jobs <video-slug>
-node harness/src/cli.mjs jobs --all
-node harness/src/cli.mjs doctor --json
-```
-
-
-阶段执行和人工 Gate：
-
-```bash
-node harness/src/cli.mjs run <video-slug> [stage]
-node harness/src/cli.mjs resume <video-slug>
-node harness/src/cli.mjs retry <video-slug> [stage]
-node harness/src/cli.mjs approve <video-slug> <gate>
-node harness/src/cli.mjs reject <video-slug> <gate> \
-  --return-to <stage> --reason "<reason>"
-```
-
-Remotion 制作任务可以单独查看和重试：
-
-```bash
-node harness/src/cli.mjs remotion-task list
-node harness/src/cli.mjs remotion-task show <task-id>
-node harness/src/cli.mjs remotion-task run <task-id>
-node harness/src/cli.mjs remotion-task retry <task-id>
-```
-
-Remotion 任务只有在项目当前处于 `remotion / ready` 时才能执行。Gate 3 通过后，旧任务只读展示；只有 Gate 3 驳回并明确回退到 Remotion，任务才可以重新执行。
-
-## 批量制作
-
-当前有四种批量目标：
-
-| 批量目标 | 自动推进 | 停在哪里 |
-| --- | --- | --- |
-| `to-gate-2` | 合并策划、纯口播、分镜与设计审计 | Gate 2 人工确认 |
-| `to-tts` | TTS、音频、字幕和 Timeline | 自动质检，试听在 Gate 3 |
-| `to-remotion` | Remotion 任务和产物校验 | Gate 3 人工预览 |
-| `to-render` | Gate 3 通过后的完整 Render 交付 | Gate 4 人工验收 |
-
-
-批量记录可以用 CLI 查看和创建：
-
-```bash
-node harness/src/cli.mjs batch types
-node harness/src/cli.mjs batch create to-gate-2 <video-slug>...
-node harness/src/cli.mjs batch create to-tts <video-slug>...
-node harness/src/cli.mjs batch create to-remotion <video-slug>...
-node harness/src/cli.mjs batch create to-render <video-slug>...
-node harness/src/cli.mjs batch list
-node harness/src/cli.mjs batch status <batch-id>
-node harness/src/cli.mjs batch run <batch-id>
-node harness/src/cli.mjs batch resume <batch-id> --retry-failed
-node harness/src/cli.mjs batch approve-tts-qc <batch-id> <video-slug>
-```
-
-上面的 `batch run` 和 `batch resume` 只适用于非正式渲染批次。`to-render` 批次不能通过 CLI 绕过交付流程；它必须在 Web UI 中按下面的顺序执行。
-
-### 批量完整 Render 的正确方式
-
-每条视频都必须独立准备，不能把一条视频的 ZIP、URL、SHA-256 或绑定记录复用给另一条：
-
-1. 确认视频已经通过 Gate 3，当前状态是 `render / ready`。
-2. 对每条视频分别执行 `render-input prepare`、`render-input validate`、`render-input package`。
-3. 把各自的 ZIP 发布到受控的独立输入源，再分别用 `render-input bind` 保存 URL 和 SHA-256。发布地址如果是私有 GitHub Release，必须使用 API 资产地址，不使用网页下载地址。
-4. 在 Web UI 创建或打开 `to-render` 批次。系统会重新准备和校验输入包，并展示每条视频的 Composition ID、URL、ZIP SHA-256、package fingerprint、绑定文件 SHA-256、分支和精确提交文件清单。
-5. 逐项确认页面展示的精确文件清单，然后分别确认定向 commit 和 push。系统只操作交付计划列出的路径，禁止使用 `git add .`，也不会提交具体视频资料、媒体或 `local/`。
-6. 代码推送成功后，再单独确认是否真的触发 GitHub Actions Render。没有这一步确认，系统不会创建真实 Render Job。
-7. 远程 Job 完成后，Harness 会分别保存 Job、Run ID、Run URL、输入包绑定和 Artifact 归属；批量流程可以从远程 Job 终态继续运行，但不会自动通过 Gate 4。
-8. 用户负责下载 Artifact、播放最终 MP4，并完成每条视频的 Gate 4 验收。
-
-如果任意一条视频的输入包、绑定、Manifest、Git 文件、分支或提交发生变化，交付计划会失效，需要重新预检和确认。不能用临时 shell 变量里的全局 URL／SHA-256 冒充持久化绑定。
-
-## 远程渲染输入包
-
-单条新交付支持本地渲染并默认使用本地，可显式选择 GitHub；批量只使用 GitHub。两者共享 Harness 的 `render-delivery prepare／start／resume`，旧远程记录继续按 GitHub 恢复。接入及验收状态见 ROADMAP.md，本地执行不会发布输入包、commit 或 push。
-
-```bash
-node harness/src/cli.mjs render-delivery prepare <slug> --backend local
-# 确认返回的计划后启动；--backend github 使用原远程交付：
-node harness/src/cli.mjs render-delivery start <slug> --confirm-plan <planId>
-node harness/src/cli.mjs render-delivery resume <slug>
-```
-
-本地默认并发 1，要求 FFmpeg 9、ffprobe 及已安装的 Remotion 无头浏览器；输出保存在被忽略的 `out/local-render/<slug>/<jobId>.mp4`。详见 [渲染交付契约](./docs/RENDER-DELIVERY-BASELINE.md)。以下发布与认证要求仅适用于 GitHub。
-
-每条视频的本地输入包都放在被 Git 忽略的目录中：
-
-```text
-local/render-input/<video-slug>/
-├── render-input.json
-├── videos/<workflow-path>/<video-slug>/...
-├── src/videos/<workflow-path>/<video-slug>/...
-└── assets/<workflow-path>/<video-slug>-assets.zip
-
-local/render-input/<video-slug>.zip
-local/render-input/<video-slug>.delivery.json
-```
-
-准备和检查命令：
-
-```bash
-node harness/src/cli.mjs render-input prepare <video-slug>
-node harness/src/cli.mjs render-input validate <video-slug>
-node harness/src/cli.mjs render-input package <video-slug>
-node harness/src/cli.mjs render-input bind <video-slug> \
-  --url "<published-zip-url>" \
-  --sha256 "<zip-sha256>"
-```
-
-校验不是只看 ZIP 是否存在，还会核对：
-
-- Manifest 声明的实际文件集合、逐文件大小和 SHA-256。
-- `packageFingerprint` 和源资料快照。
-- Remotion 配置、组件导出和 Composition ID。
-- 资源 ZIP 是否可以完整解压，顶层目录是否正确。
-- narrated 项目的 `captions.vtt`、`captions.srt`、Audio／Subtitle／Timeline Manifest 是否存在且相互匹配，以及每一个 MP3 路径和数量是否与 Audio Manifest 一致。
-- 发布 URL 下载到的内容是否与本地 ZIP 的 SHA-256 一致。
-
-GitHub Actions 会把 ZIP 下载到 Runner 临时目录，从输入包的 Workflow Registry 解析并恢复对应的 `videos/`、`src/videos/` 和资源包路径，生成临时 `src/RenderInputRoot.tsx`，完成 Workflow 适用的输入校验和类型检查后执行完整 Render。具体视频资料和媒体不会进入能力仓库。
-
-## GitHub Actions 和认证
-
-本地默认使用 GitHub CLI 的系统凭据：
-
-```bash
-unset GITHUB_TOKEN GH_TOKEN
-gh auth login --hostname github.com --git-protocol https --web
-gh auth setup-git
-export GITHUB_REPOSITORY="<owner>/<repo>"
-export HARNESS_GITHUB_REF="<optional-explicit-branch>"
-node harness/src/cli.mjs doctor --json
-```
-
-分支选择顺序是：显式的 `HARNESS_GITHUB_REF`、当前 Git 工作区分支、最后才是 `GITHUB_REF_NAME`。`RENDER_INPUT_TOKEN` 是 GitHub Actions 下载私有输入包使用的仓库 Secret，不是本地 GitHub API 登录 Token。
-
-仓库有两个 Workflow：
-
-- `.github/workflows/render-video.yml`：完整 Render，上传 `<video-slug>` Artifact。
-- `.github/workflows/smoke-test-video.yml`：独立 Smoke Render，上传代表帧和短片 Artifact。
-
-### Smoke Render 的边界
-
-Smoke Render 只用于新系列或渲染环境变化时检查字体、Runner、依赖、资源链路和音轨。它必须从 GitHub Actions 页面手动触发，不能从 Harness 的 `run`、`remote-run` 或批量按钮触发，也不会推进项目阶段、创建 Harness 生产 Job 或写入视频审核记录。
-
-Smoke Render 应选择未完成视频或独立副本；不能对已经 `completed` 的视频做会写回状态、资料或产物的操作。
-
-## 项目结构和 Git 边界
-
-```text
-.
-├── .github/workflows/       # 完整 Render 和独立 Smoke Render Workflow
-├── harness/                 # Harness 核心、Web UI、任务状态、交付逻辑和测试
-├── .claude/skills/          # 项目专项 Skill
-├── templates/               # 不包含具体主题的通用脚本和原型模板
-├── styles/                  # 可复用视觉风格基线
-├── src/components/          # 通用 Remotion 组件
-├── src/scenes/              # 通用场景组件
-├── src/lib/                 # 类型、时间轴和同步工具
-├── src/Root.tsx             # 受跟踪的通用 Composition 入口
-├── src/RenderInputRoot.tsx  # 被忽略的逐视频临时入口
-├── docs/                    # 稳定规范、架构和使用文档
-├── videos/<slug>/           # narrated 本地具体视频资料，不提交
-├── src/videos/<slug>/       # narrated 本地具体视频配置和组件，不提交
-├── assets/                  # 本地资源 ZIP，不提交
-├── public/local-assets/     # 本地解压资源，不提交
-├── series/                  # 本地系列资料，不提交
-├── local/                   # 本地输入包和快照，不提交
-├── out/                     # 本地渲染产物，不提交
-├── drafts/                  # 本地方案，不提交
-└── notes/                   # 本地笔记，不提交
-```
-
-应长期维护并提交的是 Harness、通用 Remotion 能力、模板、Skill、稳定文档、测试和 `ROADMAP.md`。具体视频资料、生产资源、媒体、输入包、状态目录和临时 Studio 入口都只保存在本地。
-
-## 检查命令
-
-在仓库根目录执行：
-
-```bash
 node --version
-npm run check
-npm test --prefix harness
-git diff --check
+python3 --version
+ffmpeg -version
+ffprobe -version
 ```
 
-测试使用 Node 原生测试运行器和测试夹具，主要验证阶段契约、Gate、任务恢复、输入包、资源完整性、Git 交付、Web API 和 Web Server；不会代替真实 GitHub Actions Render，也不会自动完成用户的 Gate 4 播放验收。
+仓库包含规范、脚本和公共实现，具体视频的资料、代码、媒体、系列封面、生成音频和成片均在本地忽略目录中，克隆不会获得这些资源。首次使用需要自行提供源资料、所需图片和 TTS 环境。
 
-## 规则和进一步阅读
+标准 TTS 模块单独维护在 [tts 仓库](https://github.com/huaqianshu-lm/tts) 。将它克隆到自行选择的目录，并按该仓库的说明准备 Python 环境和依赖：
 
-- [`CLAUDE.md`](./CLAUDE.md)：项目边界、不可变约束和 Skill 路由。
-- [Harness 使用文档](./harness/README.md)：Harness 内部命令、适配器和 Web UI 细节。
-- [Harness 校验矩阵](./harness/VALIDATION-MATRIX.md)：当前测试覆盖范围。
-- [端到端视频生产方案](./docs/END-TO-END-VIDEO-PRODUCTION-PLAN.md)：人工 Gate 和远程交付架构。
-- [视频生产流程](./docs/VIDEO-PROJECT-WORKFLOW.md)：七层资料和生产职责。
-- [视频生产规范](./docs/VIDEO-PRODUCTION-RULES.md)：Scene、视觉、字幕和质量要求。
-- [TTS 安装与配置](./docs/TTS-SETUP.md)：TTS 工程和本地配置。
-- [`ROADMAP.md`](./ROADMAP.md)：当前视频数量、项目阶段、阻塞和下一步。
+```bash
+git clone https://github.com/huaqianshu-lm/tts.git /absolute/path/to/tts
+```
 
-README 只描述当前稳定能力和正确使用方式。具体某条视频是否完成、是否有 Render Job、是否等待人工 Gate，以 `ROADMAP.md` 和对应项目的实时 `state.json` 为准。
+将示例目标路径替换为实际路径，再按下文配置 `VIDEO_TTS_PYTHON` 和 `VIDEO_TTS_SCRIPTS_DIR`。视频工具需要调用该模块的 `build_tts_script.py`、`generate_audio.py`、`generate_subtitles.py` 和 `generate_timeline.py`，具体接口可查 [TTS 入口](scripts/video-tts.mjs)。仅执行本项目的 `npm ci` 不会安装 TTS 模块及其 Python 依赖。
 
-## Shot 分镜设计
+## 制作第一条视频
 
-当前 Storyboard 按 Scene → Shot → Event 组织：先决定内容与观看方式，再设计变化，最后选择组件或编写实现。镜头设计属于现有口播／分镜任务，不增加阶段或 Gate；没有最少镜头数和画面生成器。新建唯一使用内部格式 3；合法示例见 `contracts/video-production/current/examples/storyboard.json`，权威字段、真实音频切点、转场和观看证据见 `docs/STORYBOARD-PRODUCTION-CONTRACT.md` 的 Shot 章节。Gate 2 展示并冻结镜头设计，Gate 3 审核真实逐镜头／交界观看及整片试听。旧资料只读，未完成视频继续制作先用 storyboard-rework prepare 展示正常返工范围，不自动补镜头。程序及隔离入口验证已完成；真实视频和人工 Gate 验收状态见 ROADMAP。
+下面以视频标识 `my-first-video` 为例。可以换成自己的英文标识，后续目录和命令始终使用同一个标识。文件编写、工具调用和结果检查通常由 Agent 完成，用户在确认位置作决定；下面的命令便于了解和手动复现。
+
+### 1．放入源资料，让 Agent 开始策划
+
+在项目根目录执行：
+
+```bash
+mkdir -p videos/my-first-video
+```
+
+将文章、课程材料或整理后的内容保存到 `videos/my-first-video/source.md`，然后在项目目录中打开 Agent，给出类似指令：
+
+> 为 my-first-video 制作一条口播教程，源资料在 videos/my-first-video/source.md，目标观众是……，希望观众学会……。先读取 CLAUDE.md、ROADMAP.md 和 docs/DIRECT-VIDEO-PRODUCTION.md，按 .claude/skills/video-production/SKILL.md 开始。完成口播审核、独立设计审查和修订后，把分镜交给我确认。
+
+不同 Agent 的 Skill 加载方式不同；如果不能自动识别项目 Skill，直接让它读取对应 `SKILL.md` 并按内容执行。项目规则以 [CLAUDE.md](CLAUDE.md) 为准；其中提及的作者本机全局规则不随仓库分发，其他使用者需采用自己环境的全局规则。
+
+Agent 会建立本条 `production-record.md`，形成内容分析、叙事策划、纯口播和 Scene → Shot → Event 分镜。系列和封面由 Agent 列出实际可选项，用户选择已有系列、不使用系列或准备新系列；空仓库没有系列时不需要先复制作者的资料。
+
+### 2．确认分镜
+
+Agent 联合收敛口播和分镜，审核口播并完成独立设计审查与修订，再提交分镜供用户确认，口播作为对照资料。
+
+用户明确确认后才进入配音。分镜设计时按表达问题选择 [视觉参考](references/README.md)，需要统一配色和材质时选择风格；设计成立后再查 [模板](templates/README.md)，由 Agent 选择、改造或编写实现。
+
+### 3．配置并生成配音、字幕和真实时间轴
+
+标准 TTS 模块可用后，在执行工具的同一终端设置实际绝对路径。以下路径需要替换，不要照抄占位值：
+
+```bash
+export VIDEO_TTS_PYTHON="/absolute/path/to/tts-venv/bin/python"
+export VIDEO_TTS_SCRIPTS_DIR="/absolute/path/to/standard-tts/scripts"
+```
+
+下面示例使用 Edge 在线服务，无需 API Key，但需要联网，朗读文本会发送到该服务。先明确同意本条口播向所选服务外发，再由 Agent 执行生成；输入派生本身不调用在线服务。
+
+```bash
+node scripts/video-tts.mjs build my-first-video
+node scripts/video-tts.mjs generate my-first-video \
+  --provider-json '{"provider":"edge","voice":"zh-CN-XiaoxiaoNeural","rate":"+25%"}'
+node scripts/video-tts.mjs validate my-first-video
+```
+
+输入从纯口播派生为 `videos/my-first-video/tts-script.json`，生成音频、字幕和真实 Timeline 位于 `src/videos/my-first-video/generated/`。后续画面使用这些真实时间资料。
+
+如使用百炼，还需要独立的 Python 依赖、音色、运行环境凭据和 TTS／ASR 外发许可；百炼仍依赖标准输入生成器。具体配置见 [TTS 环境说明](docs/TTS-SETUP.md) 和 [工具说明](scripts/README.md)。不要把凭据写入口播、代码或资源包。
+
+### 4．让 Agent 实现画面
+
+让 Agent 读取 [.claude/skills/visual-prototype-remotion/SKILL.md](.claude/skills/visual-prototype-remotion/SKILL.md)，按确认分镜、真实音频和 Timeline 编写当前视频的 React／Remotion。
+
+本条代码放在 `src/videos/my-first-video/`，图片等放在 `public/local-assets/my-first-video/`。后续输入打包需要视频组件及配置入口；下面示例约定为：
+
+- `MyFirstVideo.tsx`：导出组件 `MyFirstVideo`。
+- `video.config.ts`：导出 `videoConfig`，包含实际画面规格和时间配置。
+
+这些文件由 Agent 根据当前内容编写，打包命令不会替你生成画面。使用不同文件名或导出名时，修改下一步对应参数；特殊时长导出等参数见 [工具说明](scripts/README.md)。
+
+### 5．准备输入包并预览
+
+在组件、配置和音频就绪后，让 Agent 准备当前视频的独立快照：
+
+```bash
+node scripts/video-input.mjs prepare my-first-video \
+  --component-path src/videos/my-first-video/MyFirstVideo.tsx \
+  --component-export MyFirstVideo \
+  --config-path src/videos/my-first-video/video.config.ts \
+  --config-export videoConfig
+```
+
+命令返回 `directory`、`archive`、`sha256` 等信息。将下列 `<input-directory>` 替换为本次返回的 `directory`，不要把尖括号原样输入终端：
+
+```bash
+node scripts/video-input.mjs validate <input-directory>
+npm run preview -- my-first-video
+```
+
+按终端提示打开 Studio，选择本条 Composition 查看。克隆后尚无视频输入包时，预览不会自动生成一条视频；必须先完成前面的内容、音频和实现步骤。
+
+Agent 先完整观看动态画面、正常速度试听并修正问题，再由用户实际观看、试听并确认画面。实现返修后重新准备输入包并预览当前版本；打开或更新前核对已有 Studio，避免覆盖正在使用的入口。
+
+### 6．渲染并验收 MP4
+
+默认使用本地渲染。将 `<input-directory>` 替换为用户确认画面的同一份输入包目录，先检查环境与输入：
+
+```bash
+node scripts/video-render.mjs check <input-directory>
+```
+
+预检会检查 FFmpeg 9、ffprobe、编码能力、匹配浏览器和至少 2 GiB 可用空间；不自动安装环境。必要时设置 `VIDEO_LOCAL_FFMPEG`、`VIDEO_LOCAL_FFPROBE` 和 `VIDEO_LOCAL_BROWSER` 的绝对路径，详见 [本地环境配置](scripts/README.md#本地渲染环境)。
+
+用户明确授权当前输入的完整渲染后执行：
+
+```bash
+node scripts/video-render.mjs render <input-directory>
+```
+
+MP4 输出在 `out/direct-render/my-first-video/<stamp>/my-first-video.mp4`，日志和结果记录在 `local/direct-render/my-first-video/<stamp>/`，实际位置以命令返回结果为准。用户观看、试听成片并验收后，Agent 收尾制作记录；完成态资料按项目规则保持只读。
+
+本地交付无需 GitHub 认证或发布输入包。需要 GitHub 渲染时，另按 [渲染交付规范](docs/RENDER-DELIVERY-BASELINE.md) 准备独立输入仓库、认证、成功基线和相应授权。
+
+## 常见问题与验证
+
+| 现象 | 先检查什么 |
+| --- | --- |
+| TTS 提示缺少路径或找不到 Python 脚本 | 是否取得标准 TTS 模块、安装其依赖，并在 Agent 实际执行环境中设置路径。 |
+| 找不到可预览视频 | 是否已编写组件、生成音频并成功 prepare；源资料或分镜本身不能直接播放。 |
+| 输入打包提示组件不唯一或缺少配置 | 组件路径、导出名、配置文件和参数是否与实际代码一致。 |
+| 本地渲染预检失败 | 按报错检查 FFmpeg 版本、ffprobe、编码能力、浏览器和空间；先解决预检问题。 |
+| 结构检查通过，但声音或画面不合格 | 对照实际口播、分镜与实现，回到 [文档地图](docs/VIDEO-PRODUCTION-DOCUMENT-MAP.md) 查内容、设计、风格或实现的责任位置。 |
+
+修改工具时，可按影响范围执行 `npm run check:tools`；修改 TypeScript 时执行 `npm run check`。更完整的定向检查见 [工具说明](scripts/README.md#检查)。机器检查不代表实际观看或试听通过。
+
+当前工具接入缺口、历史类型检查问题及实际交付验证范围记录在 [ROADMAP](ROADMAP.md)。本文步骤已与当前入口核对，尚未完成全新环境克隆后的全流程实测。
+
+## 目录与深入阅读
+
+| 目录 | 作用与入口 |
+| --- | --- |
+| `docs/` | 流程、内容与设计原则、质量标准、分镜关联、TTS 和交付规范，见 [文档地图及框架图](docs/VIDEO-PRODUCTION-DOCUMENT-MAP.md)。 |
+| `.claude/skills/` | Agent 的 [策划与分镜](.claude/skills/video-production/SKILL.md)、[TTS](.claude/skills/narrated-video-tts/SKILL.md)、[实现与检查](.claude/skills/visual-prototype-remotion/SKILL.md)、[输入包与交付](.claude/skills/video-render/SKILL.md) 操作指引。 |
+| `references/` | 分镜、实现和返修时选用的 [设计方法与案例](references/README.md)。 |
+| `styles/` | 可选的 [current](styles/current/STYLE.md) 与 [codex](styles/codex/STYLE.md) 配色和材质参考。 |
+| `templates/` | 设计成立后按需改造的原创实现，适用条件和验证范围见 [模板索引](templates/README.md)。 |
+| `contracts/` | 分镜 [Schema](contracts/video-production/current/storyboard.schema.json) 和 [合法示例](contracts/video-production/current/examples/storyboard.json)。 |
+| `scripts/` | [工具、配置及检查说明](scripts/README.md)，以及必要内部模块和定向测试。 |
+| `src/components/`、`src/scenes/`、`src/lib/` | 通用画面、场景与时间等实现能力。 |
+| `videos/`、`src/videos/`、`public/local-assets/`、`series/`、`public/series-assets/`、`assets/`、`local/`、`out/` | 本地视频资料、代码、资源与产物，不随仓库分发；边界见 [项目规则](CLAUDE.md)。 |
