@@ -1,0 +1,358 @@
+# Remotion AI 视频制作
+
+当前方向为「制作规范＋必要脚本＋Remotion」：Agent 直接完成策划、口播、分镜和画面，用户确认方案、实际观看／试听及最终成片。入口与人工确认见 [直接制作规则](docs/DIRECT-VIDEO-PRODUCTION.md) ，独立命令见 [工具说明](scripts/README.md) 。
+
+Harness 退出实施中：独立工具已接入，`npm run preview` 已改用独立脚本；旧编排代码尚未删除，两个 CI Workflow 等待具体差异确认，实片制作、实际预览／试听及正式渲染仍待验证。具体进度见 [ROADMAP](ROADMAP.md) 。
+
+以下保留上一阶段说明供切换核对，其中 Harness 任务、状态机、审核 API 和批量入口不再适用于新直接制作；最终历史归档随已确认的删除清单执行。
+
+设计方法与案例入口：[视频设计参考](references/README.md) 。分镜与画面实现按表达问题阅读；当前第一批是三个已获认可的外部示例复现解析，不代表原创或真实教程质量已验收。
+
+目录职责：`contracts/` 保存当前与历史只读数据契约，`scaffolds/` 保存空白生产资料骨架，`legacy/` 保存退役流程兼容资料，`templates/` 只保存经过原创独立 Shot 预览及用户画面质量验收的可运行视觉模板；真实生产应用与跨视频验证单独记录。当前模板清单见 [视觉模板库](templates/README.md) 。
+
+## 当前 Storyboard 生产流程（实片验收待完成）
+
+`storyboard-v1` 合并内容分析／叙事策划，以纯口播与 Storyboard 共同收敛替代 Scene／Visual Script 和逐视频 HTML 原型。Gate 2 页面按序并排展示口播与分镜，可附静态图；实际画面与试听在 Gate 3 审核。对话、CLI、Web 和批量复用相同任务和审核版本。
+
+新建统一使用 `storyboard-v1` 与当前分镜契约，不提供旧流程或生产版本选择。旧资料仅可读取；未完成视频不满足当前规则时使用正常返工，completed 永久只读。实际入口与实片验收状态见 ROADMAP；完整边界见 [Storyboard 生产契约](docs/STORYBOARD-PRODUCTION-CONTRACT.md) 。
+
+```bash
+# 先准备 videos/<new-slug>/source.md；初始化后按项目规则确认系列与封面。
+node harness/src/cli.mjs init <new-slug>
+node harness/src/cli.mjs run <new-slug> source
+node harness/src/cli.mjs production-task claim <new-slug>
+# 根据任务包制作，再 complete；重复领取下一任务，完成后 run Gate 2。
+node harness/src/cli.mjs storyboard-review <new-slug>
+# Agent 获取同一机器审核包：追加 --json。
+node harness/src/cli.mjs approve <new-slug> gate-2 --review-version <reviewVersion>
+```
+
+资料不满足当前规则时运行 `storyboard-rework <slug> prepare --reason <原因>`，查看精确范围后以 `start --reason <同一原因> --rework-version <hash>` 执行。只沿用严格校验通过的上游，从最早缺失输入返工，重新审核下游 Gate；历史资料与快照保留，中断恢复同一计划。旧 storyboard-migration 入口已停用。
+
+Web 项目详情页显示同一分镜卡片。HTTP `GET /api/projects/<slug>/storyboard-review` 获取审核包，`POST .../action` 的 approve 请求必须带当前 `reviewVersion`。初始化与普通导入均使用服务端当前默认，不需要指定版本；旧选择直接拒绝。资料不符合当前规则时，页面提供“按当前规则准备返工”，展示精确范围后确认执行。
+
+
+
+这是一个专门服务于视频生产的 Harness。它把一条视频从原始内容推进到最终 MP4：合并策划、纯口播与 Storyboard、设计审计、TTS、字幕与真实时间轴、Agent 编写的 Remotion、共享交付和人工验收都在同一套阶段契约下管理。
+
+它不是“点一下就自动出片”的黑盒。系统负责记录状态、校验资料、调度任务、保存失败信息和恢复上下文；口播与分镜、Remotion 实际画面／试听和最终视频仍然要经过人工 Gate。
+
+当前 Harness 版本为 `0.6.0`。当前仅支持 `narrated-tutorial-v1` 口播教程生产。历史上的 `Smoke Render` 已经退出生产阶段，只保留为独立的 GitHub Actions 环境检查。
+
+## 当前生产流程
+
+### `narrated-tutorial-v1`
+
+```text
+原始内容
+  ↓
+内容分析 ＋ 视频叙事（合并策划）
+  ↓ Gate 1：内容与叙事内部审查
+纯口播 ＋ Storyboard ＋ 设计审计
+  ↓ Gate 2：人工确认口播和分镜方案
+TTS → 音频／字幕／Timeline
+  ↓ 自动质检（人工试听合并到 Gate 3）
+Remotion 实现
+  ↓ Gate 3：人工检查实际画面与正常速度试听
+完整 Render
+  ↓ Gate 4：人工验收最终 MP4
+完成
+```
+
+当前 Storyboard 登记的 12 个内部阶段是：
+
+```text
+source
+→ content-analysis
+→ video-narrative
+→ narration-script
+→ storyboard
+→ gate-2
+→ tts
+→ subtitle-timeline
+→ remotion
+→ gate-3
+→ render
+→ gate-4
+```
+
+## 已实现的能力
+
+- 单视频阶段管理：初始化、校验、运行、暂停、恢复、重试、Gate 通过和 Gate 驳回。
+- 本地 Web UI：查看项目、资料、阶段状态、下一步动作、Agent Job、Remotion 任务、远程 Job、Run 和 Artifact。
+- 持久化后台任务：Agent、TTS、Remotion 和远程任务都会保存状态；服务重启后可以继续检查，失败任务可以重试。
+- 批量编排：支持批量到 Gate 2、批量完成 TTS、批量完成 Remotion 和批量完整渲染；每条视频仍使用自己的阶段状态和人工检查点。
+- TTS 与音画同步：Gate 2 后先生成并校验独立的 `tts-script.json`，音频、字幕和 Timeline Manifest 从它派生，Remotion 使用经过校验的 Manifest 驱动时间轴。
+- Storyboard 与Agent 编写的 Remotion 对照：Gate 2 冻结同版本方案，Gate 3 按当前 alignment 5 与观看／试听证据检查实际实现。
+- 独立渲染输入包：每条视频有自己的输入目录、Manifest、资源 ZIP、源资料快照、package fingerprint 和远程绑定记录。
+- GitHub Actions 远程 Render：Runner 在临时目录恢复输入包，校验 slug、Composition、资源、Manifest 和 SHA-256 后生成最终 MP4 并上传 Artifact。
+- 远程任务恢复：保存准确的 dispatch、Run ID、Run URL 和 Artifact 信息；批量远程 Job 进入终态后可以继续批次，不会因为页面关闭而丢失上下文。
+- 只读保护：已完成视频的资料、配置、状态、Gate、Job、批次和相关产物都不能被 Harness、Web UI 或后台任务修改。
+- Workflow Registry：可通过 `workflow list` 或 Web UI 的 Workflow Catalog 选择流程；未知 Workflow 和版本会 fail closed。
+
+## 快速开始
+
+### 环境要求
+
+- Node.js 18 或更高版本。
+- npm。
+- 本机可用的 `codex` CLI，用于默认 Agent 执行器。
+- 需要生成 TTS 时，使用项目既定的 TTS 工程；默认位置是当前仓库同级的 `../tts`。
+- 需要远程 Render 时，安装并登录 GitHub CLI（`gh`），并拥有目标仓库的 Actions 和推送权限。
+
+### 安装依赖
+
+```bash
+npm install
+```
+
+### 启动 Harness Web UI
+
+```bash
+npm run harness:web
+```
+
+然后打开：
+
+```text
+http://127.0.0.1:4173
+```
+
+Web UI 只监听本机 `127.0.0.1`，浏览器不会接触 GitHub Token。首页可以导入 Markdown／纯文本源文件、选择系列或通用风格，并查看当前所有视频项目。
+
+### 启动 Remotion Studio
+
+```bash
+npm run preview
+```
+
+这个命令会先扫描已经校验通过的逐视频输入包，生成被 Git 忽略的 `src/RenderInputRoot.tsx`，再启动 Studio。它不会把具体视频硬编码进受跟踪的 `src/Root.tsx`。
+
+也可以手动生成入口：
+
+```bash
+node harness/src/cli.mjs render-input entry-all \
+  --output src/RenderInputRoot.tsx
+npx remotion studio src/RenderInputRoot.tsx
+```
+
+没有有效输入包的未完成视频会先尝试准备；`completed` 视频缺包或包损坏时只读跳过，不会为了预览修改它。
+
+公共动效组件样片使用独立命令 `npm run preview:motion`，选择 `motion-components-template`（连续空间）或 `motion-transition-template`（官方转场）。该入口只注册通用 Composition；组件用法与验收边界见 [公共动效组件文档](docs/MOTION-COMPONENTS.md)。
+
+## 单视频 CLI
+
+常用的状态和诊断命令：
+
+```bash
+node harness/src/cli.mjs workflow list [--json]
+node harness/src/cli.mjs init <video-slug>
+node harness/src/cli.mjs status <video-slug>
+node harness/src/cli.mjs validate <video-slug> [stage]
+node harness/src/cli.mjs next <video-slug>
+node harness/src/cli.mjs report <video-slug>
+node harness/src/cli.mjs context <video-slug>
+node harness/src/cli.mjs plan <video-slug> --until storyboard
+node harness/src/cli.mjs jobs <video-slug>
+node harness/src/cli.mjs jobs --all
+node harness/src/cli.mjs doctor --json
+```
+
+
+阶段执行和人工 Gate：
+
+```bash
+node harness/src/cli.mjs run <video-slug> [stage]
+node harness/src/cli.mjs resume <video-slug>
+node harness/src/cli.mjs retry <video-slug> [stage]
+node harness/src/cli.mjs approve <video-slug> <gate>
+node harness/src/cli.mjs reject <video-slug> <gate> \
+  --return-to <stage> --reason "<reason>"
+```
+
+Remotion 制作任务可以单独查看和重试：
+
+```bash
+node harness/src/cli.mjs remotion-task list
+node harness/src/cli.mjs remotion-task show <task-id>
+node harness/src/cli.mjs remotion-task run <task-id>
+node harness/src/cli.mjs remotion-task retry <task-id>
+```
+
+Remotion 任务只有在项目当前处于 `remotion / ready` 时才能执行。Gate 3 通过后，旧任务只读展示；只有 Gate 3 驳回并明确回退到 Remotion，任务才可以重新执行。
+
+## 批量制作
+
+当前有四种批量目标：
+
+| 批量目标 | 自动推进 | 停在哪里 |
+| --- | --- | --- |
+| `to-gate-2` | 合并策划、纯口播、分镜与设计审计 | Gate 2 人工确认 |
+| `to-tts` | TTS、音频、字幕和 Timeline | 自动质检，试听在 Gate 3 |
+| `to-remotion` | Remotion 任务和产物校验 | Gate 3 人工预览 |
+| `to-render` | Gate 3 通过后的完整 Render 交付 | Gate 4 人工验收 |
+
+
+批量记录可以用 CLI 查看和创建：
+
+```bash
+node harness/src/cli.mjs batch types
+node harness/src/cli.mjs batch create to-gate-2 <video-slug>...
+node harness/src/cli.mjs batch create to-tts <video-slug>...
+node harness/src/cli.mjs batch create to-remotion <video-slug>...
+node harness/src/cli.mjs batch create to-render <video-slug>...
+node harness/src/cli.mjs batch list
+node harness/src/cli.mjs batch status <batch-id>
+node harness/src/cli.mjs batch run <batch-id>
+node harness/src/cli.mjs batch resume <batch-id> --retry-failed
+node harness/src/cli.mjs batch approve-tts-qc <batch-id> <video-slug>
+```
+
+上面的 `batch run` 和 `batch resume` 只适用于非正式渲染批次。`to-render` 批次不能通过 CLI 绕过交付流程；它必须在 Web UI 中按下面的顺序执行。
+
+### 批量完整 Render 的正确方式
+
+每条视频都必须独立准备，不能把一条视频的 ZIP、URL、SHA-256 或绑定记录复用给另一条：
+
+1. 确认视频已经通过 Gate 3，当前状态是 `render / ready`。
+2. 对每条视频分别执行 `render-input prepare`、`render-input validate`、`render-input package`。
+3. 把各自的 ZIP 发布到受控的独立输入源，再分别用 `render-input bind` 保存 URL 和 SHA-256。发布地址如果是私有 GitHub Release，必须使用 API 资产地址，不使用网页下载地址。
+4. 在 Web UI 创建或打开 `to-render` 批次。系统会重新准备和校验输入包，并展示每条视频的 Composition ID、URL、ZIP SHA-256、package fingerprint、绑定文件 SHA-256、分支和精确提交文件清单。
+5. 逐项确认页面展示的精确文件清单，然后分别确认定向 commit 和 push。系统只操作交付计划列出的路径，禁止使用 `git add .`，也不会提交具体视频资料、媒体或 `local/`。
+6. 代码推送成功后，再单独确认是否真的触发 GitHub Actions Render。没有这一步确认，系统不会创建真实 Render Job。
+7. 远程 Job 完成后，Harness 会分别保存 Job、Run ID、Run URL、输入包绑定和 Artifact 归属；批量流程可以从远程 Job 终态继续运行，但不会自动通过 Gate 4。
+8. 用户负责下载 Artifact、播放最终 MP4，并完成每条视频的 Gate 4 验收。
+
+如果任意一条视频的输入包、绑定、Manifest、Git 文件、分支或提交发生变化，交付计划会失效，需要重新预检和确认。不能用临时 shell 变量里的全局 URL／SHA-256 冒充持久化绑定。
+
+## 远程渲染输入包
+
+单条新交付支持本地渲染并默认使用本地，可显式选择 GitHub；批量只使用 GitHub。两者共享 Harness 的 `render-delivery prepare／start／resume`，旧远程记录继续按 GitHub 恢复。接入及验收状态见 ROADMAP.md，本地执行不会发布输入包、commit 或 push。
+
+```bash
+node harness/src/cli.mjs render-delivery prepare <slug> --backend local
+# 确认返回的计划后启动；--backend github 使用原远程交付：
+node harness/src/cli.mjs render-delivery start <slug> --confirm-plan <planId>
+node harness/src/cli.mjs render-delivery resume <slug>
+```
+
+本地默认并发 1，要求 FFmpeg 9、ffprobe 及已安装的 Remotion 无头浏览器；输出保存在被忽略的 `out/local-render/<slug>/<jobId>.mp4`。详见 [渲染交付契约](./docs/RENDER-DELIVERY-BASELINE.md)。以下发布与认证要求仅适用于 GitHub。
+
+每条视频的本地输入包都放在被 Git 忽略的目录中：
+
+```text
+local/render-input/<video-slug>/
+├── render-input.json
+├── videos/<workflow-path>/<video-slug>/...
+├── src/videos/<workflow-path>/<video-slug>/...
+└── assets/<workflow-path>/<video-slug>-assets.zip
+
+local/render-input/<video-slug>.zip
+local/render-input/<video-slug>.delivery.json
+```
+
+准备和检查命令：
+
+```bash
+node harness/src/cli.mjs render-input prepare <video-slug>
+node harness/src/cli.mjs render-input validate <video-slug>
+node harness/src/cli.mjs render-input package <video-slug>
+node harness/src/cli.mjs render-input bind <video-slug> \
+  --url "<published-zip-url>" \
+  --sha256 "<zip-sha256>"
+```
+
+校验不是只看 ZIP 是否存在，还会核对：
+
+- Manifest 声明的实际文件集合、逐文件大小和 SHA-256。
+- `packageFingerprint` 和源资料快照。
+- Remotion 配置、组件导出和 Composition ID。
+- 资源 ZIP 是否可以完整解压，顶层目录是否正确。
+- narrated 项目的 `captions.vtt`、`captions.srt`、Audio／Subtitle／Timeline Manifest 是否存在且相互匹配，以及每一个 MP3 路径和数量是否与 Audio Manifest 一致。
+- 发布 URL 下载到的内容是否与本地 ZIP 的 SHA-256 一致。
+
+GitHub Actions 会把 ZIP 下载到 Runner 临时目录，从输入包的 Workflow Registry 解析并恢复对应的 `videos/`、`src/videos/` 和资源包路径，生成临时 `src/RenderInputRoot.tsx`，完成 Workflow 适用的输入校验和类型检查后执行完整 Render。具体视频资料和媒体不会进入能力仓库。
+
+## GitHub Actions 和认证
+
+本地默认使用 GitHub CLI 的系统凭据：
+
+```bash
+unset GITHUB_TOKEN GH_TOKEN
+gh auth login --hostname github.com --git-protocol https --web
+gh auth setup-git
+export GITHUB_REPOSITORY="<owner>/<repo>"
+export HARNESS_GITHUB_REF="<optional-explicit-branch>"
+node harness/src/cli.mjs doctor --json
+```
+
+分支选择顺序是：显式的 `HARNESS_GITHUB_REF`、当前 Git 工作区分支、最后才是 `GITHUB_REF_NAME`。`RENDER_INPUT_TOKEN` 是 GitHub Actions 下载私有输入包使用的仓库 Secret，不是本地 GitHub API 登录 Token。
+
+仓库有两个 Workflow：
+
+- `.github/workflows/render-video.yml`：完整 Render，上传 `<video-slug>` Artifact。
+- `.github/workflows/smoke-test-video.yml`：独立 Smoke Render，上传代表帧和短片 Artifact。
+
+### Smoke Render 的边界
+
+Smoke Render 只用于新系列或渲染环境变化时检查字体、Runner、依赖、资源链路和音轨。它必须从 GitHub Actions 页面手动触发，不能从 Harness 的 `run`、`remote-run` 或批量按钮触发，也不会推进项目阶段、创建 Harness 生产 Job 或写入视频审核记录。
+
+Smoke Render 应选择未完成视频或独立副本；不能对已经 `completed` 的视频做会写回状态、资料或产物的操作。
+
+## 项目结构和 Git 边界
+
+```text
+.
+├── .github/workflows/       # 完整 Render 和独立 Smoke Render Workflow
+├── harness/                 # Harness 核心、Web UI、任务状态、交付逻辑和测试
+├── .claude/skills/          # 项目专项 Skill
+├── templates/               # 不包含具体主题的通用脚本和原型模板
+├── styles/                  # 可复用视觉风格基线
+├── src/components/          # 通用 Remotion 组件
+├── src/scenes/              # 通用场景组件
+├── src/lib/                 # 类型、时间轴和同步工具
+├── src/Root.tsx             # 受跟踪的通用 Composition 入口
+├── src/RenderInputRoot.tsx  # 被忽略的逐视频临时入口
+├── docs/                    # 稳定规范、架构和使用文档
+├── videos/<slug>/           # narrated 本地具体视频资料，不提交
+├── src/videos/<slug>/       # narrated 本地具体视频配置和组件，不提交
+├── assets/                  # 本地资源 ZIP，不提交
+├── public/local-assets/     # 本地解压资源，不提交
+├── series/                  # 本地系列资料，不提交
+├── local/                   # 本地输入包和快照，不提交
+├── out/                     # 本地渲染产物，不提交
+├── drafts/                  # 本地方案，不提交
+└── notes/                   # 本地笔记，不提交
+```
+
+应长期维护并提交的是 Harness、通用 Remotion 能力、模板、Skill、稳定文档、测试和 `ROADMAP.md`。具体视频资料、生产资源、媒体、输入包、状态目录和临时 Studio 入口都只保存在本地。
+
+## 检查命令
+
+在仓库根目录执行：
+
+```bash
+node --version
+npm run check
+npm test --prefix harness
+git diff --check
+```
+
+测试使用 Node 原生测试运行器和测试夹具，主要验证阶段契约、Gate、任务恢复、输入包、资源完整性、Git 交付、Web API 和 Web Server；不会代替真实 GitHub Actions Render，也不会自动完成用户的 Gate 4 播放验收。
+
+## 规则和进一步阅读
+
+- [`CLAUDE.md`](./CLAUDE.md)：项目边界、不可变约束和 Skill 路由。
+- [Harness 使用文档](./harness/README.md)：Harness 内部命令、适配器和 Web UI 细节。
+- [Harness 校验矩阵](./harness/VALIDATION-MATRIX.md)：当前测试覆盖范围。
+- [端到端视频生产方案](./docs/END-TO-END-VIDEO-PRODUCTION-PLAN.md)：人工 Gate 和远程交付架构。
+- [视频生产流程](./docs/VIDEO-PROJECT-WORKFLOW.md)：七层资料和生产职责。
+- [视频生产规范](./docs/VIDEO-PRODUCTION-RULES.md)：Scene、视觉、字幕和质量要求。
+- [TTS 安装与配置](./docs/TTS-SETUP.md)：TTS 工程和本地配置。
+- [`ROADMAP.md`](./ROADMAP.md)：当前视频数量、项目阶段、阻塞和下一步。
+
+README 只描述当前稳定能力和正确使用方式。具体某条视频是否完成、是否有 Render Job、是否等待人工 Gate，以 `ROADMAP.md` 和对应项目的实时 `state.json` 为准。
+
+## Shot 分镜设计
+
+当前 Storyboard 按 Scene → Shot → Event 组织：先决定内容与观看方式，再设计变化，最后选择组件或编写实现。镜头设计属于现有口播／分镜任务，不增加阶段或 Gate；没有最少镜头数和画面生成器。新建唯一使用内部格式 3；合法示例见 `contracts/video-production/current/examples/storyboard.json`，权威字段、真实音频切点、转场和观看证据见 `docs/STORYBOARD-PRODUCTION-CONTRACT.md` 的 Shot 章节。Gate 2 展示并冻结镜头设计，Gate 3 审核真实逐镜头／交界观看及整片试听。旧资料只读，未完成视频继续制作先用 storyboard-rework prepare 展示正常返工范围，不自动补镜头。程序及隔离入口验证已完成；真实视频和人工 Gate 验收状态见 ROADMAP。
