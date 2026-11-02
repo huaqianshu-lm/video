@@ -5,7 +5,7 @@ import {ArrivalPulse, MotionCamera, MotionWindow, PathMotion, PathReveal, Progre
 import {MotionTransition, transitionDuration} from '../components/MotionTransition';
 import {motionProgress, pathPoint, springProgress} from '../lib/motion';
 
-// Generic capability fixture; its text and estimated timeline are documented in MOTION-COMPONENTS.md.
+// Generic capability fixture with demonstration text and estimated timing.
 const accent = '#39d7c2';
 const incoming = 'M340 480 C470 260 800 260 960 480';
 const outgoing = 'M960 480 C1440 240 2100 240 2580 480';
