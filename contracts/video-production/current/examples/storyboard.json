@@ -8,25 +8,25 @@
   "scenes": [
     {
       "id": "01",
-      "objective": "说明任务状态如何变化",
+      "objective": "说明关键词如何得到文件搜索结果",
       "narrationRef": "01",
       "sourceRefs": [
         {
-          "path": "videos/example-video/source.md",
-          "excerpt": "任务从等待进入制作，校验通过后完成。"
+          "path": "source.md",
+          "excerpt": "输入关键词后开始搜索，查到匹配文件后显示搜索结果。"
         }
       ],
-      "focus": "同一任务的请求与完成结果",
-      "layout": "主体保持，请求在前，完成结果在后",
+      "focus": "搜索请求与匹配文件结果",
+      "layout": "搜索区域内先展示关键词请求，再展示匹配文件结果",
       "elements": [
         {
-          "id": "task-root",
+          "id": "search-root",
           "text": "",
           "type": "group",
           "role": "subject",
           "parentId": null,
           "sourceRef": 0,
-          "purpose": "解释同一任务的请求与结果顺序",
+          "purpose": "解释搜索请求与文件结果的先后关系",
           "enter": {
             "type": "scene",
             "id": "01",
@@ -48,21 +48,21 @@
           }
         },
         {
-          "id": "task-request",
-          "text": "任务",
+          "id": "search-request",
+          "text": "关键词",
           "type": "rect",
           "role": "request",
-          "parentId": "task-root",
+          "parentId": "search-root",
           "sourceRef": 0,
-          "purpose": "解释同一任务的请求与结果顺序",
+          "purpose": "解释搜索请求与文件结果的先后关系",
           "enter": {
             "type": "event",
-            "id": "task-start",
+            "id": "search-start",
             "edge": "start"
           },
           "exit": {
             "type": "event",
-            "id": "task-complete",
+            "id": "search-complete",
             "edge": "complete"
           },
           "retain": "",
@@ -76,16 +76,16 @@
           }
         },
         {
-          "id": "task-result",
-          "text": "完成",
+          "id": "search-result",
+          "text": "搜索结果",
           "type": "rect",
           "role": "result",
-          "parentId": "task-root",
+          "parentId": "search-root",
           "sourceRef": 0,
-          "purpose": "解释同一任务的请求与结果顺序",
+          "purpose": "解释搜索请求与文件结果的先后关系",
           "enter": {
             "type": "event",
-            "id": "task-complete",
+            "id": "search-complete",
             "edge": "complete"
           },
           "exit": {
@@ -106,39 +106,39 @@
       ],
       "events": [
         {
-          "id": "task-start",
-          "before": "任务等待",
-          "action": "领取任务并开始制作",
-          "after": "任务制作中",
+          "id": "search-start",
+          "before": "搜索区域已建立，尚未显示请求或结果",
+          "action": "显示关键词请求，开始搜索匹配文件",
+          "after": "关键词请求可见，搜索结果尚未出现",
           "trigger": {
             "sceneId": "01",
-            "anchor": "进入制作",
+            "anchor": "开始搜索",
             "occurrence": 1
           },
           "execution": {
             "capability": "show",
             "elements": [
-              "task-request"
+              "search-request"
             ],
             "durationFrames": 12
           },
           "shotId": "s01-shot01"
         },
         {
-          "id": "task-complete",
-          "before": "请求制作中，结果尚未出现",
-          "action": "制作校验完成后，请求退出并生成独立结果",
-          "after": "完成结果出现，请求不再占据焦点",
+          "id": "search-complete",
+          "before": "关键词请求可见，匹配文件结果尚未出现",
+          "action": "查到匹配文件后，请求退出并显示独立的搜索结果",
+          "after": "搜索结果可见，关键词请求已退出",
           "trigger": {
             "sceneId": "01",
-            "anchor": "完成",
+            "anchor": "搜索结果",
             "occurrence": 1
           },
           "execution": {
             "capability": "create-result",
             "elements": [
-              "task-request",
-              "task-result"
+              "search-request",
+              "search-result"
             ],
             "durationFrames": 12
           },
@@ -146,21 +146,21 @@
         }
       ],
       "holds": "状态变化后保留阅读时间",
-      "handoff": "任务完成结果承接下一幕",
+      "handoff": "搜索结果保留供阅读，本幕结束后结束示例",
       "assets": [],
-      "implementation": "Agent 按内容编写 React／Remotion，请求与结果分别声明，不依赖统一画面生成器",
+      "implementation": "用独立 React 元素表现关键词请求与搜索结果，按真实音频定位事件并安排状态交接",
       "shots": [
         {
           "id": "s01-shot01",
-          "purpose": "看清请求进入制作并形成独立结果",
+          "purpose": "看清关键词请求开始搜索并得到独立文件结果",
           "framing": "同屏中景，容器与请求和结果关系完整可读",
           "composition": "请求在左，结果在右，底部留字幕安全区",
           "viewpoint": "正面观察流程关系",
           "focus": "先看请求再交接到独立结果",
           "visibleElementIds": [
-            "task-root",
-            "task-request",
-            "task-result"
+            "search-root",
+            "search-request",
+            "search-result"
           ],
           "camera": "固定视角，便于比较请求与结果的身份",
           "start": {
@@ -180,12 +180,11 @@
             "reason": "状态链完成后结束",
             "retainedElementIds": [],
             "exitingElementIds": [
-              "task-root",
-              "task-request",
-              "task-result"
+              "search-root",
+              "search-result"
             ]
           },
-          "implementation": "Agent 按内容编写 React／Remotion，请求与结果分别声明，不依赖统一画面生成器"
+          "implementation": "用独立 React 元素表现关键词请求与搜索结果，按真实音频定位事件并安排状态交接"
         }
       ]
     }
