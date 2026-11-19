@@ -1,6 +1,29 @@
 # 运动、节奏与转场
 
+## 外部案例扩展：让动作改变可解释的关系
+
+以下是从[视觉叙事案例](examples/external-motion-design.md)与[原理解释案例](examples/external-explanation-design.md)推导的动作方向，尚未验证为本项目可用实现；所引原片没有完整播放，不填写猜测的时长、缓动或音效落点。
+
+| 需要表达 | 可研究的动作链 | 失败条件 |
+|---|---|---|
+| 整理与分组 | 建立原始片段 → 选取并保持身份 → 组织结果 → 对照来源 | 只是字母飞散后出现一段无关联新文字 |
+| 局部与整体 | 标出当前单位 → 改变观察范围 → 保留整体中的位置 | 拉远后没有身份线索，或把定位误画成影响传播 |
+| 受阻与条件变化 | 明确边界 → 当前动作停止 → 显示条件 → 按资料继续或结束 | 不知道谁被什么阻断，结果只靠换标签 |
+| 新部件的必要性 | 建立当前运行 → 显示不足 → 加入对应部件 → 核对变化 | 不足尚未可见，新组件已经满屏出现 |
+| 数值与图形对应 | 建立映射 → 改变有依据的变量 → 展示相应结果 → 稳定比较 | 随机运动被误认成计算或真实执行 |
+
+动作数量由要解释的关系决定。短段落可以只完成一个关系，复杂结构可以分层解释；不将品牌短片的速度用于正文。交互文章迁移到线性视频时，需要主动安排示例和前后对照，不能假定观众可自行拖动探索。
+
 ## 运动先回答一个问题
+
+[GitHub 场景研究](examples/github-explanatory-animation.md)提供了几种有源码依据的组织方法，实际动态观感尚未核对：
+
+- **共同变化使用共同参照**：视差层由同一个相机变量驱动，按各层关系产生差异；对应词与矩阵列同时切换焦点。迁移时先定义参照，再设计相对运动，避免相关对象各用一份无关联的时间表。
+- **变化之前保留可比较状态**：代码修改保留未改部分；搜索先建立候选范围，再检查当前项并改变范围。移动、删除和排除分别交代原因，不能只靠下一个标签宣布结果。
+- **组合和拆解保持身份**：同一组层片从分离位置回到合成位置；讲单层时移走其他层。若内容是执行流程，不能仅因拆层好看就改画成叠合关系。
+- **反馈晚于触发条件成立**：传播先有发送与到达，再改变接收对象；真实并发可以同时展示。到达只是示意时，不能暗示网络测得的精确耗时或外部操作已经成功。
+
+这些关系用于设计当前动作链，不迁入外部调度、字幕或渲染入口；片段时长仍取当前内容与真实 Timeline。
 
 | 动作 | 承担的表达 | 注意事项 |
 |---|---|---|
@@ -11,15 +34,33 @@
 
 ## 使用参数关系，不套固定节拍
 
-文档案例三项错峰进入，每项标题先出现、说明稍后补充。教程应用中间隔随文案阅读及真实口播改变。
+### 从动作性格分配速度
 
-代码案例由同一个浮点行位置驱动高亮与相机，避免两者各用一套时间表。相机运动结束后保留阅读停留；演示中每行约 0.32 秒不适合直接作为讲解时间。
+[Shotcraft／OpenMontage 研究](examples/shotcraft-openmontage-design.md)及 School of Motion 的 [预备](https://schoolofmotion.com/blog/anticipation-principle-quick-tip)、[跟随收尾](https://schoolofmotion.com/blog/animation-tricks-follow-through-after-effects)可补充以下判断。正文已核对，完整动态与声音未验；这些是候选设计关系：
 
-汇聚案例沿曲线弧长取点，让速度不被曲率随意改变；来源缩小、结果反馈、路径擦除分先后。脉冲幅度是反馈强度，过大可能变成装饰抢镜。
+| 动作阶段 | 要让观众感受到什么 | 实现时的对应 |
+|---|---|---|
+| 预备／定位 | 接下来哪里将变化 | 选中、转向、短暂收拢；不必每次反向移动，更不能伪造数值 |
+| 主动作 | 方向、力量、距离与变化原因 | 位移和旋转按对象性格协调；共同参照驱动相关对象 |
+| 制动 | 将要停在哪个有意义的位置 | 收束到真实槽位、接口或阅读区域；不是随意悬停 |
+| 跟随 | 附属部分与主体有受力关系 | 纸张边缘、软体、影子可有适当延迟；刚性标尺与数值不随意拖后 |
+| 稳定 | 观众确认当前结果 | 重点文字、比较边界与相机停止；是否保留环境运动按阅读判断 |
+
+大面、正文、小标签不必共用一种弹簧。过冲表达弹性或松手回弹，精确定位、测量、权限边界等情境可能更适合直接制动。动作感觉机械时，先比较不同阶段的速度关系、距离和停留，不只是更换 easing 名称。
+
+群体运动可按阅读顺序、语义分组或距焦点的距离错峰，参考 [Anime.js 分布方法](https://animejs.com/documentation/utilities/stagger/)。同组紧凑、组间交接明确，比所有对象等间隔更能说明结构；不把外部计时器或随机动画引入帧时间。
+
+共享对象转场只保留真正需要追踪的形状、线条或标题。可按 [Material 编排](https://m1.material.io/motion/choreography.html)让其他内容依附同一主要运动，减少交叉路径。没有连续关系时，不用强行变形连接两个画面。
+
+文档原有三项错峰属于出处待确认的旧记录，不能作为固定动作模版。[深化案例](examples/document-to-key-points.md) 按内容区分单条论证、证据接力和并排核对：原句定位、论点更新、来源标记要对应，关键条件获得阅读后才交给下一项。
+
+[代码案例](examples/code-to-result.md) 将语义焦点与取景关联，完整表达式仍在阅读范围内；未改部分保留稳定参照，推导／结果在代码稳定后接管。原有浮点行位置及每行约０．３２秒是未重新定位出处的旧记录，不能声称是 Code Hike 或 Shotcraft 当前实现，也不能作为讲解时间。
+
+[汇聚案例](examples/sources-to-unified-structure.md) 沿曲线弧长定位，画线、节点和方向共用几何；接收反馈与清场对应当前语义。原例接收效果有预备重叠，不代表所有输入已经处理；引用型镜头保留来源，只传递摘录表示。循环光点不作为真实进度，终点还需给有内容的结果阅读。
 
 ## 衔接从对象身份出发
 
-先判断上一镜头哪个对象仍有作用，再决定保留、变形、移位或退出。相邻镜头若没有内容联系，简单明确的切换可能更合适。互斥文字按既有规则分时替换，不交叉淡入到同一位置。
+先判断上一镜头哪个对象仍有作用，再决定保留、变形、移位或退出。相邻镜头若没有内容联系，简单明确的切换可能更合适。状态文字的替换方式按当前表达选择，实际检查中间状态的可读性，避免交叠导致含义混淆。
 
 组合效果时应检查「为什么此刻进入下一个画面」，不能以转场数量作为质量依据。
 
@@ -46,3 +87,53 @@
 原片两次章节标题采用分散字符归位，正文稳定后可读。它可作为短章节标识的候选变化；密集内容或操作步骤中应优先完整可读的文字。不能把某个醒目转场扩展到全片每句话。
 
 表格转术语说明时，画面焦点切换，不需要强行让某一行变形为卡片。区分「内容推进」「对象连续变换」与「执行因果」：前者可以明确切换，后两者需要能追踪的对象或状态变化，不能仅凭前后画面补出不存在的动作。
+
+## 转场承担哪一种关系
+
+以下从 Shotcraft 转场类资料提炼，属于设计候选，未在本项目实际实现验收。转场也可以是直接切换；是否连续取决于内容关系，不接受“所有裸切都降低质感”的普遍判断。镜头内部变化与段落节奏分别见 [界面与数据](interface-and-data-motion.md)、[段落与声音](sequence-and-sound.md)。
+
+| 关系 | 可选组织 | 关键条件 |
+|---|---|---|
+| 只是进入下一件事 | 直接切换或短暂稳定交接 | 前后各自建立清楚，不虚构空间或因果 |
+| 从整体进入其中一个部分 | 局部变为观察窗口，后景接管 | 被进入的内容确实属于该对象；窗口几何与内容缩放分离 |
+| 同一对象换一种表示 | 以共同位置、形状或身份交接 | 同形还需要同义；两个无关圆形不能自动形成解释 |
+| 保持同一观看方向 | 运动匹配或有动机的遮挡 | 切前切后方向、速度和落点能接住视线 |
+| 新旧版本替换 | 同参照揭示、页面让位或体块交接 | 比较维度一致；转场不掩盖需要看清的差异 |
+| 从已有图形延伸到新结构 | 连续线条、边界或轨迹接力 | 图形起点来自当前对象，终点承担新结构职责 |
+| 明确改变介质或段落语气 | 纸墨显影、光学遮挡或简洁色面交接 | 介质与全片美术一致，不为每段重新换语言 |
+
+### 连续接力怎么成立
+
+先确定交接前需要被记住的锚点，再设计它在交接中如何可追踪，最后让新画面的阅读入口接在相应位置。线条接力时，线的生长速度、观察位置与笔头屏幕位置要协调；进入窗口时，窗口扩大不等于内容也无限放大。内容可反向补偿缩放，最终以正常阅读尺度接管。
+
+同一批对象重排时保留身份，分别设计位置、宽高、裁切与层序。位置变化可以先收，形态随后稳定；并不要求所有通道同一曲线。不要把容器宽高变化等同于整张内容压缩，也不要在对象重叠时突换层级。
+
+### 切点怎么藏得有依据
+
+遮挡型先确认切点那一帧确实覆盖需要隐藏的区域；光峰型核对两景文字是否仍能穿透辨认；高速运动型核对两侧方向与速度。转场结束时撤掉临时遮罩与模糊，新景处于预期取景，没有一帧跳位。完整正常速度观看接缝，暂停只用于定位；计算出遮挡面积不等于观感已经无缝。
+
+### 帧预算与阅读
+
+在当前真实 Timeline 内安排转场，不把接缝当作额外时长，也不靠压缩口播和字幕给效果腾位置。关键解释尽量避开高遮挡段。相邻画面如果已经有强动作，交接可以更简单；阅读阶段无需继续尾漂或连续推拉。
+
+## 转场来源与具体边界
+
+来源表覆盖所研究版本的全部转场文档。上游中的品牌、时间、固定次数及具体风格均不直接沿用。
+
+| 来源资料 | 方法关系 | 迁移时防止 |
+|---|---|---|
+| [bottom-push-stack-wipe](https://github.com/Vincentwei1021/video-shotcraft/blob/5a2e98daade313c4f376120f38427eb19a108e8c/references/shots/transition/bottom-push-stack-wipe.md) | 新旧整屏刚性接触并交替，形成章节秩序 | 两屏速差、内容脱离所属背景，或移动中同时塞满新文字 |
+| [card-flip-reveal](https://github.com/Vincentwei1021/video-shotcraft/blob/5a2e98daade313c4f376120f38427eb19a108e8c/references/shots/transition/card-flip-reveal.md) | 对象正面与其结论背面对应 | 翻出无关结果、文字镜像，或高光与朝向无关 |
+| [card-flock-tumble](https://github.com/Vincentwei1021/video-shotcraft/blob/5a2e98daade313c4f376120f38427eb19a108e8c/references/shots/transition/card-flock-tumble.md) | 群体收束与随后强调形成连续能量变化 | 套用整套霓虹烟环；只因原作要求就取消教程阅读停留 |
+| [circle-match-iris](https://github.com/Vincentwei1021/video-shotcraft/blob/5a2e98daade313c4f376120f38427eb19a108e8c/references/shots/transition/circle-match-iris.md) | 同心锚点从原对象转成其相关信息 | 形状相同却语义无关，圆心及边界各算各的 |
+| [gradient-transition](https://github.com/Vincentwei1021/video-shotcraft/blob/5a2e98daade313c4f376120f38427eb19a108e8c/references/shots/transition/gradient-transition.md) | 参数变化组织环境，跨类型另行交接 | 背景亮区破坏文字对比，持续变色喧宾夺主 |
+| [line-carry-transition](https://github.com/Vincentwei1021/video-shotcraft/blob/5a2e98daade313c4f376120f38427eb19a108e8c/references/shots/transition/line-carry-transition.md) | 已有线条延伸并成为新场景结构 | 线头出画或跟丢，起点没有内容动机 |
+| [mosaic-reframe](https://github.com/Vincentwei1021/video-shotcraft/blob/5a2e98daade313c4f376120f38427eb19a108e8c/references/shots/transition/mosaic-reframe.md) | 同对象在多种布局之间改变主次 | 图片主体被新裁切截掉、文字随容器压扁、层级突跳 |
+| [page-turn-transitions](https://github.com/Vincentwei1021/video-shotcraft/blob/5a2e98daade313c4f376120f38427eb19a108e8c/references/shots/transition/page-turn-transitions.md) | 页面作为实体让位，建立替换感 | 静止时已露拼缝，新旧布局不可比却暗示版本取代 |
+| [print-texture-transitions](https://github.com/Vincentwei1021/video-shotcraft/blob/5a2e98daade313c4f376120f38427eb19a108e8c/references/shots/transition/print-texture-transitions.md) | 内容通过介质边缘逐渐显影 | 噪声扭曲内容而非边界，旧主体从孔洞反复穿帮 |
+| [shot-transitions](https://github.com/Vincentwei1021/video-shotcraft/blob/5a2e98daade313c4f376120f38427eb19a108e8c/references/shots/transition/shot-transitions.md) | 推进、运动交接和窗口进入分别服务不同接缝 | 认为所有接缝都要特效，或前后两镜速度二次起跳 |
+| [tear-streak-transitions](https://github.com/Vincentwei1021/video-shotcraft/blob/5a2e98daade313c4f376120f38427eb19a108e8c/references/shots/transition/tear-streak-transitions.md) | 条带位移可建立电子断裂语气 | 无语境故障化，结束后残留重复暗角及半透明重影 |
+| [transition-hidden-cut](https://github.com/Vincentwei1021/video-shotcraft/blob/5a2e98daade313c4f376120f38427eb19a108e8c/references/shots/transition/transition-hidden-cut.md) | 遮挡、对撞或光峰各有不同换景动机 | 覆盖不完整、对比对象不成对、切前后运动方向不接 |
+| [transition-travel](https://github.com/Vincentwei1021/video-shotcraft/blob/5a2e98daade313c4f376120f38427eb19a108e8c/references/shots/transition/transition-travel.md) | 进入已有形状中的后景，保持位置关系 | 把推进中心落在错误区域，接管前露出残边 |
+| [white-flash-logo-simplify-cut](https://github.com/Vincentwei1021/video-shotcraft/blob/5a2e98daade313c4f376120f38427eb19a108e8c/references/shots/transition/white-flash-logo-simplify-cut.md) | 同一标识从演绎态回到清楚识别态 | 尺寸位置不匹配，或把品牌演绎直接套成教程收尾 |
+| [wipe-transitions](https://github.com/Vincentwei1021/video-shotcraft/blob/5a2e98daade313c4f376120f38427eb19a108e8c/references/shots/transition/wipe-transitions.md) | 边界顺序完成新旧交替，最后回到稳定画面 | 最后一个切片未落稳就撤层，或带着各自暗角形成接缝 |
