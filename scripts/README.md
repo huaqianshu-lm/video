@@ -42,7 +42,7 @@ node scripts/video-input.mjs validate <input-directory>
 # 需要单独安装输入包到隔离工作区时使用：
 node scripts/video-input.mjs install <input-directory> --workspace <empty-directory>
 
-# 当前正式输入包预览；目录模式跳过不可用包，不自动补写视频。
+# 当前正式输入包预览；每次指定单条视频，不自动补写视频。
 npm run preview -- <slug>
 # 只生成预览入口和隔离 public，不启动 Studio：
 node scripts/video-preview.mjs <slug>
@@ -54,24 +54,24 @@ node scripts/video-render.mjs render <input-directory>
 node scripts/video-render.mjs inspect <run-directory>
 ```
 
-两种预览命令都会改写共用的、被忽略的 `src/RenderInputRoot.tsx`，并生成隔离 public；当前脚本没有占用保护，执行前核对正在使用的 Studio 及入口，避免影响已有预览。受跟踪的 `src/Root.tsx` 只注册通用 Composition。
+两种预览命令都会写入共用的、被忽略的 `src/RenderInputRoot.tsx`，并在 `videos/<slug>/preview/<session>/public/` 生成隔离素材，同时保存 `session.json`。写入前检查进程命令行，发现使用共享入口的 Studio 就停止；无法读取进程信息时也不继续。Agent 仍须核对已有 Studio 及入口；进程命令行检查不代表已覆盖所有外部启动方式。completed 包的只读预览会话放系统临时目录，不回写视频目录。未指定视频时只发现集中目录中的有效包，多个候选要求明确选择。受跟踪的 `src/Root.tsx` 只注册通用 Composition。
 
-`create` 的 `--cover` 可省略；`cover` 仅给缺封面的已有系列添加图片，不覆盖已有封面。`<project-image>` 须为项目内图片。`install` 会校验并复制包、解压资源及生成入口，目标须为空目录或不存在的目录；项目内日常使用 `local/direct-render/<name>/`，不安装到项目根目录。本地渲染会自行安装隔离工作区，无需额外执行 `install`。
+`create` 的 `--cover` 可省略；`cover` 仅给缺封面的已有系列添加图片，不覆盖已有封面。`<project-image>` 须为项目内图片。`install` 会校验并复制包、解压资源及生成入口，目标须为空目录或不存在的目录；项目内目标仅允许本视频 `videos/<slug>/output/<task>/workspace/`，不安装到源目录或其他视频目录；项目外独立临时目录可用于 CI。本地渲染会自行安装隔离工作区，无需额外执行 `install`。
 
-正式输入包保存在 `local/render-input/<slug>/direct-<stamp>/`；当前指针位于同视频 `direct-current.json`。包包含本条视频及共享运行代码快照，不写入其他具体视频。准备失败不更新指针，不自动删除已有包。
+正式输入包保存在 `videos/<slug>/render-input/direct-<stamp>/`，ZIP 为同层 `direct-<stamp>.zip`；当前指针为 `render-input/direct-current.json`。输入格式固定为 `schemaVersion: 2`、`kind: video-render-input`，仅接受 `narrated-tutorial-v1`。包收集本视频根制作文件、src／assets／generated 及必要共享运行代码，从枚举阶段排除 render-input／output／preview／work。准备期间核对源文件清单与哈希，校验并生成 ZIP 后才更新指针；不覆盖已有快照，失败不更新指针、不自动删除已有包。
 
 ### 组件、配置与时长入口
 
-`prepare` 的入口解析见 [input.mjs](lib/input.mjs)。组件和配置路径均须属于 `src/videos/<slug>/`；路径从项目根目录填写，导出名使用具名导出。
+`prepare` 的入口解析见 [input.mjs](lib/input.mjs)。组件和配置路径均须属于 `videos/<slug>/src/`；路径从项目根目录填写，导出名使用具名导出。
 
 | 参数 | 实际行为 |
 |---|---|
-| `--component-path`、`--component-export` | 指定 `.tsx` 文件及组件导出；未指定且无已有入口记录时，从本视频目录唯一的 `*Video.tsx` 推断，导出名默认与文件名相同 |
-| `--config-path`、`--config-export` | 指定 `.ts` 配置及其导出；默认 `src/videos/<slug>/video.config.ts` 中的 `videoConfig` |
+| `--component-path`、`--component-export` | 指定 `.tsx` 文件及组件导出；未指定时，从本视频 src 目录唯一的 `*Video.tsx` 推断，导出名默认与文件名相同 |
+| `--config-path`、`--config-export` | 指定 `.ts` 配置及其导出；默认 `videos/<slug>/src/video.config.ts` 中的 `videoConfig` |
 | `--duration-export` | 指定配置文件中无参数函数的导出名，返回正文总帧数；未提供时调用共享 `getTotalDurationFrames(config)` |
 | `--composition-id` | 指定 Composition ID，默认视频标识；仅使用字母、数字、下划线和连字符 |
 
-组件、配置与时长导出可沿用同视频 `local/render-input/<slug>/render-input.json` 的已有入口记录；`direct-current.json` 用于选择当前包，不承担上述入口默认值。需要避免歧义时显式传参。
+入口仅从本次参数及本视频 src 目录确定，不搜索其他目录或继承任务记录。`direct-current.json` 只选择当前包；发现包时核对本视频源文件清单及字节是否仍匹配，production-record.md 的确认收尾不作为播放输入变化。需要避免歧义时显式传参。
 
 配置至少提供实际 `width`、`height`、`fps`；使用默认时长计算时，还须满足 [VideoConfig](../src/lib/videoTypes.ts) 与 [时长计算函数](../src/lib/timing.ts) 的接口，由 `scenes` 的时长及可选音频／字幕结束时间确定正文时长。正式制作使用真实 Timeline 的时间，不使用估算口播时长。指定时长函数时，也须让返回帧数与当前真实 Timeline 和组件播放范围一致。
 
@@ -83,7 +83,7 @@ node scripts/video-render.mjs inspect <run-directory>
 
 当前本地 `render` 固定要求 **1920×1080／30fps**，在实际加载 Composition 后核对，其他规格会失败。这是执行器当前支持范围；质量规范中的其他画幅或帧率口径不代表本工具已支持。
 
-渲染使用 Node 绝对路径的 FFmpeg 包装器；输出在 `out/direct-render/<slug>/<stamp>/<slug>.mp4`，日志、输入工作区和结果在 `local/direct-render/<slug>/<stamp>/`。预览、渲染授权、结果核对及恢复按[渲染交付规范](../docs/RENDER-DELIVERY-BASELINE.md)执行。
+渲染使用 Node 绝对路径的 FFmpeg 包装器；任务统一放 `videos/<slug>/output/<task>/`，内含 `workspace/`、`render.log`、`run.json`、`composition.json`、`result.json` 及 `<slug>.mp4`。预览、渲染授权、结果核对及恢复按[渲染交付规范](../docs/RENDER-DELIVERY-BASELINE.md)执行。
 
 ### 本地渲染环境
 
@@ -122,7 +122,7 @@ export VIDEO_BAILIAN_PYTHON="/absolute/path/to/bailian-venv/bin/python"
 
 新变量优先于兼容别名。使用获准的实际绝对路径在调用环境中设置；工具不自动搜索其他项目。build 调用标准 `build_tts_script.py`，仅在临时副本中规范化 Scene 标题冒号；Edge generate 调用同目录的 `generate_audio.py`、`generate_subtitles.py` 和 `generate_timeline.py`。
 
-generate 的配置优先级为 `--provider-json '<JSON>'`、只读历史项目中的 `tts` 配置、内置 Edge 默认配置。具体字段见 [配置解析器](lib/tts-provider.mjs)；未完成的新视频不需要初始化历史项目记录，completed 状态仅读取。百炼音色须显式提供。
+generate 使用本次 `--provider-json '<JSON>'`，未提供时使用内置 Edge 默认配置，不继承历史任务配置。具体字段见 [配置解析器](lib/tts-provider.mjs)；completed 状态仅读取。百炼音色须显式提供。
 
 以下是已选定服务并满足外发条件后的调用写法，JSON 直接填写服务配置，无需再包一层 `tts`：
 
@@ -138,6 +138,8 @@ node scripts/video-tts.mjs generate <slug> \
 
 generate 检查口播指纹，并在复制结果前复核口播及 TTS Script 未变；变化时保留缓存，停止复制。validate 对已有生成目录检查 Scene／Segment 映射、音频原文与文件、真实音轨和时长、字幕覆盖及 Cue 顺序／范围、Timeline 起止与总时长；完整 SRT／VTT 只检查存在且非空，不逐条核对。它不验证实际发音、词级证据绑定或分镜锚点；相关检查入口见 TTS 环境文档。
 
+build 临时资料位于 `videos/<slug>/work/tts/script-<stamp>/`；生成缓存位于 `videos/<slug>/work/tts/<script-hash>-<provider-hash>/`，有效结果发布到 `videos/<slug>/generated/`，词级证据的写入、读取及绑定使用该目录。`assets/` 中不放与生成媒体冲突的 audio／subtitles 目录。
+
 缓存内 `result.json` 的 `completedAt` 是本次流水线结束时间，`cachedAudioFilesBefore` 是执行前缓存音频文件数，`outputs` 保存生成目录文件及 SHA-256；这些字段不证明重新合成。是否复用及实际范围按 TTS 文档记录。
 
 ## GitHub 操作
@@ -150,7 +152,7 @@ node scripts/render-preflight.mjs --workspace <workspace> --repository <owner/co
   > <new-report.json>
 ```
 
-独立预检只将 JSON 输出到终端，上例将其保存到新的本地报告文件；先准备父目录，不覆盖已有报告。核对退出码成功且报告 `ok=true` 后继续；预检会访问 GitHub 并执行 `git fetch`，不是纯离线检查。`dispatch` 自身还会重新预检并保存报告。
+独立预检只将 JSON 输出到终端，上例须保存到本视频 `videos/<slug>/output/github/<sha>/` 内的独立报告文件；先准备父目录，不覆盖已有报告。核对退出码成功且报告 `ok=true` 后继续；预检会访问 GitHub 并执行 `git fetch`，不是纯离线检查。`dispatch` 自身还会重新预检并保存报告。
 
 输入发布另需相应授权。以下命令均为操作示例，不由绑定脚本自动执行；将占位值替换为本次实际值：
 
@@ -180,7 +182,7 @@ node scripts/video-github.mjs find <dispatch.json>
 node scripts/video-github.mjs status <run-id> --repository <owner/code>
 ```
 
-`bind` 返回的持久绑定供 `dispatch` 使用；`find` 读取派发记录查询同一 dispatchId，`status` 按 Run ID 查询结果。工具检查范围、重派条件和 Artifact 验收要求见渲染交付规范。
+`bind` 将持久绑定写入本视频 `render-input/github-<sha-prefix>.json`，供 `dispatch` 使用；本地预检与派发记录保存到 `output/github/<sha>/`。`find` 读取派发记录查询同一 dispatchId，`status` 按 Run ID 查询结果。工具检查范围、重派条件和 Artifact 验收要求见渲染交付规范。
 
 ## 检查
 
@@ -196,4 +198,4 @@ git diff --check
 
 检查只覆盖当前改动及直接影响行为，整套回归仅在用户明确要求时运行；按改动选择上面的命令，不默认全部执行。长驻命令、预览和渲染控制日志体积；除本次排查确有需要，不读取 node_modules、缓存、构建产物或大媒体。
 
-重复问题先读已有成功基线，复用仍有效的环境。修复依赖宿主权限、认证、远端修改或替代入口时，记录实际依赖及下一条视频的复用方式；通用修复进入实际工具入口并做必要定向回归，不靠临时手工操作长期维持。实际入口验证与另一条未完成／新视频的跨视频验证分别报告，缺口记入 ROADMAP；不修改 completed 视频作为验证素材。
+重复问题先读已有成功基线，复用仍有效的环境。修复依赖宿主权限、认证、远端修改或替代入口时，记录实际依赖及下一条视频的复用方式；通用修复进入实际工具入口并做必要定向回归，不靠临时手工操作长期维持。实际入口验证与另一条未完成视频的跨视频验证分别报告，缺口记入 ROADMAP；不修改 completed 视频作为验证素材。

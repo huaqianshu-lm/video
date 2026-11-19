@@ -44,11 +44,11 @@
 
 ## 产物交接与失败恢复
 
-生成结果位于 `src/videos/<slug>/generated/`：音频、逐幕字幕、Audio／Subtitle／Timeline 三份 Manifest、完整 SRT／VTT，以及有可用边界时的 `word-timing.json`。Edge MP3 与百炼 WAV 均可作为原始音频，不为统一格式转码或改变时间基准。
+本视频资料的目录职责及原位返修按 [直接制作入口](DIRECT-VIDEO-PRODUCTION.md#单条视频目录与固定审核入口) 执行。派生输入保存到 `videos/<slug>/tts-script.json`；有效生成结果位于 `videos/<slug>/generated/`：音频、逐幕字幕、Audio／Subtitle／Timeline 三份 Manifest、完整 SRT／VTT，以及有可用边界时的 `word-timing.json`。词级证据的写入、读取和绑定使用同一生成目录。Edge MP3 与百炼 WAV 均可作为原始音频，不为统一格式转码或改变时间基准。
 
 交接时按工具说明核对本次结果及 `validate` 的实际覆盖；分镜与词级定位按关联与时间映射规则核对，工具接入缺口见 ROADMAP。
 
-缓存位于 `local/tts/<slug>/<script-hash>-<provider-hash>/`。相同输入与服务配置下保留有效片段继续；输入或配置变化使用不同缓存。空失败片段可清理，不删除原成功媒体。复用旧音频时核对同视频文本、配置及实际文件，保留原音频来源；在现有 `production-record.md` 中说明复用与新生成的实际范围。结果字段含义见工具说明。
+派生输入的临时资料放 `videos/<slug>/work/tts/`，生成缓存位于其 `<script-hash>-<provider-hash>/` 子目录。相同输入与服务配置下保留有效片段继续；输入或配置变化使用不同缓存。空失败片段可清理，不删除原成功媒体。复用已有音频时核对同视频文本、配置及实际文件，保留原音频来源；在本视频唯一的 `production-record.md` 中说明复用与生成的实际范围。生成失败不将不完整结果发布为当前有效产物；口播或配置变化仅更新受影响产物及必要下游。结果字段含义见工具说明。
 
 缺路径、依赖、认证或权限时，先核对已有成功环境和实际报错，不让用户重配仍有效的环境，不修改 Shell、token 或系统设置碰运气。临时网络故障在有效授权和原目的地内有界重试；持续 403、认证或权限错误先解决原因，不靠重复请求推进。音频、字幕或 Timeline 不一致时停止下游使用，核对输入及产物，不手改时间绕过检查。
 

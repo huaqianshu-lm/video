@@ -57,9 +57,11 @@ Agent 会建立本条 `production-record.md`，形成内容分析、叙事策划
 
 ### 2．确认分镜
 
-Agent 联合收敛口播和分镜，审核口播并完成独立设计审查与修订，再提交分镜供用户确认，口播作为对照资料。
+Agent 联合收敛口播和分镜，审核口播并完成独立设计审查与修订，再提交同一 `videos/my-first-video/storyboard.md` 供用户确认，口播作为对照资料；`storyboard.json` 保存同一设计的结构化数据。返修修改原文件并保持两者一致，只更新受影响下游。
 
 用户明确确认后才进入配音。分镜设计时按表达问题选择 [视觉参考](references/README.md)，需要统一配色和材质时选择风格；设计成立后再查 [模板](templates/README.md)，由 Agent 选择、改造或编写实现。
+
+先确定核心知识由画面展示什么过程、关系或差异，再联合安排口播。选读参考后，将借用机制、当前内容的改造和预期作用写入相关镜头；提交前先不依赖口播审查画面含义，再对照台词。参考的选用、实现和实际效果验证分别判断，具体标准见[分镜质量规范](docs/STORYBOARD-EXECUTION-QUALITY.md)。
 
 ### 3．配置并生成配音、字幕和真实时间轴
 
@@ -79,7 +81,7 @@ node scripts/video-tts.mjs generate my-first-video \
 node scripts/video-tts.mjs validate my-first-video
 ```
 
-输入从纯口播派生为 `videos/my-first-video/tts-script.json`，生成音频、字幕和真实 Timeline 位于 `src/videos/my-first-video/generated/`。后续画面使用这些真实时间资料。
+输入从纯口播派生为 `videos/my-first-video/tts-script.json`，生成音频、字幕和真实 Timeline 位于 `videos/my-first-video/generated/`。后续画面使用这些真实时间资料。
 
 如使用百炼，还需要独立的 Python 依赖、音色、运行环境凭据和 TTS／ASR 外发许可；百炼仍依赖标准输入生成器。具体配置见 [TTS 环境说明](docs/TTS-SETUP.md) 和 [工具说明](scripts/README.md)。不要把凭据写入口播、代码或资源包。
 
@@ -87,12 +89,14 @@ node scripts/video-tts.mjs validate my-first-video
 
 让 Agent 读取 [.claude/skills/visual-prototype-remotion/SKILL.md](.claude/skills/visual-prototype-remotion/SKILL.md)，按确认分镜、真实音频和 Timeline 编写当前视频的 React／Remotion。
 
-本条代码放在 `src/videos/my-first-video/`，图片等放在 `public/local-assets/my-first-video/`。后续输入打包需要视频组件及配置入口；下面示例约定为：
+本条代码放在 `videos/my-first-video/src/`，图片等专属素材放在 `videos/my-first-video/assets/`，选定封面的快照放在其 `cover/` 子目录。打包时在本视频快照内构造播放素材；代码使用 `local-assets/my-first-video/...` 播放引用，不向项目根 public 复制。后续输入打包需要视频组件及配置入口；下面示例约定为：
 
 - `MyFirstVideo.tsx`：导出组件 `MyFirstVideo`。
 - `video.config.ts`：导出 `videoConfig`，包含实际画面规格和时间配置。
 
 这些文件由 Agent 根据当前内容编写，打包命令不会替你生成画面。使用不同文件名或导出名时，修改下一步对应参数；特殊时长导出等参数见 [工具说明](scripts/README.md)。
+
+先实现能检验核心表达及交接的连续段落，使用第 5 步的输入包与预览方式正常速度检查完整动作和阅读，修正后再展开依赖同一设计的其余实现。第 4～5 步可往返，不新增人工确认；局部预演不能代替整片观看。
 
 ### 5．准备输入包并预览
 
@@ -100,22 +104,22 @@ node scripts/video-tts.mjs validate my-first-video
 
 ```bash
 node scripts/video-input.mjs prepare my-first-video \
-  --component-path src/videos/my-first-video/MyFirstVideo.tsx \
+  --component-path videos/my-first-video/src/MyFirstVideo.tsx \
   --component-export MyFirstVideo \
-  --config-path src/videos/my-first-video/video.config.ts \
+  --config-path videos/my-first-video/src/video.config.ts \
   --config-export videoConfig
 ```
 
-命令返回 `directory`、`archive`、`sha256` 等信息。将下列 `<input-directory>` 替换为本次返回的 `directory`，不要把尖括号原样输入终端：
+输入快照及 ZIP 保存在本视频 `render-input/`，预览会话资料保存在 `preview/`，缓存和临时资料保存在 `work/`；执行、实施、测试等方案统一放 `drafts/`。命令返回 `directory`、`archive`、`sha256` 等信息。将下列 `<input-directory>` 替换为本次返回的 `directory`，不要把尖括号原样输入终端：
 
 ```bash
 node scripts/video-input.mjs validate <input-directory>
 npm run preview -- my-first-video
 ```
 
-按终端提示打开 Studio，选择本条 Composition 查看。克隆后尚无视频输入包时，预览不会自动生成一条视频；必须先完成前面的内容、音频和实现步骤。
+按终端提示打开 Studio，选择本条 Composition 查看。克隆后尚无视频输入包时，预览不会自动生成一条视频；必须先完成前面的内容、音频和当前待预演段落的可加载实现。
 
-Agent 先完整观看动态画面、正常速度试听并修正问题，再由用户实际观看、试听并确认画面。实现返修后重新准备输入包并预览当前版本；打开或更新前核对已有 Studio，避免覆盖正在使用的入口。
+Agent 先对核心片段作无声核对，再结合口播完整观看、正常速度试听，核查参考方法是否解决了对应问题；发现问题按机制检查全片同类表达。修正并满足[实际观看与提交条件](docs/VIDEO-PRODUCTION-RULES.md#12-gate-3-实际观看与试听)后，再由用户观看、试听并确认画面。必要检查未完成时保留未验结论，机器检查通过不能替代。实现返修后重新准备输入包并预览当前版本；打开或更新前核对已有 Studio，避免覆盖正在使用的入口。
 
 ### 6．渲染并验收 MP4
 
@@ -133,7 +137,7 @@ node scripts/video-render.mjs check <input-directory>
 node scripts/video-render.mjs render <input-directory>
 ```
 
-MP4 输出在 `out/direct-render/my-first-video/<stamp>/my-first-video.mp4`，日志和结果记录在 `local/direct-render/my-first-video/<stamp>/`，实际位置以命令返回结果为准。用户观看、试听成片并验收后，Agent 收尾制作记录；完成态资料按项目规则保持只读。
+MP4 输出在 `videos/my-first-video/output/<task>/my-first-video.mp4`，独立工作区、日志和结果记录在同一任务目录，实际位置以命令返回结果为准。用户观看、试听成片并验收后，Agent 收尾制作记录；完成态资料按项目规则保持只读。
 
 本地交付无需 GitHub 认证或发布输入包。需要 GitHub 渲染时，另按 [渲染交付规范](docs/RENDER-DELIVERY-BASELINE.md) 准备独立输入仓库、认证、成功基线和相应授权。
 
@@ -163,4 +167,5 @@ MP4 输出在 `out/direct-render/my-first-video/<stamp>/my-first-video.mp4`，�
 | `contracts/` | 分镜 [Schema](contracts/video-production/current/storyboard.schema.json) 和 [合法示例](contracts/video-production/current/examples/storyboard.json)。 |
 | `scripts/` | [工具、配置及检查说明](scripts/README.md)，以及必要内部模块和定向测试。 |
 | `src/components/`、`src/scenes/`、`src/lib/` | 通用画面、场景与时间等实现能力。 |
-| `videos/`、`src/videos/`、`public/local-assets/`、`series/`、`public/series-assets/`、`assets/`、`local/`、`out/` | 本地视频资料、代码、资源与产物，不随仓库分发；边界见 [项目规则](CLAUDE.md)。 |
+| `videos/` | 每条视频的制作资料、代码、资源、缓存、预览、输入快照和成片，均保存在 `videos/<slug>/`，不随仓库分发。 |
+| `series/`、`public/series-assets/` | 共用系列配置与原始封面，不随仓库分发；边界见 [项目规则](CLAUDE.md)。 |

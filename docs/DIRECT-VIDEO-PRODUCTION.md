@@ -11,31 +11,62 @@
 | 环节 | 当前工作与形成的资料 | 使用文档 |
 | --- | --- | --- |
 | 内容与策划 | 保存 `source.md`，合并制作 `content-analysis.md`、`video-narrative.md`；展示实际系列及封面，由用户选择并保存结果。内部检查不新增人工确认。 | [策划 Skill](../.claude/skills/video-production/SKILL.md)、[质量规范](VIDEO-PRODUCTION-RULES.md)第 1、2 章、[系列与封面](AGENT-SERIES-COVER.md) |
-| 口播与分镜 | 联合收敛 `narration-script.md` 与 `storyboard.json`；Agent 完成口播审核、独立设计审查及修订后，将分镜提交用户确认；口播作为分镜对照资料。 | 策划 Skill、质量规范第 3～9 章（按使用索引选读）、[分镜设计与审查](STORYBOARD-EXECUTION-QUALITY.md)；字段查 [Schema](../contracts/video-production/current/storyboard.schema.json)及[合法示例](../contracts/video-production/current/examples/storyboard.json)，关联查[分镜关联与时间映射规则](STORYBOARD-PRODUCTION-CONTRACT.md) |
+| 口播与分镜 | 联合收敛 `narration-script.md`、`storyboard.md` 与同一设计的 `storyboard.json`；Agent 完成口播审核、独立设计审查及修订后，始终提交原 `storyboard.md` 供用户确认；口播作为分镜对照资料。 | 策划 Skill、质量规范第 3～9 章（按使用索引选读）、[分镜设计与审查](STORYBOARD-EXECUTION-QUALITY.md)；字段查 [Schema](../contracts/video-production/current/storyboard.schema.json)及[合法示例](../contracts/video-production/current/examples/storyboard.json)，关联查[分镜关联与时间映射规则](STORYBOARD-PRODUCTION-CONTRACT.md) |
 | TTS、字幕与真实时间 | Agent 完成口播审核、用户确认分镜后，派生并校验独立 `tts-script.json`，据此生成实际音频、字幕、Audio／Subtitle／Timeline Manifest 及可取得的词级证据。 | [TTS Skill](../.claude/skills/narrated-video-tts/SKILL.md)、[TTS 环境与外发](TTS-SETUP.md)、质量规范第 10 章及 8.6 相关项；真实时间映射按分镜关联规则 |
-| Remotion 实现与预览 | 根据确认分镜和真实 Timeline 编写本视频 React／Remotion，准备独立输入包并加载正式预览。 | [实现 Skill](../.claude/skills/visual-prototype-remotion/SKILL.md)、质量规范第 8、11 章；输入包与预览按[交付 Skill](../.claude/skills/video-render/SKILL.md)及[渲染交付规范](RENDER-DELIVERY-BASELINE.md) |
-| 观看、试听与画面确认 | Agent 提交前完整观看动态画面、正常速度试听并修正问题，记录真实检查范围及未验事项，再交用户实际观看、试听并确认当前画面。不能完成的必要感官检查须明确说明，不能用技术检查或自评代替。 | 实现 Skill、质量规范第 12 章、分镜质量规范「实现与返修核对」 |
+| Remotion 实现与预览 | 根据确认分镜和真实 Timeline，先实现并动态预演能检验核心表达及交接的连续段落，修正后展开依赖该设计的其余实现；沿用独立输入包和正式预览，不增加人工确认。 | [实现 Skill](../.claude/skills/visual-prototype-remotion/SKILL.md)、质量规范第 8、11 章、分镜质量规范「难点推敲与实现选择」；输入包与预览按[交付 Skill](../.claude/skills/video-render/SKILL.md)及[渲染交付规范](RENDER-DELIVERY-BASELINE.md) |
+| 观看、试听与画面确认 | Agent 先作核心片段无声核对，再结合口播完整观看、正常速度试听，检查参考方法的实际作用及全片同类问题。满足质量规范第 12 章的提交条件后再交用户确认；必要感官检查未完成或存在质量阻断时说明缺口，不报画面审查通过。 | 实现 Skill、质量规范第 12 章、分镜质量规范「实现与返修核对」 |
 | 渲染与成片验收 | 用户确认画面并明确授权当前输入后执行渲染；默认本地，GitHub 为用户明确选择的替代方式。保留输入包、日志及结果位置，最终成片由用户验收。 | 交付 Skill、渲染交付规范；认证、发布、提交推送、派发及中断恢复细则均在该规范维护 |
 
-分镜及实现先读 [references/README.md](../references/README.md)，按表达问题选读方法与案例；设计成立后再查 [templates/README.md](../templates/README.md)。具体视频资料、代码和资源分别放在 `videos/<slug>/`、`src/videos/<slug>/`、`public/local-assets/<slug>/`，保持本地忽略；仓库边界以 [CLAUDE.md](../CLAUDE.md) 为准。
+分镜及实现先读 [references/README.md](../references/README.md)，按表达问题选读方法与案例；设计成立后再查 [templates/README.md](../templates/README.md)。视频专属资料统一按下节保存，保持本地忽略；仓库边界以 [CLAUDE.md](../CLAUDE.md) 为准。
+
+参考怎样转化为当前镜头、无声审查及同类问题排查按[分镜质量规范](STORYBOARD-EXECUTION-QUALITY.md)执行；实际观看的判断与不通过条件由[质量规范第 12 章](VIDEO-PRODUCTION-RULES.md#12-gate-3-实际观看与试听)维护。预演是现有实现阶段内的验证，不替代分镜确认、整片观看或用户画面确认；分镜确认前的实验不等于正式 Remotion 制作。
 
 打开或更新预览前，Agent 须核对已有 Studio 及其使用的入口，不覆盖或强制关闭正在使用的预览；工具改动验证使用隔离目录。
 
+## 单条视频目录与固定审核入口
+
+每条视频使用独立标识，只维护一个 `videos/<slug>/` 工作目录；审核和返修不改变标识或另建整套资料。按需创建下列位置，不预建空目录：
+
+| 视频目录内位置 | 资料职责 |
+| --- | --- |
+| 根目录 | `source.md`、`content-analysis.md`、`video-narrative.md`、`narration-script.md`、`storyboard.md`、`storyboard.json`、`tts-script.json`、`cover.json`、唯一的 `production-record.md` |
+| `src/` | 本视频 React／Remotion 代码及配置 |
+| `assets/` | 专属素材；封面快照在 `assets/cover/` |
+| `generated/` | 当前有效音频、字幕、真实 Timeline、Manifest 和可取得的词级证据 |
+| `preview/` | 预览及观看／试听检查资料 |
+| `render-input/` | 独立输入快照、ZIP、当前包指针及远端绑定资料 |
+| `output/` | 独立渲染工作区、日志、任务结果及成片 |
+| `work/` | 必要临时资料与可恢复缓存；TTS 缓存在 `work/tts/` |
+
+执行、实施、测试等方案文档统一放 `drafts/`，本视频专属方案可放 `drafts/<slug>/`，制作记录引用其位置。共享组件、模板、系列原始配置及封面、参考和工具环境继续共用；本视频采用的封面快照保存在本视频目录。忽略的 `src/RenderInputRoot.tsx` 是共享运行入口，仍按已有预览保护要求使用，不作为视频专属源码的存放位置。
+
+首次及后续分镜审核始终提交 `videos/<slug>/storyboard.md`，同目录口播作为对照；JSON 是同一设计的结构化实现资料。Markdown 沿用 Scene → Shot → Event 层次和相同标识，说明表达目标、画面及屏幕文字、镜头、对象动作、衔接和必要设计依据，不必重复全部技术字段，不得遗漏影响审核的设计。真实音频产生前，不将估计时间描述为已验证时间。
+
+先在原 Markdown 中收敛设计，再同步原 JSON；每次提交前核对两者的标识、顺序、画面、文字和动作一致，存在差异先修正，不提交不一致的稿件或让下游使用失效设计。实现或真实时间核对引起可见设计变化时，同样回写原审核稿并重新确认受影响范围。每次提供同一个审核链接及简短修改说明，不另建审核报告或分镜副本；链接不变不代表变更后的内容自动获得确认。
+
 ## 制作记录、用户确认与变更处理
 
-每条新视频只用一份 `videos/<slug>/production-record.md`。简要保存当前工作、必要输入／输出、问题与修正、未验事项，以及用户确认的准确范围和原文或会话位置。确认仅由用户明确决定，工具检查或文件存在不构成确认。
+每条视频只用一份 `videos/<slug>/production-record.md`。简要保存当前工作、必要输入／输出、问题与修正、未验事项，以及用户确认的准确范围和原文或会话位置。确认仅由用户明确决定，工具检查或文件存在不构成确认。
+
+参考应用沿用该记录，区分已选用、已实现和已验证，并简记对应段落、实际观看依据及未验范围；具体口径按分镜质量规范，不新增逐镜状态表。记录工程检查、表达与感官审查、用户确认时分别陈述，文件存在或检查通过不能自动提升另一类结论。
 
 口播、分镜、音频或实现发生变化时，先说明受影响内容及原确认的适用范围，仅返修真正受影响部分；口播变化由 Agent 重新审核，影响分镜时由用户重新确认受影响分镜；分镜变化同样由用户重新确认受影响部分。实现修复重看相关画面与衔接，保留仍有效的音频及其他产物。不能沿用已变化部分的批准。用户已明确授权的范围不重复请求确认；流程改造授权按[项目规则](../CLAUDE.md#直接制作与变更)处理。
 
+返修先按分镜质量规范检查全片同类表达，确定实际问题及影响范围，再直接修改原文件，只更新受影响内容及必要下游；排查全片不等于重做全片。不因审核轮次创建 v2、redesign 等整套目录或重新生成仍有效的资料。修改说明沿用会话和唯一制作记录，简要记录排查范围、发现、本次改动、下游影响、仍有效及待重新确认的范围，不增加逐轮归档系统。已失效的产物即使还存在，也不能作为当前输入。
+
+分镜退回但口播不变时，修改原 Markdown 并同步 JSON，保留有效声音；口播改变时，更新受影响 TTS 输入、音频、字幕和 Timeline，时长变化须核对后续时间位置及相关实现；仅画面或实现变化时保留有效声音，更新相关设计／代码，并按现行要求重新观看及确认。
+
+独立输入快照是原位修改的例外：源文件只有一套，返修后的新包放同一 `render-input/` 内的新快照目录，不覆盖已校验或正在使用的快照；只有成功校验并生成包后才更新当前指针，失败保留原有效指针。打包从枚举阶段只选必要输入，排除 `render-input/`、`output/`、`preview/`、`work/`，防止递归收录自身产物。新渲染任务放同一 `output/` 内的独立任务目录，仍遵守原授权与恢复规则；工具失败先检查原任务并复用有效结果，不另起视频目录。快照不是人工编辑或分镜审核入口。
+
 用户验收成片后，先记录成片确认、交付结果及产物位置，最后将制作记录顶部状态改为 `状态：completed`。这次记录收尾不改变已验收的画面／音频输入，无需因此重新打包或渲染；标记完成后，制作记录也进入永久只读范围。
 
-## 完成态保护与已有资料使用
+## 完成态与资料保护
 
 任何写入前先核对本条制作记录；若存在 `harness/projects/<slug>/state.json`，一并只读核对。任一记录为 `completed` 即按完成态保护。状态冲突或无法确认时先停止写入、核实事实，不把状态识别视为工具已覆盖全部异常。
 
-`completed` 视频的内容、资料、代码、配置、资源、音频、字幕、Timeline／Manifest、审核、状态、制作记录、历史任务及所有关联产物永久只读，不重包或重渲染；只读检查和已有包预览允许。必须制作新版本时使用新标识或独立副本，不回写原视频。
+`completed` 视频的内容、资料、代码、配置、资源、音频、字幕、Timeline／Manifest、审核、状态、制作记录、任务及所有关联产物永久只读，不重包或重渲染；允许只读检查和已有包预览，预览不得向完成视频目录写入会话资料。必须制作独立版本时使用独立标识或副本，不回写已完成视频。
 
-未完成视频依据实际资料和缺口继续制作，规则文档更新不自动使既有口播、分镜或音频失效。已有 TTS 配置、完成状态、封面及输入包可只读使用，已有审核事实原样保留。
+恢复制作时按同一工作目录及实际缺口继续，保留未受影响资料和有效确认；审核事实按实际发生范围记录，不因规则更新改写既有确认。
 
 ## 交付说明
 

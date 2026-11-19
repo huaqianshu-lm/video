@@ -5,7 +5,7 @@ description: 准备并校验视频输入包与Studio预览，按用户选择和�
 
 # 预览与交付
 
-用于实现阶段的正式预览，以及画面确认后的渲染交付。开始或恢复时，读取 `docs/DIRECT-VIDEO-PRODUCTION.md`，依据 production-record.md 和实际产物确定工作位置及可操作范围，完成态保护、用户确认与变更按该文档执行。读取 `docs/RENDER-DELIVERY-BASELINE.md` 的对应章节；当前实施状态及未验证范围见 ROADMAP.md，命令、参数与目录见 `scripts/README.md`。
+用于实现阶段的正式预览，以及画面确认后的渲染交付。开始或恢复时，读取 `docs/DIRECT-VIDEO-PRODUCTION.md`，依据 production-record.md 和实际产物确定工作位置及可操作范围，统一目录、完成态保护、用户确认与变更按该文档执行。输入快照、预览会话、本地任务及远端绑定资料按 `docs/RENDER-DELIVERY-BASELINE.md` 的对应章节保存；实际验证范围见 ROADMAP.md，命令与参数见 `scripts/README.md`。
 
 1. 准备预览：按交付规范「独立输入」准备并校验当前包，明确 Composition ID 与输入；组件或导出名不唯一时明确指定，不猜测。按直接制作入口核对并保护已有 Studio，再调用预览入口。记录本次包及预览入口，返回 `.claude/skills/visual-prototype-remotion/SKILL.md` 完成实际观看、试听和用户画面确认；仅准备预览时在此结束。
 2. 确定交付范围：进入正式渲染前，按交付规范「范围与授权」核对用户已确认的当前画面／试听及当前输入的渲染授权，确认其与预览所用包一致。默认执行本地方式；用户明确选择 GitHub 时执行远程方式，两者择一，已有有效授权不重复询问。确定方式时查阅 `scripts/README.md` 的「本地检查与输出」及对应交付说明，核对当前工具支持的规格；不支持时说明缺口，不擅自更改画幅、帧率或交付方式。

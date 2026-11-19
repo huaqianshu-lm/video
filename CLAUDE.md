@@ -21,7 +21,7 @@
 - TTS 环境与外发：`docs/TTS-SETUP.md`；渲染认证与成功基线：`docs/RENDER-DELIVERY-BASELINE.md`。
 - 分镜及实现先读 `references/README.md`，按表达问题选读案例／方法；设计成立后再查 `templates/README.md`，不默认加载全部参考。
 
-`docs/` 是当前稳定规范；`drafts/` 是方案，不具有规范效力；`notes/` 是按需排障笔记。工具命令只在 `scripts/README.md` 维护。
+`docs/` 只存放与视频制作规则相关的文档，包括制作流程、内容与视觉设计要求、质量标准、TTS 及预览／交付规范；不得存放执行方案、实施方案、测试方案、迁移方案、改造计划等方案类文档。所有方案类文档统一保存到 `drafts/`，即使方案已经确认或实施，也不因此移入 `docs/`；确需形成长期规则时，只将收敛后的规则写入对应规范，不搬入整份方案。`drafts/` 中的方案本身不具有规范效力；`notes/` 是按需排障笔记。工具命令只在 `scripts/README.md` 维护。
 
 ## 仓库边界
 
@@ -29,7 +29,9 @@
 
 具体视频资料和资源只在本地，不提交：`videos/`、`src/videos/`、`assets/`、`series/`、`public/local-assets/`、`public/series-assets/`、`local/`、`out/`、`drafts/`、`notes/`、媒体及临时 `src/RenderInputRoot.tsx`。
 
-`harness/` 中已有记录、缓存及百炼虚拟环境原位保留；只读使用完成状态与 provider 配置等资料。
+每条视频的专属制作资料、代码、媒体、缓存、预览和交付产物统一放在 `videos/<slug>/`，目录职责及输入快照例外按 `docs/DIRECT-VIDEO-PRODUCTION.md` 执行；方案类文档放 `drafts/`，共享组件、模板、系列原始资料和环境共用。
+
+`harness/` 中的记录、缓存及百炼虚拟环境原位保留；完成状态只读核对，TTS 配置按 `docs/TTS-SETUP.md` 执行。
 
 具体视频不得成为远端唯一规范或模板来源。Schema／合法示例放 contracts。references 只收可复用设计方法、观察与必要来源，不收上游源码、媒体或具体视频业务资料。
 
@@ -41,7 +43,7 @@
 
 ## 直接制作与变更
 
-制作记录、确认范围、变更返修及已有资料承接按 `docs/DIRECT-VIDEO-PRODUCTION.md` 执行。
+制作记录、固定分镜审核入口、确认范围、原位返修及资料保护按 `docs/DIRECT-VIDEO-PRODUCTION.md` 执行。
 
 视频制作授权与流程改造分开。新增强制生成器、工具、表达限制或依赖前须说明原方式、新方式、实际调用及影响，取得相应授权；不能以内部实现或阶段名称未变隐藏变更。已明确授权范围不重复请求确认。
 

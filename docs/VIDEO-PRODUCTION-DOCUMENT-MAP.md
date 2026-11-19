@@ -52,6 +52,8 @@
   → ⑩ 明确授权当前输入渲染 → 本地或 GitHub → MP4 → 用户验收
 ```
 
+⑦～⑧先往返完成核心连续段落的实现与动态预演，修正后展开依赖同一设计的其余实现；⑨仍须完整观看与试听。预演属于现有实现工作，不新增阶段或人工确认；具体执行见[实现 Skill 第 2～3 步](../.claude/skills/visual-prototype-remotion/SKILL.md)，选段及判断见[分镜质量规范「难点推敲与实现选择」](STORYBOARD-EXECUTION-QUALITY.md#难点推敲与实现选择)。
+
 四份 Skill 的交接关系：
 
 | Skill | 负责的工作 | 交接位置 |
@@ -98,7 +100,7 @@ Skill 文件当前均较短，进入环节时读取整份；下面用步骤名�
 </tr>
 <tr>
 <td style="vertical-align: top; white-space: normal; overflow-wrap: anywhere; word-break: normal;"><a href="DIRECT-VIDEO-PRODUCTION.md" style="overflow-wrap: anywhere;">DIRECT-VIDEO-PRODUCTION.md</a></td>
-<td style="vertical-align: top; white-space: normal; overflow-wrap: anywhere; word-break: normal;">「文档用途与使用方法」「制作记录、用户确认与变更处理」「完成态保护与已有资料使用」</td>
+<td style="vertical-align: top; white-space: normal; overflow-wrap: anywhere; word-break: normal;">「文档用途与使用方法」「制作记录、用户确认与变更处理」「完成态与资料保护」</td>
 <td style="vertical-align: top; white-space: normal; overflow-wrap: anywhere; word-break: normal;">定位新建／恢复工作及允许修改的范围</td>
 <td style="vertical-align: top; white-space: normal; overflow-wrap: anywhere; word-break: normal;">当前版本、原确认和复用范围是否判断正确</td>
 </tr>
@@ -111,7 +113,7 @@ Skill 文件当前均较短，进入环节时读取整份；下面用步骤名�
 </tbody>
 </table>
 
-**输出与去向**：确定本次工作位置及范围；新视频沿用直接制作入口建立一份制作记录，然后进入策划。恢复视频从实际缺口进入后续对应环节，无需机械重走全部步骤。
+**输出与去向**：确定本次工作位置及范围；沿用直接制作入口，在 `videos/<slug>/` 建立或复用唯一制作记录，再按实际工作位置继续。恢复视频从实际缺口进入后续对应环节，无需机械重走全部步骤。
 
 ## ② 内容分析与叙事策划：把资料变成教学路线
 
@@ -163,7 +165,7 @@ Skill 文件当前均较短，进入环节时读取整份；下面用步骤名�
 
 **按需**：选择配色与材质时查看 [深蓝科技风格](../styles/current/STYLE.md)或 [Codex 系列风格](../styles/codex/STYLE.md)；两者均为可选参考，采用后落实到本条方案。
 
-**输出与去向**：`videos/<slug>/source.md`、`content-analysis.md`、`video-narrative.md`、`cover.json` 及选中系列的封面快照。策划内部检查由 Agent 完成，不新增策划确认；系列选择由用户决定。知识判断和叙事安排共同作为下一步输入。
+**输出与去向**：`videos/<slug>/source.md`、`content-analysis.md`、`video-narrative.md`、`cover.json` 及 `assets/cover/` 中选中系列的封面快照。策划内部检查由 Agent 完成，不新增策划确认；系列选择由用户决定。知识判断和叙事安排共同作为下一步输入。
 
 ## ③ 纯口播与分镜联合设计：决定说什么、怎样呈现
 
@@ -218,8 +220,8 @@ Skill 文件当前均较短，进入环节时读取整份；下面用步骤名�
 </tr>
 <tr>
 <td style="vertical-align: top; white-space: normal; overflow-wrap: anywhere; word-break: normal;"><a href="STORYBOARD-EXECUTION-QUALITY.md#分镜设计方法" style="overflow-wrap: anywhere;">STORYBOARD-EXECUTION-QUALITY.md</a></td>
-<td style="vertical-align: top; white-space: normal; overflow-wrap: anywhere; word-break: normal;">「全片构思」「逐幕表达与关键变化」「镜头与注意力组织」「难点推敲与实现选择」</td>
-<td style="vertical-align: top; white-space: normal; overflow-wrap: anywhere; word-break: normal;">设计全片主线、每幕情境、关键状态、构图与焦点交接</td>
+<td style="vertical-align: top; white-space: normal; overflow-wrap: anywhere; word-break: normal;">「全片构思」「逐幕表达与关键变化」「参考方法的应用」「镜头与注意力组织」「难点推敲与实现选择」</td>
+<td style="vertical-align: top; white-space: normal; overflow-wrap: anywhere; word-break: normal;">先确定可见过程，再联合安排口播；将参考机制适配为关键状态、构图与焦点交接</td>
 <td style="vertical-align: top; white-space: normal; overflow-wrap: anywhere; word-break: normal;">分镜是否各幕同版式、缺少完整情境、焦点竞争或难点未经推敲</td>
 </tr>
 <tr>
@@ -251,13 +253,13 @@ Skill 文件当前均较短，进入环节时读取整份；下面用步骤名�
 
 **按需**：视觉类型查质量规范第 7 章；文字、排版、素材等参数查 8.6 的对应部分，具体路由见下表。设计成立后查 [模板索引「使用顺序」「当前模板」](../templates/README.md#使用顺序)，匹配时再读所选模板 README 的输入、可调整项、不适用条件、失败方式及验证范围；无匹配则自行实现。有系列时对照质量规范 2.2，安排有资料依据的下一集预告。
 
-**输出与去向**：`videos/<slug>/narration-script.md` 与 `storyboard.json`，以及确有需要的本地设计说明、关键帧或动画实验。口播正文只保存实际朗读文本，分镜不另存可修改的口播全文。此时使用语义锚点，正式同步时间留待真实音频产生后处理。
+**输出与去向**：同一 `videos/<slug>/` 内的 `narration-script.md`、`storyboard.md` 与 `storyboard.json`；必要设计说明写入原分镜，关键帧或实验放本视频 `preview/` 或 `work/`，方案文档统一放 `drafts/`。Markdown 供人工审核，JSON 用于结构化实现，两者保持同一 Scene → Shot → Event 标识及设计。口播正文只保存实际朗读文本，分镜不另存可修改的口播全文。此时使用语义锚点，正式同步时间留待真实音频产生后处理。
 
 ### 设计与实现时怎样选读参考
 
 `references/` 在③分镜设计时帮助决定内容怎样呈现，在⑦实现时帮助细化构图、造型和动作，在④审查及⑨观看返修时帮助找到表达与审美的改进方向。它既服务单个镜头，也服务全片的视觉变化与节奏。
 
-从 [references/README.md](../references/README.md) 的「按问题阅读」「使用方法」进入，按当前需要选择主题、案例或技法。具体文件与章节以该索引为准，本文不另行维护参考清单。选读后，把适合当前内容的方法落实到分镜或实现中，实际观看后再判断效果。
+从 [references/README.md](../references/README.md) 的「按问题阅读」「使用方法」进入，按当前需要选择主题、案例或技法。具体文件与章节以该索引为准，本文不另行维护参考清单。选读后，按[分镜质量规范「参考方法的应用」](STORYBOARD-EXECUTION-QUALITY.md#参考方法的应用)在相关镜头说明借用机制、当前改造和预期作用；选用、实现及实际观看验证分别判断，不以案例名称或阅读数量证明应用有效。
 
 参考的「方法可借鉴」「源码关系已核对」「动态／声音已观看」「原创实现已验证」分别判断，不能把其中一项推导成全部成立。
 
@@ -300,12 +302,12 @@ Skill 文件当前均较短，进入环节时读取整份；下面用步骤名�
 <td style="vertical-align: top; white-space: normal; overflow-wrap: anywhere; word-break: normal;"><a href="VIDEO-PRODUCTION-RULES.md#91-提交前的独立设计审查" style="overflow-wrap: anywhere;">VIDEO-PRODUCTION-RULES.md</a></td>
 <td style="vertical-align: top; white-space: normal; overflow-wrap: anywhere; word-break: normal;">9.1；按问题回查第 4、6、8 章</td>
 <td style="vertical-align: top; white-space: normal; overflow-wrap: anywhere; word-break: normal;">确认审查对象为同版口播和分镜</td>
-<td style="vertical-align: top; white-space: normal; overflow-wrap: anywhere; word-break: normal;">是否检查了旧版本，修订后未复核</td>
+<td style="vertical-align: top; white-space: normal; overflow-wrap: anywhere; word-break: normal;">是否检查了失效稿件，修订后未复核</td>
 </tr>
 <tr>
 <td style="vertical-align: top; white-space: normal; overflow-wrap: anywhere; word-break: normal;"><a href="STORYBOARD-EXECUTION-QUALITY.md#提交前独立审查" style="overflow-wrap: anywhere;">STORYBOARD-EXECUTION-QUALITY.md</a></td>
 <td style="vertical-align: top; white-space: normal; overflow-wrap: anywhere; word-break: normal;">「提交前独立审查」及 SQ-1～SQ-10</td>
-<td style="vertical-align: top; white-space: normal; overflow-wrap: anywhere; word-break: normal;">从观众角度检查教学链、画面含义、对象情境及设计可行性</td>
+<td style="vertical-align: top; white-space: normal; overflow-wrap: anywhere; word-break: normal;">先不依赖口播判断对象、变化与结果，再对照台词检查教学链、情境及设计可行性；核心过程不成立先退回设计</td>
 <td style="vertical-align: top; white-space: normal; overflow-wrap: anywhere; word-break: normal;">审查是否漏掉语义误导、互斥状态、机械重复或不可实现的同步需求</td>
 </tr>
 <tr>
@@ -317,7 +319,7 @@ Skill 文件当前均较短，进入环节时读取整份；下面用步骤名�
 </tbody>
 </table>
 
-**输出与去向**：修订后的同版口播和分镜；在分镜说明或 `production-record.md` 中简记审查范围、判断依据、问题、修正及待实际验证事项。主要表达问题先内部修订，再提交用户。
+**输出与去向**：原文件中修订后的同版口播和一致的 Markdown／JSON 分镜；在分镜说明或 `production-record.md` 中简记审查范围、判断依据、问题、修正及待实际验证事项。主要表达问题先内部修订，再提交用户。
 
 ## ⑤ 用户确认分镜，确定后续输入
 
@@ -337,7 +339,7 @@ Skill 文件当前均较短，进入环节时读取整份；下面用步骤名�
 <tr>
 <td style="vertical-align: top; white-space: normal; overflow-wrap: anywhere; word-break: normal;"><a href="../.claude/skills/video-production/SKILL.md" style="overflow-wrap: anywhere;">.claude/skills/video-production/SKILL.md</a></td>
 <td style="vertical-align: top; white-space: normal; overflow-wrap: anywhere; word-break: normal;">第 5 步「用户确认与交接」</td>
-<td style="vertical-align: top; white-space: normal; overflow-wrap: anywhere; word-break: normal;">提交分镜，附同版已审核口播</td>
+<td style="vertical-align: top; white-space: normal; overflow-wrap: anywhere; word-break: normal;">始终提交原 storyboard.md，附同版已审核口播</td>
 <td style="vertical-align: top; white-space: normal; overflow-wrap: anywhere; word-break: normal;">是否提交错版本或遗漏理解方案所需资料</td>
 </tr>
 <tr>
@@ -355,7 +357,7 @@ Skill 文件当前均较短，进入环节时读取整份；下面用步骤名�
 </tbody>
 </table>
 
-**输出与去向**：制作记录中的 Agent 口播审核结果、用户分镜确认及准确范围。分镜未确认时返回设计与审查；确认后进入 TTS。分镜确认不代替实际画面确认或渲染授权。
+**输出与去向**：制作记录中的 Agent 口播审核结果、用户分镜确认及准确范围；每次审核使用同一个 `videos/<slug>/storyboard.md` 链接。返修修改原文件、同步 JSON，仅更新受影响下游，不另起审核目录；同一链接不代表修改后自动获得确认。分镜未确认时返回设计与审查；确认后进入 TTS。分镜确认不代替实际画面确认或渲染授权。
 
 ## ⑥ TTS、字幕与真实 Timeline：由 Agent 调脚本生成
 
@@ -426,10 +428,10 @@ videos/<slug>/narration-script.md
   → build → videos/<slug>/tts-script.json
   → generate + provider 配置 → 真实音频
   → 同一 TTS 文本与真实音频 → 字幕及真实 Timeline
-  → 核对结果 → src/videos/<slug>/generated/
+  → 核对结果 → videos/<slug>/generated/
 ```
 
-**输出与去向**：`generated/` 中的音频、逐幕字幕、`audio-manifest.json`、`subtitle-manifest.json`、`timeline-manifest.json`、完整 SRT／VTT，以及有可用边界时的 `word-timing.json`。这些资料交给实现环节；实际发音与完整正常速度试听仍需后续感官检查。
+**输出与去向**：`videos/<slug>/generated/` 中的音频、逐幕字幕、`audio-manifest.json`、`subtitle-manifest.json`、`timeline-manifest.json`、完整 SRT／VTT，以及有可用边界时的 `word-timing.json`。临时稿与生成缓存放本视频 `work/tts/`，有效资料交给实现环节；实际发音与完整正常速度试听仍需后续感官检查。
 
 ## ⑦ 映射真实时间并编写 React／Remotion
 
@@ -448,8 +450,8 @@ videos/<slug>/narration-script.md
 <tbody>
 <tr>
 <td style="vertical-align: top; white-space: normal; overflow-wrap: anywhere; word-break: normal;"><a href="../.claude/skills/visual-prototype-remotion/SKILL.md" style="overflow-wrap: anywhere;">.claude/skills/visual-prototype-remotion/SKILL.md</a></td>
-<td style="vertical-align: top; white-space: normal; overflow-wrap: anywhere; word-break: normal;">开头、第 1～2 步</td>
-<td style="vertical-align: top; white-space: normal; overflow-wrap: anywhere; word-break: normal;">编写正式组件，选择参考及可选模板</td>
+<td style="vertical-align: top; white-space: normal; overflow-wrap: anywhere; word-break: normal;">开头、第 1～3 步；连续段落预演与⑧往返</td>
+<td style="vertical-align: top; white-space: normal; overflow-wrap: anywhere; word-break: normal;">先验证核心表达及交接，再展开依赖该设计的其余组件，按内容选参考及可选模板</td>
 <td style="vertical-align: top; white-space: normal; overflow-wrap: anywhere; word-break: normal;">是否使用错版分镜、旧音频或不适合的模板</td>
 </tr>
 <tr>
@@ -493,7 +495,9 @@ videos/<slug>/narration-script.md
 
 **实现依据**：时间公共能力查 [src/lib/timing.ts](../src/lib/timing.ts)，词级绑定是否有效仍按关联规则核对；文件中存在估算能力不代表可以用估算替代正式同步依据。
 
-**输出与去向**：`src/videos/<slug>/` 中的正式 React／Remotion 组件、配置及必要时间绑定；本地素材位于 `public/local-assets/<slug>/` 等项目规定位置。实现完成后准备当前快照，不能让旧包预览代表新代码。
+**预演依据**：按[分镜质量规范「难点推敲与实现选择」](STORYBOARD-EXECUTION-QUALITY.md#难点推敲与实现选择)选择段落，用⑧的当前独立包检查完整动作、中间状态、阅读和交接。分镜阶段的实验与静帧只支持当时范围，须在真实 Timeline 下复核；预演不清楚先修正，不能把问题复制到其余场景。
+
+**输出与去向**：`videos/<slug>/src/` 中的正式 React／Remotion 组件、配置及必要时间绑定；专属素材位于本视频 `assets/`，播放引用为 `local-assets/<slug>/...`，由快照内素材提供。实现完成后准备当前快照，不使用失效输入代表当前代码。
 
 ## ⑧ 准备独立输入包并加载正式预览
 
@@ -543,7 +547,7 @@ videos/<slug>/narration-script.md
 </tbody>
 </table>
 
-**输出与去向**：`local/render-input/<slug>/direct-<stamp>/`、对应 ZIP／SHA-256 和 `direct-current.json` 指针，以及可实际播放的正式预览入口。记录本次包和 Composition ID，返回实现 Skill 观看试听。这里使用交付 Skill 不意味着已执行渲染。
+**输出与去向**：`videos/<slug>/render-input/direct-<stamp>/`、同层 ZIP／SHA-256 和 `render-input/direct-current.json` 指针；预览会话及隔离 public 在本视频 `preview/<session>/`，共享入口为 `src/RenderInputRoot.tsx`。完成态包的只读预览会话放系统临时目录，不回写视频目录。记录本次包和 Composition ID，返回实现 Skill 观看试听。这里使用交付 Skill 不意味着已执行渲染。
 
 ## ⑨ 完整观看、正常速度试听、返修与画面确认
 
@@ -569,7 +573,7 @@ videos/<slug>/narration-script.md
 <tr>
 <td style="vertical-align: top; white-space: normal; overflow-wrap: anywhere; word-break: normal;"><a href="VIDEO-PRODUCTION-RULES.md#121-观看与确认" style="overflow-wrap: anywhere;">VIDEO-PRODUCTION-RULES.md</a></td>
 <td style="vertical-align: top; white-space: normal; overflow-wrap: anywhere; word-break: normal;">12.1「观看与确认」</td>
-<td style="vertical-align: top; white-space: normal; overflow-wrap: anywhere; word-break: normal;">核对实际检查的版本、完整范围、修正与确认</td>
+<td style="vertical-align: top; white-space: normal; overflow-wrap: anywhere; word-break: normal;">先核心片段无声核对，再完整观看／正常速度试听；按提交条件分别报告工程、感官审查和用户确认</td>
 <td style="vertical-align: top; white-space: normal; overflow-wrap: anywhere; word-break: normal;">是否用截图或解码冒充完整观看，记录是否对应当前包</td>
 </tr>
 <tr>
@@ -581,7 +585,7 @@ videos/<slug>/narration-script.md
 <tr>
 <td style="vertical-align: top; white-space: normal; overflow-wrap: anywhere; word-break: normal;"><a href="STORYBOARD-EXECUTION-QUALITY.md#实现与返修核对" style="overflow-wrap: anywhere;">STORYBOARD-EXECUTION-QUALITY.md</a></td>
 <td style="vertical-align: top; white-space: normal; overflow-wrap: anywhere; word-break: normal;">「实现与返修核对」</td>
-<td style="vertical-align: top; white-space: normal; overflow-wrap: anywhere; word-break: normal;">将当前动态画面与分镜对照，检查局部改动对全片的影响</td>
+<td style="vertical-align: top; white-space: normal; overflow-wrap: anywhere; word-break: normal;">将动态画面与分镜对照，发现问题排查全片同类表达，核对参考方法的作用及局部改动影响</td>
 <td style="vertical-align: top; white-space: normal; overflow-wrap: anywhere; word-break: normal;">是分镜本身表达有问题，还是实现没有兑现分镜</td>
 </tr>
 <tr>
@@ -601,7 +605,7 @@ videos/<slug>/narration-script.md
 
 **按需**：发现文字小、遮挡、太快、混音等具体问题时，回查质量规范 8.6 对应项和相关参考正文。
 
-**输出与去向**：修正后的当前版本、Agent 实际观看／试听记录，以及用户对当前画面的明确确认。代码或媒体变化后按影响范围更新包和复查；影响口播或分镜时返回相应审核／确认位置。必要感官检查无法完成须说明缺口，不能用截图、解码或结构检查冒充完整观看／试听。
+**输出与去向**：修正后的当前版本、Agent 实际观看／试听记录；满足质量规范 12.1 的提交条件后，再由用户明确确认画面。代码或媒体变化后按影响范围更新包和复查；影响口播或分镜时返回相应审核／确认位置。必要感官检查无法完成或仍有质量阻断时说明缺口、影响和待验范围，不报画面审查通过，不能用截图、解码或结构检查冒充完整观看／试听。
 
 ## ⑩ 渲染、MP4 交付与用户验收
 
@@ -693,13 +697,13 @@ videos/<slug>/narration-script.md
 
 读取交付基线「本地」，以及工具说明「日常使用」中的本地 check／render／inspect 和「本地渲染环境」。Agent 先预检，再按授权执行；中断时查询原进程与结果。
 
-实际输出位置按本次工具结果核对，正常路径为 `out/direct-render/<slug>/<stamp>/<slug>.mp4`；独立工作区、日志和结果记录位于 `local/direct-render/<slug>/<stamp>/`。机器检查覆盖规格、帧数、音轨及解码，不代替成片观看验收。
+实际输出位置按本次工具结果核对，正常路径为 `videos/<slug>/output/<task>/<slug>.mp4`；独立工作区、日志和结果记录位于同一任务目录。机器检查覆盖规格、帧数、音轨及解码，不代替成片观看验收。
 
 ### GitHub 路径，仅明确选择时使用
 
 依次读取交付基线的「GitHub成功基线与认证」「发布、代码与派发」，调用方式查工具说明「GitHub 操作」。Agent 在对应授权内完成实际工作区预检、输入发布与持久绑定、精确代码清单的提交推送及派发；结果不确定时查原 dispatchId／Run。
 
-实际 Run 成功且 Artifact 有效后交用户下载及验收；接受派发不等于 MP4 已完成。「Smoke 检查」只在新系列或环境变化且需要相应 GitHub 检查时按需读取，不是每条视频的必经环节。「CI与验证」用于区分静态检查和真实 Actions 结果。
+本地绑定保存于本视频 `render-input/`，预检与派发记录保存于 `output/github/<sha>/`；实际下载的 Artifact 放本视频 `output/`。实际 Run 成功且 Artifact 有效后交用户下载及验收；接受派发不等于 MP4 已完成。「Smoke 检查」只在新系列或环境变化且需要相应 GitHub 检查时按需读取，不是每条视频的必经环节。「CI与验证」用于区分静态检查和真实 Actions 结果。
 
 ### 验收后收尾
 
@@ -713,16 +717,16 @@ videos/<slug>/narration-script.md
 |---|---|---|
 | [CLAUDE.md](../CLAUDE.md) | 项目规则、授权与仓库边界 | ① 项目定位、规则路由、仓库边界、项目底线；发生流程改造时查「直接制作与变更」；⑧～⑩ 查「预览与交付」；维护可复用能力时查「工程和质量沉淀」 |
 | [ROADMAP.md](../ROADMAP.md) | 当前进度、能力缺口与验证状态 | ① 定位当前阶段与能力缺口；⑥～⑩ 在依赖工具能力、报告验证结果时核对「进行中」「阻塞与待承接资料」「最近验证」 |
-| [docs/DIRECT-VIDEO-PRODUCTION.md](DIRECT-VIDEO-PRODUCTION.md) | 直接协作流程、确认与变更、记录及交付说明 | ①「文档用途与使用方法」「完成态保护与已有资料使用」；⑤及所有返修「制作记录、用户确认与变更处理」；⑧「制作流程、资料与文档入口」末段；⑨～⑩「交付说明」；⑩ 验收后的记录收尾 |
+| [docs/DIRECT-VIDEO-PRODUCTION.md](DIRECT-VIDEO-PRODUCTION.md) | 直接协作流程、确认与变更、记录及交付说明 | ①「文档用途与使用方法」「完成态与资料保护」；⑤及所有返修「制作记录、用户确认与变更处理」；⑧「制作流程、资料与文档入口」末段；⑨～⑩「交付说明」；⑩ 验收后的记录收尾 |
 | [docs/VIDEO-PRODUCTION-RULES.md](VIDEO-PRODUCTION-RULES.md) | 内容与视觉设计原则、动画自主设计、声画量化基线与实际质量判断 | ② 第 1、2 章；③ 第 3～6 章、8.1～8.5，第 7 章按需；④ 9.1；⑤ 9.2；⑥ 第 10 章；⑦ 第 8、11 章；⑨ 12.1、12.2；③⑥⑦⑨ 按实际问题选读 8.6 对应项 |
-| [docs/STORYBOARD-EXECUTION-QUALITY.md](STORYBOARD-EXECUTION-QUALITY.md) | 把教学目标组织成具体分镜，审查表达、焦点与变化链，并核对实现是否兑现设计 | ③「分镜设计方法」的四个子节；④「提交前独立审查」及 SQ-1～SQ-10；⑦⑨和分镜返修「实现与返修核对」 |
+| [docs/STORYBOARD-EXECUTION-QUALITY.md](STORYBOARD-EXECUTION-QUALITY.md) | 把教学目标组织成具体分镜，审查表达、焦点与变化链，并核对实现是否兑现设计 | ③「分镜设计方法」，含「参考方法的应用」；④「提交前独立审查」及 SQ-1～SQ-10；⑦～⑧「难点推敲与实现选择」；⑦⑨和分镜返修「实现与返修核对」 |
 | [docs/STORYBOARD-PRODUCTION-CONTRACT.md](STORYBOARD-PRODUCTION-CONTRACT.md) | 对象引用、镜头衔接与真实时间映射；保证设计数据可关联、可实现 | ③④「对象与素材引用」「镜头边界与衔接」；④ 判断同步可行性时查时间条件；⑥交接、⑦映射及同步返修查「时间来源」「解析与阻断」 |
 | [docs/AGENT-SERIES-COVER.md](AGENT-SERIES-COVER.md) | 系列身份、封面选择与快照、统一片头及正文偏移 | ②「系列选择与封面快照」；⑦「片头与正文时间」；⑧⑨及封面变更「核对与变更」 |
 | [docs/TTS-SETUP.md](TTS-SETUP.md) | TTS 环境、服务与外发条件、时间资料交接和恢复 | ⑥生成前「环境与配置」「服务选择与外发授权」；显式使用百炼时「百炼 ASR 文本与时间映射」；交接、复用或失败时「产物交接与失败恢复」 |
-| [docs/RENDER-DELIVERY-BASELINE.md](RENDER-DELIVERY-BASELINE.md) | 预览与渲染输入一致性、交付执行与认证恢复 | ⑧「独立输入」；⑩「范围与授权」，本地分支查「本地」，GitHub 分支查「GitHub成功基线与认证」「发布、代码与派发」；仅条件满足时「Smoke 检查」；判断验证覆盖查「CI与验证」 |
+| [docs/RENDER-DELIVERY-BASELINE.md](RENDER-DELIVERY-BASELINE.md) | 预览与渲染输入一致性、交付执行与认证恢复 | ⑧「独立输入」「预览与会话资料」；⑩「范围与授权」，本地分支查「本地」，GitHub 分支查「GitHub成功基线与认证」「发布、代码与派发」；仅条件满足时「Smoke 检查」；判断验证覆盖查「CI与验证」 |
 | [.claude/skills/video-production/SKILL.md](../.claude/skills/video-production/SKILL.md) | 组织策划、口播与分镜设计，安排参考选读、审查和确认 | ② 第 1 步；③ 第 2～3 步；④ 第 4 步；⑤ 第 5 步；复用既有经验时读末段 |
 | [.claude/skills/narrated-video-tts/SKILL.md](../.claude/skills/narrated-video-tts/SKILL.md) | 组织真实音频、字幕及 Timeline 的脚本生成与核对 | ⑥ 开头及第 1～5 步；交接时间映射时读末段；修改口播或配置后重新核对范围 |
-| [.claude/skills/visual-prototype-remotion/SKILL.md](../.claude/skills/visual-prototype-remotion/SKILL.md) | 把分镜和选用设计方法落实为画面，组织观看、试听和返修 | ⑦ 开头及第 1～2 步；⑧ 第 3 步；⑨ 第 4～6 步；画面确认和渲染授权就绪后按第 6 步交接 |
+| [.claude/skills/visual-prototype-remotion/SKILL.md](../.claude/skills/visual-prototype-remotion/SKILL.md) | 把分镜和选用设计方法落实为画面，组织观看、试听和返修 | ⑦～⑧ 开头及第 1～3 步，先预演核心连续段落再展开其余实现；⑨ 第 4～6 步；画面确认和渲染授权就绪后按第 6 步交接 |
 | [.claude/skills/video-render/SKILL.md](../.claude/skills/video-render/SKILL.md) | 组织输入包、预览及正式渲染的执行和验收交接 | ⑧ 第 1 步，准备预览后返回实现 Skill；⑩ 第 2～4 步，执行渲染与验收交接 |
 | [scripts/README.md](../scripts/README.md) | 工具调用、配置、输入输出及检查边界 | ②「日常使用」系列命令；⑥ TTS 命令及「TTS 配置与结果」；⑧ 输入包／预览命令；⑩ 本地命令及「本地渲染环境」，或「GitHub 操作」；工程排障查「检查」 |
 | [contracts/video-production/current/storyboard.schema.json](../contracts/video-production/current/storyboard.schema.json) | 分镜字段与结构定义，不评判构图和审美 | ③ 编写、④核对及分镜返修：查当前字段的定义、必填项、类型与枚举 |
@@ -732,10 +736,10 @@ videos/<slug>/narration-script.md
 | `templates/visual/<选中模板>/README.md` | 选中实现的表达能力、输入、可改范围、失败条件及验证范围 | ③ 判断匹配时读「表达任务」和不适用条件；⑦读使用入口、输入／当前实现、可调整项与限制；⑨对照实际验证范围。具体标题以选中文件为准，未选中的模板不进入本条调用链 |
 | [styles/current/STYLE.md](../styles/current/STYLE.md) | 可选的深蓝配色、面板材质与层次参考 | ②选风格时「适用与使用」；采用后③⑦查「配色参考」「材质与层次」，⑨核对是否落实 |
 | [styles/codex/STYLE.md](../styles/codex/STYLE.md) | 可选的 Codex 配色、背景与材质参考 | ②选风格时「适用与使用」；采用后③⑦查「配色与实现」「背景与材质」，⑨核对是否落实 |
-| 本条 `source.md`、`content-analysis.md`、`video-narrative.md`、`narration-script.md`、`storyboard.json`、`tts-script.json`、`production-record.md` | 本条视频的具体内容、设计决定与执行事实 | 是各环节产生并传给下游的本视频资料，具体生成／消费位置见各节「输入」「输出与去向」；出现问题须与规范同时核对，不能只查公共文档 |
+| 本条 `source.md`、`content-analysis.md`、`video-narrative.md`、`narration-script.md`、`storyboard.md`、`storyboard.json`、`tts-script.json`、`production-record.md` | 本条视频的具体内容、设计决定与执行事实 | 是各环节产生并传给下游的本视频资料，具体生成／消费位置见各节「输入」「输出与去向」；出现问题须与规范同时核对，不能只查公共文档 |
 | 本文 `docs/VIDEO-PRODUCTION-DOCUMENT-MAP.md` | 定位文档职责、使用时机及问题归属 | 开始当前工作或排查问题时定位文件及章节，再回到原文；本文不代替原文执行规则 |
 
-根 [README.md](../README.md) 提供项目介绍、环境安装和首次制作的使用指引；本文用于按制作环节查找对应文档及章节。`drafts/` 是待议方案，`notes/` 是按需排障笔记，`legacy/` 是历史资料；这些不作为本流程的常规规范入口。具体方法／案例和模板属于按需分支，实际采用哪篇，应能从本条分镜或制作记录追溯，而不是把整库都列为必读。
+根 [README.md](../README.md) 提供项目介绍、环境安装和首次制作的使用指引；本文用于按制作环节查找对应文档及章节。`drafts/` 保存全部执行、实施、测试等方案，`notes/` 是按需排障笔记，`legacy/` 是历史资料；这些不作为本流程的常规规范入口。具体方法／案例和模板属于按需分支，实际采用哪篇，应能从本条分镜或制作记录追溯，而不是把整库都列为必读。
 
 ## 出现问题后，怎样判断该改哪份文档
 
@@ -756,7 +760,7 @@ videos/<slug>/narration-script.md
 | 封面错、片头重复、正文声画延迟两次 | ②⑦⑧ `AGENT-SERIES-COVER.md` 的选择、时间与核对章节 | 对照 `cover.json`、输入包 `entry.cover`、统一入口及正文代码 |
 | 用户看到旧画面、预览和 MP4 不同 | ⑧⑩ `RENDER-DELIVERY-BASELINE.md`「独立输入」；交付 Skill 第 1～2 步 | 对照当前代码、包指纹、Composition ID、用户确认版本和实际渲染输入 |
 | TTS／渲染失败、重复执行、结果找不到 | ⑥ `TTS-SETUP.md`「产物交接与失败恢复」；⑩交付基线的本地或 GitHub 恢复规则 | `scripts/README.md` 对应命令、实际配置、日志、原进程／Run 与产物；属于工具行为时修工具 |
-| 旧经验未使用、同类错误反复出现 | 策划 Skill 末段、实现 Skill 第 5 步；本条实际采用的方法／案例及制作记录 | ⑨ `VIDEO-PRODUCTION-RULES.md` 12.1：是否真实核对已采用方法及复看结果；只有未阅读或未执行时，增加规则不能解决 |
+| 旧经验未使用、同类错误反复出现 | `STORYBOARD-EXECUTION-QUALITY.md`「参考方法的应用」「实现与返修核对」；策划 Skill 末段、实现 Skill 第 5～6 步 | 对照本条分镜、代码及观看依据，区分选用、实现和验证；⑨按质量规范12.1核对全片同类排查及复看结果，不把查阅记录当效果证明 |
 
 定位到章节后，再区分原因：设计方法不足或缺少可借鉴依据，补强 `references/` 的方法与案例；风格资料不足，完善所用 `styles/` 文档；规范缺失、冲突或说不清，修改负责该决定的 `docs/`；原文清楚但 Skill 没在对应环节引导使用，修 Skill 的读取／交接；Agent 未落实，修当前产物与执行；脚本或代码行为错误，修实现并验证；检查没发现已有问题，修实际检查方式。几类原因可以同时存在，不因成片不好就直接加规则。
 
@@ -769,11 +773,11 @@ videos/<slug>/narration-script.md
 | 独立工具尚未统一接入分镜 Schema、对象关联／生命周期及 Shot／Event 语义锚点校验 | 设计和实现时仍需 Agent 对照 Schema、关联规则及实际代码核对；输入包通过不等于分镜通过 |
 | 词级证据读取及绑定／文本／时间校验能力尚未完整接入消费入口 | Agent 按「真实时间映射与异常处理」核对证据及实际落点；无有效证据不能宣称词级精确同步 |
 | TTS validate 对完整 SRT／VTT 仅检查存在且非空，不检查实际发音或词级同步 | 按工具说明理解覆盖范围，后续通过实际画面及正常速度试听检查效果 |
-| 预览工具尚无共用入口占用自动保护 | Agent 依直接制作入口核对现有 Studio；不能假定脚本会自动保护 |
+| 预览写入前检查进程命令行，发现使用共享入口的 Studio 或无法读取进程信息时停止 | Agent 仍须依直接制作入口核对现有 Studio；命令行检查不证明覆盖全部启动方式 |
 | 独立包动态观看／试听、本地完整交付、真实 GitHub 路径及跨视频验证仍有待验范围 | 查看 ROADMAP 的当前记录，分别报告文档核对、机器检查与实际执行证据 |
 
 ## 经验沉淀在流程中的位置
 
-采用已有经验时，按策划／实现 Skill，在本条制作记录中简记采用方法、使用段落及要避免的问题；⑨ 实际观看后核对是否落实。没有相关项无需填写。
+采用已有经验时，③按[分镜质量规范「参考方法的应用」](STORYBOARD-EXECUTION-QUALITY.md#参考方法的应用)将机制与当前内容对应；⑦～⑧核对是否实现，⑨实际观看后判断是否解决问题。沿用本条制作记录简记段落、依据和未验范围，区分选用、实现与验证；发现问题按「实现与返修核对」检查全片同类表达。没有相关项无需填写，不另建打卡表。
 
 制作中发现可复用方法时，方法与失败条件按 [参考索引「使用方法」「后续案例的更新策略」](../references/README.md#后续案例的更新策略)沉淀；可运行实现只有满足[模板索引「准入标准」「验证范围」](../templates/README.md#准入标准)才进入模板库。工具修复与复用问题查[工具说明「检查」](../scripts/README.md#检查)。这些是相应经验出现时的维护入口，不是每条视频额外必交的资料。
