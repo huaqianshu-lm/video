@@ -21,7 +21,7 @@ export function bindInput(root, directory, archive, url, {api = gh} = {}) {
   if (createHash('sha256').update(remote).digest('hex') !== sha256) fail('远端资产与本次输入包 ZIP 不一致');
   const result = {videoSlug: id, compositionId: manifest.compositionId, packageFingerprint: manifest.packageFingerprint,
     directory: path.resolve(directory), archive: path.resolve(archive), url: parsed.href, sha256};
-  const file = inside(root, `local/render-input/${id}/github-${sha256.slice(0, 20)}.json`);
+  const file = inside(root, `videos/${id}/render-input/github-${sha256.slice(0, 20)}.json`);
   assertMutable(root, id); write(file, result); return {file, ...result};
 }
 export async function dispatchInput(root, bindingFile, options, {api = gh, preflight = checkRenderPreparation, gitRun = execFileSync} = {}) {
@@ -29,8 +29,7 @@ export async function dispatchInput(root, bindingFile, options, {api = gh, prefl
   assertMutable(root, id);
   if (options.confirm !== binding.sha256) fail('必须提供用户已确认的本次输入包 SHA：--confirm <sha256>');
   if (manifest.packageFingerprint !== binding.packageFingerprint || manifest.compositionId !== binding.compositionId || id !== binding.videoSlug || fileHash(binding.archive) !== binding.sha256) fail('输入绑定已过期');
-  if (!manifest.files.some(f => f.path === 'src/lib/timing.ts')) fail('远程新入口需要含共享代码快照的新输入包，旧包保持只读');
-  for (const file of manifest.files.filter(f => (f.path.startsWith('src/') && !f.path.startsWith('src/videos/')) || f.path.startsWith('styles/') || f.path.startsWith('templates/') || ['package.json', 'package-lock.json', 'tsconfig.json', 'remotion.config.ts'].includes(f.path))) {
+  for (const file of manifest.files.filter(f => f.path.startsWith('src/') || f.path.startsWith('styles/') || f.path.startsWith('templates/') || ['package.json', 'package-lock.json', 'tsconfig.json', 'remotion.config.ts'].includes(f.path))) {
     if (fileHash(inside(root, file.path)) !== file.sha256) fail(`输入包与当前能力代码不同，请重新准备并审核：${file.path}`);
   }
   execFileSync('python3', [path.join(ROOT, 'scripts/lib/archive.py'), 'verify', binding.archive, binding.directory], {stdio: ['ignore', 'pipe', 'pipe'], timeout: 60000});
@@ -38,11 +37,11 @@ export async function dispatchInput(root, bindingFile, options, {api = gh, prefl
   if (!binding.url.startsWith(`https://api.github.com/repos/${inputRepo}/releases/assets/`)) fail('独立输入仓库与绑定不一致');
   const ref = options.ref ?? 'main';
   const report = await preflight({workspace: root, repository: repo, inputRepository: inputRepo, ref, baselineRun: options['baseline-run']});
-  const recordRoot = inside(root, `local/github-render/${id}/${binding.sha256}`);
+  const recordRoot = inside(root, `videos/${id}/output/github/${binding.sha256}`);
   fs.mkdirSync(recordRoot, {recursive: true}); write(path.join(recordRoot, 'preflight.json'), report);
   if (!report.ok) fail('远程基线预检未通过，报告已保存');
   const git = args => gitRun('git', ['-C', root, ...args], {encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe']}).trim();
-  const relevant = ['scripts', 'src/components', 'src/scenes', 'src/lib', 'styles', 'templates', 'package.json', 'package-lock.json', 'remotion.config.ts', '.github/workflows'];
+  const relevant = ['scripts', 'src/components', 'src/scenes', 'src/lib', 'styles', 'templates', 'package.json', 'package-lock.json', 'tsconfig.json', 'remotion.config.ts', '.github/workflows'];
   if (git(['status', '--porcelain', '--', ...relevant])) fail('渲染能力代码存在未提交内容；先审核精确文件清单，定向提交推送，不自动执行');
   git(['ls-files', '--error-unmatch', 'scripts/video-input.mjs', 'scripts/lib/input.mjs', '.github/workflows/render-video.yml']);
   const commit = git(['rev-parse', 'HEAD']);

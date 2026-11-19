@@ -1,8 +1,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import {randomUUID} from 'node:crypto';
 import {createRequire} from 'node:module';
 import {execFileSync, spawn} from 'node:child_process';
-import {ROOT, assertMutable, cliOptions, fail, fileHash, inside, main, read, write} from './lib/files.mjs';
+import {ROOT, assertMutable, cliOptions, fail, fileHash, inside, main, read, slug, write} from './lib/files.mjs';
 import {installInput, validateInput} from './lib/input.mjs';
 import {localRenderEnvironment} from './lib/render-environment.mjs';
 
@@ -27,17 +28,16 @@ export async function decodeOutput(output, runtime, composition) {
 export async function renderVideo(root, directory, {environment = process.env} = {}) {
   const manifest = validateInput(directory), id = manifest.videoSlug;
   assertMutable(root, id);
-  if (!fs.existsSync(path.join(directory, 'src/lib/timing.ts'))) fail('正式渲染需先准备含共享能力快照的新输入包；不修改旧包');
   const runtime = renderEnvironment(root, environment);
-  const stamp = `${Date.now()}-${process.pid}`, runDirectory = inside(root, `local/direct-render/${id}/${stamp}`);
-  const workspace = path.join(runDirectory, 'workspace'), output = inside(root, `out/direct-render/${id}/${stamp}/${id}.mp4`);
+  const stamp = `${Date.now()}-${randomUUID()}`, runDirectory = inside(root, `videos/${id}/output/${stamp}`);
+  const workspace = path.join(runDirectory, 'workspace'), output = path.join(runDirectory, `${id}.mp4`);
   fs.mkdirSync(runDirectory, {recursive: true}); fs.mkdirSync(path.dirname(output), {recursive: true});
   const log = path.join(runDirectory, 'render.log'), started = Date.now();
   const record = {videoSlug: id, inputDirectory: directory, inputFingerprint: manifest.packageFingerprint,
     compositionId: manifest.compositionId, pid: process.pid, startedAt: new Date().toISOString(), output, log, runtime};
   write(path.join(runDirectory, 'run.json'), record);
   try {
-    installInput(directory, workspace);
+    installInput(directory, workspace, {root});
     fs.symlinkSync(path.join(root, 'node_modules'), path.join(workspace, 'node_modules'), 'dir');
     const binaries = path.join(runDirectory, 'bin'); fs.mkdirSync(binaries);
     const shim = fs.readFileSync(new URL('./lib/local-ffmpeg.mjs', import.meta.url), 'utf8')
@@ -74,23 +74,26 @@ export async function renderVideo(root, directory, {environment = process.env} =
     assertMutable(root, id); write(path.join(runDirectory, 'result.json'), {ok: false, error: error.message, output}); throw error;
   }
 }
+export function inspectRender(root, input) {
+  const directory = path.resolve(input); inside(root, path.relative(root, directory).split(path.sep).join('/'));
+  const run = read(path.join(directory, 'run.json'));
+  const relative = path.relative(root, directory).split(path.sep).join('/');
+  if (!new RegExp(`^videos/${slug(run.videoSlug)}/output/[^/]+$`).test(relative)) fail('渲染记录不属于本视频任务目录');
+  const resultFile = path.join(directory, 'result.json');
+  if (fs.existsSync(resultFile)) {
+    const result = read(resultFile);
+    if (result.ok && (!fs.existsSync(result.path) || fileHash(result.path) !== result.sha256)) fail('原渲染结果丢失或已改变');
+    return {run, result};
+  }
+  let processExists = true;
+  try { process.kill(run.pid, 0); } catch (error) { if (error.code === 'ESRCH') processExists = false; else if (error.code !== 'EPERM') throw error; }
+  return {run, processExists, result: null, message: '只查询原进程和文件，不自动重渲染；PID 存在不证明渲染仍正常'};
+}
 await main(import.meta.url, async args => {
   const {positional: [action, input], options} = cliOptions(args);
   if (!action || options.help) return {usage: 'node scripts/video-render.mjs check <input-directory> | render <input-directory> | inspect <run-directory>；render 仅在用户明确授权后执行'};
   if (action === 'check') return {videoSlug: validateInput(path.resolve(input)).videoSlug, runtime: renderEnvironment(ROOT)};
   if (action === 'render') return renderVideo(ROOT, path.resolve(input));
-  if (action === 'inspect') {
-    const directory = path.resolve(input); inside(ROOT, path.relative(ROOT, directory).split(path.sep).join('/'));
-    const run = read(path.join(directory, 'run.json'));
-    const resultFile = path.join(directory, 'result.json');
-    if (fs.existsSync(resultFile)) {
-      const result = read(resultFile);
-      if (result.ok && (!fs.existsSync(result.path) || fileHash(result.path) !== result.sha256)) fail('原渲染结果丢失或已改变');
-      return {run, result};
-    }
-    let processExists = true;
-    try { process.kill(run.pid, 0); } catch (error) { if (error.code === 'ESRCH') processExists = false; else if (error.code !== 'EPERM') throw error; }
-    return {run, processExists, result: null, message: '只查询原进程和文件，不自动重渲染；PID 存在不证明渲染仍正常'};
-  }
+  if (action === 'inspect') return inspectRender(ROOT, input);
   fail('不支持的渲染操作');
 });

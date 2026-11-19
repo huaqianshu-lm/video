@@ -51,8 +51,6 @@ export function isCompleted(root, id) {
 }
 export function assertMutable(root, id) {
   if (isCompleted(root, id)) fail(`${id} 已完成，永久只读`);
-  const config = optional(inside(root, `harness/projects/${id}/project.json`));
-  if (config?.workflow === 'product-promo-v1') fail('宣传片工作流已退役，只允许已有输入包只读预览');
 }
 export function cliOptions(args) {
   const options = {}, positional = [];

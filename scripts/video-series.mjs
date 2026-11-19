@@ -29,8 +29,9 @@ export function selectSeries(root, id, seriesId) {
     const sha256 = fileHash(file), duration = series.coverDurationFrames ?? 45;
     if (!Number.isInteger(duration) || duration <= 0) fail('封面帧数无效');
     cover = {...cover, mode: 'series', seriesId, seriesTitle: series.title, style: series.style,
+      sourcePath: `videos/${id}/assets/cover/${sha256}.${image.extension}`,
       src: `local-assets/${id}/cover/${sha256}.${image.extension}`, sha256, durationInFrames: duration};
-    const output = inside(root, `public/${cover.src}`);
+    const output = inside(root, cover.sourcePath);
     fs.mkdirSync(path.dirname(output), {recursive: true}); fs.writeFileSync(output, bytes);
   }
   assertMutable(root, id); write(target, cover); return cover;

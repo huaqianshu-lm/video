@@ -9,7 +9,7 @@ const read = file => JSON.parse(fs.readFileSync(file, 'utf8'));
 const manifests = ['audio-manifest.json', 'subtitle-manifest.json', 'timeline-manifest.json'];
 
 function bindings(root, slug) {
-  const base = `src/videos/${slug}/generated`;
+  const base = `videos/${slug}/generated`;
   const audio = read(path.join(root, base, 'audio-manifest.json'));
   const files = [`videos/${slug}/tts-script.json`, ...manifests.map(file => `${base}/${file}`),
     ...audio.scenes.flatMap(scene => scene.segments.map(segment => `${base}/${segment.file}`))];
@@ -29,13 +29,13 @@ export function writeWordTiming({workspaceRoot, slug, timingRoot}) {
   }));
   if (!segments.length) return null;
   const proof = {schemaVersion: 1, kind: 'provider-word-timing', bindings: bindings(workspaceRoot, slug), segments};
-  const target = path.join(workspaceRoot, `src/videos/${slug}/generated/word-timing.json`);
+  const target = path.join(workspaceRoot, `videos/${slug}/generated/word-timing.json`);
   writeJson(target,proof);
   return target;
 }
 
 export function readWordTiming(workspaceRoot, slug) {
-  const file = path.join(workspaceRoot, `src/videos/${slug}/generated/word-timing.json`);
+  const file = path.join(workspaceRoot, `videos/${slug}/generated/word-timing.json`);
   if (!fs.existsSync(file)) return null;
   const proof = read(file);
   if (proof.schemaVersion !== 1 || proof.kind !== 'provider-word-timing' ||

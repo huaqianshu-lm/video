@@ -11,5 +11,6 @@
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true
   },
-  "include": ["src", "remotion.config.ts"]
+  "include": ["src", "videos/*/src", "remotion.config.ts"],
+  "exclude": ["node_modules", "videos/*/render-input", "videos/*/output", "videos/*/preview", "videos/*/work"]
 }

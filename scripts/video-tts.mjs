@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import {execFileSync} from 'node:child_process';
-import {ROOT, assertMutable, cliOptions, fail, fileHash, hash, inside, main, optional, read, slug, write, files} from './lib/files.mjs';
+import {ROOT, assertMutable, cliOptions, fail, fileHash, hash, inside, main, read, slug, write, files} from './lib/files.mjs';
 import {validateScript, validateMedia} from './lib/media.mjs';
 import {resolveTtsProvider, ttsProviderFingerprint} from './lib/tts-provider.mjs';
 import {writeWordTiming} from './lib/word-timing.mjs';
@@ -15,7 +15,7 @@ export function ttsTools(root, env = process.env) {
 export function buildScript(root, id, {env = process.env, run = execFileSync} = {}) {
   slug(id); assertMutable(root, id);
   const tool = ttsTools(root, env), source = inside(root, `videos/${id}/narration-script.md`);
-  const temporary = inside(root, `local/tts/${id}/script-${Date.now()}-${process.pid}`);
+  const temporary = inside(root, `videos/${id}/work/tts/script-${Date.now()}-${process.pid}`);
   fs.mkdirSync(temporary, {recursive: true});
   // Preserve the canonical builder's existing heading normalization.
   fs.writeFileSync(path.join(temporary, 'narration-script.md'), fs.readFileSync(source, 'utf8').replace(/^(##\s+Scene\s+\d+)\s*[：:]\s*/gm, '$1｜'));
@@ -32,9 +32,8 @@ export function generateTts(root, id, {tts, env = process.env, run = execFileSyn
   const scriptPath = inside(root, `videos/${id}/tts-script.json`), script = validateScript(read(scriptPath), id);
   const narration = inside(root, `videos/${id}/narration-script.md`);
   if (!script.source?.narrationFingerprint || script.source.narrationFingerprint !== fileHash(narration)) fail('TTS Script 与当前口播不一致，先重新派生');
-  const oldConfig = optional(inside(root, `harness/projects/${id}/project.json`));
-  const provider = resolveTtsProvider({tts: tts ?? oldConfig?.tts});
-  const cache = inside(root, `local/tts/${id}/${hash(fs.readFileSync(scriptPath)).slice(0, 24)}-${ttsProviderFingerprint(provider).slice(0, 16)}`);
+  const provider = resolveTtsProvider({tts});
+  const cache = inside(root, `videos/${id}/work/tts/${hash(fs.readFileSync(scriptPath)).slice(0, 24)}-${ttsProviderFingerprint(provider).slice(0, 16)}`);
   const assets = path.join(cache, 'video-assets');
   fs.mkdirSync(assets, {recursive: true});
   write(path.join(assets, 'tts-script.json'), script);
@@ -56,7 +55,7 @@ export function generateTts(root, id, {tts, env = process.env, run = execFileSyn
   const result = validateMedia(assets, script, {probe});
   assertMutable(root, id);
   if (fileHash(scriptPath) !== fileHash(path.join(assets, 'tts-script.json')) || script.source.narrationFingerprint !== fileHash(narration)) fail('生成期间口播已改变，缓存保留但不发布');
-  const generated = inside(root, `src/videos/${id}/generated`);
+  const generated = inside(root, `videos/${id}/generated`);
   for (const name of ['audio', 'subtitles', 'audio-manifest.json', 'subtitle-manifest.json', 'timeline-manifest.json']) {
     fs.mkdirSync(generated, {recursive: true}); fs.cpSync(path.join(assets, name), path.join(generated, name), {recursive: true});
   }
@@ -72,6 +71,6 @@ await main(import.meta.url, args => {
   if (options.help || !action) return {usage: 'node scripts/video-tts.mjs <build|generate|validate> <slug> [--provider-json <JSON>]'};
   if (action === 'build') return buildScript(ROOT, id);
   if (action === 'generate') return generateTts(ROOT, id, {tts: options['provider-json'] ? JSON.parse(options['provider-json']) : undefined});
-  if (action === 'validate') return validateMedia(inside(ROOT, `src/videos/${slug(id)}/generated`), read(inside(ROOT, `videos/${id}/tts-script.json`)));
+  if (action === 'validate') return validateMedia(inside(ROOT, `videos/${slug(id)}/generated`), read(inside(ROOT, `videos/${id}/tts-script.json`)));
   fail('不支持的 TTS 操作');
 });
